@@ -267,3 +267,40 @@ body.rec .help{display:none}
 .pop .ttl{flex-wrap:nowrap}.pop .ttl .meta{white-space:nowrap}
 .chat .in{align-items:flex-end}
 .chat .in .who-sw{flex-direction:column;align-items:flex-start}
+
+/* ---- v4：通しの画面（S2〜S10・終わり）---- */
+.hero.tall{height:880px}.right.tall{height:880px}
+.galT.solo{top:1026px}
+.galT.solo span{font-size:16px}
+.whitefade{position:absolute;inset:0;background:#fff;z-index:60;pointer-events:none;animation:wf 1.2s forwards}
+@keyframes wf{to{opacity:0}}
+.hero.cer > svg.cersvg{position:absolute;left:0;top:0;width:100%;height:100%}
+.cer .tape .tl{animation:tl 1s 2.2s forwards}.cer .tape .tr{animation:tr 1s 2.2s forwards}
+@keyframes tl{to{transform:translate(-40px,60px) rotate(-8deg);opacity:.6}}
+@keyframes tr{to{transform:translate(40px,60px) rotate(8deg);opacity:.6}}
+.late{opacity:0;pointer-events:none;animation:late .6s 3.4s forwards}
+@keyframes late{to{opacity:1;pointer-events:auto}}
+.photo{position:absolute;left:990px;top:144px;z-index:30;font:700 17px var(--f);padding:8px 16px;border-radius:999px;border:1.5px solid var(--ink);background:#fff;cursor:pointer}
+.next1y{position:absolute;left:760px;top:900px;z-index:30;font-size:30px}
+.seasons{position:absolute;inset:0;overflow:hidden}
+.seasons .sky{position:absolute;inset:0;animation:sky 4.4s linear forwards;background:#BFE3F7}
+@keyframes sky{0%{background:#BFE3F7}25%{background:#F6D9B8}50%{background:#E6EEF4}75%{background:#E3F2DA}100%{background:#DDF0FA}}
+.seasons .ground{position:absolute;left:0;right:0;bottom:0;height:300px;animation:gr 4.4s linear forwards;background:#9BD27A}
+@keyframes gr{0%{background:#9BD27A}25%{background:#D9B36A}50%{background:#F7F8FA}75%{background:#B9E09A}100%{background:#F3E7CF}}
+.seasons .tree{position:absolute;left:50%;bottom:290px;width:20px;height:220px;background:#7A5A3A;transform:translateX(-50%)}
+.seasons .tree i{position:absolute;width:150px;height:150px;border-radius:50%;left:-65px;top:-110px;animation:lf 4.4s linear forwards;background:#7DBF62}
+.seasons .tree i:nth-child(2){left:-120px;top:-60px;width:120px;height:120px}.seasons .tree i:nth-child(3){left:20px;top:-60px;width:120px;height:120px}
+.seasons .tree i:nth-child(4){left:-40px;top:-170px;width:110px;height:110px}.seasons .tree i:nth-child(5){left:-90px;top:-130px;width:90px;height:90px}
+@keyframes lf{0%{background:#5FAE4E}25%{background:#E39A3B}45%{background:#F2F3F5;opacity:.9}55%{opacity:.2}75%{background:#F4C3D2;opacity:1}100%{background:#7DBF62}}
+.tag1y{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);font:900 72px var(--fr);background:var(--ink);color:var(--paper);padding:14px 40px;border-radius:999px;opacity:0;animation:t1y .8s 3.6s forwards}
+@keyframes t1y{to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.seasons *{animation-duration:.01s!important;animation-delay:0s!important}.late{animation-delay:0s}}
+.hero.res > svg{position:absolute;left:0;top:0;width:100%;height:100%}
+.rtabs{position:absolute;left:120px;top:100px;display:flex;gap:8px}
+.racts{position:absolute;right:120px;top:96px;display:flex;gap:10px}
+.rtabs + .racts + .rep,.rtabs + .racts + .rep1{top:160px}
+.rep1{position:absolute;left:120px;right:120px;top:160px;bottom:40px;background:#fff;border:1.5px solid rgba(30,43,54,.2);border-radius:18px;padding:16px 26px;overflow:auto}
+.wtab{width:100%;border-collapse:collapse;font-size:18px}
+.wtab td{padding:7px 8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;vertical-align:middle}
+.wtab td span{display:block;font-size:15px;color:var(--ink2)}
+.wtab tr.me{background:#FFF6E8}

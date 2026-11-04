@@ -22,7 +22,7 @@ export function initialState() {
     pair: ['C', 'A'], player: null, others: [], newest: [],
     forkNo: 0, pendingSide: null, pendingTrade: null, band: null, calls: [], failed: null,
     aiLeft: {}, pop: null, myai: null, report: null, staff16: null, tab: null,
-    lot: null, savedId: null, toast: null,
+    lot: null, savedId: null, toast: null, buildAuto: false, rtab: 'home',
   };
 }
 export let S = initialState();
@@ -95,6 +95,8 @@ export function apply(s, e) {
     case 'electric': s.player.electric = [...new Set([...s.player.electric, ...e.ids])]; s.player.adds.push(...(e.adj || [])); break;
     case 'pop': s.pop = e.pop; break;
     case 'lot': s.lot = e.no; break;
+    case 'buildAuto': s.buildAuto = true; break;
+    case 'rtab': s.rtab = e.k; break;
     case 'saved': s.savedId = e.id; break;
   }
   return s;

@@ -77,7 +77,7 @@ function noteOf(w, st) {
   return pool[(hb(w) + band) % pool.length];
 }
 function gallery(s) {
-  if (!s.others.length) return '';
+  if (!s.others.length) return ['hearing', 'forgot', 'reply'].includes(s.scene) ? '<div class="galT solo"><b>選ばれなかった世界線</b><span>まだ分岐していません</span></div>' : '';
   const full = s.others.length === 15;
   const list = [...s.others].sort((a, b) => full ? dno(s, a) - dno(s, b) : a.bits.join('').localeCompare(b.bits.join('')));
   const cols = Math.max(list.length, 5);
@@ -313,19 +313,35 @@ export const SCENES = {
       <div class="opts"><button class="opt" style="background:var(--ink);color:var(--paper)" data-act="toBuild">この内容でOK</button></div>
       <div class="in">${whoSw()}<textarea id="say" rows="3" data-keep data-enter="sendElectric" placeholder="気になるところを指摘する（例：テレビは壁掛けにしたいと伝えていたはず）"></textarea><button class="btn" data-act="sendElectric">伝える</button></div>${navs(s)}</div></div>${gallery(s)}`;
   },
+  // S6：「着工する ▶」で、工程が自動で進む。前の工程で立ったフラグ（聞き漏れ）だけが、施主検査で芽を出す
   build(s) {
     const days = Y.scheduleOf(s.player);
-    const rows = [[7, '申請・着工', '確認の申請がおりて、地鎮祭。基礎の工事に入る'], [8, '上棟', '骨組みが立ち上がる。家の形がいちばんわかる日'], [9, '施主検査', '頼んだとおりか、付箋を貼って確かめる'], [10, '引渡し', '鍵を受け取る']];
+    const found = s.missed.filter(m => m.co === s.player.company).slice(0, 2);
+    const rows = [[7, '申請・着工', '確認の申請がおりて、地鎮祭。基礎の工事に入る'], [8, '上棟', '骨組みが立ち上がる。家の形がいちばんわかる日'], [9, '施主検査', found.length ? `頼んだとおりか確かめる。気づいたこと：${found.map(m => esc(m.said)).join('／')}` : '頼んだとおりか、付箋を貼って確かめる'], [10, '引渡し', '鍵を受け取る']];
+    const auto = s.buildAuto;
     return `${chrome(s)}${hero(s)}<div class="right ${tall(s)}"><div class="chat"><div class="staffbar"><div class="nm">工事の帳面<b>着工から引渡しまで</b></div></div>
-      <ol class="timeline">${rows.map(([st, t, d]) => `<li class="${s.step >= st ? 'on' : ''}"><b>${days[st - 1]}日目</b><span><b>${t}</b><br>${d}</span></li>`).join('')}</ol>
-      <div class="opts" style="margin-top:auto">${s.step < 10 ? `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="buildNext">${s.step === 7 ? '上棟へ ▶' : '次の工程へ ▶'}</button>` : `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="toHandover">引渡しへ</button>`}</div>${navs(s)}</div></div>${gallery(s)}`;
+      <ol class="timeline">${rows.map(([st, t, d]) => `<li class="${s.step >= st && (auto || st === 7 && s.step > 7) ? 'on' : ''}"><b>${days[st - 1]}日目</b><span><b>${t}</b><br>${d}</span></li>`).join('')}</ol>
+      <div class="opts" style="margin-top:auto">${auto ? '<span class="note">工事が進んでいます……</span>' : `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="startBuild">着工する ▶</button>`}</div>${navs(s)}</div></div>${gallery(s)}`;
   },
+  // S7：白いフェードで入る引渡し式。動きが止まったら「写真を保存」と「そして1年後……」
   handover(s) {
     const m = Y.money(s.player);
-    return `${chrome(s)}${hero(s)}<div class="right ${tall(s)}"><div class="chat">${staffHead(s.player.company, 'smile')}<div class="log" style="padding:22px">
+    return `${chrome(s)}<div class="hero tall cer">${ceremonySVG(s)}</div><div class="right tall"><div class="chat">${staffHead(s.player.company, 'smile')}<div class="log" style="padding:22px">
       <div class="msg"><div class="who">${P.coTag(s.player.company, 18)}${STAFFN(s.player.company)}</div>鍵をお渡しします。おめでとうございます。</div>
-      <dl class="facts" style="font-size:20px;margin-top:12px"><dt>最終の総額</dt><dd>${man(m.total)}万円</dd><dt>うち増工</dt><dd>${man(m.add)}万円</dd><dt>借入</dt><dd>${man(m.loan)}万円</dd><dt>引渡し</dt><dd>${Y.scheduleOf(s.player)[10]}日目</dd></dl></div>
-      <div class="opts"><button class="opt" style="background:var(--ink);color:var(--paper)" data-act="toYear">1年後へ</button></div></div></div>${gallery(s)}`;
+      <dl class="facts" style="font-size:20px;margin-top:12px"><dt>最終の総額</dt><dd>${man(m.total)}万円</dd><dt>うち増工</dt><dd>${man(m.add)}万円</dd><dt>借入</dt><dd>${man(m.loan)}万円</dd><dt>引渡し</dt><dd>${Y.scheduleOf(s.player)[10]}日目</dd></dl></div></div></div>
+      <button class="photo late" data-act="savePhoto">写真を保存</button><button class="big-btn next1y late" data-act="toSeasons">そして1年後……</button><div class="whitefade"></div>`;
+  },
+  // 1年のうつろい：空の色と木の葉が、夏→秋→冬→春と移り変わる（夜は通らない）。最後に「1年後」の札
+  seasons(s) {
+    return `<div class="seasons"><div class="sky"></div><div class="tree"><i></i><i></i><i></i><i></i><i></i></div><div class="ground"></div><div class="tag1y">1年後</div></div>`;
+  },
+  // S8a：1年後のわが家（リザルト）。選択の結果が絵に出る
+  result(s) {
+    const o = Y.outcome(s.player);
+    return `${top(s)}${moneyBox(s)}<div class="hero tall res">${lifeSVG(s, o)}</div><div class="card"><h3>${pad(YOU)}　あなたの家の、1年後</h3>
+      <dl><dt>冬の朝</dt><dd>${o.warmth.label}</dd><dt>家計のゆとり</dt><dd>${o.slack.label}</dd><dt>総額</dt><dd>${man(o.total)}万円</dd><dt>借入</dt><dd>${man(o.principal)}万円</dd></dl>
+      <div style="font-size:16px;color:var(--ink2);font-weight:700">この1年の出来事</div><ul class="ev">${(o.events.length ? o.events : ['大きな出来事はなかった']).slice(0, 3).map(e => `<li>${esc(e)}</li>`).join('')}</ul>
+      <div class="acts"><button class="btn" data-act="toYear">16の区画を見る</button></div></div>`;
   },
   year(s) {
     const all = [s.player, ...s.others].map(w => ({ w, o: Y.outcome(w), n: dno(s, w) })).sort((a, b) => a.n - b.n);
@@ -341,7 +357,7 @@ export const SCENES = {
       <dl><dt>総額</dt><dd>${man(o.total)}万円</dd><dt>借入</dt><dd>${man(o.principal)}万円</dd><dt>冬の朝</dt><dd>${o.warmth.label}</dd><dt>家計のゆとり</dt><dd>${o.slack.label}</dd><dt>引渡し</dt><dd>${o.days}日目</dd></dl>
       <div style="font-size:16px;color:var(--ink2);font-weight:700">この1年の出来事</div><ul class="ev">${(o.events.length ? o.events : ['大きな出来事はなかった']).map(e => `<li>${esc(e)}</li>`).join('')}</ul>
       ${line ? `<div class="ln">${P.coTag(o.company, 18)} ${STAFFN(o.company)}：${esc(line)}</div>` : ''}
-      <div class="acts">${mine ? '' : `<button class="btn ghost" data-act="openPop" data-pop="world">もし、あのとき（この世界を再生）</button>`}<button class="btn ghost" data-act="toHonne">それぞれの事情と、見積の透視</button><button class="btn" data-act="toReport">レポートを受け取る</button></div></div>`;
+      <div class="acts">${mine ? '' : `<button class="btn ghost" data-act="openPop" data-pop="world">もし、あのとき（この世界を再生）</button>`}<button class="btn" data-act="toReport">レポートを受け取る</button></div></div>`;
   },
   // 区画を押す：押した位置をアイソメの逆算で区画に直す（16区画は表示の番号順に並ぶ）
   year_after() {
@@ -356,31 +372,32 @@ export const SCENES = {
       import('./main.js').then(m => m.emit('lot', { no: r * 4 + c + 1 }));
     };
   },
-  honne(s) {
-    const spec = s.player.spec;
-    const qs = s.visit.map(id => Y.quote(spec, id, true)).concat('ABCD'.split('').filter(id => !s.visit.includes(id)).map(id => Y.quote(spec, id, true)));
-    const max = Math.max(...qs.map(q => q.real));
-    const notes = s.honne.slice(-3);
-    return `${top(s)}${moneyBox(s)}<div class="full" style="padding-top:130px;display:grid;grid-template-columns:1fr 1fr;gap:40px">
-      <div><div class="h2">それぞれの事情</div><p class="lead">打ち合わせのあいだ、担当者が心の中で考えていたこと（記録から）。</p>
-      ${notes.length ? notes.map(n => `<div class="card" style="position:static;width:auto;height:auto;margin-bottom:14px;display:flex;gap:16px">${P.avatar(n.co, 90, 'idle')}<div><b>${Y.COMPANIES[n.co].name}・${STAFFN(n.co)}</b><p style="font-size:19px;line-height:1.6;margin-top:6px">${esc(n.text)}</p></div></div>`).join('') : '<p class="lead">（この記録には、担当者の本音が残っていません）</p>'}</div>
-      <div><div class="h2">見積の透視</div><p class="lead">同じ仕様で、4社の見積の表紙（黒）と、別途だった項目（斜線）を並べました。</p>
-      <div class="bars">${qs.map(q => `<div class="barc"><div class="colw"><div class="seg hide" style="height:${Math.round((q.real - q.cover) / max * 400)}px"></div><div class="seg cover" style="height:${Math.round(q.cover / max * 400)}px"></div></div><div class="num">${man(q.real)}</div><div class="lbl">${P.coTag(q.company, 18)}表紙 ${man(q.cover)}万円</div></div>`).join('')}</div>
-      <div class="acts" style="justify-content:flex-end"><button class="btn ghost" data-act="toYear">16区画に戻る</button><button class="btn" data-act="toReport">レポートを受け取る</button></div></div></div>`;
-  },
   report(s) {
     const r = s.report, o = Y.outcome(s.player);
     if (!r) return `${top(s)}<div class="center" style="text-align:center">${P.avatar(s.player.company, 160, 'think')}<p class="lead" style="margin-top:20px">決断の記憶から、レポートを書いています……</p></div>`;
     if (r.failed) return `${top(s)}<div class="center" style="text-align:center"><p class="lead">レポートを書けませんでした。</p><button class="big-btn" data-act="retryReport">もう一度</button></div>`;
-    return `${top(s)}${moneyBox(s)}<div class="rep"><div class="box"><div style="font-size:18px;color:var(--ink2)">わが家の、ちょうどいいバランス</div><div class="h2" style="font-size:36px">${esc(r.title)}</div>
-      <h3>悩んだら、これを優先する</h3><ol>${r.balance.map(x => `<li>${esc(x)}</li>`).join('')}</ol>
+    const tab = s.rtab || 'home';
+    const tabs = [['home', 'わが家'], ['worlds', '選ばれなかった世界線'], ['honne', 'それぞれの事情と見積の透視']].map(([k, l]) => `<button class="tab" data-act="rtab" data-k="${k}" aria-pressed="${tab === k}">${l}</button>`).join('');
+    let body = '';
+    if (tab === 'home') body = `<div class="rep"><div class="box"><div style="font-size:18px;color:var(--ink2)">わが家の、ちょうどいいバランス</div><div class="h2" style="font-size:40px">${esc(r.title)}</div>
+      <div style="display:flex;gap:20px;align-items:center">${radarSVG(s, 300)}<div><h3 style="margin-top:0">悩んだら、これを優先する</h3><ol>${r.balance.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div></div>
       <h3>分岐点で、守ろうとしたもの</h3><ul>${r.memories.map((x, i) => `<li><b>${Y.FORKS[i] || ''}</b>　${esc(x)}</li>`).join('')}</ul></div>
       <div class="box"><h3>本物の打ち合わせで、先に伝えておきたいこと</h3><ol>${r.tellFirst.map(x => `<li>${esc(x)}</li>`).join('')}</ol>
+      ${r.couple ? `<h3>ふたりの傾向</h3><p class="lead" style="margin-bottom:8px">${esc(r.couple)}</p>` : ''}
       <h3>1年後のあなたの家</h3><dl class="facts" style="font-size:19px"><dt>総額</dt><dd>${man(o.total)}万円</dd><dt>借入</dt><dd>${man(o.principal)}万円</dd><dt>冬の朝</dt><dd>${o.warmth.label}</dd><dt>家計のゆとり</dt><dd>${o.slack.label}</dd></dl>
-      <p class="lead" style="margin-top:16px">${esc(r.closing)}</p>
-      ${s.savedId ? `<p class="note">このプレイの再生コード：<span class="code">${s.savedId}</span>　（<a href="/?replay=${s.savedId}">再生する</a>）</p>` : ''}
-      <div class="acts"><button class="btn ghost" data-act="print">印刷用を開く</button><button class="btn ghost" data-act="toYear">16区画を見る</button><button class="btn" data-act="restart">もう一度</button></div></div></div>
-      <div class="disc" style="bottom:8px">${NOTICE}</div>`;
+      <p class="lead" style="margin-top:16px">${esc(r.closing)}</p></div></div>`;
+    if (tab === 'worlds') { const ws = [s.player, ...s.others].map(w => ({ w, o: Y.outcome(w), n: dno(s, w) })).sort((a, b) => a.n - b.n);
+      body = `<div class="rep1"><table class="wtab">${ws.map(({ o: oo, n }) => { const nm = r.worlds?.find(x => x.no === oo.no); return `<tr class="${n === YOU ? 'me' : ''}"><td>${pad(n)}</td><td>${P.coTag(oo.company, 20)}</td><td><b>${esc(nm?.name || oo.labels.slice(1).join('・'))}</b>${nm?.lesson ? `<span>教訓：${esc(nm.lesson)}</span>` : ''}</td><td>${oo.warmth.label}</td><td>${oo.slack.label}</td><td>${man(oo.total)}万円</td></tr>`; }).join('')}</table></div>`; }
+    if (tab === 'honne') body = honneBody(s);
+    return `${top(s)}<div class="rtabs">${tabs}</div><div class="racts">${s.savedId ? `<a class="btn ghost" href="/?replay=${s.savedId}" target="_blank" style="text-decoration:none">再生</a>` : ''}<button class="btn ghost" data-act="print">印刷用（PDF）</button><button class="btn" data-act="toEnd">おわりへ</button></div>${body}`;
+  },
+  // 終わりの画面
+  end(s) {
+    return `<div class="center" style="text-align:center;width:1400px"><img src="/brand/lockup-horizontal.svg" alt="ゆくすいえ" style="width:620px">
+      <div class="h2" style="margin-top:30px">遊んでくださって、ありがとうございました。</div>
+      <p class="lead">本物の家づくりでも、あなたの「ちょうどいい」が見つかりますように。</p>
+      <div style="display:flex;gap:16px;justify-content:center;margin-top:20px"><button class="big-btn" data-act="restart">もう一度遊ぶ</button>${s.savedId ? `<a class="big-btn ghost" href="/?replay=${s.savedId}" style="text-decoration:none">このプレイを再生する</a>` : ''}</div>
+      <p class="note" style="margin-top:40px">Built with Claude: Japan 2026　／　© 2026 Studio ZaiYa</p></div><div class="disc">${NOTICE}</div>`;
   },
 };
 
@@ -434,4 +451,61 @@ export function worldHTML(s) {
     <div><table class="cmp"><tr><th></th><th>この世界</th><th>あなたの世界（${pad(YOU)}）</th></tr>
       ${cmp('総額', man(o.total) + '万円', man(me.total) + '万円')}${cmp('借入', man(o.principal) + '万円', man(me.principal) + '万円')}${cmp('冬の朝', o.warmth.label, me.warmth.label)}${cmp('家計のゆとり', o.slack.label, me.slack.label)}${cmp('引渡し', o.days + '日目', me.days + '日目')}</table>
       <p class="note" style="margin-top:12px">同じ家族、同じ土地、同じ外の出来事で、決断だけが違う世界です。どちらが正解かは決めません。</p></div></div></div>`;
+}
+
+function honneBody(s) {
+  const spec = s.player.spec;
+  const qs = s.visit.map(id => Y.quote(spec, id, true)).concat('ABCD'.split('').filter(id => !s.visit.includes(id)).map(id => Y.quote(spec, id, true)));
+  const max = Math.max(...qs.map(q => q.real));
+  const notes = s.honne.slice(-3);
+  return `<div class="rep"><div class="box"><h3 style="margin-top:0">それぞれの事情</h3><p class="note">打ち合わせのあいだ、担当者が心の中で考えていたこと（記録から）。</p>
+    ${notes.length ? notes.map(n => `<div style="display:flex;gap:16px;margin:12px 0">${P.avatar(n.co, 80, 'idle')}<div><b>${Y.COMPANIES[n.co].name}・${STAFFN(n.co)}</b><p style="font-size:19px;line-height:1.6;margin-top:6px">${esc(n.text)}</p></div></div>`).join('') : '<p class="lead">（この記録には、担当者の本音が残っていません）</p>'}</div>
+    <div class="box"><h3 style="margin-top:0">見積の透視</h3><p class="note">同じ仕様で、4社の見積の表紙（黒）と、別途だった項目（斜線）を並べました。</p>
+    <div class="bars">${qs.map(q => `<div class="barc"><div class="colw"><div class="seg hide" style="height:${Math.round((q.real - q.cover) / max * 400)}px"></div><div class="seg cover" style="height:${Math.round(q.cover / max * 400)}px"></div></div><div class="num">${man(q.real)}</div><div class="lbl">${P.coTag(q.company, 18)}表紙 ${man(q.cover)}万円</div></div>`).join('')}</div></div></div>`;
+}
+// レーダー図（コードで数える。APIの費用はゼロ）：暖かさ・性能／広さ・間取り／デザイン・素材／家計のゆとり／時間と手間
+export function radarAxes(w) {
+  const o = Y.outcome(w), h = Y.HOUSEHOLDS[w.household];
+  const warm = (o.warmth.level + 1) / 4;
+  const space = Math.min(1, Math.max(0.1, (w.spec.tsubo - h.area[0] + 1) / (h.area[1] - h.area[0] + 2))) * (w.spec.kitchen ? 1 : 0.85);
+  const design = Math.min(1, 0.3 + (w.spec.roof === 'gable' ? 0.2 : 0.1) + Y.finishCost(w.finish) / 150 + (w.spec.kitchen ? 0.15 : 0));
+  const money = (o.slack.level + 1) / 4;
+  const time = Math.max(0.15, Math.min(1, 1 - (o.days - 190) / 120));
+  return [['暖かさ・性能', warm], ['広さ・間取り', space], ['デザイン・素材', design], ['家計のゆとり', money], ['時間と手間', time]];
+}
+export function radarSVG(s, size = 300, others = []) {
+  const ax = radarAxes(s.player), N = ax.length, c = size / 2, R = size * 0.34;
+  const pt = (i, v) => [c + Math.sin(i / N * 2 * Math.PI) * R * v, c - Math.cos(i / N * 2 * Math.PI) * R * v];
+  const poly = vals => vals.map((v, i) => pt(i, v).map(x => x.toFixed(1)).join(',')).join(' ');
+  let g = [0.25, 0.5, 0.75, 1].map(k => `<polygon points="${poly(Array(N).fill(k))}" fill="none" stroke="rgba(30,43,54,.15)"/>`).join('');
+  g += ax.map((a, i) => { const [x, y] = pt(i, 1.28); return `<line x1="${c}" y1="${c}" x2="${pt(i, 1)[0]}" y2="${pt(i, 1)[1]}" stroke="rgba(30,43,54,.15)"/><text x="${x}" y="${y}" font-size="${size / 22}" text-anchor="middle" dominant-baseline="middle" fill="#6B6358">${a[0]}</text>`; }).join('');
+  for (const w of others) g += `<polygon points="${poly(radarAxes(w).map(a => a[1]))}" fill="none" stroke="#C99A00" stroke-width="2" stroke-dasharray="6 4"/>`;
+  g += `<polygon points="${poly(ax.map(a => a[1]))}" fill="rgba(232,112,31,.22)" stroke="#E8701F" stroke-width="2.5"/>`;
+  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${g}</svg>`;
+}
+// 引渡し式：家・担当者・家族・テープ（写真の保存にも同じSVGを使う）
+export function ceremonySVG(s, forPhoto = false) {
+  const w = s.player;
+  const fin = Y.FINISH.wall.find(x => x.id === w.finish.wall) || Y.FINISH.wall[0];
+  const col = fin.colors[w.finish.color || 0] || fin.colors[0];
+  const house = P.bigHouse({ ...w, no: YOU }, 4, { fin: { wall: col[1], roof: w.finish.wall === 'galva' ? col[1] : '#4A4F57' } }).replace('<svg ', '<svg x="200" y="40" width="720" height="520" ');
+  const ppl = [P.avatar(w.company, 120, 'smile'), P.avatar('IC', 120, 'smile'), P.spouse('kazu', 112), P.spouse('yuu', 112)].map((sv, i) => sv.replace('<svg ', `<svg x="${250 + i * 160}" y="590" `)).join('');
+  const date = new Date(); const d = `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`;
+  return `<svg class="cersvg" viewBox="0 0 1124 920" xmlns="http://www.w3.org/2000/svg" width="1124" height="920"><rect width="1124" height="560" fill="#DDF0FA"/><rect y="560" width="1124" height="360" fill="#F3E7CF"/>${house}
+    <g class="tape"><path class="tl" d="M200 640 Q400 660 562 650" stroke="#C99A00" stroke-width="7" fill="none"/><path class="tr" d="M562 650 Q724 660 924 640" stroke="#C99A00" stroke-width="7" fill="none"/></g>${ppl}
+    <text x="1100" y="900" text-anchor="end" font-size="22" fill="#6B6358" font-family="Hiragino Sans, sans-serif">かず と ゆう の家　引渡しの日　${d}</text></svg>`;
+}
+// 1年後のわが家：選択の結果が絵に出る（外構、窓辺のあかり、洗濯物、庭の木）
+function lifeSVG(s, o) {
+  const w = s.player;
+  const fin = Y.FINISH.wall.find(x => x.id === w.finish.wall) || Y.FINISH.wall[0];
+  const col = fin.colors[w.finish.color || 0] || fin.colors[0];
+  const house = P.bigHouse({ ...w, no: YOU }, 4, { fin: { wall: col[1], roof: w.finish.wall === 'galva' ? col[1] : '#4A4F57' } }).replace('<svg ', '<svg x="160" y="60" width="800" height="580" ');
+  const gravel = w.spec.exterior !== 'full';
+  const warm = o.warmth.level >= 3;
+  return `<svg viewBox="0 0 1124 920" width="1124" height="920"><rect width="1124" height="560" fill="#DDF0FA"/><rect y="560" width="1124" height="360" fill="${gravel ? '#E7E0D2' : '#CFE6B8'}"/>${house}
+    ${warm ? '<circle cx="470" cy="440" r="60" fill="#FFD98A" opacity=".45"/>' : ''}
+    <path d="M760 600 L760 520 M900 600 L900 520 M760 530 L900 530" stroke="#8A8F96" stroke-width="3" fill="none"/>${[0, 1, 2, 3].map(i => `<rect x="${775 + i * 30}" y="532" width="20" height="${26 + (i % 2) * 8}" rx="3" fill="${['#FFFFFF', '#CFEBFA', '#FDEBDD', '#FFFFFF'][i]}" stroke="#1E2B36" stroke-width="1.4"/>`).join('')}
+    ${gravel ? Array.from({ length: 40 }, (_, i) => `<circle cx="${380 + (i * 37) % 260}" cy="${700 + (i * 53) % 120}" r="3" fill="#B9B0A0"/>`).join('') : '<path d="M300 760 q20 -30 40 0 q20 -30 40 0 q20 -30 40 0" stroke="#7DBF62" stroke-width="4" fill="none"/>'}
+    <text x="40" y="880" font-size="22" fill="#6B6358" font-family="Hiragino Sans, sans-serif">${gravel ? '玄関の前は、まだ砂利のまま' : '庭の緑が、少しずつ育ってきた'}${warm ? '　／　冬でも、南の窓辺があたたかい' : ''}</text></svg>`;
 }

@@ -165,7 +165,7 @@ async function hearing(env, body) {
   const user = `${hist ? `# これまでの会話\n${hist}\n` : ''}# 施主の言葉\n${String(body.text || '').slice(0, 400)}`;
   const fb = { line: body.fallbackLine || 'ありがとうございます。いまのお話、図面に反映できるか確認しますね。', honne: '', heard: [], missed: [] };
   const r = await callJSON(env, { role: 'hearing', system, user, schema: HEARING_SCHEMA, fallback: fb, maxTokens: 1500, validate: x => digitsIn(x, ['line']).length ? 'せりふに算用数字。数字は差し込み記号で書く' : null });
-  if (!r.call.fallback) { r.data.raw = r.data.line; for (const [k, v] of Object.entries(facts)) r.data.line = r.data.line.split(k).join(v); }
+  if (!r.call.fallback) { r.data.raw = r.data.line; for (const [k, v] of Object.entries(facts)) r.data.line = r.data.line.split(k).join(v); r.data.line = r.data.line.replace(/等級等級/g, '等級').replace(/UA値UA値/g, 'UA値'); }
   return r;
 }
 
@@ -185,17 +185,39 @@ async function myai(env, body) {
 
 // ---- 1年後のレポート ----
 const REPORT_SCHEMA = {
-  type: 'object', additionalProperties: false, required: ['title', 'balance', 'memories', 'tellFirst', 'closing'],
-  properties: { title: { type: 'string' }, balance: { type: 'array', items: { type: 'string' } }, memories: { type: 'array', items: { type: 'string' } }, tellFirst: { type: 'array', items: { type: 'string' } }, closing: { type: 'string' } },
+  type: 'object', additionalProperties: false, required: ['title', 'balance', 'memories', 'tellFirst', 'couple', 'worlds', 'closing'],
+  properties: {
+    title: { type: 'string' }, balance: { type: 'array', items: { type: 'string' } }, memories: { type: 'array', items: { type: 'string' } },
+    tellFirst: { type: 'array', items: { type: 'string' } }, couple: { type: 'string' }, closing: { type: 'string' },
+    worlds: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['no', 'name', 'lesson'], properties: { no: { type: 'integer' }, name: { type: 'string' }, lesson: { type: 'string' } } } },
+  },
 };
+// 呼び名の候補（Claudeの呼び名が規則に合わないときの代わり）
+const NAME_POOL = ['性能とコストのベストバランス。', '間取りは、メリハリ。', '断熱より、自然素材。', '窓辺に、冬の陽だまり。', '台所が、家の真ん中。', '外構は、暮らしながら。', '箱のかたちに、木のぬくもり。', '借りすぎない、ちょうどよさ。', '勾配屋根の、ひろい空。', '標準で、じゅうぶん。', '仕上げに、ひとさじ。', '早く住んで、あとから整える。', '聞いてくれた人と、建てる。', '保証という、安心。', '小さく建てて、大きく暮らす。', '冬の朝に、強い家。'];
+const lenOK = (t, n) => [...String(t).replace(/[。、「」・\s]/g, '')].length <= n;
 async function report(env, body) {
   const labels = (body.labels || []).slice(0, 4);
   const mem = body.memory || [];
   const forks = labels.map((l, i) => { const m = mem.find(x => x.decisionId === `D${i + 1}`); return `${i + 1}. ${Y.FORKS[i]}「${Y.DECISIONS[i].q}」→ 選んだ道：${l}${m?.reason ? `（本人の理由：${m.reason}）` : ''}${m?.priority ? `（優先：${m.priority}）` : ''}`; }).join('\n');
   const words = (body.words || []).slice(-16).map(w => `- ${w.who}：${String(w.text).slice(0, 120)}`).join('\n');
-  const user = `# 4つの分かれ道（memories は、この順に${labels.length}つ書く）\n${forks}\n# 施主が打ち合わせで話した言葉\n${words || 'なし'}\n# 施主が最初に書いた思い\n${String(body.entry || 'なし').slice(0, 400)}\n# 1年後の出来事（エンジン）\n${(body.events || []).join('\n') || 'とくになし'}\n# 暖かさ・家計のゆとり（エンジン）\n${body.warmth || ''}／${body.slack || ''}`;
-  const fb = { title: 'あのとき守ろうとしたもの', balance: ['毎日の暮らしやすさ', '家計の安心', '家族の時間'], memories: labels.map(l => `「${l}」を選びました。`), tellFirst: ['いちばん大切にしたいこと', '予算の上限と、その理由', '後から変えにくいところ（下地・配線・窓）'], closing: 'この紙を、本物の打ち合わせに持っていってください。' };
-  return callJSON(env, { role: 'report', user, schema: REPORT_SCHEMA, fallback: fb, effort: 'low', maxTokens: 3000, validate: x => digitsIn(x, ['title', 'balance', 'memories', 'tellFirst', 'closing']).length ? '数字' : (x.memories.length !== labels.length ? `memories は${labels.length}つ` : null) });
+  const worlds = (body.worlds || []).slice(0, 16);
+  const wlist = worlds.map(w => `- no ${w.no}${w.mine ? '（施主の世界）' : ''}：${(w.labels || []).join(' → ')}／冬の朝 ${w.warmth}／ゆとり ${w.slack}／出来事：${(w.events || []).join('、') || 'なし'}`).join('\n');
+  const user = `# 4つの分かれ道（memories は、この順に${labels.length}つ書く）\n${forks}\n# 施主が打ち合わせで話した言葉\n${words || 'なし'}\n# 施主が最初に書いた思い\n${String(body.entry || 'なし').slice(0, 400)}\n# ふたりの要望の付箋の数（コードで数えた）\n${body.couple || 'なし'}\n# 1年後の出来事\n${(body.events || []).join('\n') || 'とくになし'}\n# 暖かさ・家計のゆとり\n${body.warmth || ''}／${body.slack || ''}\n# 16の世界（worlds は、この no ごとに1つずつ）\n${wlist}`;
+  const fb = { title: 'わが家の、ちょうどいいところ。', balance: ['毎日の暮らしやすさ', '家計の安心', '家族の時間'], memories: labels.map(l => `「${l}」を選びました。`), tellFirst: ['いちばん大切にしたいこと', '予算の上限と、その理由', '後から変えにくいところ（下地・配線・窓）'], couple: '', closing: 'この紙を、本物の打ち合わせに持っていってください。', worlds: [] };
+  const check = x => {
+    const bad = digitsIn(x, ['title', 'balance', 'memories', 'tellFirst', 'couple', 'closing']);
+    if (bad.length) return `算用数字（${bad.join('、')}）`;
+    if (x.memories.length !== labels.length) return `memories は${labels.length}つ`;
+    if (!lenOK(x.title, 16)) return 'title は16字以内';
+    if (worlds.length && x.worlds.length < worlds.length - 2) return 'worlds が足りない';
+    if (x.worlds.some(w => !lenOK(w.name, 16) || !lenOK(w.lesson, 26) || hasDigits(w.name + w.lesson))) return '呼び名は16字以内、教訓は26字以内、数字なし';
+    return null;
+  };
+  const r = await callJSON(env, { role: 'report', user, schema: REPORT_SCHEMA, fallback: fb, effort: 'low', maxTokens: 5000, validate: check });
+  // 足りない世界には、候補から呼び名を当てる（コード）
+  const have = new Set((r.data.worlds || []).map(w => w.no));
+  r.data.worlds = [...(r.data.worlds || []), ...worlds.filter(w => !have.has(w.no)).map((w, i) => ({ no: w.no, name: NAME_POOL[(w.no * 7 + i) % NAME_POOL.length], lesson: '' }))];
+  return r;
 }
 
 // ---- 選ばれなかった世界の担当者のひとこと（並列で呼ぶ）----

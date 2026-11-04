@@ -161,8 +161,29 @@ export const ACTIONS = {
     if (ids.length) emit('electric', { ids, adj, told, policy: told.length ? pol.kind : null });
   },
   toBuild() { goto('build', 7); },
-  buildNext() { goto('build', Math.min(10, S.step + 1)); },
+  // S6：着工すると、上棟・施主検査・引渡しまで自動で進み、白いフェードで引渡し式へ
+  async startBuild() {
+    emit('buildAuto', {});
+    for (const st of [8, 9, 10]) { await new Promise(r => setTimeout(r, 1700)); goto('build', st); }
+    await new Promise(r => setTimeout(r, 1400));
+    goto('handover', 10);
+  },
   toHandover() { goto('handover', 10); },
+  // 写真を保存：引渡し式のSVGを canvas に描いて、画像として書き出す（家族の名前はニックネームだけ）
+  async savePhoto() {
+    const { ceremonySVG } = await import('./scenes.js');
+    const svg = ceremonySVG(S, true);
+    const img = new Image();
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    await img.decode();
+    const c = document.createElement('canvas'); c.width = 1124 * 2; c.height = 920 * 2;
+    const g = c.getContext('2d'); g.scale(2, 2); g.drawImage(img, 0, 0);
+    const a = document.createElement('a'); a.download = 'yukusuie-hikiwatashi.png'; a.href = c.toDataURL('image/png'); a.click();
+  },
+  // そして1年後……：季節が移り変わってから、1年後のわが家へ
+  async toSeasons() { goto('seasons', 11); await new Promise(r => setTimeout(r, 4600)); goto('result', 11); },
+  rtab(d) { emit('rtab', { k: d.k }); },
+  toEnd() { goto('end', 11); },
   async toYear() {
     goto('year', 11);
     if (!S.staff16) {
@@ -202,7 +223,9 @@ function decide(side, reason) {
 async function reportCall() {
   const o = Y.outcome(S.player);
   try {
-    const r = await api('/api/ai/report', { memory: S.player.memory, labels: S.player.labels, words: words().map(m => ({ who: nameOf(m.who), text: m.text })), entry: S.entry.text, events: o.events, warmth: o.warmth.label, slack: o.slack.label });
+    const worlds = [S.player, ...S.others].map(w => { const x = Y.outcome(w); return { no: x.no, mine: w === S.player, labels: x.labels, warmth: x.warmth.label, slack: x.slack.label, events: x.events }; });
+    const hk = S.heard.filter(h => h.who === 'かず').length, hy = S.heard.filter(h => h.who === 'ゆう').length, hf = S.heard.filter(h => h.who === 'ふたり').length;
+    const r = await api('/api/ai/report', { memory: S.player.memory, labels: S.player.labels, words: words().map(m => ({ who: nameOf(m.who), text: m.text })), entry: S.entry.text, events: o.events, warmth: o.warmth.label, slack: o.slack.label, worlds, couple: `かず ${hk}枚、ゆう ${hy}枚、ふたり ${hf}枚。かずの付箋：${S.heard.filter(h => h.who === 'かず').map(h => h.text).join('、') || 'なし'}。ゆうの付箋：${S.heard.filter(h => h.who === 'ゆう').map(h => h.text).join('、') || 'なし'}` });
     if (isRealFail(r.call)) { S.report = { failed: true }; emit('fail', { role: 'report', ch: 'report', call: r.call }); return; }
     emit('ai', { role: 'report', data: r.data, call: r.call });
   } catch (e) { S.report = { failed: true }; toast(String(e.message)); }
