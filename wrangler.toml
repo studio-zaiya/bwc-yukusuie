@@ -26,3 +26,9 @@ CALLS_GLOBAL_PER_DAY = "4000"
 EMERGENCY_STOP = "0"
 # スマホ連携の受け付け（P1）
 PHONE_LINK = "0"
+
+# プロンプト（prompts/*.md）を文字列として読み込む
+[[rules]]
+type = "Text"
+globs = ["**/*.md"]
+fallthrough = true
