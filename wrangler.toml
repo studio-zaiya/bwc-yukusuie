@@ -17,7 +17,7 @@ id = "b6f160f4e88842288624a13eec26058a"
 [vars]
 # 役割ごとのモデル（環境変数で切り替え可能）
 MODEL_TOP = "claude-sonnet-5-5"
-MODEL_MID = "claude-haiku-5-5"
+MODEL_MID = "claude-sonnet-5-5"
 MODEL_LIGHT = "claude-haiku-5-5"
 # 回数制限と費用の上限
 PLAYS_PER_IP_PER_DAY = "6"
