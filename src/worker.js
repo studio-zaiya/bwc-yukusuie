@@ -26,9 +26,10 @@ async function bump(env, key, ttl = 172800) {
 const meter = env => env.METER ? env.METER.get(env.METER.idFromName('global')) : null;
 async function meterAdd(env, keys, n) { const m = meter(env); if (m) return m.fetch('https://meter/add', { method: 'POST', body: JSON.stringify({ keys, micro: n }) }).then(x => x.json()); const o = {}; for (const k of keys) { o[k] = (mem.get(k) || 0) + n; mem.set(k, o[k]); } return o; }
 async function meterGet(env, k) { const m = meter(env); if (m) return (await m.fetch(`https://meter/get?k=${encodeURIComponent(k)}`).then(x => x.json())).v; return mem.has(k) ? mem.get(k) : null; }
-async function addUsd(env, usd) {
+// train=true：研修の費用は累計には数えるが、本番のプレイ用の1日の上限とは別に数える（研修で遊ぶ人の枠を使い切らない）
+async function addUsd(env, usd, { train = false } = {}) {
   if (!(usd > 0)) return;
-  const micro = Math.round(usd * 1e6), keys = [`usd:${today()}`, 'usd:total'];
+  const micro = Math.round(usd * 1e6), keys = [train ? `usdtrain:${today()}` : `usd:${today()}`, 'usd:total'];
   const m = meter(env);
   if (m) { const seed = {}; if (env.STORE) for (const k of keys) seed[k] = +(await env.STORE.get(k) || 0); const r = await m.fetch('https://meter/add', { method: 'POST', body: JSON.stringify({ keys, micro, seed }) }).then(x => x.json()); if (env.STORE) for (const k of keys) await env.STORE.put(k, String(r[k])); return; }
   for (const k of keys) { if (env.STORE) { const n = +(await env.STORE.get(k) || 0) + micro; await env.STORE.put(k, String(n)); } else mem.set(k, (mem.get(k) || 0) + micro); }
@@ -224,7 +225,8 @@ async function rep(env, body, HARNESS_ = HARNESS) {
   if (r.call.fallback && !r.data.stock) r.data = stockReply(HARNESS, co, phase, staffTurns);
   // 提案の場面：担当者からの新しい質問は、場面全体で1回まで（2回目からは「ほかに気になるところはありますか？」）
   const asked = (body.history || []).some(h => h.who === '担当者' && /[？?]/.test(h.text) && !/ほかに気になるところ/.test(h.text));
-  if (phase === 'proposal' && asked && r.data.ask && !/ほかに気になるところ/.test(r.data.ask)) r.data.ask = 'ほかに気になるところはありますか？';
+  // 決まり文句に差し替えると「逃げた」に見えるので、質問を消すだけにする（研修7回目）
+  if (phase === 'proposal' && asked && r.data.ask) r.data.ask = null;
   if (body.markSlots) r.data.lineMarked = [fillSlots(r.data.say, slotValues, true), r.data.ask ? fillSlots(r.data.ask, slotValues, true) : ''].join('');
   r.data.say = fillSlots(r.data.say, slotValues); r.data.ask = r.data.ask ? fillSlots(r.data.ask, slotValues) : null;
   r.data.line = [r.data.say, r.data.ask].filter(Boolean).join('');
@@ -284,13 +286,17 @@ async function planner(env, body) {
     // 代わりの処理：決まった型の骨組みと調整の案（画面には「代わりの処理」と出す）
     const R = (name, size, floor) => ({ name, size, floor, near: [] });
     // 部屋は世帯の設定（夫婦＋子ども二人）と、どの家にも要る水回り・収納だけ。聞いていない部屋（和室・書斎など）や設備は足さない
-    const base = [R('LDK', 16, 1), R('洗面・脱衣', 3, 1), R('浴室', 3, 1), R('トイレ', 3, 1), R('玄関収納', 3, 1), R('ファミリー収納', 3, 1), R('主寝室', 8, 2), R('子ども部屋', 6, 2), R('子ども部屋', 6, 2), R('ウォークインクローゼット', 3, 2), R('トイレ', 3, 2)];
+    const base = [R('LDK', 16, 1), R('洗面・脱衣', 3, 1), R('浴室', 3, 1), R('トイレ', 3, 1), R('玄関収納', 3, 1), R('ファミリー収納', 3, 1), R('主寝室', 8, 2), R('子ども部屋', 6, 2), R('子ども部屋', 6, 2), R('トイレ', 3, 2)];
+    // アンケートで答えた部屋（仕事の個室・客間）は、聞いていれば足す（区画の決まり33〜35坪に収まる範囲で、調整の案で外せる）
+    const said = (body.heard || []).map(h => h.text).join(' ');
+    if (/仕事は個室/.test(said)) base.push(R('書斎', 4.5, 2));
+    if (/客間|和室/.test(said)) base.push(R('和室', 4.5, 1));
     const shape = { form: '部分二階', roof: co.roof };
     const main = { title: 'いただいた要望をそのまま入れた案', rooms: base, shape };
     const opts = [
       { plan: { title: '総二階に寄せた案', rooms: base.map(r => r.name === 'ファミリー収納' ? { ...r, floor: 2 } : r), shape: { form: '総二階', roof: co.roof } }, effect: '一階と二階の形がそろい、基礎と屋根が減る' },
       { plan: { title: '子ども部屋をひとまわり小さくした案', rooms: base.map(r => r.name === '子ども部屋' ? { ...r, size: 4.5 } : r), shape }, effect: '子ども部屋は寝て勉強する広さに絞り、過ごすのはリビングで' },
-      { plan: { title: '収納を一か所にまとめた案', rooms: base.filter(r => r.name !== 'ウォークインクローゼット').map(r => r.name === 'ファミリー収納' ? { ...r, size: 4.5 } : r), shape }, effect: 'しまう場所が一か所になり、家族で共有する' },
+      { plan: { title: '収納を一か所にまとめた案', rooms: base.filter(r => r.name !== '玄関収納').map(r => r.name === 'ファミリー収納' ? { ...r, size: 4.5 } : r), shape }, effect: '玄関の収納とまとめ、家族で共有する' },
     ];
     const measure = p => Y.measurePlan(world, p, wishes);
     return { ok: true, fallback: true, intro: 'いただいた要望を全部入れると、こうなります。調整の案もお持ちしました。', main, mainM: measure(main), options: opts.map(o => ({ ...o, m: measure(o.plan) })), altIndex: 1, call };
@@ -471,7 +477,7 @@ export default {
         if (path === '/api/train/rep') out = await rep(env, body, body.harness && body.harness.base && body.harness.companies ? body.harness : HARNESS);
         else if (path === '/api/train/llm') out = await callJSON(env, { role: 'trainLLM', system: String(body.system || '').slice(0, 8000), user: String(body.user || '').slice(0, 12000), schema: body.schema, fallback: body.fallback || {}, maxTokens: Math.min(+body.maxTokens || 800, 2000) });
         else return json({ error: 'not found' }, 404);
-        const usd = out.call?.costUsd || 0; ctx.waitUntil(addUsd(env, usd));
+        const usd = out.call?.costUsd || 0; ctx.waitUntil(addUsd(env, usd, { train: true }));
         return json({ ...out, costUsd: usd });
       }
       const ROLES = { '/api/ai/trade': trade, '/api/ai/myai': myai, '/api/ai/report': report, '/api/ai/staff16': staff16, '/api/ai/entry': entry, '/api/ai/partner': partner, '/api/ai/planner': planner, '/api/ai/rep': rep, '/api/ai/partnerSurvey': partnerSurvey };

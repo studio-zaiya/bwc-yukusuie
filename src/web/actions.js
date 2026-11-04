@@ -186,7 +186,8 @@ export const ACTIONS = {
   },
   async sendForgot() {
     const co = S.visit[0];
-    const lines = S.chat.filter(m => m.ch === 'partner' && m.forgot).slice(-3);
+    // 担当者に送るのは、プレイヤーが話したことだけ（パートナーの相づちは送らない。攻めのレビュー11/5）
+    const lines = S.chat.filter(m => m.ch === 'partner' && m.forgot && !m.byPartner).slice(-2);
     const text = lines.map(m => (m.byPartner ? NAMES.yuu + '：' : '') + m.text).join('\n');
     // 帰り道に送ったことも、要望の記憶に（出どころ：メッセージ。この会社には伝わった）
     if (S.memory) { const m = structuredClone(S.memory); for (const l of lines) { m.messages.push({ to: co, text: l.text, day: 7 }); addItem(m, { text: l.text.slice(0, 30), who: l.byPartner ? 'p2' : 'p1', source: 'message', co }); } emit('mem', { memory: m }); }
@@ -215,7 +216,7 @@ export const ACTIONS = {
   },
   toFork1() { emit('pair', { pair: S.visit }); emit('world', {}); goto('fork', 2); },
   // 札を押したら、パートナーが理由を聞く（任意）。理由は決断の記憶になり、レポートで使う
-  pickSide(d) { const dec = Y.decisions(S.pair)[S.forkNo]; const o = dec[d.side]; emit('pendingSide', { side: d.side, label: typeof o.label === 'function' ? o.label(S.player) : o.label }); },
+  pickSide(d) { const dec = Y.decisions(S.pair)[S.forkNo]; const o = dec[d.side]; emit('pendingSide', { side: d.side, label: typeof o.label === 'function' ? o.label(S.player) : o.label }); prefetchPlan(d.side); },
   unpick() { emit('pendingSide', { side: null }); },
   decideWhy() { const reason = val('say'); clear('say'); decide(S.pendingSide, reason); },
   decideNoWhy() { decide(S.pendingSide, ''); },
@@ -500,10 +501,23 @@ function secondOpening(co) {
 }
 
 // 設計担当（Opus 5.5）に、骨組みの案を頼む。数字はエンジンが出したものだけを使う
+// 設計担当への依頼の中身（その世界の会社に伝わった要望と、預かったこと）
+const planBody = (world, text, cur) => ({ world, wishes: S.wishes, heard: [...S.heard.filter(h => !h.co || h.co === world.company).map(h => ({ who: h.who === 'ふたり' ? 'ふたり' : nameOf(h.who === 'ゆう' ? 'yuu' : 'kazu'), text: h.text })), ...(S.memory?.deferred || []).filter(d => d.by === world.company).map(d => ({ who: '担当者が預かった', text: d.text }))], current: cur, text, round: (S.planRound || 0) + 1 });
+// 第一の分岐点で札を押した時点で、その会社の間取りの依頼を先に始める（理由を書いている間に計算が進む。札を選び直したら捨てる）
+const PREFETCH = { co: null, p: null };
+function prefetchPlan(side) {
+  const dec = Y.decisions(S.pair)[S.forkNo]; if (!dec || dec.id !== 'D1' || !S.player) return;
+  const t = Y.forkWorld(S.player); Y.choose(t, dec, side);
+  if (PREFETCH.co === t.company) return;
+  PREFETCH.co = t.company; PREFETCH.p = api('/api/ai/planner', planBody(t, '', null)).catch(() => null);
+}
 async function planCall(text) {
   await withBusy(async () => {
     const cur = S.plan ? (S.plan.view != null ? S.plan.options[S.plan.view].plan : S.plan.main) : null;
-    const r = await api('/api/ai/planner', { world: S.player, wishes: S.wishes, heard: [...S.heard.filter(h => !h.co || h.co === S.player.company).map(h => ({ who: h.who === 'ふたり' ? 'ふたり' : nameOf(h.who === 'ゆう' ? 'yuu' : 'kazu'), text: h.text })), ...(S.memory?.deferred || []).filter(d => d.by === S.player.company).map(d => ({ who: '担当者が預かった', text: d.text }))], current: cur, text, round: (S.planRound || 0) + 1 });
+    let r = null;
+    if (!text && !cur && PREFETCH.p && PREFETCH.co === S.player.company) { r = await PREFETCH.p; }
+    PREFETCH.co = null; PREFETCH.p = null;
+    if (!r || !r.ok) r = await api('/api/ai/planner', planBody(S.player, text, cur));
     if (!r.ok) { emit('fail', { role: 'planner', ch: 'plan', call: r.call }); return; }
     emit('planGot', { data: { intro: r.intro, main: r.main, mainM: r.mainM, options: r.options, altIndex: r.altIndex, fallback: !!r.fallback }, round: !!text, call: r.call });
   });

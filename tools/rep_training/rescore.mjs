@@ -12,7 +12,7 @@ for (const f of fs.readdirSync(DIR).filter(x => /^[ABCD]-/.test(x))) {
   const p = path.join(DIR, f), d = JSON.parse(fs.readFileSync(p, 'utf8'));
   if (d.scores && Object.keys(d.scores).length) continue;
   const reps = d.log.filter(t => t.role === 'rep');
-  const user = `# 会社の個性\n${d.co}：${HARNESS.companies[d.co].angle}。口調：${HARNESS.companies[d.co].tone}\n# 場面\n${d.phase === 'summary' ? '初回打ち合わせ（アンケートの総括と追加の質問）' : '提案の説明'}\n# 会話（担当者の発言に番号）\n${d.log.map(t => `${t.role === 'rep' ? `[${reps.indexOf(t)}] 担当者` : 'お客様'}：${t.text}`).join('\n')}`;
+  const user = `# 会社の個性\n${d.co}：${HARNESS.companies[d.co].angle}。口調：${HARNESS.companies[d.co].tone}\n# 場面\n${d.phase === 'summary' ? '初回打ち合わせ（アンケートの総括と追加の質問）' : '提案の説明'}\n# 会話（担当者の発言に番号）\n${d.log.map(t => `${t.role === 'rep' ? `[${reps.indexOf(t)}] 担当者` : 'お客様'}：${t.plain || t.text}`).join('\n')}`;
   const r = await fetch(`${process.env.TRAIN_URL || 'https://yukusuie.zaiya.workers.dev'}/api/train/llm`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-train-token': process.env.TRAIN_TOKEN }, body: JSON.stringify({ system: JUDGE_SYS, user, schema: JS, maxTokens: 1600, fallback: null }) }).then(x => x.json());
   usd += r.costUsd || 0;
   if (r.data?.scores) { d.scores = r.data.scores; d.worstTurn = r.data.worstTurn; const sc = d.scores; d.judgePass = sc.interrogate <= 2 && ['answer', 'defer', 'persona', 'progress', 'warmth'].every(k => sc[k] >= 4); d.pass = d.autoPass && d.judgePass; d.rescored = true; fs.writeFileSync(p, JSON.stringify(d, null, 1)); process.stdout.write('○ '); } else process.stdout.write('× ');

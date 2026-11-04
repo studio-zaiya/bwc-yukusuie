@@ -7,6 +7,7 @@ export const PHASES = ['summary', 'followUp', 'proposal', 'adjust', 'confirm'];
 export const SLOTS = {
   総額: 'いまのお見積りの総額（土地と建物）', 本体: '建物の本体の金額', 希望との差: '総額が、ご希望の上限を超えている額（超えていなければ値なし）',
   月々: 'いまの借入での月々の返済', 月々の希望との差: '月々の返済が、ご希望を超えている額', 延床: 'いまの延床面積', 引渡しまでの日数: '引渡しまでの目安の日数', 追加の額: '契約のあとに増えた額',
+  '1坪減らした差': '延床を一坪減らしたときに、総額が下がる目安', 外構を最小限にした差: '外構を最小限にしたときに、総額が下がる額', 仕上げを標準に戻した差: '仕上げのアップグレードを標準に戻したときに、総額が下がる額',
 };
 export const SLOT_NAMES = Object.keys(SLOTS);
 // お客様の発言の分類（docs/WORLD_SWITCH.md の3）。断るかどうかはコードが決め、Claudeは分類だけ
@@ -55,10 +56,12 @@ export function checkRep(out, { phase = 'followUp', company, allowNums = [], slo
   if (out.ask && (String(out.ask).match(/[？?]/g) || []).length > 1) return '質問は1つまで';
   if (out.ask && /[？?]/.test(out.say)) return 'say にも ask にも質問がある（質問は1つまで）';
   for (const t of [out.say, out.ask || '']) {
-    for (const [, k] of String(t).matchAll(SLOT_RE)) if (!(k in SLOTS) || slotValues[k] == null) return `値のない枠（{${k}}）は使わない`;
+    // 作り直しの理由は具体的に返す（研修6回目：理由がぼんやりしていて、同じ間違いを繰り返していた）
+    for (const [, k] of String(t).matchAll(SLOT_RE)) if (!(k in SLOTS) || slotValues[k] == null) return `{${k}} は、いまは使えない枠（値がない）。使える枠だけを使うか、その文を消す`;
     let u = String(t).replace(SLOT_RE, '').normalize('NFKC');
     for (const n of allowNums) u = u.replace(new RegExp(esc(n) + '(?:万円|万|円|坪|帖|畳|日|年|台|部屋|か月|ヶ月)?', 'g'), '');
-    if (DIGITS.test(u)) return '数字は、お客様が言った数か、差し込み枠で';
+    const bad = u.match(/[0-9][0-9,.]*\s*(?:万円|万|円|坪|帖|畳|日|年|か月|ヶ月|%)?|[一二三四五六七八九十百千万]+(?:万|円|坪|帖|畳|日|か月|ヶ月|年)|万円|坪|帖/);
+    if (bad) return `「${bad[0]}」は、お客様が言った数でも、使える枠の値でもない（自分で計算した数は書かない）。枠に置き換えるか、その数を消して言葉で言う`;
     if (SYSTEM_WORDS.test(t)) return '仕組みの言葉が入っている';
     if (COMPANY_NAMES.some(n => n !== company && t.includes(n))) return 'ほかの会社の名前が入っている';
   }

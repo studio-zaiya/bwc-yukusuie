@@ -118,5 +118,10 @@ export function slotValuesOf(s, co) {
   v.延床 = `${w.spec.tsubo}坪`;
   const sc = Y.scheduleOf(w); if (sc && sc[10] != null) { const now = sc[Math.min(s.step || 0, 10)] || 0; if (sc[10] - now > 0) v.引渡しまでの日数 = `約${sc[10] - now}日`; }
   if (m.add > 0) v.追加の額 = `${man(m.add)}万円`;
+  // 「削ったらいくら下がるか」の目安（エンジンで計算。当てはまるときだけ）
+  const diff = patch => { const t = Y.forkWorld(w); patch(t); const d = m.total - Y.money(t).total; return d > 0 ? `約${man(d)}万円` : null; };
+  const d1 = diff(t => { t.spec.tsubo -= 1; t.spec.floor1Tsubo = Math.ceil(t.spec.tsubo / 2); }); if (d1) v['1坪減らした差'] = d1;
+  if (w.spec.exterior === 'full') { const d2 = diff(t => { t.spec.exterior = 'min'; }); if (d2) v.外構を最小限にした差 = d2; }
+  if (Y.finishCost(w.finish) > 0) { const d3 = diff(t => { t.finish = { ...t.finish, wall: 'std', floor: 'std', inner: 'vinyl' }; }); if (d3) v.仕上げを標準に戻した差 = d3; }
   return v;
 }

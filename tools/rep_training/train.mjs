@@ -96,7 +96,7 @@ async function conversation(co, cust, phase, seed) {
     stock: reps.filter(t => t.stock).length, turns: reps.length,
   };
   // 感じの項目（審査役）
-  const jr = await post('llm', { system: JUDGE_SYS, user: `# 会社の個性\n${co}：${HARNESS.companies[co].angle}。口調：${HARNESS.companies[co].tone}\n# 場面\n${phase === 'summary' ? '初回打ち合わせ（アンケートの総括と追加の質問）' : '提案の説明'}\n# アンケートの答え\n${custView}\n# 会話（担当者の発言に番号）\n${log.map((t, i) => `${t.role === 'rep' ? `[${reps.indexOf(t)}] 担当者` : 'お客様'}：${t.text}`).join('\n')}`, schema: JS, maxTokens: 1600, fallback: null });
+  const jr = await post('llm', { system: JUDGE_SYS, user: `# 会社の個性\n${co}：${HARNESS.companies[co].angle}。口調：${HARNESS.companies[co].tone}\n# 場面\n${phase === 'summary' ? '初回打ち合わせ（アンケートの総括と追加の質問）' : '提案の説明'}\n# アンケートの答え\n${custView}\n# 会話（担当者の発言に番号）\n${log.map((t, i) => `${t.role === 'rep' ? `[${reps.indexOf(t)}] 担当者` : 'お客様'}：${t.plain || t.text}`).join('\n')}`, schema: JS, maxTokens: 1600, fallback: null });
   const sc = jr.data?.scores || {};
   const judgePass = sc.interrogate <= 2 && ['answer', 'defer', 'persona', 'progress', 'warmth'].every(k => sc[k] >= 4);
   const autoPass = auto.num === 0 && auto.words === 0 && auto.len === 0 && auto.q1 === 0 && auto.reask === 0;

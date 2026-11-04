@@ -36,7 +36,7 @@ const OUT = 'out/acceptance';
     await click('[data-act=toYear]'); await p.waitForTimeout(1200); await shot('S8-year');
     await click('[data-act=toTree]'); await p.waitForTimeout(2500); await shot('S8-tree');
     await click('[data-act=treeBack]');
-    await click('[data-act=toReport]'); await p.waitForSelector('.rep', { timeout: 120000 }); await p.waitForTimeout(800); await shot('S9-report');
+    await click('[data-act=toReport]'); await p.waitForSelector('.rep', { timeout: 120000 }); await p.waitForTimeout(800); await shot('S9-report'); await click('[data-act=rtab][data-k=worlds]'); await p.waitForTimeout(400); await shot('S9-report-worlds'); await click('[data-act=rtab][data-k=home]');
     console.log('saved', await p.evaluate(() => YUKU.state.savedId));
   } catch (e) { console.log('止まった：', e.message.split('\n')[0]); await p.screenshot({ path: `${OUT}/zz-stopped.png` }); }
   console.log(errs.length ? errs.join('\n') : 'エラーなし');

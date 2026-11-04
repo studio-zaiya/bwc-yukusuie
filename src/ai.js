@@ -57,14 +57,17 @@ export async function callJSON(env, { role, user, schema, system, validate, fall
   const c = client(env);
   const t0 = Date.now();
   if (!c) { rec.fallback = true; rec.reason = env.AI_MODE === 'mock' ? '代わりの処理（mock）' : 'APIキー未設定'; rec.output = fallback; rec.ms = 0; return { data: fallback, call: rec }; }
+  // 検査で戻したときは、前の出力と理由を会話に足して作り直してもらう（同じ依頼をそのまま送り直すと、同じ間違いを繰り返す）
+  const messages = [{ role: 'user', content: user }];
   for (let i = 0; i < tries; i++) {
+    let raw = null;
     try {
       const msg = await create(c, {
         model, max_tokens: maxTokens, system: system || p.body,
-        messages: [{ role: 'user', content: user }],
+        messages,
         output_config: { effort, format: { type: 'json_schema', schema } },
       }, { useFallback: i === 0 });
-      const raw = textOf(msg);
+      raw = textOf(msg);
       rec.attempts.push({ stop: msg.stop_reason, raw, model: msg.model, usage: msg.usage });
       rec.costUsd = (rec.costUsd || 0) + costOf(msg.model, msg.usage);
       if (msg.stop_reason === 'refusal') throw new Error('refusal');
@@ -74,10 +77,12 @@ export async function callJSON(env, { role, user, schema, system, validate, fall
       rec.output = data; rec.ms = Date.now() - t0; rec.servedModel = msg.model;
       return { data, call: rec };
     } catch (e) {
-      rec.attempts.push({ error: String(e.message || e) });
+      const m = String(e.message || e);
+      rec.attempts.push({ error: m });
+      if (raw && m.startsWith('検証：') && messages.length < 7) messages.push({ role: 'assistant', content: raw }, { role: 'user', content: `出し直してください。理由：${m.slice(3)}。ほかの決まりは、そのまま守る。` });
     }
   }
-  rec.fallback = true; rec.reason = '2回とも失敗'; rec.output = fallback; rec.ms = Date.now() - t0;
+  rec.fallback = true; rec.reason = `${tries}回とも失敗`; rec.output = fallback; rec.ms = Date.now() - t0;
   return { data: fallback, call: rec };
 }
 

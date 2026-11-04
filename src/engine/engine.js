@@ -221,7 +221,7 @@ export function warmth(spec, coId) {
   const co = COMPANIES[coId];
   const s = 3 + (co.equip || 0) + (co.insul - 5) * 2.5 + (spec.window === 'triple' ? 2 : 0) - (spec.bigWindow ? 3 : 0) + (spec.eave === 'south' ? 1 : 0) + (pitched(spec.roof) ? 0.5 : 0);
   // 断熱等級5の標準的な家は「ふつう」。超高性能へ誘導しない（人間の回答11/5）
-  const lv = s >= 5.5 ? 3 : s >= 3 ? 2 : s >= 0.5 ? 1 : 0;
+  const lv = s >= 5.5 ? 3 : s >= 4 ? 2 : s >= 0.5 ? 1 : 0;
   return { score: round(s, 1), level: lv, label: ['やや寒い', 'ふつう', '暖かい', 'とても暖かい'][lv] };
 }
 
@@ -239,10 +239,14 @@ export const STEPS = ['見学・相談', '初回打ち合わせ', 'プラン提�
 // 各工程が終わる日（会社の速さで伸び縮みする）
 export function scheduleOf(world) {
   const co = COMPANIES[world.company] || COMPANIES.C;
-  const pre = [3, 10, 24, 40, 48, 58], post = [80, 100, 145, 175, 205, 210];
+  // 着工後の期間は、実務の目安に寄せ、会社の速さを効かせる（攻めのレビュー11/5：上棟から施主検査まで30日は短すぎた）
+  // 着工 → 上棟 約35日 → 施主検査 約110日 → 引渡し 10日（速さの係数 k をかける。C は長め、B は短め）
+  const pre = [3, 10, 24, 40, 48, 58];
   const k = co.speed;
   const late = (world.delay || 0) + (world.bits && world.bits.length === 4 ? eventDelay(world) : 0);
-  const days = [...pre.map(d => Math.round(d * (d > 10 ? k : 1))), ...post.map(d => Math.round(d * (0.9 + 0.1 * k)) + late)];
+  const coord = Math.round(80 * (0.9 + 0.1 * k)), start = Math.round(100 * (0.9 + 0.1 * k));
+  const jotou = start + Math.round(35 * k), kensa = jotou + Math.round(110 * k), hand = kensa + 10;
+  const days = [...pre.map(d => Math.round(d * (d > 10 ? k : 1))), coord + late, start + late, jotou + late, kensa + late, hand + late, hand + late];
   days.push(days[10] + 365);
   return days;
 }
@@ -417,6 +421,8 @@ export function incidents(w) {
   if (w.company === 'A' && changedAfter && skill < 0.45) out.push({ text: '契約後に担当が替わり、頼んだ設備と違うものが入った。交換は会社の負担で、引渡しが3週間遅れた', delay: 21, cause: '契約のあとで変更が重なり、引き継ぎの記録が追いつかなかった', lesson: '契約のあとの変更は、記録を残して引き継いでもらう' });
   if (w.company === 'B' && w.bits[3] === 1 && skill < 0.4) out.push({ text: '契約後にオプションを足していったら、思ったより増えた', amount: 120, cause: '標準仕様が最低限で、仕上げのアップグレードを重ねた', lesson: '標準仕様で足りるかを、契約の前に確かめる' });
   if (w.company === 'C' && w.bits[1] === 1 && skill < 0.4) out.push({ text: '詳細の打ち合わせが長引き、入居がひと月遅れた', delay: 30, cause: '設計の途中で間取りの案を切り替え、図面を描き直した', lesson: '案を切り替えるなら、早いうちに決める' });
+  // 地盤：調査が契約の後になる会社では、契約のあとで地盤改良が追加になることがある（会社の過失ではないので施主の負担）
+  if (COMPANIES[w.company].groundTiming !== '契約前' && rng((w.seed ?? 7) * 17 + no)() < (COMPANIES[w.company].groundTiming === '曖昧' ? 0.4 : 0.3)) out.push({ text: '契約のあとの地盤調査で、地盤改良の追加が必要になった', amount: 80, cause: '地盤の調査が、建物の契約の後だった', lesson: '地盤の調査を、契約の前にするか確かめる' });
   if (w.company === 'D' && skill < 0.35 && !w.electric.includes('tag_tv_wall')) out.push({ text: '壁掛けテレビの下地が入っていなかった', cause: '打ち合わせの記録を残していなかった', lesson: '打ち合わせの記録は、自分たちでも残す' });
   return out;
 }
@@ -453,14 +459,17 @@ export function worldShort(o) {
   const full = o.spec.exterior === 'full', up = finishCost(o.finish) > 0;
   return full && up ? '庭も仕上げも' : full ? '庭から整えた' : up ? '仕上げを選んだ' : '身軽に建てた';
 }
-export function worldLesson(o, me) {
+export function worldLesson(o, me, { noCause = false } = {}) {
   if (o.unbuilt) return 'どこまでなら、お互いに気持ちよく進められたか';
   if (!me || o.no === me.no) return 'あなたが選んだ世界';
-  if ((o.causes || []).length && o.causes[0].lesson) return o.causes[0].lesson;
+  if (!noCause && (o.causes || []).length && o.causes[0].lesson) return o.causes[0].lesson;
   const i = o.bits.findIndex((b, k) => b !== me.bits[k]);
   const d = Math.round(o.total - me.total), dd = `${d > 0 ? '+' : ''}${d.toLocaleString()}万円`;
+  // 違う分岐点が2つ以上なら、一つのせいにしない（攻めのレビュー11/5）。違った選択を並べ、帰結はまとめて言う
+  const diffs = o.bits.map((b, k) => b !== me.bits[k] ? k : -1).filter(k => k >= 0);
+  if (diffs.length >= 2) return `「${diffs.map(k => { const t = String(o.labels[k] || '').replace(/（.*?）/g, '').replace(/(にする|で進める|を受ける)$/, '').split('、')[0]; return t.length > 12 ? t.slice(0, 11) + '…' : t; }).join('」と「')}」が違うと、総額${dd}、冬の朝は「${o.warmth.label}」`;
   if (i === 0) return `会社が違うと、総額${dd}、冬の朝は「${o.warmth.label}」`;
-  if (i === 1) return `外形と間取りを変えると、総額${dd}`;
+  if (i === 1) return `間取りの案が違うと、総額${dd}`;
   if (i === 2) return o.spec.exterior === 'full' ? '外構まで先に仕上げると、入居の日から庭が整う' : '外構を後回しにすると、借入は軽いが玄関は砂利のまま';
   return finishCost(o.finish) > 0 ? '仕上げを上げると、毎日触れる場所に手ざわりが残る' : '標準の仕上げでも、暮らしは十分に回る';
 }
