@@ -19,6 +19,11 @@ const SCENES = [
   { id: 'arch', url: P('arch.html?t=0'), dur: 12.5 },
   { id: 'ending-EA', url: P('ending-EA.html?t=0'), dur: 13 },
   { id: 'credits', url: P('credits.html?t=0'), dur: 5 },
+  // 実写の代用（線画の額）。人間の写真が間に合えば差し替える
+  { id: 'photo-table', url: P('photo-sub.html?kind=table&t=0'), dur: 5 },
+  { id: 'photo-sketch', url: P('photo-sub.html?kind=sketch&t=0'), dur: 5 },
+  { id: 'photo-hands', url: P('photo-sub.html?kind=hands&t=0'), dur: 5 },
+  { id: 'photo-handover', url: P('photo-sub.html?kind=handover&t=0'), dur: 8 },
 ];
 
 (async () => {

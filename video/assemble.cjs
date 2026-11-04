@@ -29,7 +29,7 @@ const SEGMENTS = [
   { id: 'train', kind: 'plate', dur: 3, label: '担当者の研修の前後', note: '研修の記録（docs/REP_TRAINING_NEXT.md の5）から' },
   { id: 'work', kind: 'plate', dur: 2.5, label: '作業画面', note: 'Claude Code の作業画面の録画' },
   { id: 'rep', kind: 'plate', dur: 8, label: 'レポートの表紙', note: '実機のレポート（4ページをめくる）' },
-  { id: 'hand', kind: 'plate', dur: 8, label: '実写：レポートを手渡す', note: '手元だけ。背景は無地の机か壁。人間が撮る' },
+  { id: 'hand', kind: 'part', file: 'photo-handover.mp4', dur: 8, sub: true, label: '実写の代用（線画）：レポートを手渡す。人間の実写が間に合えば差し替え' },
   { id: 'end', kind: 'part', file: 'ending-EA.mp4', ss: 10, dur: 3, label: '締め（3秒）' },
   { id: 'credits', kind: 'part', file: 'credits.mp4', dur: 5, label: '黒画面（スタッフ・注記）' },
 ];
@@ -82,7 +82,7 @@ const srtT = t => { const h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60
   const subsPath = path.join(__dirname, 'subs.json'); const subs = fs.existsSync(subsPath) ? JSON.parse(fs.readFileSync(subsPath, 'utf8')) : [];
   fs.writeFileSync(path.join(OUT, 'yukusuie_v1.srt'), subs.map((c, i) => `${i + 1}\n${srtT(c.at)} --> ${srtT(c.at + Math.max(c.dur || 0, 1.8, c.text.replace(/\s/g, '').length / 4))}\n${c.text}\n`).join('\n'));
   // 場面の時刻の表
-  const rows = SEGMENTS.map(s => `| ${fmt(s.at)}–${fmt(s.at + s.dur)} | ${s.dur} | ${s.kind === 'part' ? '書き出し済み' : '**仮の板**'} | ${s.label}${s.note ? '（' + s.note + '）' : ''} |`);
+  const rows = SEGMENTS.map(s => `| ${fmt(s.at)}–${fmt(s.at + s.dur)} | ${s.dur} | ${s.sub ? '**実写の代用（線画）**' : s.kind === 'part' ? '書き出し済み' : '**仮の板**'} | ${s.label}${s.note ? '（' + s.note + '）' : ''} |`);
   fs.writeFileSync(path.join(__dirname, 'TIMELINE.md'), `# 通し v1 の場面の時刻（自動生成：node video/assemble.cjs）\n\n全体 ${fmt(total)}（${total.toFixed(1)}秒）。つなぎは ${XF}秒のクロスフェード。1920×1080・24fps・音なし。\n\n| 時刻 | 秒 | 材料 | 中身 |\n|---|---|---|---|\n${rows.join('\n')}\n`);
   console.log('done', outFile, total.toFixed(1));
 })();
