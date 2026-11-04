@@ -439,3 +439,25 @@ button.rt-card:active{transform:translateY(1px)}
 .rt-lot polygon{fill:none;stroke:#F2C230;stroke-width:6;stroke-linejoin:round;stroke-dasharray:100;stroke-dashoffset:100;filter:drop-shadow(0 0 6px rgba(242,194,48,.8));animation:lotlight 1.2s .15s ease-out forwards}
 @keyframes lotlight{70%{stroke-dashoffset:0;opacity:1}to{stroke-dashoffset:0;opacity:.35}}
 .ritual.done .rt-band{position:relative;z-index:1;margin-top:-260px}
+
+/* 電気の打ち合わせ：全画面（受け入れ基準4） */
+.elec-full{position:absolute;left:30px;right:30px;top:124px;bottom:26px;display:grid;grid-template-columns:1.15fr 1fr;gap:24px;z-index:6}
+.el-left,.el-right{background:#fff;border-radius:22px;box-shadow:0 2px 0 rgba(30,43,54,.08);min-height:0;display:flex;flex-direction:column}
+.el-left{padding:22px 28px}
+.el-hd{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;margin-bottom:10px}.el-hd h3{font-family:var(--fr);font-size:30px;margin:0}
+.el-hd .lg{font-size:17px;color:var(--ink2);display:flex;align-items:center;gap:6px}.el-hd .lg i{display:inline-block;width:16px;height:16px;border-radius:4px;margin-left:10px}
+.lg i.std,.ei.std{--c:transparent}.lg i.std{border:1.5px solid rgba(30,43,54,.35)}.lg i.contract{background:#F4F1EA;border:1.5px solid var(--ink)}.lg i.add{background:#FFF3C4;border:2px dashed #C99A00}
+.el-rooms{columns:2;column-gap:28px;overflow:auto;flex:1}
+.el-room{break-inside:avoid;margin:0 0 16px}.el-room h4{font-family:var(--fr);font-size:24px;margin:0 0 6px;padding-bottom:4px;border-bottom:2px solid var(--ink)}
+.el-room ul{list-style:none;margin:0;padding:0}
+.ei{display:flex;align-items:center;gap:10px;font-size:24px;line-height:1.35;padding:6px 8px;border-radius:10px;margin:2px 0}
+.ei .eic{width:30px;height:30px;flex:0 0 30px}.ei span{flex:1}
+.ei em{font-style:normal;font-size:16px;font-weight:700;border:1.5px solid var(--ink);border-radius:999px;padding:2px 10px;white-space:nowrap}
+.ei.contract{background:#F4F1EA}.ei.add{background:#FFF3C4;outline:2px dashed #C99A00;outline-offset:-2px}
+.ei.fresh{animation:eiin .7s ease-out}@keyframes eiin{from{transform:translateX(-24px);opacity:0;background:#F2C230}}
+.el-right{padding:0 0 14px;overflow:hidden}.el-right .log{flex:1;overflow:auto;padding:14px 22px}.el-right .msg{font-size:20px}
+.el-right .opts,.el-right .tags,.el-right .in{padding:0 22px}.el-right .tags{margin:10px 0}.el-right .tags button{font-size:17px}
+@media (prefers-reduced-motion:reduce){.ei.fresh{animation:none}}
+.moneyc .v.counting{color:#9A7400}
+.el-right .in{display:flex;gap:10px;align-items:center}.el-right .in textarea{flex:1;min-width:0;font:19px/1.5 var(--f);padding:10px 14px;border:1.5px solid rgba(30,43,54,.35);border-radius:12px;resize:none}
+.el-hd .lg i{border-radius:4px}

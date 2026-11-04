@@ -21,6 +21,19 @@ for (const [k, f] of [['sources', 'info_sources'], ['sns', 'sns_posts'], ['perso
 export const persona = co => DATA.personas?.staff.find(p => p.company === co);
 export const coordinator = s => { const cs = DATA.personas?.coordinators || []; return cs[(s.seed + (s.player ? Y.worldNo(s.player.bits.concat([0, 0, 0, 0]).slice(0, 4)) : 0)) % (cs.length || 1)]; };
 
+
+// 電気の一覧のアイコン（線画）
+const EI = d => `<svg class="eic" viewBox="0 0 24 24" fill="none" stroke="#1E2B36" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const EICON = {
+  light: EI('<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>'),
+  outlet: EI('<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9.5 9v3M14.5 9v3M10 16h4"/>'),
+  switch: EI('<rect x="6" y="3" width="12" height="18" rx="2"/><rect x="9.5" y="7" width="5" height="10" rx="1"/>'),
+  aircon: EI('<rect x="3" y="5" width="18" height="8" rx="2"/><path d="M6 10h12M8 16c0 1.5-1 2-1 3M12 16c0 1.5-1 2-1 3M16 16c0 1.5-1 2-1 3"/>'),
+  tv: EI('<rect x="3" y="5" width="18" height="12" rx="1.5"/><path d="M8 21h8"/>'),
+  net: EI('<path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9 9 0 0 1 13 0M8.5 16a4.5 4.5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1"/>'),
+  car: EI('<path d="M5 16V11l2-5h10l2 5v5M3 16h18M7 19.5v-3M17 19.5v-3"/><circle cx="8" cy="13" r="1"/><circle cx="16" cy="13" r="1"/>'),
+  sun: EI('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/>'),
+};
 // ---- 上の帯・お金の札・時計 ----
 function top(s) { return `<div class="top"><div class="logo"><img src="/brand/mark.svg" alt="" style="width:40px;height:40px;vertical-align:-10px;margin-right:4px">ゆくすいえ</div>${P.progress(s.step)}</div>`; }
 function moneyBox(s) {
@@ -415,18 +428,30 @@ export const SCENES = {
       <h4>床</h4>${Y.FINISH.floor.map(x => opt('floor', x)).join('')}<h4>内壁</h4>${Y.FINISH.inner.map(x => opt('inner', x)).join('')}</div>
       <div class="opts"><span style="font-size:18px;align-self:center">${add ? `アップグレード +${man(add)}万円` : '標準の仕上げのまま'}</span><button class="opt" style="margin-left:auto;background:var(--ink);color:var(--paper)" data-act="decideCoord">これで決める</button></div>${navs(s)}</div></div>${gallery(s)}`;
   },
+  // 電気の打ち合わせ（受け入れ基準4）：全画面。左に部屋ごとの一覧（標準／契約で決めたオプション／追加）、右に担当者と確認
   electric(s) {
-    const w = s.player, co = w.company, adds = Y.ELECTRIC.options.filter(o => w.electric.includes(o.id));
-    const told = Y.ELECTRIC.options.filter(o => !w.electric.includes(o.id) && s.chat.some(m => (m.who === 'kazu' || m.who === 'yuu') && m.ch !== 'elec' && Y.ELECTRIC_WORDS[o.id].test(m.text)));
+    const w = s.player, co = w.company;
+    const contract = new Set(w.contractOpts || []);
+    const rooms = Y.electricRooms(co);
+    for (const o of Y.ELECTRIC.options.filter(x => w.electric.includes(x.id))) {
+      const [room, icon] = Y.ELECTRIC_OPT_ROOM[o.id] || ['LDK', 'outlet'];
+      const adj = (w.adds || []).filter(a => a.label === `伝え漏れの扱い：${o.label}`).reduce((t, a) => t + a.v, 0);
+      rooms[room].push({ icon, text: o.label, kind: contract.has(o.id) ? 'contract' : 'add', v: contract.has(o.id) ? 0 : Math.round((o.v + adj) * 10) / 10, fresh: s.elecFresh?.includes(o.id) });
+    }
+    const addSum = Object.values(rooms).flat().filter(x => x.kind === 'add').reduce((a, x) => a + x.v, 0);
     const cands = Y.ELECTRIC.options.filter(o => !w.electric.includes(o.id));
-    return `${chrome(s)}${hero(s)}<div class="right ${tall(s)}"><div class="chat">${staffHead(co, busy.on ? 'think' : 'idle', '電気の打ち合わせ')}<div class="log" style="padding:14px 22px;justify-content:flex-start">
-      <div class="elbox"><div><h4>標準仕様</h4><ul class="elist">${(Y.ELECTRIC.standardBy[co] || Y.ELECTRIC.standard).map(t => `<li>${t}</li>`).join('')}</ul></div>
-      <div><h4>契約に入れてあるオプション</h4><ul class="elist">${adds.length ? adds.map(o => `<li class="add"><b>${o.label}</b></li>`).join('') : '<li style="list-style:none;margin-left:-1.2em;color:var(--ink2)">なし</li>'}</ul></div></div>
-      <div class="msg" style="margin-top:12px"><div class="who">${P.coTag(co, 18)}${STAFFN(co)}</div>電気の打ち合わせです。上の内容で進めますが、問題ないでしょうか。</div>
-      ${s.chat.filter(m => m.ch === 'elec').map(msgHTML).join('')}${failNote(s, 'elec')}</div>
-      <div class="opts"><button class="opt" style="background:var(--ink);color:var(--paper)" data-act="toBuild">この内容でOK</button></div>
-      <div class="tags"><span>要望の候補：</span>${cands.map(o => `<button data-act="elecTag" data-id="${o.id}">${o.label}</button>`).join('')}</div>
-      <div class="in">${whoSw()}<textarea id="say" rows="3" data-keep data-enter="sendElectric" placeholder="気になるところを指摘する（例：テレビは壁掛けにしたいと伝えていたはず）"></textarea><button class="btn" data-act="sendElectric">伝える</button></div>${navs(s)}</div></div>${gallery(s)}`;
+    const KIND = { contract: '契約', add: '追加' };
+    const item = x => `<li class="ei ${x.kind || 'std'} ${x.fresh ? 'fresh' : ''}">${EICON[x.icon] || EICON.outlet}<span>${esc(x.text)}</span>${x.kind ? `<em>${KIND[x.kind]}${x.kind === 'add' ? (x.v ? ` +${x.v}万円` : '（費用なし）') : ''}</em>` : ''}</li>`;
+    return `${chrome(s)}<div class="elec-full">
+      <div class="el-left"><div class="el-hd"><h3>電気の図面の内容</h3><span class="lg"><i class="std"></i>標準でついているもの<i class="contract"></i>契約で決めたオプション<i class="add"></i>追加${addSum ? `（${Math.round(addSum * 10) / 10}万円）` : ''}</span></div>
+        <div class="el-rooms">${Y.ELECTRIC_ROOMS.map(r => `<section class="el-room"><h4>${r}</h4><ul>${rooms[r].map(item).join('')}</ul></section>`).join('')}</div></div>
+      <div class="el-right">${staffHead(co, busy.on ? 'think' : 'idle', '電気の打ち合わせ')}
+        <div class="log" style="justify-content:flex-start"><div class="msg"><div class="who">${P.coTag(co, 18)}${STAFFN(co)}</div>電気の図面です。左の内容で進めますが、問題ないでしょうか？</div>
+        ${s.chat.filter(m => m.ch === 'elec').map(msgHTML).join('')}${failNote(s, 'elec')}${busy.on ? '<div class="msg typing">確認しています……</div>' : ''}</div>
+        <div class="opts"><button class="opt" style="background:var(--ink);color:var(--paper)" data-act="toBuild">この内容でOK</button></div>
+        <div class="tags"><span>要望の候補：</span>${cands.map(o => `<button data-act="elecTag" data-id="${o.id}">${o.label}</button>`).join('')}</div>
+        <div class="in">${whoSw()}<textarea id="say" rows="2" data-keep data-enter="sendElectric" placeholder="気になるところを伝える（例：伝えていたはずのものが、左の一覧にない）"></textarea><button class="btn" data-act="sendElectric">伝える</button></div></div>
+    </div>`;
   },
   // S6：「着工する ▶」で、工程が自動で進む。前の工程で立ったフラグ（聞き漏れ）だけが、施主検査で芽を出す
   build(s) {

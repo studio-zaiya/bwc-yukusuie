@@ -46,7 +46,7 @@ export const ACTIONS = {
     try { const r = await api('/api/play/start', {}); playId = r.playId; } catch (e) { toast(String(e.message)); return; }
     emit('start', { seed: 7, playId }); emit('mode', { mode: 'solo' }); emit('names', { a: 'あなた', b: 'パートナー' });
     emit('visit', { cos: ['C', 'A'] });
-    const said = [['C', 'kazu', '外観はシンプルで、箱っぽい家が好きです。'], ['C', 'yuu', '台所と洗面を近くして、朝の家事を楽にしたい。'], ['C', 'kazu', '冬でも暖かい家にしたい。予算は総額5100万円まで、月々は13万円くらいまでにしたいです。'], ['C', 'yuu', 'テレビは壁掛けにしたいな。'], ['A', 'kazu', '性能はどのくらいですか？']];
+    const said = [['C', 'kazu', '外観はシンプルで、箱っぽい家が好きです。'], ['C', 'yuu', '台所と洗面を近くして、朝の家事を楽にしたい。'], ['C', 'kazu', '冬でも暖かい家にしたい。予算は総額5100万円まで、月々は13万円くらいまでにしたいです。'], ['C', 'yuu', 'テレビは壁掛けにしたいな。'], ['C', 'yuu', 'リビングのエアコンは、見えないようにしたいです。'], ['A', 'kazu', '性能はどのくらいですか？']];
     for (const [co, who, text] of said) emit('say', { who, ch: co, text });
     const heard = [['C', 'かず', '外観はシンプルな箱型'], ['C', 'ゆう', '台所と洗面を近く'], ['C', 'かず', '冬でも暖かい家'], ['C', 'ゆう', 'テレビは壁掛け'], ['A', 'かず', '性能の確かさ']];
     emit('ai', { role: 'hearing', co: 'C', ch: 'C', data: { line: 'ありがとうございます。いただいたご要望で、プランと総額の見積をお出しします。', honne: '', heard: heard.map(([co, who, text]) => ({ tag: text, who, text, co })), missed: [], choices: [], wishes: [{ kind: 'totalMax', value: 5100, text: '総額5100万円まで' }, { kind: 'monthlyMax', value: 13, text: '月々13万円くらいまで' }, { kind: 'priority', value: null, text: '冬の暖かさ' }] }, call: { role: 'preset', reason: 'preset（続きから遊ぶ）' } });
@@ -178,6 +178,9 @@ export const ACTIONS = {
     emit('say', { who: getWho(), ch: 'elec', text });
     // 指摘を電気の項目に読み替える（コード）。伝えていたのに漏れていたか、一度も伝えていないかを、それまでの会話で見分ける
     const ids = Y.electricOf(text).filter(id => !S.player.electric.includes(id));
+    // すでに図面に入っているもの：左の一覧を指して答える（コード）
+    const inList = Y.electricOf(text).filter(id => S.player.electric.includes(id));
+    if (!ids.length && inList.length) { emit('say', { who: 'staff', co, ch: 'elec', text: `${inList.map(id => Y.ELECTRIC.options.find(o => o.id === id).label).join('、')}は、図面に入っています（左の一覧）。ほかに気になるところはありますか？` }); faceTalk(); return; }
     if (!ids.length) { await askStaff({ co, ch: 'elec', scene: '契約後の電気の打ち合わせ。施主の指摘が、電気の項目に当たらない。確認して次回お返事すると、ていねいに伝える（金額は言わない）。', text, flag: 'electric', history: false }); return; }
     const before = [...words().filter(m => m.ch !== 'elec'), { text: S.entry.text || '' }, { text: Object.values(S.survey || {}).join(' ') }];
     const told = ids.filter(id => before.some(m => Y.ELECTRIC_WORDS[id].test(m.text)));

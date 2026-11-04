@@ -96,7 +96,7 @@ export function apply(s, e) {
     }
     case 'cancelTrade': s.pendingTrade = null; s.band = null; s.chat.push({ who: 'sys', ch: s.player.company, text: 'この条件では進めないことにした' }); break;
     case 'finish': Object.assign(s.player.finish, e.finish); break;
-    case 'electric': s.player.electric = [...new Set([...s.player.electric, ...e.ids])]; s.player.adds.push(...(e.adj || [])); if (e.contract) s.player.contractOpts = [...new Set([...(s.player.contractOpts || []), ...e.ids])]; break;
+    case 'electric': s.elecFresh = e.contract ? [] : e.ids; s.player.electric = [...new Set([...s.player.electric, ...e.ids])]; s.player.adds.push(...(e.adj || [])); if (e.contract) s.player.contractOpts = [...new Set([...(s.player.contractOpts || []), ...e.ids])]; break;
     case 'pop': s.pop = e.pop; break;
     case 'lot': s.lot = e.no; break;
     case 'buildAuto': s.buildAuto = true; break;
@@ -170,9 +170,24 @@ export function render() {
   const keep = [...view.querySelectorAll('[data-keep]')].map(el => ({ id: el.id, v: el.value }));
   view.innerHTML = fn(S) + popHTML() + (S.toast ? `<div class="toast">${S.toast}</div>` : '') + (RT.replaying ? `<div class="replaybar">実際のプレイの記録を再生しています</div>` : '') + (REC || RT.replaying || S.scene === 'start' ? '' : `<button class="help" data-act="help" title="操作の案内">？</button>`) + tourHTML(S);
   for (const k of keep) { const el = document.getElementById(k.id); if (el && !el.value) el.value = k.v; }
-  view.querySelectorAll('.chat .log').forEach(log => { log.scrollTop = log.scrollHeight; });
+  view.querySelectorAll('.chat .log, .el-right .log').forEach(log => { log.scrollTop = log.scrollHeight; });
+  countUp(view);
   if (SCENES[S.scene + '_after']) SCENES[S.scene + '_after'](S);
   if (!REC && !RT.replaying) tourAfterRender(S);
+}
+// お金の札：前の表示から新しい値まで、数え上がる（動画の書き出しと再生では動かさない）
+const MONEY_PREV = [];
+function countUp(view) {
+  view.querySelectorAll('.moneyc .v').forEach((el, i) => {
+    const node = el.firstChild; if (!node || node.nodeType !== 3) return;
+    const to = Number(node.nodeValue.replace(/[^0-9.]/g, '')), from = MONEY_PREV[i];
+    MONEY_PREV[i] = to;
+    if (REC || RT.replaying || from == null || !isFinite(to) || from === to || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const t0 = performance.now(), dur = 900;
+    el.classList.add('counting');
+    const step = now => { const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3); node.nodeValue = Math.round(from + (to - from) * e).toLocaleString('ja-JP'); if (k < 1) requestAnimationFrame(step); else el.classList.remove('counting'); };
+    requestAnimationFrame(step);
+  });
 }
 function popHTML() {
   if (!S.pop) return '';

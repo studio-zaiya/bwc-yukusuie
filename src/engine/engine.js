@@ -102,6 +102,27 @@ export const ELECTRIC = {
   ],
 };
 ELECTRIC.standard = ELECTRIC.standardBy.C;
+// 電気の一覧を部屋ごとに（受け入れ基準4）。標準仕様の文（素材集）を部屋に振り分け、どの家にもある水回り・外まわりの基本を足す【Claude】
+export const ELECTRIC_ROOMS = ['LDK', 'キッチン', '洗面', '寝室', '外まわり'];
+const ELEC_KIND = [['照明', 'light'], ['コンセント', 'outlet'], ['スイッチ', 'switch'], ['エアコン', 'aircon'], ['テレビ', 'tv'], ['インターネット', 'net'], ['プレート', 'switch']];
+export const ELECTRIC_OPT_ROOM = { tag_tv_wall: ['LDK', 'tv'], tag_lan: ['寝室', 'net'], tag_outdoor: ['外まわり', 'outlet'], tag_ev: ['外まわり', 'car'], tag_hide_aircon: ['LDK', 'aircon'], tag_indirect: ['LDK', 'light'], tag_dimmer: ['LDK', 'light'], tag_more_outlets: ['LDK', 'outlet'], tag_owner_lights: ['LDK', 'light'], tag_solar: ['外まわり', 'sun'], tag_owner_aircon: ['LDK', 'aircon'], tag_remote: ['寝室', 'net'], tag_toggle: ['LDK', 'switch'] };
+export function electricRooms(co) {
+  const R = Object.fromEntries(ELECTRIC_ROOMS.map(r => [r, []]));
+  for (const t of ELECTRIC.standardBy[co] || ELECTRIC.standard) {
+    const [head, body = ''] = t.split('：');
+    if (/プレート/.test(head)) continue;
+    const icon = (ELEC_KIND.find(([k]) => head.includes(k)) || [, 'outlet'])[1];
+    const segs = body.split('、');
+    const bed = segs.filter(x => /各部屋|その他の部屋|子ども部屋|主寝室/.test(x)), ldk = segs.filter(x => !bed.includes(x));
+    if (ldk.length) R.LDK.push({ icon, text: `${head}：${ldk.join('、')}` });
+    else if (/照明/.test(head)) R.LDK.push({ icon, text: `${head}：${body.replace(/（.*）/, '')}` });
+    for (const x of bed) R['寝室'].push({ icon, text: `${head}：${x.replace(/^LDK・/, '')}` });
+  }
+  R['キッチン'].push({ icon: 'outlet', text: '専用コンセント：冷蔵庫・電子レンジ・食洗機' }, { icon: 'outlet', text: 'IH・換気扇の電源' });
+  R['洗面'].push({ icon: 'outlet', text: '洗濯機の専用コンセント' }, { icon: 'light', text: '洗面台の照明とコンセント' });
+  R['外まわり'].push({ icon: 'light', text: '玄関の照明' }, { icon: 'switch', text: 'インターホン' });
+  return R;
+}
 export function finishCost(f = {}) {
   const pick = (k, id) => (FINISH[k].find(x => x.id === id) || FINISH[k][0]);
   return pick('wall', f.wall).v + pick('floor', f.floor).v + pick('inner', f.inner).v;
