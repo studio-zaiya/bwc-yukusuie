@@ -131,10 +131,11 @@ export function finishCost(f = {}) {
 export const ELECTRIC_WORDS = { tag_tv_wall: /テレビ|壁掛け/, tag_lan: /LAN|有線/, tag_outdoor: /外.*コンセント|防水|屋外/, tag_ev: /充電|EV|電気自動車/, tag_hide_aircon: /エアコン.*(隠|ルーバー|見えな)|ルーバー/, tag_indirect: /間接照明/, tag_dimmer: /調光/, tag_more_outlets: /(コンセント|スイッチ).*(増|多)/, tag_owner_lights: /照明.*施主支給|照明を(自分|持ち込)/, tag_solar: /太陽光|蓄電池/, tag_owner_aircon: /エアコン.*(施主支給|自分で|持ち込)/, tag_remote: /リモート|在宅|テレワーク|仕事部屋/, tag_toggle: /トグル/ };
 export const electricOf = text => Object.entries(ELECTRIC_WORDS).filter(([, re]) => re.test(String(text))).map(([id]) => id);
 // 伝えていたのに入っていなかったとき、会社と担当者の力量で扱いが分かれる（議事録の有無が効く）
-export function missedPolicy(coId, skill = 0.5) {
-  if (coId === 'C') return { kind: 'free', rate: 0, label: '伝えていただいていたのに、反映できていませんでした。こちらで直します（無償）' };
-  if (coId === 'A') return { kind: 'half', rate: 0.5, label: '記録を確認しました。差額は半分、こちらで持ちます' };
-  if (coId === 'D' && skill < 0.5) return { kind: 'add', rate: 1, label: '記録が残っていないので、追加になってしまいます' };
+// 伝え漏れの負担（人間の回答11/5）：どの会社でも同じ決まり。会社が記録していたのに漏れた＝会社の過失なので会社の負担。
+// 会社が記録していなかったものは、書いて伝えていれば（アンケート・メッセージ）折半、口頭だけなら施主の全額負担
+export function missedPolicy(coId, skill = 0.5, { recorded = false, written = false } = {}) {
+  if (recorded) return { kind: 'free', rate: 0, label: '伝えていただいていたのに、反映できていませんでした。こちらで直します（会社の負担）' };
+  if (written) return { kind: 'half', rate: 0.5, label: '書いて伝えていただいていたので、差額は半分、こちらで持ちます' };
   return { kind: 'add', rate: 1, label: '打ち合わせの記録に残っていなかったので、追加になります' };
 }
 export function electricCost(ids = []) { return round(ids.reduce((s, id) => s + (ELECTRIC.options.find(o => o.id === id)?.v || 0), 0), 1); }
@@ -219,8 +220,9 @@ export function quote(spec, coId, knowGround = false) {
 export function warmth(spec, coId) {
   const co = COMPANIES[coId];
   const s = 3 + (co.equip || 0) + (co.insul - 5) * 2.5 + (spec.window === 'triple' ? 2 : 0) - (spec.bigWindow ? 3 : 0) + (spec.eave === 'south' ? 1 : 0) + (pitched(spec.roof) ? 0.5 : 0);
-  const lv = s >= 5.5 ? 3 : s >= 4 ? 2 : s >= 2 ? 1 : 0;
-  return { score: round(s, 1), level: lv, label: ['寒い', 'やや寒い', 'おおむね快適', '快適'][lv] };
+  // 断熱等級5の標準的な家は「ふつう」。超高性能へ誘導しない（人間の回答11/5）
+  const lv = s >= 5.5 ? 3 : s >= 3 ? 2 : s >= 0.5 ? 1 : 0;
+  return { score: round(s, 1), level: lv, label: ['やや寒い', 'ふつう', '暖かい', 'とても暖かい'][lv] };
 }
 
 // ---- 家計のゆとり（4段階）----
@@ -411,9 +413,10 @@ export function incidents(w) {
   const no = worldNo(w.bits), skill = rng((w.seed ?? 7) * 31 + no)();
   const changedAfter = !!w.third || w.bits[3] === 1; // 契約のあとで仕様の変更が重なった
   const out = [];
-  if (w.company === 'A' && changedAfter && skill < 0.45) out.push({ text: '契約後に担当が替わり、頼んだ設備と違うものが入った', amount: 380, cause: '契約のあとで変更が重なり、引き継ぎの記録が追いつかなかった', lesson: '契約のあとの変更は、記録を残して引き継いでもらう' });
+  // 会社の過失は、どの会社でも会社の負担（人間の回答11/5）：交換は会社持ちで、遅れだけが残る
+  if (w.company === 'A' && changedAfter && skill < 0.45) out.push({ text: '契約後に担当が替わり、頼んだ設備と違うものが入った。交換は会社の負担で、引渡しが3週間遅れた', delay: 21, cause: '契約のあとで変更が重なり、引き継ぎの記録が追いつかなかった', lesson: '契約のあとの変更は、記録を残して引き継いでもらう' });
   if (w.company === 'B' && w.bits[3] === 1 && skill < 0.4) out.push({ text: '契約後にオプションを足していったら、思ったより増えた', amount: 120, cause: '標準仕様が最低限で、仕上げのアップグレードを重ねた', lesson: '標準仕様で足りるかを、契約の前に確かめる' });
-  if (w.company === 'C' && w.bits[1] === 1 && skill < 0.4) out.push({ text: '詳細の打ち合わせが長引き、入居がひと月遅れた', delay: 30, cause: '設計の途中で外形を変え、図面を描き直した', lesson: '外形を変えるなら、早いうちに決める' });
+  if (w.company === 'C' && w.bits[1] === 1 && skill < 0.4) out.push({ text: '詳細の打ち合わせが長引き、入居がひと月遅れた', delay: 30, cause: '設計の途中で間取りの案を切り替え、図面を描き直した', lesson: '案を切り替えるなら、早いうちに決める' });
   if (w.company === 'D' && skill < 0.35 && !w.electric.includes('tag_tv_wall')) out.push({ text: '壁掛けテレビの下地が入っていなかった', cause: '打ち合わせの記録を残していなかった', lesson: '打ち合わせの記録は、自分たちでも残す' });
   return out;
 }
@@ -427,7 +430,7 @@ export function outcome(w, opts = {}) {
   if (w.unbuilt) events.push('この世界では、家は建ちませんでした');
   else if (w.spec.exterior !== 'full') events.push('玄関前は砂利のまま。冬の朝、霜取りに5分');
   const wm = warmth(w.spec, w.company);
-  if (wm.level <= 1) events.push('2月の朝、足元が冷たい');
+  if (wm.level === 0) events.push('2月の朝、足元が少し冷える');
   if (wm.level >= 3 && w.spec.window === 'triple') events.push('南の窓辺が、冬でもいちばんの居場所');
   const m = money({ ...w, adds: [...w.adds, ...(increase ? [{ label: '契約後の増額', v: increase }] : [])] });
   const sl = slack(h, m.loan);

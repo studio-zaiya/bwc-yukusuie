@@ -113,6 +113,7 @@ export function apply(s, e) {
     case 'svGo': s.sv.i = e.i; s.sv.who = e.who || 'p1'; break;
     case 'mem': s.memory = structuredClone(e.memory); syncHeard(s); for (const w of wishesOf(s.memory)) { const i = s.wishes.findIndex(x => x.kind === w.kind); if (i >= 0) s.wishes[i] = w; else s.wishes.push(w); } break;
     // 断られたら、別の世界線へ：もとの世界に印を付けて残し、すでにある世界に操作を移す（新しい世界は作らない）
+    case 'notice': s.notice = { text: e.text, step: s.step, scene: s.scene }; break;
     case 'planReset': s.plan = null; s.planRound = 0; break;
     case 'refused': s.refused = { co: e.co, kind: e.kind, step: s.step }; break;
     case 'jump': {
@@ -196,9 +197,10 @@ export function render() {
   const fn = SCENES[S.scene] || SCENES.start;
   const view = document.getElementById('view');
   const keep = [...view.querySelectorAll('[data-keep]')].map(el => ({ id: el.id, v: el.value }));
-  view.innerHTML = fn(S) + (SWITCH.on ? `<div class="wswitch"><p>${SWITCH.lines[SWITCH.i] || ''}</p></div>` : '') + popHTML() + (S.toast ? `<div class="toast">${S.toast}</div>` : '') + (RT.replaying ? `<div class="replaybar">実際のプレイの記録を再生しています</div>` : '') + (REC || RT.replaying || S.scene === 'start' ? '' : `<button class="help" data-act="help" title="操作の案内">？</button>`) + tourHTML(S);
+  view.innerHTML = fn(S) + (S.notice && S.notice.step === S.step && S.notice.scene === S.scene ? `<div class="notice" role="status"><b>お知らせ</b>${S.notice.text}</div>` : '') + (SWITCH.on ? `<div class="wswitch"><p>${SWITCH.lines[SWITCH.i] || ''}</p></div>` : '') + popHTML() + (S.toast ? `<div class="toast">${S.toast}</div>` : '') + (RT.replaying ? `<div class="replaybar">実際のプレイの記録を再生しています</div>` : '') + (REC || RT.replaying || S.scene === 'start' ? '' : `<button class="help" data-act="help" title="操作の案内">？</button>`) + tourHTML(S);
   for (const k of keep) { const el = document.getElementById(k.id); if (el && !el.value) el.value = k.v; }
-  view.querySelectorAll('.chat .log, .el-right .log').forEach(log => { log.scrollTop = log.scrollHeight; });
+  // 会話の欄は最新が見えるよう下へ。フォームや書類の欄（data-top）は上から（人間の指摘11/5：入力画面が一番下から始まっていた）
+  view.querySelectorAll('.chat .log:not([data-top]), .el-right .log').forEach(log => { log.scrollTop = log.scrollHeight; });
   countUp(view);
   if (SCENES[S.scene + '_after']) SCENES[S.scene + '_after'](S);
   if (!REC && !RT.replaying) tourAfterRender(S);

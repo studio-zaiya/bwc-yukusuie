@@ -533,3 +533,7 @@ button.th.th15{font:inherit;color:inherit;text-align:center;cursor:pointer;borde
 .th.unbuilt{border:1.5px dashed #1E2B36;background:#F7F3EA}.th.unbuilt .tnm{color:var(--ink2)}
 .rt-card.off{opacity:.55;cursor:not-allowed;position:relative}.rt-off{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--fr);font-weight:900;font-size:26px;background:#fff;border:2px solid var(--ink);border-radius:999px;padding:10px 26px;white-space:nowrap}
 @media (prefers-reduced-motion:reduce){.wswitch,.wswitch p{animation:none}}
+.colors.big{display:flex;gap:14px;flex-wrap:wrap}.colors.big button{width:120px;height:90px;border-radius:14px;border:2px solid rgba(30,43,54,.25);position:relative}.colors.big button[aria-pressed=true]{outline:4px solid #F2C230;outline-offset:2px}.colors.big button span{position:absolute;left:0;right:0;bottom:-26px;font-size:16px;color:var(--ink)}
+/* 手続きの通知の箱（人間の回答11/5：独立の場面にせず、起きたときに知らせる） */
+.notice{position:absolute;right:30px;top:116px;width:500px;z-index:40;background:#fff;border:2px solid var(--ink);border-radius:14px;padding:12px 18px;font-size:17px;line-height:1.6;box-shadow:0 10px 24px rgba(30,43,54,.15);animation:rtin .4s ease-out,ntout .6s 6s forwards}@keyframes ntout{to{opacity:0;visibility:hidden}}.notice b{display:block;font-size:14px;color:var(--ink2)}
+.colors.big{margin-bottom:34px}

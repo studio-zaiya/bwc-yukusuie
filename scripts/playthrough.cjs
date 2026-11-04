@@ -59,7 +59,7 @@ const OUT = process.env.OUT || 'out/shots';
     await p.waitForTimeout(1700); await click('[data-act=pickSide][data-side=b]'); await click('[data-act=decideNoWhy]'); await p.waitForTimeout(1900); await shot('fork3');
     await say('借入を少し増やして、南の大きな窓だけトリプルガラスにしたい', 'freeAnswer'); await shot('fork3-trade');
     await click('[data-act=approve]'); await p.waitForTimeout(1900); await shot('contract');
-    await click('[data-act=toCoord]'); await click('[data-act=finish][data-k=wall][data-v=galva]'); await click('[data-act=finish][data-k=color][data-v="1"]'); await shot('coord');
+    await click('[data-act=toCoord]'); await p.waitForTimeout(1600); await shot('fork4'); await click('[data-act=pickSide][data-side=b]'); await click('[data-act=decideNoWhy]'); await p.waitForTimeout(1900); await click('[data-act=finish][data-k=color][data-v="1"]'); await shot('coord');
     await click('[data-act=decideCoord]');
     await say('リビングのエアコンは見えないようにしたいと伝えていたはずです', 'sendElectric'); await shot('electric');
     await click('[data-act=toBuild]'); await shot('build'); await click('[data-act=startBuild]'); await p.waitForTimeout(2000); await shot('build2');

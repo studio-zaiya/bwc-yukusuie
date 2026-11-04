@@ -13,7 +13,7 @@ const BASE = process.argv[2] || 'http://localhost:8787';
   await p.waitForSelector('[data-act=planConfirm]:not([disabled])', { timeout: 120000 }); await click('[data-act=planConfirm]'); await p.waitForTimeout(1800);
   await click('[data-act=pickSide][data-side=b]'); await click('[data-act=decideNoWhy]'); await p.waitForTimeout(3600);
   await click('[data-act=pickSide][data-side=a]'); await click('[data-act=decideNoWhy]'); await p.waitForTimeout(1900);
-  await click('[data-act=toCoord]'); await click('[data-act=decideCoord]'); await p.waitForTimeout(1900);
+  await click('[data-act=toCoord]'); await p.waitForTimeout(1600); await click('[data-act=pickSide][data-side=a]'); await click('[data-act=decideNoWhy]'); await p.waitForTimeout(1900); await click('[data-act=decideCoord]'); await p.waitForTimeout(600);
   // ここから、担当者の返事の分類を「値下げの要求」に差し替える
   await p.route('**/api/ai/rep', async route => { const r = await route.fetch(); const j = await r.json(); j.data.pressure = 'discount'; route.fulfill({ response: r, json: j }); });
   const before = await p.evaluate(() => ({ player: YUKU.state.player.bits.join(''), co: YUKU.state.player.company, unbuilt: YUKU.state.others.filter(w => w.unbuilt).length }));

@@ -236,16 +236,11 @@ export const ACTIONS = {
     closeFork(dec, () => { afterFork(dec); partnerReacts(dec, t.reason); });
   },
   cancelTrade() { emit('cancelTrade', {}); },
-  toCoord() { goto('coord', 6); },
+  // 契約のあと：第四の分岐点「どう仕上げる？」を、ほかと同じ2枚の札の儀式で（人間の回答11/5）。そのあと、選んだ仕上げの中で色を決める
+  toCoord() { goto('fork', 6); },
   finish(d) { emit('finish', { finish: { [d.k]: d.k === 'color' ? +d.v : d.v, ...(d.k === 'wall' ? { color: 0 } : {}) } }); },
-  // 第四の分岐点：コーディネートで選んだ結果が答えになる。増額があれば「アップグレードを受ける」側
-  decideCoord() {
-    const f = { ...S.player.finish }, add = Y.finishCost(f);
-    const dec = Y.decisions(S.pair)[3];
-    const label = add ? `アップグレードを受ける（${[f.wall !== 'std' && '外壁', f.floor !== 'std' && '床', f.inner !== 'vinyl' && '内壁'].filter(Boolean).join('・')}）` : '標準の仕上げのまま';
-    emit('fork', { decisionId: dec.id, proposal: { side: add ? 'b' : 'a', finish: f, plain: true, label, spec: {}, borrow: 'cover' }, reason: '', priority: '' });
-    goto('electric', 6);
-  },
+  // 色決め：第四の分岐点で選んだ仕上げの中で、外壁の色だけを選ぶ（金額は変わらない）
+  decideCoord() { goto('electric', 6); },
   elecTag(d) { const o = Y.ELECTRIC.options.find(x => x.id === d.id); const el = document.getElementById('say'); if (el && o) el.value = `${o.label}をお願いしたい`; },
   async sendElectric() {
     const text = val('say'); if (!text) return; clear('say');
@@ -260,11 +255,14 @@ export const ACTIONS = {
     const memItems = S.memory?.items || [];
     const before = [...words().filter(m => m.ch !== 'elec'), { text: S.entry.text || '' }, ...memItems.map(x => ({ text: x.text }))];
     const told = ids.filter(id => before.some(m => Y.ELECTRIC_WORDS[id].test(m.text)));
-    const pol = Y.missedPolicy(co, Y.outcome(S.player).skill);
-    const adj = told.map(id => { const o = Y.ELECTRIC.options.find(x => x.id === id); return { label: `伝え漏れの扱い：${o.label}`, v: -Math.round(o.v * (1 - pol.rate) * 10) / 10 }; }).filter(a => a.v);
+    // 負担は、どの会社でも同じ決まり（人間の回答11/5）：会社が記録していた→会社の負担／書いて伝えていた→折半／口頭だけ→施主の負担
+    const polOf = id => { const it = memItems.find(x => Y.ELECTRIC_WORDS[id].test(x.text)); return Y.missedPolicy(co, 0.5, { recorded: it?.deliveredTo?.[co] === 'told', written: !!it && it.sources.some(src => src === 'survey' || src === 'message') }); };
+    const pols = told.map(id => [id, polOf(id)]);
+    const adj = pols.map(([id, p]) => { const o = Y.ELECTRIC.options.find(x => x.id === id); return { label: `伝え漏れの扱い：${o.label}`, v: -Math.round(o.v * (1 - p.rate) * 10) / 10 }; }).filter(a => a.v);
     const rp = DATA.electrical?.replyPatterns;
-    const lines = [];
-    if (told.length) lines.push(pol.kind === 'free' ? rp?.requestedButMissed.free : pol.kind === 'half' ? rp?.requestedButMissed.half : rp?.requestedButMissed.paidNoRecord);
+    const kinds = [...new Set(pols.map(([, p]) => p.kind))];
+    const pol = pols[0]?.[1] || { kind: null };
+    const lines = kinds.map(k => k === 'free' ? rp?.requestedButMissed.free : k === 'half' ? rp?.requestedButMissed.half : rp?.requestedButMissed.paidNoRecord);
     if (ids.length > told.length) lines.push(rp?.notRequested.default);
     busy.on = true; render(); setFace(document.getElementById('face'), 'think');
     await new Promise(r => setTimeout(r, 900));
@@ -280,6 +278,7 @@ export const ACTIONS = {
   // S6：着工すると、上棟・施主検査・引渡しまで自動で進み、白いフェードで引渡し式へ
   async startBuild() {
     emit('buildAuto', {});
+    { const dd = Y.scheduleOf(S.player); emit('notice', { text: `土地の決済と、つなぎ融資の実行（着工金の支払い）が済みました（${dd[6] || ''}日目）。着工します。` }); }
     for (const st of [8, 9, 10]) { await new Promise(r => setTimeout(r, 1700)); goto('build', st); }
     await new Promise(r => setTimeout(r, 1400));
     goto('handover', 10);
@@ -399,14 +398,16 @@ async function reportCall() {
   } catch (e) { S.report = { failed: true }; toast(String(e.message)); }
 }
 function afterFork(dec) {
-  if (dec.id === 'D1') { emit('say', { who: 'sys', ch: S.player.company, text: `${Y.COMPANIES[S.player.company].name}に決めて、土地の売買契約を結んだ（ローン特約の期限は${Y.DEADLINE.loan}日目）` }); goto('plan', 3); planCall(''); }
+  if (dec.id === 'D1') { const dd = Y.scheduleOf(S.player); emit('say', { who: 'sys', ch: S.player.company, text: `${Y.COMPANIES[S.player.company].name}に決めて、土地の売買契約を結んだ（ローン特約の期限は${Y.DEADLINE.loan}日目）` }); goto('plan', 3); emit('notice', { text: `土地の売買契約を結びました（${dd[1] || ''}日目）。住宅ローンの本審査は、ローン特約の期限（${Y.DEADLINE.loan}日目）までに通す必要があります。` }); planCall(''); }
   else if (dec.id === 'D2') goto('fork', 5);
+  else if (dec.id === 'D4') goto('coord', 6);
   else if (dec.id === 'D3') {
     // 契約に入れてあるオプションは、その会社の担当者が聞き取れた（記録した）要望だけ
     const co = S.player.company;
     const inc = Y.electricOf(S.heard.filter(h => h.co === co).map(h => h.text).join(' ')).filter(id => !S.player.electric.includes(id));
     if (inc.length) emit('electric', { ids: inc, adj: [], contract: true });
     goto('contract', 5);
+    const dd = Y.scheduleOf(S.player); emit('notice', { text: `住宅ローンの本審査が承認されました（${dd[4] || ''}日目）。建物の請負契約に進みます。` });
   }
 }
 
