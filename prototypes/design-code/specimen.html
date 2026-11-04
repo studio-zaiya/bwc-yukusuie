@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>デザインコード見本</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=BIZ+UDGothic:wght@700&family=Zen+Maru+Gothic:wght@500;700&display=swap">
+<style>
+/* 昼の分譲地：空色の帯の下に紙の面、部品はカードで並べる */
+:root{
+  --paper:#FFFAF0; --sky:#CFEBFA; --ground:#F3E7CF; --grass:#9BD27A;
+  --ink:#1E2B36; --ink2:#6B6358; --night:#1B2440; --lamp:#FFD98A;
+  --kazu:#E8701F; --kazu-t:#B3541A; --yuu:#1C8DCC; --yuu-t:#14699A; --third:#F2C230; --third-t:#8C6A00;
+  --stat:#2E5A88; --field:#5A4A3C; --soil:#D9CDB4;
+  --f-body:"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic","Noto Sans JP",sans-serif;
+  --f-disp:"Hiragino Maru Gothic ProN","Zen Maru Gothic","Hiragino Sans","BIZ UDPGothic",sans-serif;
+  --f-num:"Hiragino Sans","BIZ UDGothic","Noto Sans JP",monospace;
+  --e-in:cubic-bezier(.22,1,.36,1); --e-move:cubic-bezier(.65,0,.35,1);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);line-height:1.7}
+.band{background:linear-gradient(var(--sky),var(--paper));padding:40px max(16px,4vw) 24px}
+.band h1{font-family:var(--f-disp);font-weight:700;font-size:clamp(28px,4vw,44px);margin:0}
+.band p{margin:6px 0 0;color:var(--ink2);max-width:60ch}
+main{padding:8px max(16px,4vw) 64px;display:grid;gap:40px}
+h2{font-family:var(--f-disp);font-size:22px;margin:0 0 14px}
+h3{font-size:14px;margin:0 0 8px;color:var(--ink2);letter-spacing:.04em}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+.sw{border-radius:8px;overflow:hidden;border:1px solid #0001;background:#fff}
+.sw .c{height:64px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.sw .m{padding:8px 10px;font-size:12px;line-height:1.5}
+.sw .m b{display:block;font-size:13px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.legend{display:flex;flex-wrap:wrap;gap:20px;align-items:center;font-size:14px}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.type{display:grid;gap:10px}
+.type div{display:flex;gap:16px;align-items:baseline;flex-wrap:wrap;border-bottom:1px dashed #0002;padding-bottom:8px}
+.type small{width:150px;color:var(--ink2);font-size:12px;flex:none}
+.parts{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.card{background:#fff;border:1px solid #0001;border-radius:12px;padding:18px;display:grid;gap:12px;align-content:start}
+/* 数字の札 */
+.tag{display:inline-flex;align-items:center;gap:8px;background:var(--paper);border:1.5px solid var(--ink);border-radius:4px;padding:6px 10px;font-weight:700}
+.tag .v{font-family:var(--f-disp);font-size:22px}
+.k-stat{white-space:nowrap;font-size:11px;background:var(--stat);color:#fff;border-radius:3px;padding:1px 6px;font-weight:700;letter-spacing:.04em}
+.k-field{white-space:nowrap;font-size:11px;color:var(--field);border:1.5px dashed var(--field);border-radius:3px;padding:0 6px;font-weight:700;letter-spacing:.04em}
+.big{font-family:var(--f-disp);font-weight:700;font-size:56px;line-height:1.1}
+.src{font-size:12px;color:var(--ink2)}
+/* 2択 */
+.q{font-family:var(--f-disp);font-size:20px;font-weight:700}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.choice{border:2px solid var(--ink);border-radius:10px;padding:12px;background:var(--paper);font:inherit;text-align:left;color:inherit;cursor:pointer;transition:transform .15s var(--e-in)}
+.choice:hover{transform:translateY(-2px)}
+.choice b{display:block;font-size:15px}
+.choice span{font-size:12px;color:var(--ink2)}
+.free{display:grid;gap:6px}
+.free label{font-size:12px;color:var(--ink2)}
+.free input{font:inherit;border:1.5px dashed var(--ink);border-radius:8px;padding:10px;background:#fff;color:var(--ink)}
+.hint{font-size:13px;display:flex;gap:8px;align-items:center}
+.hint i{width:22px;height:22px;border-radius:50%;background:var(--yuu);flex:none}
+/* カウントダウン */
+.cd .lbl{font-size:14px;font-weight:700}
+.cd .d{font-family:var(--f-disp);font-weight:700;font-size:64px;line-height:1}
+.bar{height:10px;background:var(--ground);border-radius:5px;overflow:hidden}
+.bar i{display:block;height:100%;width:38%;background:var(--ink);border-radius:5px;animation:shrink 6s var(--e-move) infinite alternate}
+@keyframes shrink{from{width:77%}to{width:23%}}
+/* 金額の帯 */
+.money{background:var(--ink);color:#fff;border-radius:10px;padding:12px 16px;display:flex;flex-wrap:wrap;gap:6px 22px;align-items:baseline}
+.money div{display:flex;gap:6px;align-items:baseline}
+.money small{font-size:12px;opacity:.85}
+.money b{font-size:22px}
+.money .delta{font-size:13px;background:#ffffff1f;border-radius:3px;padding:0 6px}
+/* 会社 */
+.builders{display:flex;gap:18px;flex-wrap:wrap}
+.b{display:grid;justify-items:center;gap:4px;font-size:12px}
+.b svg{width:48px;height:48px}
+/* 状態 */
+.states{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px}
+.st{display:grid;justify-items:center;gap:6px;font-size:13px;font-weight:700}
+.st svg{width:110px;height:90px}
+.night{background:var(--night);border-radius:8px}
+.note{font-size:12px;color:var(--ink2);border-top:1px solid #0002;padding-top:8px}
+.motion{display:grid;gap:6px;font-size:14px}
+.motion .ng{color:var(--ink2)}
+.ok-demo{display:flex;gap:24px;align-items:end;height:90px}
+.grow{width:60px;background:#fff;border:2px solid var(--ink);transform-origin:bottom;animation:grow 3s var(--e-in) infinite}
+@keyframes grow{0%{transform:scaleY(0)}30%{transform:scaleY(1.06)}40%,100%{transform:scaleY(1)}}
+.roll{font-family:var(--f-disp);font-weight:700;font-size:32px}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
+button:focus-visible,input:focus-visible{outline:3px solid var(--yuu-t);outline-offset:2px}
+</style>
+</head>
+<body>
+<header class="band">
+  <h1>16軒目の、わが家　デザインコード見本</h1>
+  <p>アプリと3分動画で共通に使う色、文字、動き、部品。明るい昼の分譲地を基調とし、暗い場面は1年後の冬の夜だけ。</p>
+</header>
+<main>
+
+<section>
+  <h2>色</h2>
+  <h3>基調</h3>
+  <div class="grid" id="base"></div>
+  <h3 style="margin-top:18px">夫婦の2色と、第3の答え（形でも区別する）</h3>
+  <div class="legend">
+    <span><svg width="60" height="16"><line x1="2" y1="8" x2="44" y2="8" stroke="#E8701F" stroke-width="5"/><rect x="44" y="2" width="12" height="12" fill="#E8701F" stroke="#1E2B36" stroke-width="1.5"/></svg>かず：実線と ■</span>
+    <span><svg width="60" height="16"><line x1="2" y1="8" x2="44" y2="8" stroke="#1C8DCC" stroke-width="5"/><circle cx="50" cy="8" r="6.5" fill="#1C8DCC" stroke="#1E2B36" stroke-width="1.5"/></svg>ゆう：実線と ●</span>
+    <span><svg width="60" height="16"><line x1="2" y1="8" x2="42" y2="8" stroke="#F2C230" stroke-width="5" stroke-dasharray="8 5"/><path d="M50 1 L57 8 L50 15 L43 8Z" fill="#F2C230" stroke="#1E2B36" stroke-width="1.5"/></svg>第3の答え：破線と ◆</span>
+  </div>
+  <div class="grid" id="pair" style="margin-top:12px"></div>
+  <p class="note">色覚の型を変えた試算で、橙と青の色差は ΔE 95〜114（十分）。金と橙は2型で ΔE 20 と近いため、第3の答えは破線と ◆ で区別する。</p>
+</section>
+
+<section>
+  <h2>文字</h2>
+  <div class="type">
+    <div><small>特大の数字 160px／64px</small><span class="num" style="font-family:var(--f-disp);font-weight:700;font-size:64px;line-height:1">5,007<span style="font-size:28px">万円</span></span></div>
+    <div><small>題名 96px／40px</small><span style="font-family:var(--f-disp);font-weight:700;font-size:40px">16軒目の、わが家</span></div>
+    <div><small>見出し 64px／28px</small><span style="font-family:var(--f-disp);font-weight:700;font-size:28px">だれと建てる？</span></div>
+    <div><small>字幕・本文 44px／16px</small><span style="font-size:16px">どちらもベストを尽くしているのに、時計の針だけが進む。</span></div>
+    <div><small>札 32px／14px</small><span style="font-size:14px;font-weight:700">2月の朝 14℃</span></div>
+    <div><small>注記・出典 24px／12px</small><span class="src">出典：住宅金融支援機構「2024年度 フラット35利用者調査」</span></div>
+  </div>
+  <p class="note">数字の書き方：4,070万円／+380万円／−210万円／月々 12.3万円／あと46日／14℃／39.3%。並ぶ数字は等幅数字にする。字幕は「文字数÷4」秒、かつ1.8秒以上。</p>
+</section>
+
+<section>
+  <h2>部品</h2>
+  <div class="parts">
+    <div class="card">
+      <h3>数字の札と、統計／現場の実感の札</h3>
+      <div style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px"><span class="big num">5,007万円</span><span class="k-stat">統計</span></div>
+      <div class="src">土地付き注文住宅の総額（全国）　出典：2024年度 フラット35利用者調査</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <span class="tag"><span class="v num">+380万円</span>契約後の増額</span>
+        <span class="tag"><span class="v num">14℃</span>2月の朝</span>
+      </div>
+      <div style="font-size:15px">決め手は、広告と「誰が担当になるか」というめぐり合わせ。 <span class="k-field">現場の実感</span></div>
+    </div>
+
+    <div class="card">
+      <h3>2択カード＋自由入力</h3>
+      <div class="q">どちらを残しますか。</div>
+      <div class="choices">
+        <button class="choice" type="button"><b>造作キッチンを残す</b><span>毎日いちばん長く立つ場所</span></button>
+        <button class="choice" type="button"><b>外構を残す</b><span>帰ってきたときの家の顔</span></button>
+      </div>
+      <div class="free">
+        <label for="free-ans">ほかの考え</label>
+        <input id="free-ans" type="text" placeholder="例：借入を少し増やして、窓をトリプルガラスにしたい">
+      </div>
+      <div class="hint"><i aria-hidden="true"></i>ゆう「両方じゃない答えも、ありかも」</div>
+    </div>
+
+    <div class="card cd">
+      <h3>カウントダウン</h3>
+      <div class="lbl">土地の契約期限まで</div>
+      <div><span class="lbl">あと</span> <span class="d num">46</span><span class="lbl">日</span></div>
+      <div class="bar"><i></i></div>
+      <p class="note">色で煽らない。14日を切ったら帯の端に ! を付ける。</p>
+    </div>
+
+    <div class="card">
+      <h3>金額の帯（画面下に常に出す）</h3>
+      <div class="money">
+        <div><small>総額</small><b class="num">4,130万円</b><span class="delta num">+60万円</span></div>
+        <div><small>借入</small><b class="num">4,760万円</b></div>
+        <div><small>月々</small><b class="num">13.2万円</b></div>
+      </div>
+      <p class="note">増減は符号と矢印で示し、良い・悪いの色で塗らない。差は0.9秒だけ添える。</p>
+    </div>
+
+    <div class="card">
+      <h3>住宅会社（強調色を割り当てない）</h3>
+      <div class="builders" id="builders"></div>
+      <p class="note">4社とも同じ墨の札。違いは形だけ。社名はアルファベット表記。</p>
+    </div>
+
+    <div class="card">
+      <h3>注記の置き場所</h3>
+      <p style="margin:0;font-size:13px">本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。実際の家づくりでは、地域・金融機関・住宅会社によって異なります。登場する住宅会社・人物・団体はすべて架空です。</p>
+      <p class="note">全文はゲームの最初と動画の最後。プレイ中は右下に「設定は簡略化しています」とだけ小さく置き、押すと全文が開く。</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>家の状態（形で区別する）</h2>
+  <div class="states" id="states"></div>
+</section>
+
+<section>
+  <h2>動き</h2>
+  <div class="parts">
+    <div class="card">
+      <h3>使う動き</h3>
+      <div class="ok-demo"><div class="grow" style="height:70px"></div><div class="roll num" id="roll">4,070万円</div></div>
+      <div class="motion">
+        <div>家が育つ：基礎 → 壁（行き過ぎ6%まで）→ 3コマ遅れて屋根 → 色が流れ込む</div>
+        <div>線が描き進む／数字が回って止まる（0.6〜0.9秒）／白から色へ／はんこ（1.12倍→等倍、0.12秒）</div>
+        <div>カメラは平行移動と寄り・引きだけ。切り替えは要素でつなぐ</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>使わない動き</h3>
+      <div class="motion ng">衝撃波の輪、粒子の爆発、ネオンの光、レンズフレア、画面の揺れ、RGBのずれ、跳ねすぎる動き、回転して現れる文字、遅い1文字ずつの打ち込み、回り続ける読み込み表示、紙吹雪</div>
+      <h3>速さ</h3>
+      <div class="motion">反応 0.12〜0.15秒／UI 0.25秒／登場 0.4〜0.6秒／移動 0.6〜0.9秒。1カットに主役の動きは1つ。</div>
+    </div>
+  </div>
+</section>
+
+</main>
+<script>
+const C=[["紙","#FFFAF0","墨の文字 13.9"],["空","#CFEBFA","墨の文字 11.6"],["地面","#F3E7CF","墨の文字 11.8"],["芝","#9BD27A","墨の文字 8.2"],["墨","#1E2B36","白の文字 14.4"],["墨（弱）","#6B6358","紙の上で 5.7"],["夜","#1B2440","夜の場面だけ"],["窓の灯り","#FFD98A","夜の窓"]];
+const P=[["かず（面）","#E8701F","墨の文字 4.7"],["かず（文字）","#B3541A","紙の上で 4.8"],["ゆう（面）","#1C8DCC","墨の文字 3.9（大きな文字のみ）"],["ゆう（文字）","#14699A","紙の上で 5.4"],["第3の答え（面）","#F2C230","墨の文字 8.6"],["第3の答え（文字）","#8C6A00","紙の上で 4.8"],["統計の札","#2E5A88","白の文字 7.2"],["現場の実感の札","#5A4A3C","紙の上で 8.1"]];
+const dark=h=>{const n=parseInt(h.slice(1),16),r=n>>16,g=n>>8&255,b=n&255;return (r*299+g*587+b*114)/1000<128};
+const sw=(n,h,m)=>`<div class="sw"><div class="c" style="background:${h};color:${dark(h)?'#fff':'#1E2B36'}">あア 12</div><div class="m"><b>${n}</b><span class="num">${h}</span><br>${m}</div></div>`;
+document.getElementById("base").innerHTML=C.map(c=>sw(...c)).join("");
+document.getElementById("pair").innerHTML=P.map(c=>sw(...c)).join("");
+const shapes={A:'<rect x="6" y="6" width="36" height="36" rx="3"/>',B:'<path d="M24 4 L44 42 L4 42Z"/>',C:'<circle cx="24" cy="24" r="20"/>',D:'<path d="M24 3 L42 13.5 L42 34.5 L24 45 L6 34.5 L6 13.5Z"/>'};
+const names={A:"Aハウス",B:"B工務店",C:"Cデザイン",D:"Dホーム"};
+document.getElementById("builders").innerHTML=Object.keys(shapes).map(k=>`<div class="b"><svg viewBox="0 0 48 48"><g fill="#1E2B36">${shapes[k]}</g><text x="24" y="${k==='B'?36:30}" text-anchor="middle" font-size="16" font-weight="700" fill="#fff" font-family="sans-serif">${k}</text></svg>${names[k]}</div>`).join("");
+function house(o){ // 簡単なアイソメの箱と切妻
+  const {wall="#fff",side="#fff",roof="#fff",stroke="#1E2B36",win="#CFEBFA",dash=false,body=true,fence=false,ground="#9BD27A",dim=1}=o;
+  const g=`<path d="M55 78 L100 56 L55 34 L10 56Z" fill="${ground}"/>`;
+  if(!body){return `<svg viewBox="0 0 110 90">${g}${dash?'<path d="M55 70 L84 56 L55 42 L26 56Z" fill="none" stroke="#1E2B36" stroke-width="1.5" stroke-dasharray="4 3"/>':''}${fence?'<path d="M22 58 L22 46 M40 67 L40 55 M70 67 L70 55 M88 58 L88 46 M22 50 L55 67 L88 50" stroke="#8A8F94" stroke-width="2.5" fill="none"/>':''}</svg>`;}
+  return `<svg viewBox="0 0 110 90" style="opacity:${dim}">${g}
+  <path d="M30 60 L55 72 L55 46 L30 34Z" fill="${wall}" stroke="${stroke}" stroke-width="1.5"/>
+  <path d="M55 72 L82 59 L82 33 L55 46Z" fill="${side}" stroke="${stroke}" stroke-width="1.5"/>
+  <path d="M30 34 L55 46 L68 22 L43 10Z" fill="${roof}" stroke="${stroke}" stroke-width="1.5"/>
+  <path d="M55 46 L82 33 L68 22Z" fill="${roof}" stroke="${stroke}" stroke-width="1.5" style="filter:brightness(.85)"/>
+  <path d="M38 52 L47 56 L47 47 L38 43Z" fill="${win}" stroke="${stroke}" stroke-width="1"/>
+  <path d="M62 56 L74 50 L74 42 L62 48Z" fill="${win}" stroke="${stroke}" stroke-width="1"/></svg>`;}
+const S=[["完成",house({wall:"#F6EBDA",side:"#E3C9A6",roof:"#7A8C99"}),""],
+["工事中",house({win:"#fff"}),""],
+["工事中止",house({body:false,fence:true,ground:"#D9CDB4"}),""],
+["空き家",house({wall:"#F6EBDA",side:"#E3C9A6",roof:"#7A8C99",win:"#6B6358",dim:.55}),""],
+["未着工",house({body:false,dash:true,ground:"#F3E7CF"}),""],
+["完成（夜）",house({wall:"#3A4566",side:"#2C3654",roof:"#232B45",win:"#FFD98A",stroke:"#0E1428",ground:"#26314F"}),"night"]];
+document.getElementById("states").innerHTML=S.map(([n,s,c])=>`<div class="st"><div class="${c}" style="padding:4px">${s}</div>${n}</div>`).join("");
+// 数字が回って止まる見本
+const el=document.getElementById("roll");let t0=performance.now();
+function tick(t){const p=((t-t0)/1000)%3, a=Math.min(1,p/0.8), e=1-Math.pow(1-a,4), v=Math.round(4070+60*e);el.textContent=v.toLocaleString("ja-JP")+"万円";requestAnimationFrame(tick)}
+if(!matchMedia("(prefers-reduced-motion: reduce)").matches)requestAnimationFrame(tick);
+</script>
+</body>
+</html>

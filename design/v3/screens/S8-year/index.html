@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>S8 1年後の16区画</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="../../../../app/engine.js"></script><script src="../../../../app/iso.js"></script><script src="../../play/common.js"></script><script src="../screens.js"></script>
+<link rel="stylesheet" href="../screens.css">
+<style id="css"></style>
+<style>
+/* 1年後：左に16区画の俯瞰（主役）、右にその世界のカード。区画を押すとカードが替わる */
+.estate{position:absolute;left:30px;top:124px;width:1180px;height:930px;background:linear-gradient(#DDF0FA,#F4FAFD 40%,#F3E7CF 40.1%);border-radius:22px;overflow:hidden}
+.estate svg{position:absolute;left:40px;top:40px;width:1100px;height:860px}
+.estate .lab{position:absolute;left:28px;top:22px;font-size:20px;color:var(--ink2)}
+.estate .lab b{font-family:var(--fr);font-weight:900;font-size:34px;color:var(--ink);margin-right:12px}
+.estate .lot{cursor:pointer}
+.card{position:absolute;left:1236px;top:124px;width:654px;height:930px;background:#fff;border:1.5px solid rgba(30,43,54,.2);border-radius:20px;box-shadow:0 10px 30px rgba(30,43,54,.10);padding:24px 28px;display:flex;flex-direction:column;gap:14px}
+.card .hd{display:flex;align-items:center;gap:12px}
+.card .no{font-family:var(--fr);font-weight:900;font-size:48px;line-height:1}
+.card .co{font-size:20px;font-weight:700}
+.card .tag{margin-left:auto;font-size:15px;border:1.5px solid var(--ink);border-radius:999px;padding:3px 12px}
+.card .tag.you{background:var(--ink);color:var(--paper)}
+.dec{list-style:none;display:flex;flex-direction:column;gap:6px}
+.dec li{display:grid;grid-template-columns:180px 1fr;gap:10px;font-size:18px;line-height:1.5;padding:8px 12px;border-radius:10px;background:#F7F4EE}
+.dec li span:first-child{color:var(--ink2);font-size:16px}
+.dec li.t{background:#FFF7DD;box-shadow:inset 0 0 0 2px #C99A00;border-radius:10px}
+.nums{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.nums div{border:1.5px solid rgba(30,43,54,.14);border-radius:12px;padding:10px 14px}
+.nums .k{font-size:14px;color:var(--ink2)}
+.nums .v{font-family:var(--fr);font-weight:900;font-size:28px;font-variant-numeric:tabular-nums}
+.nums .v small{font-size:15px;margin-left:2px}
+.ev{font-size:18px;line-height:1.65;background:var(--paper);border-radius:12px;padding:12px 16px}
+.ev b{display:block;font-size:14px;color:var(--ink2);font-weight:400}
+.card .act{margin-top:auto;display:flex;gap:10px}
+.top .pbar{width:1180px}
+</style></head>
+<body><div id="stage"><div id="view"></div></div>
+<script>
+document.getElementById('css').textContent = S.L.CSS;
+const { L, Y, W, man } = S;
+const DETAIL = { 7: 'あなたの世界', 15: '会社違いの世界', 5: '予算・仕様違いの世界', 13: '大きな出来事の世界' };
+let sel = +(new URLSearchParams(location.search).get('lot') || 5);
+function card(no) {
+  const w = W(no), co = Y.COMPANIES[w.company];
+  const tag = DETAIL[no] ? `<span class="tag ${no === L.YOU ? 'you' : ''}">${DETAIL[no]}</span>` : '';
+  return `<div class="card">
+    <div class="hd"><span class="no">${String(no).padStart(2, '0')}</span>${L.coTag(w.company, 32)}<span class="co">${co.name}</span>${tag}</div>
+    <ol class="dec">${S.decisions(w).map(d => `<li class="${d.third ? 't' : ''}"><span>${d.q}</span><span>${d.a}</span></li>`).join('')}</ol>
+    <div class="nums">
+      <div><div class="k">土地と建物の総額</div><div class="v">${man(w.total)}<small>万円</small></div></div>
+      <div><div class="k">借入金額</div><div class="v">${man(w.principal)}<small>万円</small></div></div>
+      <div><div class="k">冬の朝</div><div class="v">${w.warmth.label}</div></div>
+      <div><div class="k">家計のゆとり</div><div class="v">${w.slack.label}</div></div>
+    </div>
+    <div class="ev"><b>この1年の出来事</b>${w.events.length ? w.events.map(e => '・' + e).join('<br>') : '・大きな出来事はなく、1年が過ぎた'}</div>
+    <div class="act"><button class="btn">この世界を再生する</button><button class="btn ghost">07と並べて比べる</button></div>
+  </div>`;
+}
+function draw() {
+  const list = L.worldsAt(11);
+  document.getElementById('view').innerHTML = `
+  ${S.top(11)}${S.money('final')}
+  <div class="estate"><div class="lab"><b>入居から1年</b>区画を押すと、その世界の1年が見られます</div>
+    ${L.estate2(list, { hi: [sel].filter(n => n !== L.YOU) })}</div>
+  ${card(sel)}`;
+}
+// estate2 は区画に data を持たないので、区画の位置から押した区画を求める
+document.getElementById('view').addEventListener('click', e => {
+  const svg = e.target.closest('.estate svg'); if (!svg) return;
+  const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+  const q = pt.matrixTransform(svg.getScreenCTM().inverse());
+  // 等角の逆変換：P(x,y) = ((x−y)cos30, (x+y)/2)
+  const c30 = Math.cos(Math.PI / 6), gx = (q.x / c30 + 2 * q.y) / 2, gy = (2 * q.y - q.x / c30) / 2;
+  const cell = 96 + 18, c = Math.floor(gx / cell), r = Math.floor(gy / cell);
+  if (c >= 0 && c < 4 && r >= 0 && r < 4) { sel = r * 4 + c + 1; draw(); }
+});
+S.fit(); draw(); window.render = draw; window.DUR = 1; window.READY = true;
+</script></body></html>

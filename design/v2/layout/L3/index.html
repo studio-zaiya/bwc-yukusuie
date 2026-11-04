@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>L3 タイムラインの帯</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="../../../../app/engine.js"></script><script src="../../../../app/iso.js"></script><script src="../common.js"></script>
+<style id="css"></style>
+<style>
+.top{position:absolute;left:40px;right:40px;top:22px;display:flex;align-items:center;gap:26px}
+.logo{font-family:var(--fr);font-weight:900;font-size:30px;white-space:nowrap}
+.top .pbar{flex:1}
+.clks{position:absolute;left:40px;top:90px}
+.hero{position:absolute;left:30px;top:136px;width:640px;height:400px;background:linear-gradient(#DDF0FA,#F4FAFD 50%,#F3E7CF 50.1%);border-radius:20px;overflow:hidden}
+.hero svg{position:absolute;left:80px;top:0;width:480px;height:400px}
+.hero .lab{position:absolute;left:22px;top:16px;display:flex;align-items:center;gap:8px;font-size:19px;font-weight:700}
+.hero .lab .no{font-family:var(--fr);font-size:36px;font-weight:900}
+.chatW{position:absolute;left:690px;top:136px;width:1200px;height:400px}
+.chatW .chat{height:100%}
+.tl{position:absolute;left:30px;right:30px;top:556px;bottom:20px;background:#fff;border-radius:20px;border:1.5px solid rgba(30,43,54,.12);padding:12px 20px 10px}
+.tl .hdr{display:grid;grid-template-columns:150px repeat(12,1fr) 210px;font-size:13px;color:var(--ink2);border-bottom:1px solid rgba(30,43,54,.12);padding-bottom:6px}
+.tl .hdr span{text-align:center;white-space:nowrap}
+.row{display:grid;grid-template-columns:150px 1fr 210px;align-items:center;height:26.5px}
+.row .nm{display:flex;align-items:center;font-size:15px;font-weight:700;gap:2px}
+.row .tr{position:relative;height:14px}
+.row .tr .bg{position:absolute;inset:6px 0;border-top:1px dashed rgba(30,43,54,.12)}
+.row .tr .b{position:absolute;left:0;top:1px;height:12px;border-radius:7px;display:flex;overflow:hidden}
+.row .tr .b i{height:100%}
+.row .tr .hd{position:absolute;top:-4px;width:20px;height:20px;margin-left:-10px;border-radius:50%;background:#fff;border:2px solid var(--ink)}
+.row.you{background:rgba(242,194,48,.14);border-radius:8px}
+.row.you .tr .hd{background:var(--gold)}
+.row .nt{font-size:13px;color:var(--ink2);padding-left:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.caster{left:40px;top:420px}
+.keys{position:absolute;right:40px;top:96px;font-size:14px;color:var(--ink2);display:flex;gap:14px;align-items:center}
+.keys i{display:inline-block;width:22px;height:10px;border-radius:5px;margin-right:4px;vertical-align:0}
+</style></head>
+<body><div id="stage"><div id="view"></div></div>
+<script>
+document.getElementById('css').textContent = L.CSS;
+const SEG = [[0, 5, '#D8D2C6'], [5, 7, '#9AA6AF'], [7, 10, '#1E2B36'], [10, 11, '#7DBF62']];
+function bar(s) {
+  const segs = SEG.map(([a, b, c]) => { const w = Math.max(0, Math.min(b, s) - a); return w > 0 ? `<i style="width:${w / s * 100}%;background:${c}"></i>` : ''; }).join('');
+  const x = (s + 0.5) / 12 * 100; return `<div class="b" style="width:${x}%">${segs}</div><div class="hd" style="left:${x}%"></div>`;
+}
+L.mount(p => {
+  const list = L.worldsAt(p), me = list[L.YOU - 1], sc = L.scene(p);
+  const rows = list.map(x => `<div class="row ${x.w.no === L.YOU ? 'you' : ''}"><div class="nm">${String(x.w.no).padStart(2, '0')}&nbsp;${L.coTag(x.w.company, 18)}${x.w.no === L.YOU ? '<span style="font-size:13px">あなた</span>' : ''}</div><div class="tr"><div class="bg"></div>${bar(Math.max(0.15, x.s))}</div><div class="nt">${x.w.no === L.YOU ? L.STEPS[Math.floor(p)] : x.note}</div></div>`).join('');
+  document.getElementById('view').innerHTML = `
+  <div class="top"><div class="logo">ゆくすいえ</div>${L.progressBar(p)}</div>
+  <div class="clks">${L.clocks(p)}</div>
+  <div class="keys"><span><i style="background:#D8D2C6"></i>打ち合わせ</span><span><i style="background:#9AA6AF"></i>契約・色決め</span><span><i style="background:#1E2B36"></i>工事</span><span><i style="background:#7DBF62"></i>暮らし</span></div>
+  <div class="hero"><div class="lab"><span class="no">07</span>あなたの家　${L.coTag('C', 24)}Cデザイン</div>${L.bigHouse(me.w, me.stage, { ghost: me.ghost })}</div>
+  <div class="chatW">${L.chatHTML(sc)}</div>
+  <div class="tl"><div class="hdr"><span></span>${L.STEPS_S.map(s => `<span>${s}</span>`).join('')}<span></span></div>${rows}</div>
+  ${L.caster([{ who: sc.cast[0][0], text: sc.cast[0][1] }])}`;
+});
+</script></body></html>

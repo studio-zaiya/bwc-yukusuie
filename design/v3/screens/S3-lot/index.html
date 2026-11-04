@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="../../../../app/engine.js"></script><script src="../../../../app/iso.js"></script><script src="../../play/common.js"></script><script src="../_s.js"></script>
+<title>S3 区画の当選</title>
+<style>
+.hero > .estw{position:absolute;left:120px;top:60px;width:900px;height:600px}
+.hero > .estw svg{width:100%;height:100%}
+.notice{font-size:17px;color:var(--ink2)}
+</style></head>
+<body><div id="stage"><div id="view"></div></div>
+<script>
+S.mountStatic(() => {
+  const L = S.L, Y = S.Y, man = S.man;
+  const list = L.worldsAt(0.4).map(x => ({ ...x, stage: 0, ghost: 0, note: '' }));
+  document.getElementById('view').innerHTML = `
+  ${S.chrome(0.4, 'pending', { clocks: '<span class="clk"><b>0</b>日目</span><span class="clk soft">土地の契約まで 60日</span>' })}
+  <div class="hero">
+    <div class="lab"><span class="no">07</span>当選した区画</div>
+    <div class="estw">${L.estate2(list, {})}</div>
+  </div>
+  <div class="right"><div class="panel" style="height:100%">
+    <div class="notice">分譲地の事務局から</div>
+    <h2 style="font-size:36px;margin-top:6px">第二希望の区画が、当たりました。</h2>
+    <table class="kv">
+      <tr><td>広さ</td><td>約${Y.SITE.tsubo}坪 <small>（${Y.SITE.area}㎡）</small></td></tr>
+      <tr><td>価格</td><td>${man(Y.SITE.price)}万円</td></tr>
+      <tr><td>上下水道の加入金</td><td>${man(Y.SITE.waterFee)}万円</td></tr>
+      <tr><td>用途地域</td><td>第一種住居地域</td></tr>
+      <tr><td>建蔽率／容積率</td><td>${Y.SITE.coverage * 100}%／${Y.SITE.far * 100}%</td></tr>
+      <tr><td>土地の契約期限</td><td>60日後</td></tr>
+    </table>
+    <p class="lead" style="margin-top:22px">選ばれなかった世界線でも、同じ日に、同じ区画が当たりました。</p>
+    <div style="position:absolute;right:56px;bottom:40px"><button class="btn">住宅会社に行ってみる</button></div>
+  </div></div>
+  ${L.caster([{ who: 'yuu', text: '第二希望でも、南の道路だね。' }, { who: 'kazu', text: '60日って、けっこう短いな。' }])}
+  ${S.gallery(0.4, { noCompany: true, stepLabel: () => '区画が当たる', noteFn: () => '同じ区画が当たった', pct: () => 2 })}`;
+});
+</script></body></html>

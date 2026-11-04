@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>16世界の系統図</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Klee+One:wght@600&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;background:#FFF7E8;overflow:hidden}
+  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  canvas{display:block;width:1920px;height:1080px;transform-origin:center center;box-shadow:0 10px 40px rgba(80,60,20,.12);cursor:default}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="1920" height="1080"></canvas></div>
+<script>
+(() => {
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const W=1920,H=1080;
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const seg=(t,a,b)=>clamp((t-a)/(b-a));
+const eout=x=>1-Math.pow(1-x,3);
+const back=x=>{const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(x-1,3)+c1*Math.pow(x-1,2);};
+const FONT='"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif';
+const HAND='"Klee One","Zen Maru Gothic",sans-serif';
+const INK='#2B2A33', SUB='#8A7E6C';
+const OWNER={kazu:{c:'#F08A24',n:'かずの要望が通った'},yuu:{c:'#16A99B',n:'ゆうの要望が通った'},both:{c:'#8B5CC9',n:'ふたりで出した第3の答え'},ink:{c:'#5B6475',n:'会社を選んだ'}};
+
+/* ---------- 分かれ道（通り芯） ---------- */
+const FORKS=[
+  {no:'①',name:'会社選び',axis:'全部入る｜絞り込む',opts:[['B工務店で全部入れる','ink'],['Cデザインで絞り込む','ink'],['Aハウスと月末に契約','both']]},
+  {no:'②',name:'間取り',axis:'キッチン｜外構',opts:[['造作キッチンを残す','yuu'],['外構を残す','kazu'],['畳の間を削って両方','both']]},
+  {no:'③',name:'契約',axis:'借入を増やす｜予算のまま',opts:[['借入を増やして外構を戻す','kazu'],['予算のまま進む','yuu'],['窓だけトリプルガラスに','both']]},
+  {no:'④',name:'仕様',axis:'箱型｜勾配屋根',opts:[['箱型の屋根','kazu'],['勾配屋根','yuu'],['箱型に、南だけ庇','both']]},
+];
+/* ---------- 16の世界 ---------- */
+const WORLDS=[
+  {no:'07',p:[1,0,2,2],d:1,you:1,t:'あなたの世界',s:'絞り込んだ家に、トリプルガラスの大きな窓。外構はボーナスで少しずつ。',n:[['総額','4,130万'],['冬の朝','18℃'],['いま','住んで1年']],fin:'#FBF8F2',roof:'#7FA7C9',form:'eave'},
+  {no:'03',p:[0,0,0,0],d:1,t:'全部入る家',s:'着工金を厚く払った。上棟の2か月後、職人が来なくなる。',n:[['戻らない額','約800万'],['冬の朝','—'],['いま','更地']],fin:'#F3EBDD',roof:'#C9BBA4',form:'empty'},
+  {no:'11',p:[2,1,0,1],d:1,t:'月末に契約した家',s:'グレードアップは契約額にだけ効いた。打ち合わせは19回。',n:[['総額','4,450万'],['契約後','+380万'],['いま','住んで1年']],fin:'#8FB3D1',roof:'#4D5560',form:'gable'},
+  {no:'15',p:[1,0,1,2],d:1,t:'窓だけ違う家',s:'すべてがあなたとほぼ同じ。違うのは、南の窓のガラスだけ。',n:[['総額','4,070万'],['冬の朝','13℃'],['いま','住んで1年']],fin:'#FBF8F2',roof:'#7FA7C9',form:'eave'},
+  {no:'01',p:[0,0,1,0],t:'前払いを抑えた家',s:'B工務店。着工金を抑えたので、工事は最後まで。点検は来なくなった。',n:[['総額','3,780万'],['冬の朝','15℃']],fin:'#DE7656',roof:'#3F6E9E',form:'box'},
+  {no:'02',p:[0,0,0,1],t:'引き継がれた家',s:'工事が止まり、別の会社が引き継いで完成。半年遅れの入居。',n:[['総額','4,310万'],['入居','半年遅れ']],fin:'#E2A867',roof:'#E0644A',form:'gable'},
+  {no:'04',p:[0,1,0,1],t:'灯りのある家',s:'外構を先に。カーポートとライトアップ、キッチンはシステムに。',n:[['総額','3,920万'],['冬の朝','14℃']],fin:'#F7D978',roof:'#2F8C78',form:'gable'},
+  {no:'05',p:[0,1,1,0],t:'白い箱の家',s:'全部入る家に、外構を先に。箱型の白い外観。',n:[['総額','3,860万'],['冬の朝','14℃']],fin:'#BFE0C7',roof:'#7A5BA8',form:'box'},
+  {no:'06',p:[1,0,0,0],t:'入居日にそろった家',s:'借入を増やし、外構まで入居日に。月々の返済は約1万円増えた。',n:[['総額','4,370万'],['月々','+1.0万']],fin:'#FBF8F2',roof:'#F0A23A',form:'box'},
+  {no:'08',p:[1,0,0,1],t:'軒のある家',s:'勾配屋根で木の外壁を守る。外構も入居日に。',n:[['総額','4,390万'],['冬の朝','15℃']],fin:'#E2A867',roof:'#E0644A',form:'gable'},
+  {no:'09',p:[1,1,0,0],t:'外構を選んだ家',s:'キッチンはシステムに、外構はライトアップまで。',n:[['総額','4,060万'],['冬の朝','15℃']],fin:'#8FB3D1',roof:'#4D5560',form:'box'},
+  {no:'10',p:[1,1,1,1],t:'落ち着いた家',s:'外構を残し、予算のまま。勾配屋根の落ち着いた外観。',n:[['総額','3,990万'],['冬の朝','14℃']],fin:'#DE7656',roof:'#2F8C78',form:'gable'},
+  {no:'12',p:[1,1,2,0],t:'窓と外構の家',s:'外構を残し、窓だけトリプルに。第3の答えから生まれた世界。',n:[['総額','4,120万'],['冬の朝','18℃']],fin:'#F7D978',roof:'#3F6E9E',form:'box'},
+  {no:'13',p:[1,2,1,1],t:'畳のない家',s:'畳の間を削って、キッチンも外構も。祖父母は泊まれなくなった。',n:[['総額','4,050万'],['冬の朝','14℃']],fin:'#E2A867',roof:'#7A5BA8',form:'gable'},
+  {no:'14',p:[2,0,1,0],t:'大手で残した台所',s:'Aハウス。キッチンを残し、予算のまま。契約後に+220万。',n:[['総額','4,290万'],['冬の朝','19℃']],fin:'#8FB3D1',roof:'#4D5560',form:'box'},
+  {no:'16',p:[2,1,1,1],t:'大手の勾配屋根',s:'Aハウス。外構を残し、勾配屋根。打ち合わせは17回。',n:[['総額','4,380万'],['冬の朝','19℃']],fin:'#BFE0C7',roof:'#E0644A',form:'gable'},
+];
+WORLDS.forEach(w=>{w.third=w.p.includes(2);});
+const leaves=[...WORLDS].sort((a,b)=>{for(let i=0;i<4;i++){if(a.p[i]!==b.p[i])return a.p[i]-b.p[i];}return 0;});
+
+/* ---------- 配置 ---------- */
+const X0=170, COLX=[360,600,840,1080], LEAFX=1120, TOP=190, ROWH=52;
+leaves.forEach((w,i)=>{w.y=TOP+i*ROWH+ROWH/2;});
+// 節点＝経路の前半が同じ世界の集まり
+const nodes={};
+function key(p,d){return p.slice(0,d).join('');}
+leaves.forEach(w=>{for(let d=0;d<=4;d++){const k=d+':'+key(w.p,d);(nodes[k]=nodes[k]||{d,k,ys:[],ws:[]}).ys.push(w.y);nodes[k].ws.push(w);}});
+Object.values(nodes).forEach(n=>{n.y=n.ys.reduce((a,b)=>a+b)/n.ys.length;n.x=n.d===0?X0:COLX[n.d-1];n.detail=n.ws.some(w=>w.d);n.you=n.ws.some(w=>w.you);});
+const edges=[];
+Object.values(nodes).forEach(n=>{if(n.d===0)return;const par=nodes[(n.d-1)+':'+n.k.split(':')[1].slice(0,n.d-1)];
+  const choice=+n.k.split(':')[1][n.d-1];edges.push({a:par,b:n,choice,owner:FORKS[n.d-1].opts[choice][1],third:choice===2});});
+
+/* ---------- 描画の部品 ---------- */
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function sysPath(a,b){ // 配管の系統図のような直交経路（角は丸める）
+  const mx=a.x+38, r=Math.min(12,Math.abs(b.y-a.y)/2);
+  ctx.beginPath();ctx.moveTo(a.x,a.y);
+  if(Math.abs(b.y-a.y)<1){ctx.lineTo(b.x,b.y);return;}
+  const s=Math.sign(b.y-a.y);
+  ctx.lineTo(mx-r,a.y);ctx.quadraticCurveTo(mx,a.y,mx,a.y+s*r);
+  ctx.lineTo(mx,b.y-s*r);ctx.quadraticCurveTo(mx,b.y,mx+r,b.y);
+  ctx.lineTo(b.x,b.y);
+}
+function miniHouse(x,y,w,s){
+  ctx.save();ctx.translate(x,y);ctx.scale(s,s);
+  if(w.form==='empty'){ctx.fillStyle='#EADFCB';rr(-16,6,32,8,3);ctx.fill();ctx.strokeStyle='#9A7652';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(6,6);ctx.lineTo(6,-10);ctx.stroke();ctx.fillStyle='#fff';ctx.fillRect(-2,-14,16,9);ctx.strokeRect(-2,-14,16,9);ctx.restore();return;}
+  ctx.fillStyle=w.fin;ctx.strokeStyle='rgba(60,50,40,.45)';ctx.lineWidth=1.5;
+  ctx.fillRect(-15,-8,30,22);ctx.strokeRect(-15,-8,30,22);
+  ctx.fillStyle=w.roof;
+  if(w.form==='gable'){ctx.beginPath();ctx.moveTo(-19,-7);ctx.lineTo(0,-22);ctx.lineTo(19,-7);ctx.closePath();ctx.fill();}
+  else{ctx.fillRect(-16,-11,32,4);if(w.form==='eave'){ctx.fillRect(-18,1,36,3);}}
+  ctx.fillStyle='#CFEAF7';ctx.fillRect(-11,4,12,8);ctx.fillRect(5,-4,6,6);
+  ctx.restore();
+}
+
+let selected=WORLDS[0], hover=null, T=0;
+const hits=[];
+function render(t){
+  T=t;hits.length=0;
+  ctx.setTransform(1,0,0,1,0,0);
+  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#FFF9EE');g.addColorStop(1,'#FFEFD6');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(214,190,150,.22)';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // 表題
+  ctx.fillStyle=INK;ctx.font=`900 40px ${FONT}`;ctx.textBaseline='alphabetic';ctx.fillText('16の世界の系統図',70,72);
+  ctx.fillStyle=SUB;ctx.font=`700 20px ${FONT}`;ctx.fillText('同じ家族が、4つの分かれ道で別の答えを出した。線の色は、その答えを誰の要望が決めたか。',70,104);
+
+  // 通り芯（分かれ道の列）
+  FORKS.forEach((f,i)=>{
+    const x=COLX[i]-200+38, a=seg(t,0.1+i*0.15,0.5+i*0.15);
+    ctx.globalAlpha=a;
+    ctx.setLineDash([6,8]);ctx.strokeStyle='rgba(91,100,117,.35)';ctx.lineWidth=1.5;
+    const cx=(i===0?X0:COLX[i-1])+38;
+    ctx.beginPath();ctx.moveTo(cx,172);ctx.lineTo(cx,TOP+16*ROWH);ctx.stroke();ctx.setLineDash([]);
+    ctx.beginPath();ctx.arc(cx,150,19,0,6.3);ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle=INK;ctx.font=`900 20px ${FONT}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(i+1),cx,151);
+    ctx.textAlign='left';ctx.font=`900 20px ${FONT}`;ctx.fillText(f.name,cx+28,144);
+    ctx.font=`500 14px ${FONT}`;ctx.fillStyle=SUB;ctx.fillText(f.axis,cx+28,165);
+    ctx.globalAlpha=1;
+  });
+
+  // 線（左から描き進む）
+  const reveal=X0+eout(seg(t,0.2,2.6))*(LEAFX-X0+40);
+  ctx.save();ctx.beginPath();ctx.rect(0,0,reveal,H);ctx.clip();
+  // 選ばなかった選択肢の点線
+  Object.values(nodes).forEach(n=>{if(n.d>=4)return;
+    const have=new Set(edges.filter(e=>e.a===n).map(e=>e.choice));
+    [0,1].forEach(c=>{if(have.has(c))return;const dy=(c===0?-1:1)*16;
+      ctx.setLineDash([4,6]);ctx.strokeStyle='rgba(91,100,117,.35)';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(n.x,n.y);ctx.lineTo(n.x+30,n.y);ctx.lineTo(n.x+44,n.y+dy);ctx.lineTo(n.x+70,n.y+dy);ctx.stroke();ctx.setLineDash([]);
+      ctx.beginPath();ctx.arc(n.x+72,n.y+dy,3,0,6.3);ctx.fillStyle='rgba(91,100,117,.4)';ctx.fill();});
+  });
+  // 本線
+  const sorted=[...edges].sort((a,b)=>(a.b.detail?1:0)-(b.b.detail?1:0)+(a.b.you?1:0)-(b.b.you?1:0));
+  sorted.forEach(e=>{
+    const col=OWNER[e.owner].c, wd=e.b.detail?7:3.5;
+    if(e.b.you){sysPath(e.a,e.b);ctx.strokeStyle='rgba(232,85,58,.22)';ctx.lineWidth=wd+12;ctx.lineCap='round';ctx.stroke();}
+    sysPath(e.a,e.b);ctx.strokeStyle='#FFFFFF';ctx.lineWidth=wd+4;ctx.lineCap='round';ctx.stroke();
+    sysPath(e.a,e.b);ctx.strokeStyle=col;ctx.lineWidth=wd;
+    if(e.third&&!e.b.detail) ctx.setLineDash([10,6]);
+    ctx.stroke();ctx.setLineDash([]);
+  });
+  // 葉までの引き出し線
+  leaves.forEach(w=>{const n=nodes['4:'+w.p.join('')];ctx.strokeStyle=OWNER[FORKS[3].opts[w.p[3]][1]].c;ctx.lineWidth=w.d?7:3.5;ctx.beginPath();ctx.moveTo(n.x,n.y);ctx.lineTo(LEAFX,w.y);ctx.stroke();});
+  ctx.restore();
+
+  // 節点（分かれ道の決断）
+  Object.values(nodes).forEach(n=>{
+    const a=eout(seg(t,0.3+n.d*0.45,0.7+n.d*0.45));if(a<=0)return;
+    const r=(n.d===0?16:(n.detail?9:6))*back(a);
+    ctx.beginPath();ctx.arc(n.x,n.y,r,0,6.3);ctx.fillStyle='#fff';ctx.fill();
+    ctx.lineWidth=n.detail?3.5:2.5;ctx.strokeStyle=n.you?'#E8553A':INK;ctx.stroke();
+    if(n.d===0){ctx.fillStyle=INK;ctx.font=`900 18px ${FONT}`;ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText('かずとゆう',n.x-26,n.y-12);
+      ctx.font=`600 15px ${HAND}`;ctx.fillStyle=SUB;ctx.fillText('28の要望',n.x-26,n.y+12);ctx.textAlign='left';}
+  });
+  // 第3の答えの印
+  edges.filter(e=>e.third).forEach(e=>{const a=seg(t,1.6+e.b.d*0.3,2.1+e.b.d*0.3);if(a<=0)return;
+    const x=e.a.x+38+14,y=e.b.y-14;ctx.globalAlpha=a;
+    ctx.fillStyle=OWNER.both.c;rr(x,y-12,82,22,11);ctx.fill();ctx.fillStyle='#fff';ctx.font=`700 13px ${FONT}`;ctx.textBaseline='middle';ctx.fillText('第3の答え',x+12,y);ctx.globalAlpha=1;});
+
+  // 世界のカード
+  leaves.forEach((w,i)=>{
+    const a=eout(seg(t,2.2+i*0.05,2.7+i*0.05));if(a<=0)return;
+    const x=LEAFX+(1-a)*30, y=w.y-22, cw=w.d?292:226, ch=44;
+    const isSel=selected===w, isHov=hover===w;
+    ctx.globalAlpha=a;
+    ctx.fillStyle='rgba(120,90,40,.10)';rr(x+4,y+5,cw,ch,10);ctx.fill();
+    ctx.fillStyle=w.you?'#FFF1EA':'#FFFFFF';rr(x,y,cw,ch,10);ctx.fill();
+    ctx.lineWidth=isSel?3:(w.d?2:1.2);ctx.strokeStyle=isSel?'#E8553A':(isHov?INK:(w.d?'#CDBFA8':'#E4D9C6'));ctx.stroke();
+    miniHouse(x+28,y+24,w,w.d?0.95:0.75);
+    ctx.fillStyle=w.you?'#E8553A':INK;ctx.font=`900 ${w.d?22:18}px ${FONT}`;ctx.textBaseline='middle';ctx.fillText(w.no,x+52,y+ch/2+1);
+    ctx.fillStyle=INK;ctx.font=`700 ${w.d?17:15}px ${FONT}`;ctx.fillText(w.t,x+(w.d?88:80),y+ch/2+1);
+    if(w.third&&!w.you){ctx.fillStyle=OWNER.both.c;ctx.font=`900 16px ${FONT}`;ctx.fillText('★',x+cw-22,y+ch-12);}
+    if(w.d){ctx.fillStyle='#E8553A';ctx.font=`700 11px ${FONT}`;ctx.fillText('詳しく',x+cw-42,y+11);}
+    ctx.globalAlpha=1;
+    hits.push({w,x,y,cw,ch});
+  });
+
+  // 右の詳細（タップで切り替え）
+  panel(selected,seg(t,2.6,3.2));
+  legend(seg(t,2.8,3.4));
+}
+function panel(w,a){
+  if(a<=0)return;
+  const x=1440,y=190,pw=420,ph=640;
+  ctx.globalAlpha=a;
+  ctx.fillStyle='rgba(120,90,40,.10)';rr(x+6,y+8,pw,ph,18);ctx.fill();
+  ctx.fillStyle='#FFFFFF';rr(x,y,pw,ph,18);ctx.fill();
+  ctx.fillStyle=w.you?'#E8553A':INK;ctx.font=`900 56px ${FONT}`;ctx.textBaseline='alphabetic';ctx.fillText(w.no,x+30,y+78);
+  ctx.fillStyle=INK;ctx.font=`900 26px ${FONT}`;ctx.fillText(w.t,x+120,y+56);
+  ctx.fillStyle=SUB;ctx.font=`700 15px ${FONT}`;ctx.fillText(w.d?'詳しく見られる世界':'概略の世界'+(w.third?'　★第3の答えから':''),x+120,y+80);
+  // 立面のスケッチ
+  ctx.fillStyle='#F7F1E6';rr(x+30,y+104,pw-60,150,12);ctx.fill();
+  miniHouse(x+pw/2,y+190,w,3.2);
+  ctx.strokeStyle='#C9BBA4';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+50,y+236);ctx.lineTo(x+pw-50,y+236);ctx.stroke();
+  // 4つの決断
+  ctx.font=`900 16px ${FONT}`;ctx.fillStyle=SUB;ctx.fillText('この世界の4つの決断',x+30,y+290);
+  w.p.forEach((c,i)=>{const o=FORKS[i].opts[c];const yy=y+322+i*40;
+    ctx.beginPath();ctx.arc(x+42,yy-6,8,0,6.3);ctx.fillStyle=OWNER[o[1]].c;ctx.fill();
+    ctx.fillStyle=SUB;ctx.font=`700 15px ${FONT}`;ctx.fillText(FORKS[i].name,x+60,yy);
+    ctx.fillStyle=INK;ctx.font=`700 18px ${FONT}`;ctx.fillText(o[0],x+136,yy);});
+  // 概略
+  ctx.fillStyle=INK;ctx.font=`500 17px ${FONT}`;
+  wrap(w.s,x+30,y+500,pw-60,26);
+  // 数字
+  w.n.forEach((v,i)=>{const xx=x+30+i*125;ctx.fillStyle=SUB;ctx.font=`700 13px ${FONT}`;ctx.fillText(v[0],xx,y+582);
+    ctx.fillStyle=w.you?'#E8553A':INK;ctx.font=`900 24px ${FONT}`;ctx.fillText(v[1],xx,y+612);});
+  ctx.globalAlpha=1;
+}
+function wrap(s,x,y,mw,lh){let line='',yy=y;for(const ch of s){const t=line+ch;if(ctx.measureText(t).width>mw&&!'。、）」'.includes(ch)){ctx.fillText(line,x,yy);line=ch;yy+=lh;}else line=t;}ctx.fillText(line,x,yy);}
+function legend(a){
+  if(a<=0)return;
+  ctx.globalAlpha=a;
+  const x=70,y=1040;
+  const items=[['kazu','line'],['yuu','line'],['both','line'],['ink','line']];
+  let xx=x;ctx.textBaseline='middle';
+  items.forEach(([k])=>{ctx.strokeStyle=OWNER[k].c;ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(xx,y);ctx.lineTo(xx+34,y);ctx.stroke();
+    ctx.fillStyle=INK;ctx.font=`700 15px ${FONT}`;ctx.fillText(OWNER[k].n,xx+44,y);xx+=ctx.measureText(OWNER[k].n).width+80;});
+  ctx.setLineDash([4,6]);ctx.strokeStyle='rgba(91,100,117,.5)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(xx,y);ctx.lineTo(xx+34,y);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillText('選ばなかった選択肢',xx+44,y);xx+=ctx.measureText('選ばなかった選択肢').width+80;
+  ctx.lineWidth=7;ctx.strokeStyle=INK;ctx.beginPath();ctx.moveTo(xx,y);ctx.lineTo(xx+34,y);ctx.stroke();
+  ctx.fillText('太線：詳しく見られる4世界　細線：概略の12世界（第3の答えの受け皿）',xx+44,y);
+  ctx.globalAlpha=1;
+}
+window.render=render;
+
+/* ---------- 操作 ---------- */
+function fit(){const s=Math.min(innerWidth/W,innerHeight/H);cv.style.transform=`scale(${s})`;return s;}
+addEventListener('resize',fit);fit();
+function toStage(e){const r=cv.getBoundingClientRect();return [(e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height];}
+function hitAt(px,py){return hits.find(h=>px>=h.x&&px<=h.x+h.cw&&py>=h.y&&py<=h.y+h.ch);}
+cv.addEventListener('mousemove',e=>{const [x,y]=toStage(e);const h=hitAt(x,y);hover=h?h.w:null;cv.style.cursor=h?'pointer':'default';});
+cv.addEventListener('click',e=>{const [x,y]=toStage(e);const h=hitAt(x,y);if(h)selected=h.w;});
+const q=new URLSearchParams(location.search);
+const fixed=q.has('t')?parseFloat(q.get('t')):null;
+if(q.has('w')){const f=WORLDS.find(w=>w.no===q.get('w'));if(f)selected=f;}
+const t0=performance.now();
+function loop(now){render(fixed!==null?fixed:(now-t0)/1000);requestAnimationFrame(loop);}
+const start=()=>{window.READY=true;requestAnimationFrame(loop);};
+(document.fonts&&document.fonts.ready?Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,1500))]):Promise.resolve()).then(start);
+})();
+</script>
+</body>
+</html>

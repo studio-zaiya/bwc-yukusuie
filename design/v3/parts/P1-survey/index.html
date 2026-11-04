@@ -1,0 +1,99 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>P1 来場者アンケート v3</title>
+<link rel="stylesheet" href="../_shared/v3.css">
+<script src="../../../../app/engine.js"></script><script src="../../../../app/iso.js"></script>
+<style>
+.sheet{position:absolute;left:90px;top:118px;width:900px;height:930px;background:#fff;box-shadow:0 18px 40px rgba(30,43,54,.16);padding:34px 44px;display:flex;flex-direction:column;gap:14px}
+.sheet .head{display:flex;align-items:center;gap:18px;padding-bottom:14px}
+.sheet .head .co{width:64px;height:64px;font-size:32px}
+.sheet .head h1{font-size:30px;font-weight:700;letter-spacing:.04em}
+.sheet .head .no{margin-left:auto;font-size:15px;color:var(--ink2);text-align:right;line-height:1.5;white-space:nowrap}
+.copied{font-size:16px;background:#F4F1EA;border:1.5px dashed rgba(30,43,54,.35);border-radius:10px;padding:8px 14px}
+.row{display:grid;grid-template-columns:190px 1fr;align-items:center;gap:16px;min-height:52px}
+.row > label,.row > .lb{font-size:18px;font-weight:700}
+.row input[type=text],.row input[type=number],.row textarea{font-size:20px;padding:8px 12px;border:1.5px solid rgba(30,43,54,.35);border-radius:6px;background:#FFFDF8;width:100%}
+.row input[type=number]{width:80px}
+.row textarea{height:150px;resize:none;line-height:1.6}
+.ch{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:18px}
+.ch label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.ch input{width:20px;height:20px;accent-color:#1E2B36}
+.inl{display:flex;align-items:center;gap:10px;font-size:18px}
+/* 会社ごとの様式の違い（色は使わず、形と罫で） */
+.sheet[data-co="A"]{border:4px double var(--ink)}
+.sheet[data-co="A"] .head{border-bottom:3px solid var(--ink)}
+.sheet[data-co="A"] .row{border-bottom:1px solid rgba(30,43,54,.18)}
+.sheet[data-co="B"]{border-radius:28px;border:2px solid var(--ink)}
+.sheet[data-co="B"] .head{background:var(--ink);color:var(--paper);margin:-34px -44px 0;padding:22px 44px;border-radius:26px 26px 0 0}
+.sheet[data-co="B"] .head .co{background:var(--paper);color:var(--ink)}
+.sheet[data-co="B"] .head .no{color:#C9D2D9}
+.sheet[data-co="B"] .ch input{width:26px;height:26px}
+.sheet[data-co="C"]{border:1.5px solid rgba(30,43,54,.3)}
+.sheet[data-co="C"] .head h1{font-family:var(--fr);font-weight:700}
+.sheet[data-co="C"] .row{grid-template-columns:1fr;gap:6px}
+.sheet[data-co="C"] .row textarea{background:repeating-linear-gradient(#FFFDF8 0 31px,rgba(30,43,54,.14) 31px 32px);border:none;border-bottom:1.5px solid rgba(30,43,54,.3);border-radius:0;line-height:32px;height:160px;padding-top:0}
+.sheet[data-co="D"]{border:2px solid var(--ink);transform:rotate(-.4deg)}
+.sheet[data-co="D"] .head{border-bottom:2px dashed var(--ink)}
+.side{position:absolute;left:1060px;top:118px;width:820px;height:930px}
+.place{display:flex;align-items:center;gap:18px}
+.place .co{width:84px;height:84px;font-size:42px}
+.place b{font-family:var(--fr);font-weight:900;font-size:40px;display:block;line-height:1.2}
+.place span{font-size:20px;color:var(--ink2)}
+.tabs{display:flex;gap:10px;margin-top:26px}
+.tabs a{display:flex;align-items:center;gap:8px;font:700 18px var(--f);padding:8px 14px;border-radius:10px;border:1.5px solid rgba(30,43,54,.3);color:var(--ink);text-decoration:none;background:var(--paper)}
+.tabs a.on{border:2.5px solid var(--ink);background:#fff}
+.tabs a .co{width:24px;height:24px;font-size:12px}
+.tabs a small{font-weight:400;color:var(--ink2);font-size:14px}
+.keys{margin-top:30px;font-size:17px;color:var(--ink2);line-height:1.9}
+.keys kbd{font:700 15px var(--f);border:1.5px solid rgba(30,43,54,.35);border-bottom-width:3px;border-radius:6px;padding:1px 8px;background:#fff;color:var(--ink)}
+.done{margin-top:28px}
+.lot{position:absolute;left:0;right:0;top:420px;height:300px}
+.caster{left:1380px;bottom:0}
+.bub{background:#fff;border:1.5px solid var(--ink);border-radius:16px;padding:10px 16px;font-size:20px;line-height:1.5;margin-bottom:96px;max-width:300px;box-shadow:0 6px 18px rgba(30,43,54,.12)}
+</style></head>
+<body><div id="stage"><div id="view"></div></div>
+<script src="../../../v2/layout/common.js"></script>
+<script src="../_shared/v3.js"></script>
+<script>
+const co = (V3.Q.get('co') || 'A').toUpperCase();
+const C = YKS.COMPANIES[co], S = V3.STAFF[co];
+const DAY = { A: 12, B: 15, C: 18, D: 21 }[co];
+const PLACE = { A: 'モデルハウス', B: '展示場の受付', C: '事務所の打ち合わせ室', D: '社長の自宅を兼ねた事務所' }[co];
+const TITLE = { A: 'ご来場アンケート', B: 'かんたんアンケート', C: 'はじめに、おふたりのことを教えてください', D: 'ご相談シート' }[co];
+const order = ['A', 'B', 'C', 'D'];
+const first = co !== 'A';
+const fill = V3.Q.has('fill');
+const v = (a, b = '') => fill || first ? a : b;
+const rowsC = co === 'C';
+document.getElementById('view').innerHTML = `
+${V3.topbar(1, {})}
+<form class="sheet" data-co="${co}" id="sv" autocomplete="off">
+  <div class="head">${V3.coTag(co, 64)}<h1>${C.name}　${TITLE}</h1><div class="no">No. ${{ A: '0412', B: '1187', C: '031', D: '—' }[co]}<br>${DAY}日目</div></div>
+  ${first ? `<div class="copied">1社目（Aハウス）に書いた内容を写しました。違うところだけ直してください。</div>` : ''}
+  <div class="row"><label for="nm">お名前</label><input type="text" id="nm" value="${v('かず・ゆう')}"></div>
+  <div class="row"><span class="lb">ご家族</span><div class="inl"><label for="ad">大人</label><input type="number" id="ad" value="${v('2')}" min="1"><label for="kd">子ども</label><input type="number" id="kd" value="${v('2')}" min="0"><input type="text" id="kda" value="${v('5歳・2歳')}" placeholder="年齢" style="width:200px"></div></div>
+  <div class="row"><span class="lb" id="l-home">今のお住まい</span><div class="ch" role="radiogroup" aria-labelledby="l-home">${['賃貸', '社宅', '実家', '持ち家'].map((x, i) => `<label><input type="radio" name="home" ${(fill || first) && i === 0 ? 'checked' : ''}>${x}</label>`).join('')}</div></div>
+  <div class="row"><span class="lb" id="l-land">建てる土地</span><div class="ch" role="radiogroup" aria-labelledby="l-land">${['ある', '分譲地に申込中', 'これから探す'].map((x, i) => `<label><input type="radio" name="land" ${(fill || first) && i === 1 ? 'checked' : ''}>${x}</label>`).join('')}</div></div>
+  <div class="row"><span class="lb" id="l-bud">ご予算（総額）</span><div class="ch" role="radiogroup" aria-labelledby="l-bud">${['〜3,500万円', '3,500〜4,500万円', '4,500〜5,500万円', '5,500万円〜'].map((x, i) => `<label><input type="radio" name="bud" ${(fill || first) && i === 2 ? 'checked' : ''}>${x}</label>`).join('')}</div></div>
+  <div class="row"><span class="lb">大切にしたいこと</span><div class="ch">${['デザイン', '性能', '価格', '間取り', '会社の安心'].map((x, i) => `<label><input type="checkbox" ${(fill || first) && [0, 1, 3].includes(i) ? 'checked' : ''}>${x}</label>`).join('')}</div></div>
+  <div class="row" style="align-items:start"><label for="req">${rowsC ? '新しい家で、やってみたいこと' : 'ご要望（ご自由に）'}</label><textarea id="req">${v('外観はかっこよく、ミニマルに（かず）\n木を使った、ナチュラルな家（ゆう）\n1階に寝室、広いシューズクローク、庭は広めで畑とうさぎの囲い')}</textarea></div>
+  ${co === 'D' ? '' : `<div class="row"><span class="lb" id="l-why">ご来場のきっかけ</span><div class="ch" role="radiogroup" aria-labelledby="l-why">${['チラシ・広告', 'SNS', 'ご紹介', '通りがかり'].map((x, i) => `<label><input type="radio" name="why" ${(fill || first) && i === 1 ? 'checked' : ''}>${x}</label>`).join('')}</div></div>`}
+</form>
+<div class="side">
+  <div class="place">${V3.coTag(co, 84)}<div><b>${C.name}</b><span>${PLACE}　${C.kind}</span></div></div>
+  <nav class="tabs" aria-label="アンケートを書いた会社">${order.map((k, i) => `<a href="?co=${k}${fill ? '&fill' : ''}" class="${k === co ? 'on' : ''}">${V3.coTag(k, 24)}${YKS.COMPANIES[k].name}<small>${i < order.indexOf(co) ? '記入済み' : k === co ? '記入中' : ''}</small></a>`).join('')}</nav>
+  <div class="keys"><kbd>Tab</kbd> で次の欄へ　<kbd>Enter</kbd> で1行の欄から次へ<br><kbd>←</kbd><kbd>→</kbd> で選択肢を切り替え　<kbd>Space</kbd> でチェック<br><kbd>Ctrl</kbd>＋<kbd>Enter</kbd> で記入を終える</div>
+  <div class="done"><button class="btn" type="submit" form="sv">記入を終えて、話をはじめる</button></div>
+</div>
+<div class="caster"><div class="bub">${{ A: 'ご記入いただける範囲で、かまいません。', B: '書けるところだけで大丈夫です！', C: '……ゆっくりで、大丈夫です。', D: '適当でいいよ、あとで聞くから。' }[co]}</div><div class="cst">${V3.avatar(co, 150, 'smile')}<div class="nm">${V3.coTag(co, 22)}${S.role}・${S.name}</div></div></div>
+`;
+// キーボードで楽に：1行の欄でEnterを押すと次の欄へ、Ctrl+Enterで記入を終える
+const form = document.getElementById('sv');
+const fields = () => [...form.querySelectorAll('input,textarea')].filter(e => e.type !== 'radio' || e.checked || !form.querySelector(`input[name="${e.name}"]:checked`) && e === form.querySelector(`input[name="${e.name}"]`));
+form.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); form.requestSubmit(); return; }
+  if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); const f = fields(); const i = f.indexOf(e.target); if (f[i + 1]) f[i + 1].focus(); }
+});
+form.addEventListener('submit', e => { e.preventDefault(); location.href = `../P1-chat/?co=${co}`; });
+if (!V3.Q.has('rec')) document.getElementById(fill || first ? 'req' : 'nm').focus();
+if (V3.Q.has('focus')) { const t = document.getElementById('req'); t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
+</script></body></html>

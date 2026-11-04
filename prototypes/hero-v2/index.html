@@ -1,0 +1,85 @@
+<title>山場の修正8案</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Maru+Gothic:wght@700&display=swap">
+<style>
+/* Layout: 左に5つの項目（前振り4案＋デザインコード見本）、右に再生面と要約。狭い画面では縦に積む */
+:root{
+  --paper:#fffaf0; --panel:#ffffff; --ink:#1e2b36; --muted:#5f6b74; --line:#e7dcc8;
+  --kazu:#e8701f; --yuu:#1c8dcc; --stage:#1b2440;
+  --f-display:"Hiragino Maru Gothic ProN","Zen Maru Gothic","Hiragino Sans",sans-serif;
+  --f-body:"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic","Noto Sans JP",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#171c24; --panel:#212834; --ink:#eef1f3; --muted:#a8b2ba; --line:#333d4b;
+  --kazu:#f2893f; --yuu:#4aa9e0; --stage:#0e1320; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#171c24; --panel:#212834; --ink:#eef1f3; --muted:#a8b2ba; --line:#333d4b;
+  --kazu:#f2893f; --yuu:#4aa9e0; --stage:#0e1320; color-scheme:dark}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);line-height:1.7}
+.wrap{max-width:1400px;margin:0 auto;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+h1{font-family:var(--f-display);font-size:clamp(22px,3vw,30px);margin:0;text-wrap:balance}
+header p{margin:4px 0 0;color:var(--muted);font-size:13px;max-width:64ch}
+.main{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:1fr}}
+.list{display:grid;gap:6px}
+.group{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.06em;margin:8px 0 2px}
+.item{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;text-align:left;font:inherit;color:inherit;background:transparent;border:1px solid transparent;border-radius:10px;padding:8px 10px;cursor:pointer}
+.item:hover{background:var(--panel)}
+.item[aria-current="true"]{background:var(--panel);border-color:var(--line)}
+.item:focus-visible,a:focus-visible{outline:2px solid var(--yuu);outline-offset:2px}
+.num{font-family:var(--f-display);font-size:15px;color:var(--kazu)}
+.item b{display:block;font-size:14px;line-height:1.4}
+.item span{display:block;font-size:12px;color:var(--muted);line-height:1.4}
+.viewer{display:grid;gap:14px;min-width:0}
+.stage{position:relative;width:100%;max-width:100%;aspect-ratio:16/9;background:var(--stage);border-radius:10px;overflow:hidden}
+.stage.tall{aspect-ratio:auto;height:78vh;background:var(--panel)}
+.stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.meta{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:grid;gap:10px;min-width:0}
+.meta h2{margin:0;font-family:var(--f-display);font-size:19px;text-wrap:balance}
+.meta p{margin:0;font-size:14px;max-width:72ch}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 20px;font-size:13px;margin:0}
+.facts dt{font-weight:700;color:var(--muted);font-size:12px}
+.facts dd{margin:0}
+.open{font-size:13px;color:var(--yuu);font-weight:700}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>山場の修正8案</h1>
+    <p>05を土台に、レビューの指摘と決まった名前・コピーを反映した山場の修正案です。前振りCの線を受けて始まります。静止画の確認は代わりの書体で行っています。</p>
+  </header>
+  <div class="main">
+    <nav class="list" id="list" aria-label="案の一覧"></nav>
+    <section class="viewer">
+      <div class="stage" id="stage"><iframe id="frame" title="選んだ案の再生"></iframe></div>
+      <div class="meta">
+        <h2 id="m-name"></h2>
+        <p id="m-sum"></p>
+        <dl class="facts">
+          <div><dt>尺・手間</dt><dd id="m-cost"></dd></div>
+          <div><dt>弱点（作った本人の評）</dt><dd id="m-weak"></dd></div>
+        </dl>
+        <a class="open" id="m-open" href="#" target="_blank" rel="noopener">別のタブで大きく開く</a>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+const P=[
+{g:"山場",k:"H1",src:"H1-refined/hero.html",name:"05をそのまま磨く",s:"05の構成のまま指摘を直した正統な改良版。地縄→基礎と骨組み→白い下地→仕上げ、大きな期限「あと60日」、07で17本目、昼の空の世界樹と花びらで締める。",c:"26秒。磨くなら3〜4時間。",w:"空の世界樹の枝が絡まって見える。17本目の場面が約2秒と短い。"},
+{g:"山場",k:"H2",src:"H2-continuity/hero.html",name:"線が、地縄になる",s:"前振りCの最後の世界樹から、葉の先が道に沿って走り区画の地縄になる。方眼紙が透けて消え、分譲地の地面が現れる。世界樹は家の脇を走る線として最後まで残る。",c:"26秒。磨くなら4〜5時間。",w:"家の形がまだ単純。外構の描き分けがなく、上から見るとのっぺりする。"},
+{g:"山場",k:"H3",src:"H3-daylight/hero.html",name:"昼のまま、1年がめぐる",s:"夜を一度も使わず、夏・秋・冬・春を昼の光と、葉・雪・花びらで巡る。世界線は昼の光の線として宙に架かり、春の昼に「16回目の、マイホームへ。」。",c:"26秒。磨くなら3〜4時間。",w:"冬の場面が白っぽく眠い。17区画目が画面の外寄りで存在感が弱い。"},
+{g:"山場",k:"H4",src:"H4-info/hero.html",name:"見やすさの演出を足す",s:"大きく出る期限、07へのズーム、16世界の出来事が流れる1行のティッカー、1度だけ舞う花びら。数字は日数と世界の数だけで、金額は出さない。",c:"28秒。磨くなら3〜4時間。",w:"07に寄っている間、カードと字幕が家に重なる。冒頭の線が前振りCの最後のコマとまだずれている。"},
+{g:"山場",k:"H5",src:"H5-cinematic/hero.html",name:"4つのカット",s:"カットを4つに絞り、1カットに動きは1つ。文字は最後のロゴ3行だけ。家々から線がのぼって空で扇形の世界樹になる。",c:"28秒。磨くなら3〜4時間。",w:"最初の2秒が間延びする。前振りCの線の色（青緑）とデザインコードの青がそろっていない。"},
+{g:"山場",k:"H6",src:"H6-plan-to-3d/hero.html",name:"図面が、世界になる",s:"前振りと同じ方眼紙の真上の視点から始まり、家が育つのに合わせてカメラが約10秒かけて斜め上へ起き上がる。2Dの配置図が立体の分譲地になる。",c:"26秒。磨くなら3〜4時間。",w:"起き上がりの途中が単調。人や車の動きがまだない。"},
+{g:"山場",k:"H7",src:"H7-seventeenth/hero.html",name:"17本目の世界が生まれる",s:"2択に対してゆうが「ほかのやり方は？」、入力欄に「借入を少し増やして、大きい窓だけトリプルガラスに」。判定「条件付きで、できます」、4×4の外に17番目の家が建ち、1年後の2月の朝「足元まで、あたたかい。」。",c:"27秒。磨くなら3〜4時間。",w:"寄った画面で世界樹の枝が家に重なる。トリプルガラスの違いが一目では伝わりにくい。"},
+{g:"山場",k:"H8",src:"H8-people/hero.html",name:"人と暮らしが主役",s:"工事中は職人、上棟の日は家族が骨組みの中を走り、入居後は洗濯物・うさぎ・自転車・畑・子ども。仕上げは手描きの模様で描き分け。",c:"26秒。磨くなら4〜5時間。",w:"人やうさぎが引きの絵では点にしか見えない。第3の答えが色だけで形の区別がない。"}
+];
+let cur=0;const $=id=>document.getElementById(id);
+function list(){let h="",g="";P.forEach((p,i)=>{if(p.g!==g){g=p.g;h+=`<div class="group">${g}</div>`}h+=`<button class="item" type="button" data-i="${i}" aria-current="${i===cur}"><span class="num">${p.k}</span><div><b>${p.name}</b><span>${p.g}</span></div></button>`});$("list").innerHTML=h}
+function show(){const p=P[cur];if($("frame").getAttribute("src")!==p.src)$("frame").setAttribute("src",p.src);$("stage").classList.toggle("tall",!!p.tall);$("m-name").textContent=p.name;$("m-sum").textContent=p.s;$("m-cost").textContent=p.c;$("m-weak").textContent=p.w;$("m-open").href=p.src;list()}
+$("list").addEventListener("click",e=>{const b=e.target.closest(".item");if(!b)return;cur=+b.dataset.i;show()});
+show();
+</script>

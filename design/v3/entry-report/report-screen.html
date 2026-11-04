@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>わが家のバランス　画面版</title>
+<style>
+:root{--paper:#FFFAF0;--ink:#1E2B36;--ink2:#6B6358;--line:rgba(30,43,54,.14);
+  --kazu:#E8701F;--kazuBg:#FDE3CC;--yuu:#1C8DCC;--yuuBg:#D6ECF8;--gold:#F2C230;--goldT:#8C6A00;--sky:#CFEBFA;--ground:#F3E7CF;
+  --f:"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic",sans-serif;--fr:"Hiragino Maru Gothic ProN","Zen Maru Gothic","Hiragino Sans",sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#E9E2D3;overflow:hidden}
+body{font-family:var(--f);color:var(--ink)}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform:translate(-50%,-50%) scale(var(--k,1));background:var(--paper);overflow:hidden}
+.top{position:absolute;left:56px;right:56px;top:34px;display:flex;align-items:center;gap:22px}
+.logo{font-family:var(--fr);font-weight:900;font-size:30px;letter-spacing:.06em}
+.prog{flex:1;display:flex;gap:6px;align-items:center;font-size:14px;color:var(--ink2)}
+.prog i{flex:1;height:5px;border-radius:3px;background:var(--ink)}
+.step{font-size:16px;font-weight:700;color:var(--ink)}
+.left{position:absolute;left:56px;top:100px;width:1080px;height:940px;display:flex;flex-direction:column;gap:18px}
+.right{position:absolute;left:1166px;top:100px;width:698px;height:940px;display:flex;flex-direction:column;gap:16px}
+h1{font-family:var(--fr);font-weight:900;font-size:52px;line-height:1.2}
+.lead{font-size:20px;color:var(--ink2);line-height:1.7}
+.card{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:20px 24px}
+.card h2{font-size:22px;margin-bottom:10px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.sq::before{content:"■";color:var(--kazu);margin-right:7px}.ci::before{content:"●";color:var(--yuu);margin-right:7px}.di::before{content:"◆";color:var(--gold);margin-right:7px;-webkit-text-stroke:.6px var(--goldT)}
+.rank{display:grid;grid-template-columns:44px 1fr;gap:12px;padding:9px 0;border-bottom:1px dashed var(--line)}
+.rank:last-child{border-bottom:none}
+.rank .no{font-family:var(--fr);font-weight:900;font-size:34px;line-height:1}
+.rank b{font-size:21px;display:block}.rank span{font-size:16px;color:var(--ink2)}
+li{font-size:18px;line-height:1.6;list-style:none;margin:3px 0}
+.tag{display:inline-block;font-size:13px;font-weight:700;border:1.5px solid var(--ink);border-radius:4px;padding:0 6px;margin-right:8px;vertical-align:2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{font-size:17px;padding:4px 14px;border-radius:999px}.chip.k{background:var(--kazuBg)}.chip.y{background:var(--yuuBg)}
+.worlds{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.w{border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;font-size:13px;line-height:1.45;min-height:84px}
+.w b{font-family:var(--fr);font-size:20px;display:block}
+.w.you{border:2.5px solid var(--ink)}
+.w.rep{border-color:var(--goldT);border-style:dashed;border-width:2px}
+.w .t{color:var(--ink2)}
+.btns{display:flex;gap:12px;justify-content:flex-end}
+.btn{font:700 21px var(--f);padding:12px 24px;border-radius:12px;border:2px solid var(--ink);background:var(--ink);color:var(--paper)}
+.btn.ghost{background:#fff;color:var(--ink)}
+.focus{display:grid;grid-template-columns:96px 1fr;gap:16px}
+.focus .no{font-family:var(--fr);font-weight:900;font-size:56px;line-height:1}
+table{width:100%;border-collapse:collapse;font-size:17px}
+td,th{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+td:first-child,th:first-child{text-align:left;color:var(--ink2);font-weight:400}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="top"><div class="logo">ゆくすいえ</div><div class="prog"><span class="step">1年後</span><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+
+  <div class="left">
+    <div>
+      <div style="font-size:18px;color:var(--ink2)">かず と ゆう の家づくり・1年後のレポート</div>
+      <h1>わが家の、ちょうどいいバランス</h1>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <h2>悩んだら、何を優先するか</h2>
+        <div class="rank"><span class="no">1</span><div><b class="di">冬の朝の、家族の足元</b><span>南の大きな窓だけ、ガラスの性能を上げた</span></div></div>
+        <div class="rank"><span class="no">2</span><div><b class="sq">毎日立つ場所の、手触り</b><span>外構を後回しにして、造作キッチン</span></div></div>
+        <div class="rank"><span class="no">3</span><div><b class="ci">話を最初に聞いてくれる人</b><span>1時間半の聞き取りをした会社</span></div></div>
+        <div class="rank"><span class="no">4</span><div><b class="sq">家の顔のかっこよさ</b><span>箱型の屋根に、南だけ庇</span></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div class="card">
+          <h2>わが家の理想</h2>
+          <div class="chips"><span class="chip k">ミニマルな外観</span><span class="chip y">木のぬくもり</span><span class="chip y">明るいリビング</span><span class="chip k">1階に寝室</span><span class="chip y">畑とうさぎの庭</span><span class="chip k">対面のキッチン</span></div>
+        </div>
+        <div class="card">
+          <h2>気をつけたいこと</h2>
+          <ul>
+            <li><span class="tag">踏んだ</span>テレビの下地を伝え忘れた</li>
+            <li><span class="tag">踏んだ</span>玄関前は砂利のまま</li>
+            <li><span class="tag">避けた</span>「別途」の費用の後出し</li>
+            <li><span class="tag">避けた</span>大きな窓の冬の底冷え</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>先に伝えておきたいこと（担当者に渡す要点）</h2>
+      <ul style="columns:2;column-gap:28px">
+        <li>リビングの壁にテレビを掛けたい（下地と配線）</li>
+        <li>書斎に有線のLANがほしい</li>
+        <li>エアコンの位置は、設計の段階で一緒に決めたい</li>
+        <li>南の大きな窓は、ガラスの性能を上げたい</li>
+        <li>外構は数年かけて。車2台と物置の場所は先に</li>
+        <li>うさぎの囲いと畑の場所を、庭に残したい</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="card">
+      <h2>選ばなかった世界線</h2>
+      <div class="worlds" id="worlds"></div>
+      <p style="font-size:14px;color:var(--ink2);margin-top:8px">金の破線は、レポートで取り上げた世界。押すと、その1年を再生します。</p>
+    </div>
+    <div class="card focus" id="focus"></div>
+    <div class="btns"><button class="btn ghost">この世界を再生する</button><button class="btn">レポートを印刷する</button></div>
+  </div>
+</div>
+<script src="../../../app/engine.js"></script>
+<script>
+const stage=document.getElementById('stage');function fit(){stage.style.setProperty('--k',Math.min(innerWidth/1920,innerHeight/1080))}addEventListener('resize',fit);fit();
+const Y=window.YKS,H=Y.HOUSEHOLDS.t2,CH=[0,1,1,0];
+const WS=Y.allWorlds({household:H,seed:7,chosen:CH,thirdAt:{D3:{patch:{borrowAdd:60,spec:{window:'triple'}}}}});
+const W=n=>WS[n-1];const REP=[5,15,13,3];
+const short=w=>w.events.length?w.events[0].replace(/（.*?）/,'').slice(0,20):(w.warmth.label==='快適'?'冬の朝も快適':'大きな出来事なし');
+document.getElementById('worlds').innerHTML=WS.map(w=>`<div class="w ${w.no===7?'you':''} ${REP.includes(w.no)?'rep':''}"><b>${String(w.no).padStart(2,'0')}</b><span>${Y.COMPANIES[w.company].name}</span><div class="t">${w.no===7?'わが家':short(w)}</div></div>`).join('');
+const a=W(5),me=W(7),mo=p=>Y.payment(p,Y.RATE.variable).toFixed(1)+'万円';
+document.getElementById('focus').innerHTML=`<div class="no">05</div><div><h2>南の窓を、標準のガラスのまま大きくした世界</h2>
+<table><tr><th></th><th>07 わが家</th><th>05</th></tr>
+<tr><td>総額</td><td>${me.total.toLocaleString()}万円</td><td>${a.total.toLocaleString()}万円</td></tr>
+<tr><td>月々の返済</td><td>${mo(me.principal)}</td><td>${mo(a.principal)}</td></tr>
+<tr><td>冬の朝</td><td>${me.warmth.label}</td><td>${a.warmth.label}</td></tr></table>
+<p style="font-size:17px;line-height:1.65;margin-top:10px">05の世界の自分たちは、浮いたお金で春に庭を仕上げました。2月の朝は、足元がひんやりします。</p>
+<p style="font-size:16px;color:var(--ink2);margin-top:6px">学び：冬の朝と、春の庭の、どちらを先に手に入れるか。</p></div>`;
+window.READY=true;
+</script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>P4-a コーディネート（色決めとアップグレード）</title><link rel="stylesheet" href="../_shared/common.css">
+<style>
+.lot{position:absolute;left:0;top:70px;width:1100px;height:1010px;background:linear-gradient(#DDEFF8,#F4FAFD 44%,var(--ground) 44.1%)}
+.lot .svgw{position:absolute;left:80px;top:120px;width:940px;height:720px}
+.right{position:absolute;left:1100px;top:70px;width:820px;height:1010px;padding:36px 54px;border-left:1.5px solid var(--line)}
+.grp{margin-bottom:22px}.grp h3{font-size:22px;margin-bottom:10px}
+.sw{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.sw div{border:1.5px solid var(--line);border-radius:14px;padding:10px;font-size:16px;background:#fff;line-height:1.4}
+.sw div.on{border:3px solid var(--ink)}
+.sw i{display:block;height:58px;border-radius:8px;margin-bottom:8px;border:1px solid rgba(30,43,54,.12)}
+.sw .p{color:var(--ink2);font-size:15px}
+.rec{background:#fff;border:1.5px solid var(--ink);border-radius:16px;padding:16px 20px;font-size:20px;line-height:1.6}
+.tot{display:flex;justify-content:space-between;font-size:20px;padding:12px 4px;border-top:2px solid var(--ink);margin-top:16px}
+</style></head><body><div id="stage"></div>
+<script src="../../../../app/engine.js"></script><script src="../../../../app/iso.js"></script><script src="../_shared/parts.js"></script>
+<script>
+const C = UI.COORD, sel = { wall: 'galva', floor: 'std' };
+const sw = (k, colors) => C[k].map((o, i) => `<div class="${sel[k] === o.id ? 'on' : ''}"><i style="background:${colors[i]}"></i>${o.label}<div class="p">${o.v ? '+' + o.v + '万円' : '標準'}</div></div>`).join('');
+const add = C.wall.find(o => o.id === sel.wall).v;
+document.getElementById('stage').innerHTML = UI.progress(6) + `
+<div class="lot"><div class="abs" style="left:40px;top:26px"><span class="chip">142日目</span>　<span class="chip soft">ショールームのあと、色決めの日</span></div>
+  <div class="svgw">${UI.myLot(4, { fin: { wall: '#7C8A93', roof: '#2F3338' } })}</div>
+  <div class="abs" style="left:40px;top:84px;width:640px;display:flex;gap:16px;align-items:center"><span class="label">外壁</span><i style="width:60px;height:26px;background:#7C8A93;border-radius:4px;display:inline-block"></i><span class="label">屋根</span><i style="width:60px;height:26px;background:#2F3338;border-radius:4px;display:inline-block"></i><span class="label">床</span><i style="width:60px;height:26px;background:#E8D5B7;border-radius:4px;display:inline-block"></i></div></div>
+<div class="right">
+  <div class="grp"><h3>外壁</h3><div class="sw">${sw('wall', ['#E9E4DA', '#7C8A93', '#B98E62'])}</div></div>
+  <div class="grp"><h3>床</h3><div class="sw">${sw('floor', ['#E8D5B7', '#C9A27A', '#EBD3A0'])}</div></div>
+  <div class="rec"><div class="label" style="margin-bottom:4px">中村（コーディネーター）のおすすめ</div>床をオークの挽き板にすると、足ざわりと経年の風合いがまるで違います。<b>+${C.floor[1].v}万円</b>、月々 約+${UI.monthly(C.floor[1].v).toLocaleString()}円です。</div>
+  <div class="tot"><span>このページの差額</span><b>+${add}万円（月々 約+${UI.monthly(add).toLocaleString()}円）</b></div>
+  <div style="display:flex;gap:12px;margin-top:16px"><div class="btn">この色で決める</div><div class="btn ghost">おすすめも入れる</div></div>
+</div>
+${UI.cast(['ic', 'kazu', 'yuu'], { left: 40 })}`;
+</script></body></html>

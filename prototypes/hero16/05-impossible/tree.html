@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>世界樹ビュー — 立場5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1d2433;--paper:#fffaf0;--kaz:#ff9f43;--yu:#2ec4b6;--gold:#ffd23f}
+html,body{margin:0;height:100%;background:#1b2350;overflow:hidden;font-family:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",sans-serif}
+#stage{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;overflow:hidden}
+#stage canvas{position:absolute;left:0;top:0;width:1920px;height:1080px;cursor:grab}
+.ov{position:absolute;inset:0;pointer-events:none}
+.leaf{position:absolute;transform:translate(-50%,-160%);font-weight:900;font-size:20px;color:#1d2433;background:rgba(255,250,240,.92);padding:1px 9px;border-radius:999px;white-space:nowrap}
+.leaf.g{background:var(--gold)}
+.leaf.d{font-size:24px;padding:4px 14px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.leaf.d small{display:block;font-size:16px;font-weight:700;opacity:.75}
+.ring{position:absolute;transform:translate(-100%,-50%);color:#fffaf0;font-weight:900;font-size:24px;white-space:nowrap;text-shadow:0 2px 10px rgba(0,0,0,.4)}
+.ring span{display:inline-block;background:rgba(255,250,240,.16);border:1px solid rgba(255,250,240,.5);border-radius:6px;padding:2px 10px;margin-right:8px;font-size:18px}
+#root{position:absolute;transform:translate(-50%,30%);text-align:center;color:#fffaf0;font-weight:900;font-size:30px;text-shadow:0 2px 12px rgba(0,0,0,.4)}
+#root small{display:block;font-size:18px;font-weight:700;opacity:.85}
+#top{position:absolute;left:56px;top:40px;color:#fffaf0}
+#top .a{font-size:46px;font-weight:900;letter-spacing:.04em}
+#top .b{font-size:22px;font-weight:700;margin-top:6px;opacity:.92}
+#top .b b{color:var(--gold)}
+#legend{position:absolute;left:56px;bottom:44px;color:#fffaf0;font-size:19px;font-weight:700;line-height:1.9}
+#legend i{display:inline-block;width:46px;height:6px;border-radius:3px;vertical-align:middle;margin-right:12px}
+#legend .dash{background:repeating-linear-gradient(90deg,rgba(255,250,240,.6) 0 6px,transparent 6px 12px);height:3px}
+#panel{position:absolute;right:40px;top:40px;width:520px;background:rgba(255,250,240,.97);border-radius:18px;padding:26px 30px 28px;color:#1d2433;box-shadow:0 20px 60px rgba(0,0,0,.35);pointer-events:auto}
+#panel .wn{font-size:52px;font-weight:900;line-height:1}
+#panel .tag{display:inline-block;font-size:17px;font-weight:900;padding:3px 10px;border-radius:6px;margin-left:12px;vertical-align:10px;background:#1d2433;color:#fff}
+#panel .tag.g{background:var(--gold);color:#1d2433}
+#panel .tag.s{background:#c9cfdc;color:#1d2433}
+#panel ol{list-style:none;padding:0;margin:20px 0 0}
+#panel li{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px dashed #d8d2c4;font-size:21px;font-weight:700}
+#panel li .f{width:96px;font-size:16px;color:#6b7282}
+#panel li .dot{width:16px;height:16px;border-radius:50%;flex:none}
+#panel li.g .c{background:var(--gold);padding:0 8px;border-radius:5px}
+#panel .sum{font-size:22px;font-weight:700;line-height:1.6;margin-top:16px}
+#panel .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+#panel .nums div{background:#f2ecdf;border-radius:10px;padding:10px 12px}
+#panel .nums b{display:block;font-size:15px;color:#6b7282}
+#panel .nums span{font-size:25px;font-weight:900}
+#panel button{margin-top:20px;width:100%;font:inherit;font-weight:900;font-size:22px;padding:14px;border-radius:12px;border:0;background:#1d2433;color:#fff;cursor:pointer}
+#panel button.s{background:#c9cfdc;color:#1d2433}
+#toast{position:absolute;right:40px;bottom:44px;background:#1d2433;color:#fff;font-weight:700;font-size:20px;padding:12px 18px;border-radius:10px;opacity:0;transition:opacity .3s}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<div id="stage">
+  <div class="ov" id="ov">
+    <div id="top"><div class="a">世界樹　16の世界</div><div class="b">詳しく見られる世界 <b>4</b>　／　概略の世界 <b>12</b>（うち第3の答えの受け皿 <b>3</b>）</div></div>
+    <div id="root">かず と ゆう<small>28の要望から</small></div>
+    <div id="legend">
+      <div><i style="background:var(--kaz)"></i>かずの要望が通った道</div>
+      <div><i style="background:var(--yu)"></i>ゆうの要望が通った道</div>
+      <div><i style="background:#fffaf0"></i>ふたりで決めた道</div>
+      <div><i style="background:var(--gold)"></i>2択の外側の答え（第3の答え）</div>
+      <div><i class="dash"></i>どの世界も選ばなかった道</div>
+    </div>
+    <div id="panel"></div>
+    <div id="toast"></div>
+  </div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const W=1920,H=1080;
+const cl=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)), ss=(a,b,x)=>{const t=cl((x-a)/(b-a));return t*t*(3-2*t);};
+const back=x=>{const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(x-1,3)+c1*Math.pow(x-1,2);};
+const C=h=>new THREE.Color(h);
+const stage=document.getElementById('stage');let SC=1;
+function fit(){SC=Math.min(innerWidth/W,innerHeight/H);stage.style.transform=`translate(${(innerWidth-W*SC)/2}px,${(innerHeight-H*SC)/2}px) scale(${SC})`;}
+addEventListener('resize',fit);fit();
+
+// ---------- データ ----------
+const WHO={kaz:C('#ff9f43'),yu:C('#2ec4b6'),both:C('#fffaf0'),graft:C('#ffd23f')};
+const FORKS=[
+ {name:'会社選び',opts:{C:['Cデザイン','yu'],B:['B工務店','kaz']},grafts:{A:'Aハウスと月末に仮契約',D:'Dホームの決算で契約'}},
+ {name:'間取り',opts:{K:['キッチンを残す','yu'],G:['外構を残す','kaz']},grafts:{S:'キッチンを小さな造作に'}},
+ {name:'契約',opts:{L:['借入を増やして外構を戻す','kaz'],Y:['予算のまま','both']},grafts:{T:'+60万円で窓をトリプルに'}},
+ {name:'仕様',opts:{X:['箱型の屋根','kaz'],Q:['勾配屋根','yu']},grafts:{E:'箱型＋南だけ庇'}},
+];
+const WORLDS=[
+ {n:'07',kind:'detail',me:1,path:['C','K','T','E'],fin:'#f6f2ea',roof:'flat',sum:'外構は削ったが、窓をトリプルにした。冬の朝も足元が冷えない。物置は投資を少し崩して置いた。',nums:[['総額','4,130万円'],['月々','12.6万円'],['1年後','冬の朝 20℃']]},
+ {n:'15',kind:'detail',path:['C','K','Y','X'],fin:'#f6f2ea',roof:'flat',sum:'わが家とほとんど同じ。違うのは南の窓のガラスだけ。2月の朝、暖房をつけても足元が冷たい。',nums:[['総額','4,070万円'],['月々','12.4万円'],['1年後','冬の朝 14℃']]},
+ {n:'03',kind:'detail',path:['B','G','Y','Q'],fin:'#f2d27a',roof:'gable',sum:'「全部入っている家」を選び、値引きのかわりに着工時に半分を払った。上棟の2か月後、工事が止まった。',nums:[['総額','2,600万円'],['戻らない','約800万円'],['1年後','更地']]},
+ {n:'11',kind:'detail',path:['A','K','Y','Q'],fin:'#8e9aa6',roof:'gable',sum:'月末に仮契約して150万円分のグレードアップ。契約後の打ち合わせは19回、別途の費用が積み上がった。',nums:[['総額','4,460万円'],['契約後','+380万円'],['打ち合わせ','19回']],key:'契約後 +380万円'},
+ {n:'01',path:['C','G','Y','Q'],sum:'外構まで入居の日に完成。キッチンはシステムキッチンに。'},
+ {n:'02',path:['C','G','L','X'],sum:'借入を増やして外構も戻した。返済は月1.2万円増え、旅行を年1回へらした。'},
+ {n:'04',path:['B','K','Y','X'],sum:'着工金を分けて払ったので損失は小さい。完成は別の会社に引き継がれ、半年遅れ。'},
+ {n:'05',path:['B','G','L','X'],sum:'「物置はサービスしとくよ」の口約束が、議事録とともに消えた。'},
+ {n:'06',path:['C','K','L','Q'],sum:'外構もキッチンも取った。いちばん満足、いちばん返済が重い。'},
+ {n:'08',path:['C','S','Y','X'],sum:'第3の答え：キッチンは天板だけ造作にして、外構を半分残した。'},
+ {n:'09',path:['D','G','Y','X'],sum:'第3の答え：決算の太陽光に惹かれて契約。3か月早く入居、オプションで+150万円。'},
+ {n:'10',path:['C','G','Y','X'],sum:'カーポートの下に車が2台。ふたりは家の顔を気に入っている。'},
+ {n:'12',path:['B','K','L','Q'],sum:'社長が毎日来る現場。完成はしたが、2年目の点検は来なかった。'},
+ {n:'13',path:['C','K','Y','Q'],sum:'軒が夏の日差しを切る。冬の窓はやはり冷たい。'},
+ {n:'14',path:['C','G','L','Q'],sum:'いちばん「全部ある」家。返済は35年。'},
+ {n:'16',path:['A','G','L','X'],sum:'第3の答え：月末に仮契約。担当が替わり、頼んだ照明が違っていた。'},
+];
+const optOrder=k=>[...Object.keys(FORKS[k].opts),...Object.keys(FORKS[k].grafts)];
+const isGraft=(k,o)=>o in FORKS[k].grafts;
+const optLabel=(k,o)=>isGraft(k,o)?FORKS[k].grafts[o]:FORKS[k].opts[o][0];
+const optWho=(k,o)=>isGraft(k,o)?'graft':FORKS[k].opts[o][1];
+WORLDS.forEach(w=>{w.graft=w.path.some((o,k)=>isGraft(k,o));});
+
+// トライ（共通の手前の決断をまとめる）
+const root={d:0,kids:{},worlds:[]};
+WORLDS.forEach(w=>{let n=root;n.worlds.push(w);w.path.forEach((o,k)=>{if(!n.kids[o])n.kids[o]={d:k+1,o,kids:{},worlds:[],parent:n};n=n.kids[o];n.worlds.push(w);});n.leaf=w;w.node=n;});
+const leaves=[];(function dfs(n){const ks=n.d<4?optOrder(n.d).filter(o=>n.kids[o]):[];if(!ks.length){leaves.push(n);return;}ks.forEach(o=>dfs(n.kids[o]));})(root);
+const R=[0,3.2,6.4,9.4,13.0], Y=[0,4.2,8.2,12.0,15.6];
+leaves.forEach((n,i)=>{n.ang=i/leaves.length*Math.PI*2;});
+(function ang(n){const ks=Object.values(n.kids);if(!ks.length)return n.ang;let sx=0,sy=0;ks.forEach(k=>{const a=ang(k);sx+=Math.cos(a);sy+=Math.sin(a);});n.ang=Math.atan2(sy,sx);return n.ang;})(root);
+(function pos(n){n.p=new THREE.Vector3(Math.cos(n.ang)*R[n.d],Y[n.d],Math.sin(n.ang)*R[n.d]);Object.values(n.kids).forEach(pos);})(root);
+
+// ---------- 三次元 ----------
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(1);renderer.setSize(W,H,false);renderer.toneMapping=THREE.ACESFilmicToneMapping;
+stage.insertBefore(renderer.domElement,stage.firstChild);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(30,W/H,.5,500);camera.setViewOffset(W,H,380,0,W,H);
+const skyU={top:{value:C('#1f2a74')},bot:{value:C('#f29c84')}};
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(300,32,16),new THREE.ShaderMaterial({uniforms:skyU,side:THREE.BackSide,depthWrite:false,
+ vertexShader:`varying vec3 vp;void main(){vp=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+ fragmentShader:`uniform vec3 top,bot;varying vec3 vp;void main(){float h=clamp(vp.y*1.3+.35,0.,1.);gl_FragColor=vec4(mix(bot,top,pow(h,.75)),1.);}`})));
+scene.add(new THREE.HemisphereLight(0xdfe6ff,0x6a4a6a,1.3));const dl=new THREE.DirectionalLight(0xfff0dd,1.6);dl.position.set(20,40,30);scene.add(dl);
+// 星屑（決定論的に置く）
+{const n=500,a=new Float32Array(n*3);for(let i=0;i<n;i++){const h=k=>{const x=Math.sin((i*3+k)*91.7+7.3)*43758.5;return x-Math.floor(x);};const th=h(0)*6.283,ph=h(1)*1.2+.25,r=160;a[i*3]=Math.cos(th)*Math.cos(ph)*r;a[i*3+1]=Math.sin(ph)*r;a[i*3+2]=Math.sin(th)*Math.cos(ph)*r;}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(a,3));scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:1.2,transparent:true,opacity:.7})));}
+// 地面の円盤（分譲地の気配）
+const disc=new THREE.Mesh(new THREE.CylinderGeometry(16,16.6,.8,64),new THREE.MeshStandardMaterial({color:0xa8dc84,roughness:.9}));disc.position.y=-.5;scene.add(disc);
+const disc2=new THREE.Mesh(new THREE.CylinderGeometry(16.6,15.2,2.4,64),new THREE.MeshStandardMaterial({color:0xc08a5a,roughness:.9}));disc2.position.y=-2.1;scene.add(disc2);
+
+const composer=new EffectComposer(renderer);composer.setSize(W,H);composer.addPass(new RenderPass(scene,camera));
+const bloom=new UnrealBloomPass(new THREE.Vector2(W,H),.42,.5,.86);composer.addPass(bloom);composer.addPass(new OutputPass());
+
+// 枝
+const edges=[];
+(function mkE(n){Object.values(n.kids).forEach(c=>{
+  const a=n.p,b=c.p;const ctl=new THREE.Vector3(a.x*.8+b.x*.2,a.y*.15+b.y*.85,a.z*.8+b.z*.2);
+  const curve=new THREE.QuadraticBezierCurve3(a.clone(),ctl,b.clone());
+  const hasD=c.worlds.some(w=>w.kind==='detail');
+  const geo=new THREE.TubeGeometry(curve,40,hasD?.13:.065,6,false);
+  const who=optWho(c.d-1,c.o);
+  const mat=new THREE.MeshBasicMaterial({color:WHO[who].clone(),transparent:true,opacity:hasD?1:.8,toneMapped:false});
+  const m=new THREE.Mesh(geo,mat);scene.add(m);edges.push({m,geo,mat,d:c.d,worlds:new Set(c.worlds.map(w=>w.n)),base:mat.opacity,col:WHO[who].clone(),hasD});
+  mkE(c);});})(root);
+// どの世界も選ばなかった道（点線のスタブ）
+(function stubs(n){if(n.d>=4)return;Object.keys(FORKS[n.d].opts).forEach((o,j)=>{if(!n.kids[o]){
+   const a=n.p;const ang=n.ang+(j?.28:-.28);const b=new THREE.Vector3(Math.cos(ang)*(R[n.d]+(R[n.d+1]-R[n.d])*.55),a.y+(Y[n.d+1]-Y[n.d])*.55,Math.sin(ang)*(R[n.d]+(R[n.d+1]-R[n.d])*.55));
+   const g=new THREE.BufferGeometry().setFromPoints(new THREE.QuadraticBezierCurve3(a,new THREE.Vector3(a.x,b.y,a.z),b).getPoints(16));
+   const l=new THREE.Line(g,new THREE.LineDashedMaterial({color:0xfffaf0,dashSize:.35,gapSize:.3,transparent:true,opacity:.5}));l.computeLineDistances();scene.add(l);edges.push({line:l,d:n.d+1,stub:1});}});
+ Object.values(n.kids).forEach(stubs);})(root);
+// 分かれ道の輪
+const ov2=document.createElement('div');ov2.className='ov';document.getElementById('ov').insertBefore(ov2,document.getElementById('panel'));
+const rings=FORKS.map((f,k)=>{const r=(R[k]+R[k+1])/2,y=(Y[k]+Y[k+1])/2;const m=new THREE.Mesh(new THREE.TorusGeometry(Math.max(r,1.2),.025,6,96),new THREE.MeshBasicMaterial({color:0xfffaf0,transparent:true,opacity:.28,toneMapped:false}));
+ m.rotation.x=Math.PI/2;m.position.y=y;scene.add(m);const el=document.createElement('div');el.className='ring';el.innerHTML=`<span>分かれ道${k+1}</span>${f.name}`;ov2.appendChild(el);return {m,el,r:Math.max(r,1.2),y};});
+// 根（ふたり）
+const seed=new THREE.Mesh(new THREE.IcosahedronGeometry(.9,2),new THREE.MeshBasicMaterial({color:0xfffaf0,toneMapped:false}));scene.add(seed);
+// 葉：詳しい世界は小さな家、概略の世界は光る玉
+const box=new THREE.BoxGeometry(1,1,1);
+function miniHouse(w){const g=new THREE.Group();const wall=new THREE.MeshStandardMaterial({color:C(w.fin),roughness:.8});const rm=new THREE.MeshStandardMaterial({color:C(w.roof==='flat'?'#3b3b48':'#6b4a3a'),roughness:.8});
+ const b=new THREE.Mesh(box,wall);b.scale.set(1.6,1.5,1.3);b.position.y=.75;g.add(b);
+ if(w.roof==='flat'){const r=new THREE.Mesh(box,rm);r.scale.set(1.7,.16,1.4);r.position.y=1.58;g.add(r);if(w.me){const e=new THREE.Mesh(box,rm);e.scale.set(1.1,.06,.45);e.position.set(.1,.9,.86);g.add(e);}}
+ else{const s=new THREE.Shape();s.moveTo(-.8,0);s.lineTo(.8,0);s.lineTo(0,.7);s.closePath();const rg=new THREE.ExtrudeGeometry(s,{depth:1.9,bevelEnabled:false});rg.translate(0,0,-.95);rg.rotateY(Math.PI/2);const r=new THREE.Mesh(rg,rm);r.position.y=1.5;g.add(r);}
+ const win=new THREE.Mesh(new THREE.PlaneGeometry(w.me?1.0:.5,.5),new THREE.MeshBasicMaterial({color:w.n==='15'?0xa9c8ff:0xffc46b,toneMapped:false}));win.position.set(.1,.6,.66);g.add(win);
+ const pad=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,.12,32),new THREE.MeshBasicMaterial({color:w.me?0xffd23f:0xfffaf0,transparent:true,opacity:.85,toneMapped:false}));pad.position.y=-.06;g.add(pad);
+ if(w.n==='03'){b.visible=false;g.children.forEach(c=>{if(c!==pad)c.visible=false;});const sg=new THREE.Mesh(box,new THREE.MeshStandardMaterial({color:0xd6453d}));sg.scale.set(.9,.5,.06);sg.position.y=.6;g.add(sg);}
+ return g;}
+const glow=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');const g=x.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,'#fff');g.addColorStop(.25,'rgba(255,255,255,.8)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,128,128);return new THREE.CanvasTexture(c);})();
+const hits=[];const ov=document.createElement('div');ov.className='ov';document.getElementById('ov').insertBefore(ov,document.getElementById('panel'));
+WORLDS.forEach(w=>{const n=w.node;const g=new THREE.Group();g.position.copy(n.p);scene.add(g);w.g=g;
+  if(w.kind==='detail'){g.add(miniHouse(w));}
+  else{const s=new THREE.Mesh(new THREE.SphereGeometry(.42,20,14),new THREE.MeshBasicMaterial({color:w.graft?0xffd23f:0xfffaf0,toneMapped:false}));s.position.y=.4;g.add(s);
+    if(w.graft){const tr=new THREE.Mesh(new THREE.TorusGeometry(.8,.06,8,40),new THREE.MeshBasicMaterial({color:0xffd23f,toneMapped:false}));tr.position.y=.4;tr.rotation.x=Math.PI/2;g.add(tr);}}
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glow,color:w.me?0xffd23f:0xffffff,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:.55}));sp.scale.setScalar(w.kind==='detail'?3.2:1.6);sp.position.y=.7;g.add(sp);w.sp=sp;
+  const hit=new THREE.Mesh(new THREE.SphereGeometry(1.6,8,6),new THREE.MeshBasicMaterial({visible:false}));hit.position.y=.8;hit.userData.w=w;g.add(hit);hits.push(hit);
+  const el=document.createElement('div');el.className='leaf'+(w.kind==='detail'?' d':'')+((w.me||(w.graft&&w.kind!=='detail'))?' g':'');
+  el.innerHTML=w.kind==='detail'?`世界${w.n}${w.me?'　わが家':''}<small>${w.key||w.nums[2][1]}</small>`:w.n;ov.appendChild(el);w.el=el;});
+
+// ---------- パネル ----------
+const panel=document.getElementById('panel'),toast=document.getElementById('toast');
+let sel=WORLDS[0],hover=null;
+function showPanel(w){sel=w;const tag=w.kind==='detail'?'<span class="tag">詳しく見られる世界</span>':(w.graft?'<span class="tag g">第3の答えの受け皿</span>':'<span class="tag s">概略の世界</span>');
+ const lis=w.path.map((o,k)=>{const who=optWho(k,o);return `<li class="${who==='graft'?'g':''}"><span class="f">分かれ道${k+1}<br>${FORKS[k].name}</span><span class="dot" style="background:#${WHO[who].getHexString()};${who==='both'?'border:2px solid #c9cfdc':''}"></span><span class="c">${optLabel(k,o)}</span></li>`;}).join('');
+ const nums=w.nums?`<div class="nums">${w.nums.map(x=>`<div><b>${x[0]}</b><span>${x[1]}</span></div>`).join('')}</div>`:'';
+ panel.innerHTML=`<div class="wn">世界${w.n}${w.me?'　わが家':''}${tag}</div><ol>${lis}</ol><div class="sum">${w.sum}</div>${nums}<button class="${w.kind==='detail'?'':'s'}" id="go">${w.kind==='detail'?'この世界を最初から再生する':'あらすじを読む'}</button>`;
+ document.getElementById('go').onclick=()=>{toast.textContent=w.kind==='detail'?`（試作）世界${w.n}の再生画面へ`:`（試作）世界${w.n}のあらすじを開く`;toast.style.opacity=1;setTimeout(()=>toast.style.opacity=0,1600);};}
+showPanel(sel);
+
+// ---------- 操作 ----------
+let dragYaw=0,dragPitch=0,drag=null;const cv=renderer.domElement;const ray=new THREE.Raycaster();const mp=new THREE.Vector2();
+function toNDC(e){const r=cv.getBoundingClientRect();mp.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1);}
+cv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,yaw:dragYaw,pitch:dragPitch,moved:0};cv.setPointerCapture(e.pointerId);cv.style.cursor='grabbing';});
+cv.addEventListener('pointermove',e=>{if(drag){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.moved=Math.max(drag.moved,Math.abs(dx)+Math.abs(dy));dragYaw=drag.yaw-dx*.006/SC;dragPitch=cl(drag.pitch+dy*.003/SC,-.35,.5);return;}
+  toNDC(e);ray.setFromCamera(mp,camera);const h=ray.intersectObjects(hits)[0];hover=h?h.object.userData.w:null;cv.style.cursor=hover?'pointer':'grab';});
+cv.addEventListener('pointerup',e=>{const was=drag;drag=null;cv.style.cursor='grab';if(was&&was.moved<6){toNDC(e);ray.setFromCamera(mp,camera);const h=ray.intersectObjects(hits)[0];if(h)showPanel(h.object.userData.w);}});
+
+// ---------- render(t) ----------
+const _v=new THREE.Vector3();
+function scr(v){_v.copy(v).project(camera);return{x:(_v.x*.5+.5)*W,y:(-_v.y*.5+.5)*H,z:_v.z};}
+function render(t){
+  const yaw=.55+t*.045+dragYaw, pitch=.30+dragPitch, dist=74;
+  camera.position.set(Math.cos(yaw)*Math.cos(pitch)*dist,9+Math.sin(pitch)*dist,Math.sin(yaw)*Math.cos(pitch)*dist);camera.lookAt(0,8.6,0);camera.updateMatrixWorld();
+  // 枝の成長：深さごとに順番に伸びる
+  const focus=hover||sel;
+  edges.forEach(e=>{const a=.3+(e.d-1)*.65;const p=ss(a,a+.75,t);
+    if(e.stub){e.line.material.opacity=.45*ss(a+.5,a+1.1,t);return;}
+    const cnt=Math.floor(e.geo.index.count*p/36)*36;e.geo.setDrawRange(0,cnt);
+    const on=e.worlds.has(focus.n);e.mat.opacity=on?1:e.base*.72;e.mat.color.copy(e.col).multiplyScalar(on?1.25:.9);});
+  seed.scale.setScalar(1+.08*Math.sin(t*2.2));
+  WORLDS.forEach((w,i)=>{const p=back(cl((t-3.1-i*.05)/.6));w.g.scale.setScalar(Math.max(.001,p)*(w===focus?1.25:1));w.g.rotation.y=t*.3*(w.kind==='detail'?1:0);
+    w.sp.material.opacity=(.28+.14*Math.sin(t*2+i))*(w===focus?1.6:1)*p;
+    const s=scr(w.node.p.clone().add(new THREE.Vector3(0,w.kind==='detail'?2.2:1.0,0)));w.el.style.left=s.x+'px';w.el.style.top=s.y+'px';
+    w.el.style.opacity=ss(3.4,4,t)*(s.z<1?1:0)*(w.kind==='detail'||w===focus?1:.85);w.el.style.outline=w===focus?'3px solid #fffaf0':'none';});
+  // 輪のラベルは画面の左端側に
+  const right=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,0).setY(0).normalize();
+  rings.forEach((r,k)=>{const v=right.clone().multiplyScalar(-r.r).setY(r.y);const s=scr(v);r.el.style.left=(s.x-14)+'px';r.el.style.top=s.y+'px';r.el.style.opacity=ss(.3+k*.65,.9+k*.65,t);});
+  const rs=scr(new THREE.Vector3(0,-.4,0));const re=document.getElementById('root');re.style.left=rs.x+'px';re.style.top=rs.y+'px';
+  composer.render();
+}
+window.render=render;window.DUR=12;
+const q=new URLSearchParams(location.search);const fixed=q.has('t')?parseFloat(q.get('t')):null;const t0=performance.now();
+function loop(now){render(fixed!==null?fixed:(now-t0)/1000);requestAnimationFrame(loop);}
+document.fonts.ready.then(()=>{render(fixed||0);window.READY=true;if(fixed===null)requestAnimationFrame(loop);});
+window.select=n=>showPanel(WORLDS.find(w=>w.n===n));
+</script>
+</body>
+</html>

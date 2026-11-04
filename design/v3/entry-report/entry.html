@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ゆくすいえ　入口の自由入力（見本）</title>
+<style>
+:root{
+  --paper:#FFFAF0;--sky:#CFEBFA;--ground:#F3E7CF;--grass:#9BD27A;--ink:#1E2B36;--ink2:#6B6358;--line:rgba(30,43,54,.14);
+  --kazu:#E8701F;--kazuT:#B3541A;--kazuBg:#FDE3CC;--yuu:#1C8DCC;--yuuT:#14699A;--yuuBg:#D6ECF8;--gold:#F2C230;--goldT:#8C6A00;
+  --f:"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic",sans-serif;--fr:"Hiragino Maru Gothic ProN","Zen Maru Gothic","Hiragino Sans",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#E9E2D3;overflow:hidden}
+body{font-family:var(--f);color:var(--ink)}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform:translate(-50%,-50%) scale(var(--k,1));background:var(--paper);overflow:hidden}
+.top{position:absolute;left:56px;right:56px;top:34px;display:flex;align-items:center;gap:22px}
+.logo{font-family:var(--fr);font-weight:900;font-size:30px;letter-spacing:.06em}
+.prog{flex:1;display:flex;gap:6px;align-items:center;font-size:14px;color:var(--ink2)}
+.prog i{flex:1;height:5px;border-radius:3px;background:rgba(30,43,54,.12)}.prog i.on{background:var(--ink)}
+.step{font-size:16px;font-weight:700;color:var(--ink)}
+/* 左：ふたりの付箋ボード */
+.board{position:absolute;left:56px;top:104px;width:1060px;height:930px;border-radius:18px;background:
+  linear-gradient(rgba(28,141,204,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(28,141,204,.07) 1px,transparent 1px),#FBF4E6;background-size:28px 28px;border:1.5px solid var(--line)}
+.board h2{position:absolute;left:36px;top:26px;font-family:var(--fr);font-weight:900;font-size:34px}
+.board .sub{position:absolute;left:36px;top:78px;font-size:19px;color:var(--ink2)}
+.legend{position:absolute;right:30px;top:34px;display:flex;gap:18px;font-size:18px}
+.sq::before{content:"■";color:var(--kazu);margin-right:6px}.ci::before{content:"●";color:var(--yuu);margin-right:6px}
+.st{position:absolute;width:236px;padding:12px 14px 14px;border-radius:5px;font-size:19px;line-height:1.5;box-shadow:0 4px 0 rgba(30,43,54,.09);transform:rotate(var(--r,0deg))}
+.st.k{background:var(--kazuBg);border-top:6px solid var(--kazu)}.st.y{background:var(--yuuBg);border-top:6px solid var(--yuu)}
+.st .src{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:5px}
+.st .src b{display:inline-grid;place-items:center;min-width:34px;height:20px;padding:0 5px;border-radius:4px;background:var(--ink);color:var(--paper);font-size:12px}
+.st .who{margin-left:auto}
+.st.from-img{width:276px}
+.thumb{display:block;width:100%;height:86px;border-radius:4px;margin-bottom:8px;border:1px solid var(--line)}
+/* 衝突の線 */
+svg.links{position:absolute;inset:0;pointer-events:none}
+.clash{position:absolute;font-size:16px;font-weight:700;color:var(--goldT);background:var(--paper);border:1.5px dashed var(--goldT);border-radius:999px;padding:2px 12px}
+/* 右：入力パネル */
+.panel{position:absolute;left:1146px;top:104px;width:718px;height:930px;display:flex;flex-direction:column;gap:16px}
+.card{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:20px 22px}
+.card h3{font-size:21px;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.who-tabs{display:flex;gap:8px}
+.who-tabs span{font-size:17px;font-weight:700;padding:5px 14px;border-radius:999px;border:1.5px solid var(--line)}
+.who-tabs span.on{border-color:var(--kazu);background:var(--kazuBg)}
+.ta{min-height:112px;border:2px solid var(--ink);border-radius:12px;padding:12px 14px;font-size:21px;line-height:1.6;background:#fff;position:relative}
+.ta .caret{display:inline-block;width:2px;height:24px;background:var(--ink);vertical-align:-4px;margin-left:2px}
+.row{display:flex;gap:12px;align-items:stretch}
+.drop{flex:1;border:2px dashed rgba(30,43,54,.35);border-radius:12px;padding:12px;display:flex;gap:10px;align-items:center;font-size:17px;color:var(--ink2);min-height:104px}
+.drop .ph{width:110px;height:76px;border-radius:6px;border:1px solid var(--line);flex:none}
+.url{flex:1;border:2px solid rgba(30,43,54,.25);border-radius:12px;padding:12px 14px;font-size:16px;color:var(--ink2);display:flex;flex-direction:column;gap:6px;min-height:104px}
+.url code{font-family:Menlo,monospace;font-size:14px;color:var(--ink);word-break:break-all}
+.url .got{font-size:15px;color:var(--ink)}
+.btns{display:flex;gap:12px;justify-content:flex-end;margin-top:4px}
+.btn{font:700 21px var(--f);padding:12px 26px;border-radius:12px;border:2px solid var(--ink);background:var(--ink);color:var(--paper)}
+.btn.ghost{background:#fff;color:var(--ink)}
+.qr{display:grid;grid-template-columns:180px 1fr;gap:22px;align-items:center}
+.qr p{font-size:18px;line-height:1.65}
+.code{font-family:Menlo,monospace;font-size:30px;font-weight:700;letter-spacing:.12em;margin:6px 0}
+.phone{display:flex;gap:10px;font-size:15px;color:var(--ink2);margin-top:8px}
+.phone span{border:1.5px solid var(--line);border-radius:999px;padding:3px 12px;background:#fff}
+.read{font-size:16px;color:var(--ink2);line-height:1.6}
+.read b{color:var(--ink)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--yuu);margin-right:6px;animation:p 1.2s ease-in-out infinite}
+@keyframes p{50%{opacity:.3}}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="top">
+    <div class="logo">ゆくすいえ</div>
+    <div class="prog" aria-label="家づくりの進み具合"><span class="step">見学・相談</span><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><span>1年後</span></div>
+  </div>
+
+  <section class="board">
+    <h2>ふたりの、こうしたい。</h2>
+    <p class="sub">ことば・写真・URL、どれでも。読み取ったことを、付箋にして並べます。</p>
+    <div class="legend"><span class="sq">かず</span><span class="ci">ゆう</span></div>
+    <svg class="links" viewBox="0 0 1060 930"></svg>
+    <div id="stickies"></div>
+  </section>
+
+  <section class="panel">
+    <div class="card">
+      <h3>思いつくまま、伝えてください <span class="who-tabs"><span class="on sq">かず</span><span class="ci">ゆう</span></span></h3>
+      <div class="ta">休みの日は、庭でバーベキューがしたい。車は2台、雪の日も困らないように<span class="caret"></span></div>
+      <div class="row" style="margin-top:14px">
+        <div class="drop">
+          <svg class="ph" viewBox="0 0 110 76" aria-hidden="true"><rect width="110" height="76" fill="#EADFC9"/><rect x="0" y="48" width="110" height="28" fill="#C9A27A"/><rect x="12" y="10" width="40" height="34" fill="#BFE0F2" stroke="#1E2B36" stroke-width="1.2"/><rect x="60" y="22" width="38" height="26" fill="#F4EFE6" stroke="#1E2B36" stroke-width="1.2"/><circle cx="88" cy="16" r="7" fill="#9BD27A"/></svg>
+          <span>写真をここにドロップ<br><b style="color:var(--ink)">リビング.jpg</b> を読み取りました</span>
+        </div>
+        <div class="url">
+          <span>URLを貼り付け</span>
+          <code>https://example.com/ideas/kitchen-wood</code>
+          <span class="got">読み取り：木の天板、壁付けでなく対面、パントリー</span>
+        </div>
+      </div>
+      <div class="btns"><button class="btn ghost">ゆうに代わる</button><button class="btn">伝える</button></div>
+    </div>
+
+    <div class="card qr">
+      <svg id="qr" viewBox="0 0 29 29" width="180" height="180" aria-label="見本のQR" shape-rendering="crispEdges"></svg>
+      <div>
+        <h3 style="margin-bottom:4px">スマホから送る</h3>
+        <p>QRを読み込むと、スマホから要望の入力や、スクショの共有ができます。ふたりのスマホで同時に入れられます。</p>
+        <div class="code">YK-4821</div>
+        <div class="phone"><span class="ci">ゆうのスマホと接続中</span><span>スクショ 2枚</span></div>
+      </div>
+    </div>
+
+    <div class="card read">
+      <h3 style="font-size:19px"><span class="dot"></span>読み取り中</h3>
+      <div><b>スクショ（ゆう）</b>：北欧ふうの白い壁、低い窓台、うさぎのケージの置き場所</div>
+      <div style="margin-top:4px">付箋は、あとで打ち合わせの担当者に渡す「要望の控え」になります。</div>
+    </div>
+  </section>
+</div>
+<script>
+const stage=document.getElementById('stage');
+function fit(){const k=Math.min(innerWidth/1920,innerHeight/1080);stage.style.setProperty('--k',k)}addEventListener('resize',fit);fit();
+// 付箋（入力の出どころつき）
+const S=[
+  {c:'k',who:'かず',src:'文',t:'かっこいい外観。ミニマルに',x:40,y:130,r:-1.5},
+  {c:'y',who:'ゆう',src:'文',t:'木を使った、ナチュラルな家',x:640,y:132,r:1.2},
+  {c:'k',who:'かず',src:'文',t:'1階に寝室。大きめのウォークインクローゼット',x:40,y:300,r:.8},
+  {c:'y',who:'ゆう',src:'スマホ',t:'庭は広め。畑と、うさぎの囲い',x:640,y:300,r:-1},
+  {c:'y',who:'ゆう',src:'写真',t:'明るいリビング。南に大きな窓',x:330,y:470,r:1.4,img:1},
+  {c:'k',who:'かず',src:'URL',t:'木の天板の対面キッチン、パントリー',x:40,y:640,r:-.6},
+  {c:'k',who:'かず',src:'文',t:'庭でバーベキュー。車2台、雪の日も困らない',x:640,y:650,r:.7},
+  {c:'y',who:'ゆう',src:'スマホ',t:'白い壁、低い窓台。うさぎのケージの置き場',x:340,y:770,r:-1.2},
+];
+const box=document.getElementById('stickies');
+S.forEach(s=>{
+  const img=s.img?`<svg class="thumb" viewBox="0 0 276 86" aria-hidden="true"><rect width="276" height="86" fill="#EADFC9"/><rect y="58" width="276" height="28" fill="#C9A27A"/><rect x="20" y="10" width="130" height="46" fill="#CFEBFA" stroke="#1E2B36"/><line x1="85" y1="10" x2="85" y2="56" stroke="#1E2B36"/><rect x="176" y="34" width="70" height="26" rx="6" fill="#F4EFE6" stroke="#1E2B36"/><circle cx="250" cy="22" r="10" fill="#9BD27A"/></svg>`:'';
+  box.insertAdjacentHTML('beforeend',`<div class="st ${s.c} ${s.img?'from-img':''}" style="left:${s.x}px;top:${s.y}px;--r:${s.r}deg"><div class="src"><b>${s.src}</b><span class="who ${s.c==='k'?'sq':'ci'}">${s.who}</span></div>${img}${s.t}</div>`);
+});
+// ぶつかりそうな組（金の破線）
+const L=[[0,1,'外観'],[2,3,'1階の広さと庭']];
+const svg=document.querySelector('svg.links');
+L.forEach(([a,b,lab])=>{const A=S[a],B=S[b];const x1=A.x+236,y1=A.y+60,x2=B.x,y2=B.y+60;
+  svg.insertAdjacentHTML('beforeend',`<path d="M${x1},${y1} L${x2},${y2}" stroke="#C99A00" stroke-width="3" stroke-dasharray="9 6" fill="none"/><polygon points="${(x1+x2)/2},${(y1+y2)/2-11} ${(x1+x2)/2+10},${(y1+y2)/2} ${(x1+x2)/2},${(y1+y2)/2+11} ${(x1+x2)/2-10},${(y1+y2)/2}" fill="#F2C230" stroke="#8C6A00" stroke-width="1.5"/>`);
+  box.insertAdjacentHTML('beforeend',`<div class="clash" style="left:${(x1+x2)/2-70}px;top:${(y1+y2)/2+16}px">◆ ${lab}</div>`);
+});
+// 見本のQR（決まった模様。実際のQRではない）
+(function(){const q=document.getElementById('qr');let s='<rect width="29" height="29" fill="#fff"/>';
+  const fin=(x,y)=>`<rect x="${x}" y="${y}" width="7" height="7" fill="#1E2B36"/><rect x="${x+1}" y="${y+1}" width="5" height="5" fill="#fff"/><rect x="${x+2}" y="${y+2}" width="3" height="3" fill="#1E2B36"/>`;
+  s+=fin(1,1)+fin(21,1)+fin(1,21);let r=48271;const rnd=()=>{r=(r*1103515245+12345)&0x7fffffff;return r/0x7fffffff};
+  for(let y=1;y<28;y++)for(let x=1;x<28;x++){const inF=(x<9&&y<9)||(x>19&&y<9)||(x<9&&y>19);if(!inF&&rnd()<.45)s+=`<rect x="${x}" y="${y}" width="1" height="1" fill="#1E2B36"/>`}
+  q.innerHTML=s})();
+window.READY=true;
+</script>
+</body>
+</html>

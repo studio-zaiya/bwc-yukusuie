@@ -1,0 +1,82 @@
+<title>完成の瞬間の5画風</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Maru+Gothic:wght@700&display=swap">
+<style>
+/* Layout: 左に5つの項目（前振り4案＋デザインコード見本）、右に再生面と要約。狭い画面では縦に積む */
+:root{
+  --paper:#fffaf0; --panel:#ffffff; --ink:#1e2b36; --muted:#5f6b74; --line:#e7dcc8;
+  --kazu:#e8701f; --yuu:#1c8dcc; --stage:#1b2440;
+  --f-display:"Hiragino Maru Gothic ProN","Zen Maru Gothic","Hiragino Sans",sans-serif;
+  --f-body:"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic","Noto Sans JP",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#171c24; --panel:#212834; --ink:#eef1f3; --muted:#a8b2ba; --line:#333d4b;
+  --kazu:#f2893f; --yuu:#4aa9e0; --stage:#0e1320; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#171c24; --panel:#212834; --ink:#eef1f3; --muted:#a8b2ba; --line:#333d4b;
+  --kazu:#f2893f; --yuu:#4aa9e0; --stage:#0e1320; color-scheme:dark}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);line-height:1.7}
+.wrap{max-width:1400px;margin:0 auto;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+h1{font-family:var(--f-display);font-size:clamp(22px,3vw,30px);margin:0;text-wrap:balance}
+header p{margin:4px 0 0;color:var(--muted);font-size:13px;max-width:64ch}
+.main{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:1fr}}
+.list{display:grid;gap:6px}
+.group{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.06em;margin:8px 0 2px}
+.item{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;text-align:left;font:inherit;color:inherit;background:transparent;border:1px solid transparent;border-radius:10px;padding:8px 10px;cursor:pointer}
+.item:hover{background:var(--panel)}
+.item[aria-current="true"]{background:var(--panel);border-color:var(--line)}
+.item:focus-visible,a:focus-visible{outline:2px solid var(--yuu);outline-offset:2px}
+.num{font-family:var(--f-display);font-size:15px;color:var(--kazu)}
+.item b{display:block;font-size:14px;line-height:1.4}
+.item span{display:block;font-size:12px;color:var(--muted);line-height:1.4}
+.viewer{display:grid;gap:14px;min-width:0}
+.stage{position:relative;width:100%;max-width:100%;aspect-ratio:16/9;background:var(--stage);border-radius:10px;overflow:hidden}
+.stage.tall{aspect-ratio:auto;height:78vh;background:var(--panel)}
+.stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.meta{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:grid;gap:10px;min-width:0}
+.meta h2{margin:0;font-family:var(--f-display);font-size:19px;text-wrap:balance}
+.meta p{margin:0;font-size:14px;max-width:72ch}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 20px;font-size:13px;margin:0}
+.facts dt{font-weight:700;color:var(--muted);font-size:12px}
+.facts dd{margin:0}
+.open{font-size:13px;color:var(--yuu);font-weight:700}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>完成の瞬間の5画風</h1>
+    <p>マイホームが完成した瞬間だけ「竣工記念の1枚」に切り替える演出の試案です。どの案も世界の状態から毎回描き、ページ内で状態を切り替えられます。静止画の確認は代わりの書体で行っています。</p>
+  </header>
+  <div class="main">
+    <nav class="list" id="list" aria-label="案の一覧"></nav>
+    <section class="viewer">
+      <div class="stage" id="stage"><iframe id="frame" title="選んだ案の再生"></iframe></div>
+      <div class="meta">
+        <h2 id="m-name"></h2>
+        <p id="m-sum"></p>
+        <dl class="facts">
+          <div><dt>尺・手間</dt><dd id="m-cost"></dd></div>
+          <div><dt>弱点（作った本人の評）</dt><dd id="m-weak"></dd></div>
+        </dl>
+        <a class="open" id="m-open" href="#" target="_blank" rel="noopener">別のタブで大きく開く</a>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+const P=[
+{g:"画風",k:"W1",src:"W1-watercolor/completion.html",name:"透明水彩",s:"鉛筆の下描き、空のウォッシュ、壁と屋根、窓と木の順に描き上がる。家の形を抜いて空を塗るので、まわりに紙の白が残る。窓や庇は色面と数本の線で済ませ、納まりの粗が出にくい。",c:"9秒。磨くなら2〜3時間。",w:"刷毛目の方向がなく、近くで見るとデジタルの重ね塗りに見える。カーポートが浮いて見える。"},
+{g:"画風",k:"W2",src:"W2-penwash/completion.html",name:"ペンと淡彩",s:"揺らぎのある細いペンで2点透視の家が描かれ、淡い水彩が差される。仕上げは線の描き方で描き分け（木の縦張り、ガルバの縦線、レンガの目地）。状態は3つ。",c:"約8秒。磨くなら3〜4時間。",w:"人が棒人形に近く少し幼い。「1階が大きい」形の変化が弱い。"},
+{g:"画風",k:"W3",src:"W3-gouache/completion.html",name:"ガッシュの絵本の挿絵",s:"鉛筆の下描きから、マットな色面がにじむように広がる。洗濯物、うさぎ、畑、自転車、家族4人の後ろ姿。朝と午後で光と影の向きが変わる。",c:"8.6秒。磨くなら3〜4時間。",w:"葉の塊や家族の頭が単純な丸で、驚かせるにはもう一段の密度が要る。"},
+{g:"画風",k:"W4",src:"W4-paper/completion.html",name:"紙を重ねた切り絵",s:"飛び出す絵本のように、色紙の層（空、丘、隣家、地面、家、木、家族）が手前へ順に起き上がり、花びらが舞う。紙の繊維、白い切り口、層ごとの落ち影。",c:"8秒。磨くなら2〜3時間。",w:"樹冠が多角形の紙3枚で少し硬い。家族の後ろ姿が記号的。"},
+{g:"画風",k:"W5",src:"W5-hybrid/completion.html",name:"光は本物、筆は手描き",s:"物理計算で光と影と反射を正しく描いた下地を、自作の画像処理で水彩と線描に描き直す。写真のような下地からペンの線、筆の塗り替えへ。",c:"8秒。物理計算は事前に描き置く（1枚約2分）。",w:"ガルバリウムが白っぽく見える。片流れ屋根がこの視点ではほとんど見えない。"}
+];
+let cur=0;const $=id=>document.getElementById(id);
+function list(){let h="",g="";P.forEach((p,i)=>{if(p.g!==g){g=p.g;h+=`<div class="group">${g}</div>`}h+=`<button class="item" type="button" data-i="${i}" aria-current="${i===cur}"><span class="num">${p.k}</span><div><b>${p.name}</b><span>${p.g}</span></div></button>`});$("list").innerHTML=h}
+function show(){const p=P[cur];if($("frame").getAttribute("src")!==p.src)$("frame").setAttribute("src",p.src);$("stage").classList.toggle("tall",!!p.tall);$("m-name").textContent=p.name;$("m-sum").textContent=p.s;$("m-cost").textContent=p.c;$("m-weak").textContent=p.w;$("m-open").href=p.src;list()}
+$("list").addEventListener("click",e=>{const b=e.target.closest(".item");if(!b)return;cur=+b.dataset.i;show()});
+show();
+</script>

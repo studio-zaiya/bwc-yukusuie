@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ゆくすいえ 山場 H4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#FFFAF0;--sky:#CFEBFA;--ground:#F3E7CF;--grass:#9BD27A;--ink:#1E2B36;--ink2:#6B6358;--kazu:#E8701F;--yuu:#1C8DCC;--gold:#F2C230;--goldt:#8C6A00}
+html,body{margin:0;height:100%;background:#E7EEF2;overflow:hidden;font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic",sans-serif;color:var(--ink)}
+#wrap{position:fixed;left:0;right:0;top:0;bottom:48px;overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform-origin:center;overflow:hidden;background:var(--sky)}
+#stage canvas{position:absolute;left:0;top:0;width:1920px;height:1080px}
+.dsp{font-family:"Hiragino Maru Gothic ProN","Zen Maru Gothic","Hiragino Sans",sans-serif}
+#cd{position:absolute;left:64px;top:52px;padding:18px 28px 20px;background:rgba(255,250,240,.94);border-radius:18px;box-shadow:0 6px 24px rgba(30,43,54,.12);min-width:330px}
+#cd .k{font-size:26px;font-weight:700;color:var(--ink2);letter-spacing:.04em}
+#cd .d{font-size:112px;font-weight:900;line-height:1;margin-top:6px;font-variant-numeric:tabular-nums;white-space:nowrap}
+#cd .d small{font-size:44px;margin-left:6px}
+#cd .bar{height:10px;border-radius:5px;background:#E7DCC8;margin-top:14px;overflow:hidden}
+#cd .bar i{display:block;height:100%;background:var(--ink);border-radius:5px}
+#cd .mk{display:inline-block;margin-left:12px;font-size:40px;vertical-align:top;color:var(--ink)}
+#wc{position:absolute;right:64px;top:52px;text-align:right;padding:16px 26px;background:rgba(255,250,240,.94);border-radius:18px;box-shadow:0 6px 24px rgba(30,43,54,.12)}
+#wc .k{font-size:24px;font-weight:700;color:var(--ink2)}
+#wc .n{font-size:84px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+#tk{position:absolute;left:64px;right:64px;bottom:44px;height:64px;overflow:hidden;background:rgba(255,250,240,.94);border-radius:14px;box-shadow:0 6px 24px rgba(30,43,54,.12)}
+#tk .row{position:absolute;left:0;right:0;height:64px;display:flex;align-items:center;gap:18px;padding:0 22px;font-size:30px;font-weight:700;white-space:nowrap}
+#tk .w{display:inline-block;min-width:120px;text-align:center;color:var(--paper);background:var(--ink);border-radius:8px;padding:2px 10px;font-size:26px}
+#tk .w.me{background:var(--gold);color:var(--ink)}
+#tk .lbl{color:var(--ink2);font-size:22px;margin-left:auto}
+#fork{position:absolute;left:50%;top:150px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:18px}
+#fork .q{font-size:36px;font-weight:700;background:rgba(255,250,240,.96);padding:8px 26px;border-radius:12px}
+#fork .cards{display:flex;gap:28px}
+#fork .c{width:380px;padding:22px 26px;border-radius:16px;background:var(--paper);border:3px solid #D8CDB8;font-size:34px;font-weight:700;text-align:center;box-shadow:0 6px 18px rgba(30,43,54,.12)}
+#fork .c.x{opacity:.45}
+#fork .free{min-width:640px;padding:18px 26px;border-radius:16px;background:var(--paper);border:4px dashed var(--gold);font-size:36px;font-weight:700;box-shadow:0 6px 18px rgba(30,43,54,.14);white-space:nowrap}
+#fork .free b{color:var(--goldt);margin-right:10px}
+#cap{position:absolute;left:50%;top:620px;transform:translateX(-50%);font-size:76px;font-weight:900;white-space:nowrap;background:rgba(255,250,240,.96);padding:10px 40px;border-radius:20px;box-shadow:0 8px 30px rgba(30,43,54,.16)}
+#cap span{color:var(--goldt)}
+#logo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;padding:44px 90px 48px;background:rgba(255,250,240,.95);border-radius:28px;box-shadow:0 14px 50px rgba(30,43,54,.18)}
+#logo .t{white-space:nowrap;font-size:150px;font-weight:900;letter-spacing:.08em;line-height:1.05}
+#logo .e{font-size:38px;font-weight:700;letter-spacing:.12em;color:var(--ink2);margin-top:12px}
+#logo .s{font-size:38px;font-weight:700;margin-top:26px}
+.hide{opacity:0}
+#ctl{position:fixed;left:0;right:0;bottom:0;height:48px;display:flex;gap:12px;align-items:center;padding:0 16px;background:#fff;border-top:1px solid #ddd;font-size:14px;box-sizing:border-box}
+#ctl button{font:inherit;font-weight:700;border:1px solid #ccc;background:#fff;border-radius:999px;padding:5px 16px;cursor:pointer}
+#ctl input{flex:1}
+#tt{font-variant-numeric:tabular-nums;min-width:110px;text-align:right}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}
+</script>
+</head>
+<body>
+<div id="wrap"><div id="stage">
+  <canvas id="gl" width="1920" height="1080"></canvas>
+  <canvas id="ov" width="1920" height="1080"></canvas>
+  <div id="cd"><div class="k" id="cdk">土地の契約まで</div><div class="d"><span id="cdn">あと60</span><small id="cdu">日</small><span class="mk" id="cdm"></span></div><div class="bar"><i id="cdb"></i></div></div>
+  <div id="wc"><div class="k">同時に進む世界</div><div class="n" id="wcn">16</div></div>
+  <div id="tk"></div>
+  <div id="fork" class="hide">
+    <div class="q dsp">世界07　外構を戻すか、予算のままか</div>
+    <div class="cards"><div class="c" id="c1">外構を、いま戻す</div><div class="c" id="c2">予算のまま、進む</div></div>
+    <div class="free" id="free"><b>◆</b><span id="freet"></span></div>
+  </div>
+  <div id="cap" class="dsp hide"><span>2択</span>じゃなくても、いい。</div>
+  <div id="logo" class="hide"><div class="t dsp">ゆくすいえ</div><div class="e">YUKUSUIE: 16 unbuilt futures</div><div class="s">もしもの家づくりを、16の世界で、同時に。</div></div>
+</div></div>
+<div id="ctl"><button id="pp" type="button">一時停止</button><input id="scrub" type="range" min="0" max="28" step="0.01" value="0" aria-label="再生位置"><span id="tt">0.0 / 28.0 秒</span></div>
+
+<script type="module">
+import * as THREE from 'three';
+const DUR=28; window.DUR=DUR;
+const W=1920,H=1080;
+// ---------- helpers ----------
+const cl=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const ss=(a,b,x)=>{const t=cl((x-a)/(b-a));return t*t*(3-2*t)};
+const eo=x=>1-Math.pow(1-cl(x),3);
+const over=x=>{x=cl(x);return x<1?1+2.2*Math.pow(x-1,3)+1.2*Math.pow(x-1,2):1}; // 少し行き過ぎて戻る（6%程度）
+const hash=n=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x)};
+const lerp=(a,b,t)=>a+(b-a)*t;
+const $=id=>document.getElementById(id);
+
+// ---------- renderer ----------
+const gl=$('gl');
+const R=new THREE.WebGLRenderer({canvas:gl,antialias:true,preserveDrawingBuffer:true});
+R.setPixelRatio(1);R.setSize(W,H,false);R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;
+R.outputColorSpace=THREE.SRGBColorSpace;
+const scene=new THREE.Scene();
+scene.background=new THREE.Color('#CFEBFA');
+scene.fog=new THREE.Fog('#DCEFF8',140,320);
+const cam=new THREE.PerspectiveCamera(28,W/H,1,800);
+scene.add(new THREE.HemisphereLight('#ffffff','#e8dcc0',1.7));
+const sun=new THREE.DirectionalLight('#fff4e0',2.4);sun.position.set(-60,110,70);sun.castShadow=true;
+sun.shadow.mapSize.set(1536,1536);Object.assign(sun.shadow.camera,{left:-80,right:80,top:80,bottom:-80,near:10,far:300});sun.shadow.bias=-0.0006;
+scene.add(sun);
+
+const M=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.85,metalness:0},o));
+const BOX=new THREE.BoxGeometry(1,1,1);
+function box(mat,parent){const m=new THREE.Mesh(BOX,mat);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
+
+// ground
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(800,800),M('#A9D987'));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+const CELL=14,ROAD=4.5,STEP=CELL+ROAD; // 区画14、道路4.5
+const roads=new THREE.Mesh(new THREE.PlaneGeometry(4*STEP+ROAD+12,4*STEP+ROAD+12),M('#E9E4DA'));roads.rotation.x=-Math.PI/2;roads.position.y=.02;roads.receiveShadow=true;scene.add(roads);
+const lotPos=i=>{const r=Math.floor(i/4),c=i%4;return new THREE.Vector3((c-1.5)*STEP,0,(r-1.5)*STEP)};
+// 17本目の区画（盤の右外）
+const lot17=new THREE.Vector3(2.5*STEP+6,0,-0.5*STEP);
+const lotTiles=[];
+for(let i=0;i<17;i++){const p=i<16?lotPos(i):lot17;const t=new THREE.Mesh(new THREE.BoxGeometry(CELL,.3,CELL),M(i<16?'#F3E7CF':'#F7EBC8'));t.position.set(p.x,.15,p.z);t.receiveShadow=true;scene.add(t);lotTiles.push(t)}
+lotTiles[16].visible=false;
+// 植栽（周囲）
+const treeMatA=M('#6DBB5A'),treeMatB=M('#8CCB62'),trunkMat=M('#9C7B58'),petalTree=M('#F6C1CF');
+function tree(x,z,s,mat){const g=new THREE.Group();const tr=new THREE.Mesh(new THREE.CylinderGeometry(.18*s,.25*s,1.6*s,6),trunkMat);tr.position.y=.8*s;tr.castShadow=true;g.add(tr);
+  const cr=new THREE.Mesh(new THREE.IcosahedronGeometry(1.25*s,0),mat);cr.position.y=2.2*s;cr.castShadow=true;g.add(cr);g.position.set(x,0,z);scene.add(g);return g}
+const edgeTrees=[];
+for(let k=0;k<26;k++){const a=k/26*Math.PI*2,r=58+hash(k)*10;edgeTrees.push(tree(Math.cos(a)*r,Math.sin(a)*r,1+hash(k+9)*.8,k%5===0?petalTree:(k%2?treeMatA:treeMatB)))}
+
+// ---------- 16の世界 ----------
+// bits: 4つの分かれ道の答え（0=かず寄り,1=ゆう寄り）。07は第3の答え
+const FIN=[ // 仕上げ：色, 名
+ ['#D9784F','レンガ調'],['#E3B27C','木目'],['#7FB3D5','ガルバ（空色）'],['#FFF7EA','白い塗り壁'],['#F2D68A','塗り壁（たまご色）'],['#9FC79A','塗り壁（若草）'],['#F4C7B5','塗り壁（さくら）'],['#C98E5E','木目（濃）'],['#BFD9E8','ガルバ（白藍）']];
+const ROOFC=['#3F4A57','#B65A3C','#2F5F86','#5E8A4E','#6B5A4E'];
+const FORMS=['gable','shed','flat','gable','flat','shed','gable','hip'];
+const STATUS=Array(16).fill('ok');STATUS[2]='stop'; // 03は工事が止まった世界（1年後は花の咲く更地）
+const worlds=[];
+for(let i=0;i<16;i++){
+  const p=lotPos(i),g=new THREE.Group();g.position.copy(p);g.position.y=.3;scene.add(g);
+  const two=hash(i*3.1)>.32, form=i===6?'flat':FORMS[i%8];
+  const w=two?7.2:9.2,d=two?6.0:6.6,h1=3.0,h=two?5.8:3.1;
+  const fin=FIN[(i*4+1)%FIN.length],roofC=ROOFC[i%ROOFC.length];
+  const o={i,g,two,form,w,d,h,fin,roofC,stagger:i*0.07+hash(i)*.18};
+  // 基礎
+  o.found=box(M('#BDBAB3'),g);o.found.scale.set(w+.4,.5,d+.4);
+  // 骨組み（柱と梁）
+  o.frame=new THREE.Group();g.add(o.frame);const fm=M('#E2C48E');
+  const cols=[];for(const sx of [-1,-.33,.33,1])for(const sz of [-1,1]){const c=box(fm,o.frame);c.scale.set(.22,h,.22);c.position.set(sx*w/2,h/2,sz*d/2);cols.push(c)}
+  for(const sz of [-1,1]){const b=box(fm,o.frame);b.scale.set(w,.24,.24);b.position.set(0,h,sz*d/2);if(two){const b2=box(fm,o.frame);b2.scale.set(w,.22,.22);b2.position.set(0,h1,sz*d/2)}}
+  for(const sx of [-1,1]){const b=box(fm,o.frame);b.scale.set(.24,.24,d);b.position.set(sx*w/2,h,0)}
+  // 壁（白い下地→仕上げ）
+  o.wallMat=M('#F4F6F8');o.wall=box(o.wallMat,g);o.wall.scale.set(w,h,d);o.wall.position.y=h/2;
+  // 窓
+  o.winMat=M('#9FC6DA',{roughness:.3,metalness:.1});o.wins=[];
+  const nw=two?3:4;for(let f=0;f<(two?2:1);f++)for(let k=0;k<nw;k++){const wn=box(o.winMat,g);const ww=(k===1&&f===0)?2.4:1.2;wn.scale.set(ww,1.3,.08);wn.position.set(-w/2+w*(k+.5)/nw,f*2.8+1.55,d/2+.05);o.wins.push(wn)}
+  // 屋根
+  o.roofMat=M('#F4F6F8');o.roof=new THREE.Group();g.add(o.roof);
+  if(form==='gable'||form==='hip'){const geo=new THREE.CylinderGeometry(.0001,1,1,4,1);// 四角錐を寄棟に
+    if(form==='gable'){const sh=new THREE.Shape();sh.moveTo(-d/2-.5,0);sh.lineTo(0,2.1);sh.lineTo(d/2+.5,0);sh.lineTo(-d/2-.5,0);
+      const eg=new THREE.ExtrudeGeometry(sh,{depth:w+.8,bevelEnabled:false});eg.translate(0,0,-(w+.8)/2);const m=new THREE.Mesh(eg,o.roofMat);m.rotation.y=Math.PI/2;m.castShadow=true;o.roof.add(m)}
+    else{const m=new THREE.Mesh(geo,o.roofMat);m.rotation.y=Math.PI/4;m.scale.set((w+.8)*.72,1.9,(d+.8)*.72);m.position.y=.95;m.castShadow=true;o.roof.add(m)}}
+  else if(form==='shed'){const sh=new THREE.Shape();sh.moveTo(-d/2-.5,0);sh.lineTo(-d/2-.5,1.7);sh.lineTo(d/2+.5,.35);sh.lineTo(d/2+.5,0);sh.lineTo(-d/2-.5,0);
+    const eg=new THREE.ExtrudeGeometry(sh,{depth:w+.6,bevelEnabled:false});eg.translate(0,0,-(w+.6)/2);const m=new THREE.Mesh(eg,o.roofMat);m.rotation.y=Math.PI/2;m.castShadow=true;o.roof.add(m)}
+  else{ // 陸屋根：薄い屋根版と立ち上がりだけ（中央には何も置かない）
+    const slab=box(o.roofMat,o.roof);slab.scale.set(w+.3,.3,d+.3);slab.position.y=.15;
+    for(const [sx,sz,lx,lz] of [[0,1,w+.3,.25],[0,-1,w+.3,.25],[1,0,.25,d+.3],[-1,0,.25,d+.3]]){const pr=box(o.roofMat,o.roof);pr.scale.set(lx,.55,lz);pr.position.set(sx*(w+.3)/2-sx*.12,.42,sz*(d+.3)/2-sz*.12)}
+    if(i===6){const eave=box(o.roofMat,o.roof);eave.scale.set(w*.8,.16,1.2);eave.position.set(0,-2.9,d/2+.6)} // 07：南だけ庇
+  }
+  o.roof.position.y=h;
+  // 外構と庭
+  o.yard=new THREE.Group();g.add(o.yard);
+  const gr=new THREE.Mesh(new THREE.BoxGeometry(CELL-1,.06,3.2),M('#9BD27A'));gr.position.set(0,.03,-CELL/2+2.2);gr.receiveShadow=true;o.yard.add(gr);
+  if(i!==6){const cp=box(M('#DADDE0'),o.yard);cp.scale.set(3.4,.14,4.2);cp.position.set(-CELL/2+2.4,2.4,d/2+2.6);const pole=box(M('#9AA3AA'),o.yard);pole.scale.set(.15,2.4,.15);pole.position.set(-CELL/2+.9,1.2,d/2+4.5)}
+  const st=box(M(i%3?'#C9D3D9':'#E8E0D0'),o.yard);st.scale.set(1.4,1.2,1);st.position.set(CELL/2-1.4,.6,-d/2+.4);
+  o.yt=[tree(0,0,.55,i%3?treeMatA:petalTree),tree(0,0,.45,treeMatB)];o.yt.forEach((tt,k)=>{scene.remove(tt);o.yard.add(tt);tt.position.set(k?CELL/2-1.6:-CELL/2+1.8,0,-CELL/2+2.0+k*.4)});
+  // 03：工事が止まった世界の1年後（花の咲く更地）
+  if(STATUS[i]==='stop'){o.flowers=new THREE.Group();g.add(o.flowers);const fc=['#F6D04D','#F39BB4','#FFFFFF','#B9A3E3'];
+    for(let k=0;k<46;k++){const f=new THREE.Mesh(new THREE.IcosahedronGeometry(.22,0),M(fc[k%4]));f.position.set((hash(k*1.7)-.5)*(CELL-2),.25,(hash(k*2.9)-.5)*(CELL-2));o.flowers.add(f)}}
+  worlds.push(o);
+}
+
+// ---------- timeline ----------
+// 0-3.2 線が降りて地縄 / 3.2-5.2 基礎 / 5.2-7.2 骨組み（上棟）/ 7.2-9 白い下地 / 9-11 仕上げ / 11.4-15.6 世界07の分かれ道 / 15.6-22 1年後・花びら / 22.4-28 ロゴ
+const T={rope:[.6,3.2],found:[3.0,5.0],frame:[4.8,7.0],white:[6.8,8.8],fin:[8.8,10.8],yard:[10.0,11.2]};
+function prog(k,o){const [a,b]=T[k];return cl((window._t-a-o.stagger*.9)/(b-a))}
+function applyWorld(o,t){
+  const sF=prog('found',o),sR=prog('frame',o),sW=prog('white',o),sN=prog('fin',o),sY=prog('yard',o);
+  const stop=STATUS[o.i]==='stop';
+  o.found.visible=sF>0&&!(stop&&t>12.4);o.found.scale.y=Math.max(.001,.5*over(sF));o.found.position.y=o.found.scale.y/2;
+  // 骨組み：下から立ち上がる
+  const fr=stop?Math.min(sR,.75):sR;
+  o.frame.visible=fr>0&&sW<.999&&!(stop&&t>12.4);o.frame.scale.y=Math.max(.001,over(fr));o.frame.position.y=.5;
+  const showWall=!stop;
+  o.wall.visible=showWall&&sW>0;o.wall.scale.y=Math.max(.001,o.h*eo(sW));o.wall.position.y=.5+o.wall.scale.y/2;
+  o.roof.visible=showWall&&sW>.6;o.roof.position.y=.5+o.h+ (1-eo(cl((sW-.6)/.4)))*2.5;
+  o.roof.children.forEach(m=>{m.visible=true});
+  // 白い下地（防水シートの淡い青灰）→ 仕上げ
+  const white=new THREE.Color('#F4F6F8'),sheet=new THREE.Color('#E3EAF0');
+  const base=white.clone().lerp(sheet,ss(.3,1,sW)*(1-sN));
+  o.wallMat.color.copy(base).lerp(new THREE.Color(o.fin[0]),eo(sN));
+  o.roofMat.color.copy(white).lerp(new THREE.Color(o.roofC),eo(sN));
+  o.wins.forEach(wn=>{wn.visible=showWall&&sN>.2})
+  o.yard.visible=!stop&&sY>0;o.yard.scale.setScalar(Math.max(.001,over(sY)));
+  if(o.flowers){o.flowers.visible=t>15.6;o.flowers.children.forEach((f,k)=>{f.scale.setScalar(Math.max(.001,over(cl((t-15.8-k*.02)/.5))))})}
+}
+
+// camera keys
+const camKeys=[ // t, target(x,z), dist, yaw
+ [0,0,0,150,0.78],[3,0,0,140,0.74],[10.6,0,0,128,0.66],[11.6,-0.5*STEP,-0.5*STEP,62,0.62],[13.6,0.2*STEP,-0.5*STEP,74,0.6],[15.0,1.2*STEP,-0.5*STEP,84,0.58],[16.4,0.4*STEP,0,136,0.62],[22,0.4*STEP,0,124,0.70],[28,0.4*STEP,0,118,0.74]];
+function camAt(t){let a=camKeys[0],b=camKeys[camKeys.length-1];for(let k=0;k<camKeys.length-1;k++){if(t>=camKeys[k][0]&&t<=camKeys[k+1][0]){a=camKeys[k];b=camKeys[k+1];break}}
+  const u=a===b?0:ss(a[0],b[0],t);const tx=lerp(a[1],b[1],u),tz=lerp(a[2],b[2],u),d=lerp(a[3],b[3],u),yaw=lerp(a[4],b[4],u);
+  const el=0.72;cam.position.set(tx+Math.sin(yaw)*d*Math.cos(el),d*Math.sin(el),tz+Math.cos(yaw)*d*Math.cos(el));cam.lookAt(tx,0,tz)}
+
+// ---------- overlay (線・地縄・花びら) ----------
+const ov=$('ov'),X=ov.getContext('2d');
+const v3=new THREE.Vector3();
+function proj(x,y,z){v3.set(x,y,z).project(cam);return [(v3.x*.5+.5)*W,(-v3.y*.5+.5)*H]}
+const KAZU='#E8701F',YUU='#1C8DCC',GOLD='#F2C230',INK='#1E2B36';
+function bitsOf(i){return [(i>>3)&1,(i>>2)&1,(i>>1)&1,i&1]}
+function drawLines(t){
+  // 前振りから受け取る、左から入る16本の線。4回分かれて各区画へ降り、地縄になる
+  const a=1-ss(3.6,4.6,t);if(a<=0)return;
+  X.save();X.globalAlpha=a;X.lineCap='round';X.lineJoin='round';
+  const xs=[80,190,300,410,520];
+  const p=cl((t-.0)/1.6);
+  for(let i=0;i<16;i++){const b=bitsOf(i);let y=540,pts=[[-20,540],[80,540]];
+    for(let lv=0;lv<4;lv++){const span=1080*0.42/Math.pow(2,lv+1);y+= (b[lv]?1:-1)*span*0.9;pts.push([xs[lv+1],y])}
+    const lp=lotPos(i),tg=proj(lp.x,.4,lp.z);pts.push([lerp(xs[4],tg[0],.55),lerp(y,tg[1],.2)]);pts.push(tg);
+    // 進み具合（全長の割合で描く）
+    const seg=[];let tot=0;for(let k=1;k<pts.length;k++){const l=Math.hypot(pts[k][0]-pts[k-1][0],pts[k][1]-pts[k-1][1]);seg.push(l);tot+=l}
+    const want=tot*cl((t-.05-i*.02)/2.2);let acc=0;
+    X.strokeStyle=b[3]?YUU:KAZU;X.lineWidth=5;X.setLineDash([]);X.beginPath();X.moveTo(pts[0][0],pts[0][1]);
+    for(let k=1;k<pts.length;k++){const l=seg[k-1];if(acc+l<=want){X.lineTo(pts[k][0],pts[k][1]);acc+=l}else{const u=(want-acc)/l;X.lineTo(lerp(pts[k-1][0],pts[k][0],u),lerp(pts[k-1][1],pts[k][1],u));break}}
+    X.stroke();
+  }
+  // 節（■と●）
+  X.restore();
+}
+function rope(t){
+  // 地縄：区画ごとに建物の外形を地面に描く（基礎が出るまで）
+  X.save();X.lineWidth=3;X.setLineDash([10,7]);
+  for(const o of worlds){const s=cl((t-T.rope[0]-1.6-o.stagger)/1.2);const fade=1-cl((t-T.found[0]-o.stagger-.6)/.5);if(s<=0||fade<=0)continue;
+    const c=[[-o.w/2,-o.d/2],[o.w/2,-o.d/2],[o.w/2,o.d/2],[-o.w/2,o.d/2],[-o.w/2,-o.d/2]].map(([x,z])=>proj(o.g.position.x+x,.45,o.g.position.z+z));
+    X.globalAlpha=fade;X.strokeStyle=INK;X.beginPath();X.moveTo(c[0][0],c[0][1]);
+    const n=4*s;for(let k=1;k<=4;k++){if(k<=n)X.lineTo(c[k][0],c[k][1]);else{const u=n-(k-1);if(u>0)X.lineTo(lerp(c[k-1][0],c[k][0],u),lerp(c[k-1][1],c[k][1],u));break}}X.stroke()}
+  // 17本目の地縄（金の破線）
+  const s17=cl((t-13.9)/1.0);if(s17>0){X.setLineDash([16,10]);X.lineWidth=5;X.strokeStyle=GOLD;X.globalAlpha=1;
+    const c=[[-4,-3.4],[4,-3.4],[4,3.4],[-4,3.4],[-4,-3.4]].map(([x,z])=>proj(lot17.x+x,.45,lot17.z+z));X.beginPath();X.moveTo(c[0][0],c[0][1]);const n=4*s17;for(let k=1;k<=4;k++){if(k<=n)X.lineTo(c[k][0],c[k][1]);else{const u=n-(k-1);if(u>0)X.lineTo(lerp(c[k-1][0],c[k][0],u),lerp(c[k-1][1],c[k][1],u));break}}X.stroke();
+    // ◆
+    const cc=proj(lot17.x,.6,lot17.z);X.setLineDash([]);X.fillStyle=GOLD;X.strokeStyle=INK;X.lineWidth=3;X.beginPath();X.moveTo(cc[0],cc[1]-18);X.lineTo(cc[0]+18,cc[1]);X.lineTo(cc[0],cc[1]+18);X.lineTo(cc[0]-18,cc[1]);X.closePath();X.fill();X.stroke();}
+  // 07から17本目へのびる金の破線
+  const s7=cl((t-13.2)/.8);if(s7>0){const a=proj(lotPos(6).x,6,lotPos(6).z),b=proj(lot17.x,.6,lot17.z);X.setLineDash([16,10]);X.lineWidth=6;X.strokeStyle=GOLD;X.globalAlpha=1;X.beginPath();X.moveTo(a[0],a[1]);
+    const mx=(a[0]+b[0])/2,my=Math.min(a[1],b[1])-120;const N=40;for(let k=1;k<=N*s7;k++){const u=k/N;X.lineTo((1-u)*(1-u)*a[0]+2*(1-u)*u*mx+u*u*b[0],(1-u)*(1-u)*a[1]+2*(1-u)*u*my+u*u*b[1])}X.stroke()}
+  X.restore();
+}
+function lotLabels(t){
+  const a=ss(9.6,10.6,t)*(1-ss(11.2,11.6,t))+ss(16.2,17,t)*(1-ss(22,22.6,t));if(a<=0)return;
+  X.save();X.globalAlpha=a;X.font='700 24px "Hiragino Sans","BIZ UDPGothic",sans-serif';X.textAlign='center';X.textBaseline='middle';
+  for(let i=0;i<16;i++){const p=lotPos(i),q=proj(p.x,.4,p.z+CELL/2-.2);const s=String(i+1).padStart(2,'0');const me=i===6;
+    X.fillStyle=me?GOLD:'rgba(255,250,240,.92)';const w=me?64:54;X.beginPath();X.roundRect?X.roundRect(q[0]-w/2,q[1]-17,w,34,17):X.rect(q[0]-w/2,q[1]-17,w,34);X.fill();X.fillStyle=INK;X.fillText(s,q[0],q[1]+1)}
+  if(t>14.4){const q=proj(lot17.x,.4,lot17.z+7);X.fillStyle=GOLD;X.beginPath();X.roundRect?X.roundRect(q[0]-32,q[1]-17,64,34,17):X.rect(q[0]-32,q[1]-17,64,34);X.fill();X.fillStyle=INK;X.fillText('17',q[0],q[1]+1)}
+  X.restore();
+}
+// 花びら（山場で一度だけ）
+const PET=[];for(let k=0;k<180;k++)PET.push({x:hash(k*3.3)*2200-140,d:hash(k*5.1),s:.6+hash(k*7.7)*.9,c:k%5===0?'#FFFFFF':(k%3?'#F6B9C9':'#F9D3DC'),w:hash(k*9.9)*6.28});
+function petals(t){const a=ss(17.0,17.8,t)*(1-ss(23.5,24.5,t));if(a<=0)return;X.save();X.globalAlpha=a;
+  for(const p of PET){const u=t-17.0-p.d*2.2;if(u<0)continue;const y=-40+u*(150+p.s*80),x=p.x-u*(90+p.s*40)+Math.sin(u*1.6+p.w)*40;if(y>H+40)continue;
+    X.save();X.translate(x,y);X.rotate(u*1.5+p.w);X.scale(1,.55+.45*Math.sin(u*3+p.w));X.fillStyle=p.c;X.beginPath();X.ellipse(0,0,11*p.s,7*p.s,0,0,6.28);X.fill();X.restore()}
+  X.restore()}
+
+// ---------- HUD ----------
+const TICK=[ // 時刻, 世界, 出来事
+ [5.0,'04','基礎ができた'],[6.4,'12','上棟。柱と梁が立った'],[7.8,'09','外構は、住んでから'],[9.2,'11','打ち合わせ19回目'],[10.4,'03','工事が止まった'],
+ [11.6,'07','分かれ道：外構か、予算か'],[13.0,'07','窓だけ、トリプルガラスに'],[14.4,'17','あたらしい世界が生まれた'],
+ [16.4,'15','2月の朝、窓辺に毛布'],[17.8,'07','うさぎが庭を3周'],[19.2,'03','更地に、花が咲いた'],[20.6,'16','畑のミニトマトが赤くなった']];
+function hud(t){
+  // カウントダウン：土地の契約まで → 着工から → 1年後
+  let k,n,u,bar,mk='';
+  if(t<4.8){const d=Math.round(lerp(60,0,ss(.4,4.6,t)));k='土地の契約まで';n='あと'+d;u='日';bar=d/60;mk=d<=14?'！':''}
+  else if(t<15.6){const d=Math.round(lerp(0,270,ss(5.0,11.0,t)));k='着工から';n=String(d);u='日';bar=d/270}
+  else{k='引き渡しから';n='1年';u='';bar=1}
+  $('cdk').textContent=k;$('cdn').textContent=n;$('cdu').textContent=u;$('cdm').textContent=mk;$('cdb').style.width=(bar*100).toFixed(1)+'%';
+  const hudA=1-ss(22.0,22.6,t);$('cd').style.opacity=hudA;$('wc').style.opacity=hudA;$('tk').style.opacity=ss(4.8,5.3,t)*hudA;
+  $('wcn').textContent=t>14.4?'17':'16';
+  // ティッカー：1行が下から上へ入れ替わる
+  let cur=-1;for(let i=0;i<TICK.length;i++)if(t>=TICK[i][0])cur=i;
+  const tk=$('tk');let html='';
+  for(const j of [cur-1,cur]){if(j<0)continue;const [t0,w,txt]=TICK[j];const e=eo((t-(j===cur?t0:TICK[cur][0]))/.4);const y=j===cur?(1-e)*64:-e*64;
+    html+=`<div class="row" style="transform:translateY(${y}px)"><span class="w${w==='07'||w==='17'?' me':''}">世界${w}</span><span>${txt}</span><span class="lbl">${t>14.4?'17':'16'}の世界で、同時に</span></div>`}
+  tk.innerHTML=html;
+  // 分かれ道
+  const fa=ss(11.6,12.0,t)*(1-ss(15.2,15.6,t));$('fork').style.opacity=fa;
+  const pick=ss(12.6,12.9,t);$('c1').classList.toggle('x',pick>.5);$('c2').classList.toggle('x',pick>.5);
+  const msg='窓だけ、トリプルガラスにしたい';const nch=Math.floor(msg.length*cl((t-12.5)/.9));$('freet').textContent=msg.slice(0,nch)+(t>12.5&&t<13.6&&Math.floor(t*4)%2?'｜':'');
+  $('free').style.opacity=ss(12.3,12.5,t);
+  const ca=ss(13.7,14.0,t)*(1-ss(15.2,15.6,t));$('cap').style.opacity=ca;$('cap').style.transform=`translateX(-50%) scale(${.94+.06*eo((t-13.7)/.4)})`;
+  // ロゴ
+  const la=ss(22.6,23.4,t);$('logo').style.opacity=la;$('logo').style.transform=`translate(-50%,-50%) scale(${.96+.04*eo((t-22.6)/.8)})`;
+}
+
+// ---------- render(t) ----------
+function render(t){
+  window._t=t;
+  lotTiles[16].visible=t>13.9;lotTiles[16].scale.y=Math.max(.001,over(cl((t-13.9)/.5)));
+  for(const o of worlds)applyWorld(o,t);
+  // 1年後は春の光
+  sun.intensity=lerp(2.4,2.7,ss(15.6,17,t));
+  camAt(t);
+  R.render(scene,cam);
+  X.clearRect(0,0,W,H);
+  drawLines(t);rope(t);lotLabels(t);petals(t);
+  hud(t);
+}
+window.render=render;
+
+// ---------- 再生 ----------
+const qs=new URLSearchParams(location.search);
+let t=parseFloat(qs.get('t')||'0'),playing=!qs.has('t'),last=null;
+const pp=$('pp'),sc=$('scrub'),tt=$('tt');
+function sync(){sc.value=t;tt.textContent=`${t.toFixed(1)} / ${DUR.toFixed(1)} 秒`;pp.textContent=playing?'一時停止':'再生'}
+let drawn=-1;function loop(now){if(playing){if(last!=null)t+=(now-last)/1000;if(t>=DUR)t=0}last=now;if(t!==drawn){drawn=t;try{render(t)}catch(e){console.error(e)}}sync();requestAnimationFrame(loop)}
+pp.onclick=()=>{playing=!playing;last=null};sc.oninput=()=>{t=+sc.value;playing=false};
+function fit(){const s=Math.min(innerWidth/W,(innerHeight-48)/H);$('stage').style.transform=`translate(-50%,-50%) scale(${s})`}
+addEventListener('resize',fit);fit();
+let started=false;function start(){if(started)return;started=true;window.READY=true;requestAnimationFrame(loop)}
+(document.fonts?document.fonts.ready:Promise.resolve()).then(start,start);setTimeout(start,1500);
+</script>
+</body>
+</html>

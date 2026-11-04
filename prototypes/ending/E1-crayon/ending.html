@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>エンディング E1 パラパラの16ページ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@600&family=Zen+Maru+Gothic:wght@500;700&family=Zen+Kaku+Gothic+New:wght@500&display=swap">
+<style>
+:root{--ui:#1e2b36;--uibg:#fffaf0;color-scheme:light}
+html,body{margin:0;height:100%;background:#e9e2d3}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-family:"Hiragino Sans","Zen Kaku Gothic New",sans-serif}
+#wrap{width:min(100vw,calc((100vh - 60px)*16/9));aspect-ratio:16/9;position:relative}
+canvas{width:100%;height:100%;display:block;border-radius:6px;box-shadow:0 4px 24px rgba(0,0,0,.12)}
+#bar{display:flex;gap:10px;align-items:center;width:min(100vw - 32px,960px);color:var(--ui);font-size:13px}
+#bar input{flex:1}
+#bar button{font:inherit;padding:4px 12px;border-radius:999px;border:1px solid var(--ui);background:var(--uibg);color:var(--ui);cursor:pointer}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="1920" height="1080"></canvas></div>
+<div id="bar"><button id="pp" type="button">一時停止</button><input id="sc" type="range" min="0" max="19" step="0.01" value="0" aria-label="時刻"><span id="tl">0.0s</span></div>
+<script>
+const DUR=19;
+const cv=document.getElementById('c'),X=cv.getContext('2d');
+const HAND='"Klee One","Hiragino Maru Gothic ProN","Zen Maru Gothic",sans-serif';
+const ROUND='"Hiragino Maru Gothic ProN","Zen Maru Gothic","Hiragino Sans",sans-serif';
+const BODY='"Hiragino Sans","Hiragino Kaku Gothic ProN","Zen Kaku Gothic New",sans-serif';
+const C={paper:'#fffaf0',sky:'#cfebfa',ground:'#f3e7cf',grass:'#9bd27a',ink:'#1e2b36',ink2:'#6b6358',
+ kazu:'#e8701f',yuu:'#1c8dcc',gold:'#f2c230',lamp:'#ffd98a',desk:'#e9dcc2'};
+// --- helpers
+const cl=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const seg=(t,a,b)=>cl((t-a)/(b-a));
+const eo=x=>1-Math.pow(1-x,3);
+const eio=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+function rnd(s){let x=Math.sin(s*12.9898+78.233)*43758.5453;return x-Math.floor(x)}
+// crayon line: several jittered passes; p = progress 0..1 (partial draw)
+function cline(pts,col,w,seed,p=1,alpha=.85){
+  const n=pts.length-1; if(n<1||p<=0)return;
+  let L=0,ls=[];for(let i=0;i<n;i++){const d=Math.hypot(pts[i+1][0]-pts[i][0],pts[i+1][1]-pts[i][1]);ls.push(d);L+=d}
+  const target=L*p;
+  X.save();X.strokeStyle=col;X.lineCap='round';X.lineJoin='round';
+  for(let k=0;k<3;k++){
+    X.globalAlpha=alpha*(k?0.5:1);X.lineWidth=w*(k?0.55:1);X.beginPath();
+    let acc=0,first=true;
+    for(let i=0;i<n;i++){
+      const [x1,y1]=pts[i],[x2,y2]=pts[i+1];const steps=Math.max(2,Math.ceil(ls[i]/10));
+      for(let j=0;j<=steps;j++){
+        const f=j/steps,d=acc+ls[i]*f;if(d>target)break;
+        const jx=(rnd(seed*31+k*7+i*13+j)-.5)*w*1.5,jy=(rnd(seed*17+k*11+i*5+j*3)-.5)*w*1.5;
+        const x=x1+(x2-x1)*f+jx,y=y1+(y2-y1)*f+jy;
+        if(first){X.moveTo(x,y);first=false}else X.lineTo(x,y);
+      }
+      acc+=ls[i];if(acc>target)break;
+    }
+    X.stroke();
+  }
+  X.restore();
+}
+// crayon scribble fill inside polygon
+function cfill(poly,col,seed,p=1,alpha=.55,gap=11){
+  if(p<=0)return;
+  let minx=1e9,maxx=-1e9,miny=1e9,maxy=-1e9;poly.forEach(([x,y])=>{minx=Math.min(minx,x);maxx=Math.max(maxx,x);miny=Math.min(miny,y);maxy=Math.max(maxy,y)});
+  X.save();X.beginPath();poly.forEach(([x,y],i)=>i?X.lineTo(x,y):X.moveTo(x,y));X.closePath();X.clip();
+  X.strokeStyle=col;X.globalAlpha=alpha;X.lineWidth=gap*.9;X.lineCap='round';
+  const H=maxy-miny+ (maxx-minx), lines=Math.ceil(H/gap);const upto=Math.floor(lines*p);
+  X.beginPath();
+  for(let i=0;i<upto;i++){
+    const o=i*gap+(rnd(seed+i)-.5)*4;
+    X.moveTo(minx-10,miny+o+(rnd(seed*3+i)-.5)*5);X.lineTo(minx-10+(maxy-miny)+(maxx-minx),miny+o-(maxy-miny)-(maxx-minx)*0+ (rnd(seed*5+i)-.5)*5 - (maxx-minx)*0);
+  }
+  // diagonal hatch: from bottom-left to top-right
+  X.stroke();X.restore();
+}
+function hatch(poly,col,seed,p=1,alpha=.5,gap=10){ // simpler diagonal hatch
+  if(p<=0)return;
+  let minx=1e9,maxx=-1e9,miny=1e9,maxy=-1e9;poly.forEach(([x,y])=>{minx=Math.min(minx,x);maxx=Math.max(maxx,x);miny=Math.min(miny,y);maxy=Math.max(maxy,y)});
+  X.save();X.beginPath();poly.forEach(([x,y],i)=>i?X.lineTo(x,y):X.moveTo(x,y));X.closePath();X.clip();
+  X.strokeStyle=col;X.globalAlpha=alpha;X.lineWidth=gap*1.05;X.lineCap='round';
+  const W=maxx-minx,Hh=maxy-miny,n=Math.ceil((W+Hh)/gap);const upto=Math.floor(n*p);
+  X.beginPath();
+  for(let i=0;i<upto;i++){const o=i*gap;const j=(rnd(seed+i)-.5)*6;
+    X.moveTo(minx+o-Hh+j,maxy+4);X.lineTo(minx+o+j*.5,miny-4);}
+  X.stroke();X.restore();
+}
+function ctext(s,x,y,size,col,seed,p=1,align='left',font=HAND){
+  const chars=[...s];const k=Math.floor(chars.length*p+0.0001);if(k<=0)return;
+  X.save();X.font=`600 ${size}px ${font}`;X.fillStyle=col;X.textBaseline='alphabetic';
+  let w=X.measureText(s).width;let cx=align==='center'?x-w/2:x;
+  for(let i=0;i<k;i++){const ch=chars[i];const cw=X.measureText(ch).width;
+    X.save();X.translate(cx+cw/2,y+(rnd(seed+i)-.5)*size*.08);X.rotate((rnd(seed*2+i)-.5)*.08);X.fillText(ch,-cw/2,0);X.restore();cx+=cw}
+  X.restore();
+}
+// --- 16 pages: each world drawn by the child, one line remark (kept gentle)
+const W16=[
+ {id:'07',roof:'flat',eave:true,wall:'#ffffff',roofc:'#8a8f98',win:'big',tree:1,rabbit:1,yard:'gravel',say:'まどの まえが いちばん あったかい'},
+ {id:'01',roof:'gable',wall:'#f4d9a8',roofc:'#c4572e',win:'two',tree:2,rabbit:0,yard:'grass',say:'やねの したに ひみつきち'},
+ {id:'02',roof:'shed',wall:'#cfe3c4',roofc:'#5b6b74',win:'two',tree:1,rabbit:1,yard:'grass',say:'うさぎの へやが ふたつ'},
+ {id:'03',roof:'none',wall:'',roofc:'',win:'',tree:0,rabbit:0,yard:'flower',say:'ここは まだ はらっぱ。たんぽぽ いっぱい'},
+ {id:'04',roof:'gable',wall:'#bcd7ee',roofc:'#2f4b63',win:'two',tree:0,rabbit:0,yard:'car',say:'くるまが 2だい ならぶ'},
+ {id:'05',roof:'flat',eave:false,wall:'#e9c9b3',roofc:'#7b5a46',win:'big',tree:2,rabbit:1,yard:'grass',say:'にわで ミニトマト'},
+ {id:'06',roof:'shed',wall:'#fff1c8',roofc:'#a07a2c',win:'small',tree:1,rabbit:0,yard:'gravel',say:'かいだんが ながい'},
+ {id:'08',roof:'gable',wall:'#d8d1f0',roofc:'#5a4d8c',win:'two',tree:1,rabbit:1,yard:'grass',say:'おばあちゃんが とまりに くる'},
+ {id:'09',roof:'flat',eave:true,wall:'#cde8e2',roofc:'#4f7a72',win:'big',tree:0,rabbit:0,yard:'grass',say:'そらが よく みえる'},
+ {id:'10',roof:'gable',wall:'#f6c9c0',roofc:'#a24a3c',win:'small',tree:2,rabbit:1,yard:'flower',say:'はなを うえた'},
+ {id:'11',roof:'gable',wall:'#f0ebe0',roofc:'#3f4a55',win:'two',tree:1,rabbit:0,yard:'car',big:1,say:'へやが いっぱい'},
+ {id:'12',roof:'shed',wall:'#d9e7b9',roofc:'#6b7f3a',win:'big',tree:1,rabbit:1,yard:'gravel',say:'たなを パパが つくった'},
+ {id:'13',roof:'flat',eave:false,wall:'#f3e2c2',roofc:'#8c7550',win:'two',tree:2,rabbit:0,yard:'grass',say:'げんかんで ねこと あう'},
+ {id:'14',roof:'gable',wall:'#c9dbf2',roofc:'#3a5f8f',win:'big',tree:0,rabbit:1,yard:'flower',say:'ゆきだるま つくった'},
+ {id:'15',roof:'flat',eave:true,wall:'#ffffff',roofc:'#8a8f98',win:'big',tree:1,rabbit:1,yard:'gravel',sock:1,say:'ふゆは くつしたを 2まい'},
+ {id:'16',roof:'shed',wall:'#fde0b6',roofc:'#c0782a',win:'two',tree:1,rabbit:0,yard:'grass',say:'ひるねの まど'}
+];
+// house front-elevation geometry inside a page box (px,py,pw,ph)
+function houseGeom(w,px,py,pw,ph){
+  const gy=py+ph*0.74, cx=px+pw*0.48, hw=pw*(w.big?0.26:0.22), hh=ph*(w.big?0.36:0.32);
+  return {gy,cx,hw,hh,x0:cx-hw,x1:cx+hw,y0:gy-hh};
+}
+function drawCrayonHouse(w,px,py,pw,ph,seed,p){
+  // p: 0..1 drawing progress (outline then fill)
+  const g=houseGeom(w,px,py,pw,ph);const L=cl(p*1.6),F=seg(p,.45,1);
+  const S=seed*100;
+  // ground line
+  cline([[px+pw*.06,g.gy],[px+pw*.94,g.gy]],'#6c8f3e',7,S+1,L);
+  if(w.yard==='grass'||w.yard==='flower')hatch([[px+pw*.06,g.gy],[px+pw*.94,g.gy],[px+pw*.94,g.gy+ph*.12],[px+pw*.06,g.gy+ph*.12]],C.grass,S+2,F,.45,12);
+  if(w.yard==='gravel'){for(let i=0;i<26;i++){const x=px+pw*(.08+rnd(S+i)*.84),y=g.gy+8+rnd(S+i*3)*ph*.1;X.save();X.globalAlpha=.6*F;X.fillStyle='#a9a196';X.beginPath();X.arc(x,y,3+rnd(i)*3,0,7);X.fill();X.restore()}}
+  // sun
+  cline(circlePts(px+pw*.85,py+ph*.16,ph*.07,14),'#f2a72e',7,S+3,L);
+  hatch(circlePts(px+pw*.85,py+ph*.16,ph*.065,14),'#ffd34d',S+4,F,.6,10);
+  if(w.roof==='none'){ // field with flowers and a small sign-less patch
+    for(let i=0;i<14;i++){const x=px+pw*(.12+rnd(S+i*7)*.76),y=g.gy+ph*(.02+rnd(S+i*9)*.08);
+      const fp=seg(p,.2+i*.03,.5+i*.03);if(fp<=0)continue;
+      cline([[x,y],[x,y-20]],'#5b8f3a',5,S+40+i,fp);
+      cline(circlePts(x,y-26,8,7),'#f2c230',6,S+60+i,fp);}
+    cline([[px+pw*.3,g.gy-ph*.05],[px+pw*.36,g.gy-ph*.12],[px+pw*.42,g.gy-ph*.05]],'#6b6358',5,S+80,L); // a hill line / butterfly-like
+    return;
+  }
+  // walls
+  const wall=[[g.x0,g.gy],[g.x0,g.y0],[g.x1,g.y0],[g.x1,g.gy]];
+  hatch(wall,w.wall==='#ffffff'?'#e6e9ee':w.wall,S+5,F,.75,11);
+  cline([...wall,[g.x0,g.gy]],C.ink,6,S+6,L);
+  // roof
+  if(w.roof==='gable'){const r=[[g.x0-24,g.y0],[g.cx,g.y0-g.hh*.62],[g.x1+24,g.y0]];hatch([...r],w.roofc,S+7,F,.8,10);cline([...r,[g.x0-24,g.y0]],C.ink,6,S+8,L)}
+  if(w.roof==='shed'){const r=[[g.x0-18,g.y0],[g.x0-18,g.y0-g.hh*.38],[g.x1+18,g.y0-g.hh*.12],[g.x1+18,g.y0]];hatch(r,w.roofc,S+7,F,.8,10);cline([...r,[g.x0-18,g.y0]],C.ink,6,S+8,L)}
+  if(w.roof==='flat'){const r=[[g.x0-6,g.y0],[g.x0-6,g.y0-16],[g.x1+6,g.y0-16],[g.x1+6,g.y0]];hatch(r,w.roofc,S+7,F,.8,8);cline([...r,[g.x0-6,g.y0]],C.ink,6,S+8,L)}
+  // south eave over the big window
+  if(w.eave){cline([[g.x0-30,g.y0+g.hh*.42],[g.cx+g.hw*.25,g.y0+g.hh*.42]],C.ink,8,S+9,L)}
+  // windows
+  const wy=g.y0+g.hh*.48;
+  if(w.win==='big'){const r=[[g.x0+20,g.gy-8],[g.x0+20,wy],[g.cx+g.hw*.15,wy],[g.cx+g.hw*.15,g.gy-8]];hatch(r,C.lamp,S+10,F,.85,9);cline([...r,[g.x0+20,g.gy-8]],C.ink,5,S+11,L);
+    cline([[g.x0+20+(g.cx+g.hw*.15-g.x0-20)/2,wy],[g.x0+20+(g.cx+g.hw*.15-g.x0-20)/2,g.gy-8]],C.ink,4,S+12,L)}
+  if(w.win==='two'||w.win==='small'){const s=w.win==='small'?.55:1;for(let k=0;k<2;k++){const x=g.x0+g.hw*(.25+k*.75),y=g.y0+g.hh*.2,ww=g.hw*.42*s,hh2=g.hh*.28*s;
+    const r=[[x,y],[x+ww,y],[x+ww,y+hh2],[x,y+hh2]];hatch(r,C.lamp,S+13+k,F,.85,9);cline([...r,[x,y]],C.ink,5,S+15+k,L)}}
+  // door
+  const dx=g.x1-g.hw*.5,dr=[[dx,g.gy],[dx,g.gy-g.hh*.5],[dx+g.hw*.3,g.gy-g.hh*.5],[dx+g.hw*.3,g.gy]];
+  hatch(dr,'#b5835a',S+17,F,.7,9);cline([...dr],C.ink,5,S+18,L);
+  // tree
+  for(let k=0;k<w.tree;k++){const tx=k?px+pw*.88:px+pw*.13,ty=g.gy;cline([[tx,ty],[tx,ty-ph*.16]],'#8a5a35',8,S+20+k,L);
+    const cp=circlePts(tx,ty-ph*.22,ph*.075,12);hatch(cp,'#6cbf4a',S+22+k,F,.7,11);cline(cp,'#3f8a2e',6,S+24+k,L)}
+  // car
+  if(w.yard==='car'){for(let k=0;k<2;k++){const x=px+pw*(.66+k*.0)+k*0,y=g.gy+ph*(.03+k*.06),cw=pw*.16;
+      const r=[[x,y+30],[x,y+8],[x+cw*.25,y],[x+cw*.75,y],[x+cw,y+8],[x+cw,y+30]];hatch(r,k?'#e8701f':'#1c8dcc',S+30+k,F,.75,9);cline([...r,[x,y+30]],C.ink,5,S+32+k,L)}}
+  // family: four stick figures + rabbit
+  const fy=g.gy+ph*.02;const fam=[[px+pw*.2,1],[px+pw*.25,1],[px+pw*.29,.7],[px+pw*.33,.6]];
+  fam.forEach(([fx,s],i)=>{const fp=seg(p,.3+i*.05,.75+i*.05);if(fp<=0)return;const h=ph*.13*s;
+    cline(circlePts(fx,fy-h,h*.22,10),C.ink,5,S+40+i,fp);
+    cline([[fx,fy-h*.78],[fx,fy-h*.32],[fx-h*.18,fy],[fx,fy-h*.32],[fx+h*.18,fy]],i%2?C.yuu:C.kazu,6,S+44+i,fp);
+    cline([[fx-h*.22,fy-h*.6],[fx+h*.22,fy-h*.6]],i%2?C.yuu:C.kazu,5,S+48+i,fp)});
+  if(w.rabbit){const rx=px+pw*.4,ry=fy;const rp=seg(p,.55,.95);
+    cline(circlePts(rx,ry-14,16,10),C.ink2,5,S+52,rp);cline([[rx-6,ry-28],[rx-10,ry-52]],C.ink2,5,S+53,rp);cline([[rx+5,ry-28],[rx+8,ry-52]],C.ink2,5,S+54,rp)}
+  if(w.sock){const sp=seg(p,.6,1);for(let k=0;k<2;k++){const sx=g.x1+30+k*34,sy=g.y0+20;cline([[sx,sy],[sx,sy+40],[sx+18,sy+44]],k?C.kazu:C.yuu,8,S+60+k,sp)}}
+}
+function grain(px,py,pw,ph,seed){X.save();X.fillStyle=C.paper;X.globalAlpha=.55;for(let i=0;i<900;i++){X.fillRect(px+rnd(seed+i*1.37)*pw,py+rnd(seed*2+i*2.11)*ph,2.2,1.4)}X.restore()}
+function circlePts(cx,cy,r,n){const a=[];for(let i=0;i<=n;i++){const t=i/n*Math.PI*2;a.push([cx+Math.cos(t)*r,cy+Math.sin(t)*r])}return a}
+// clean "real" house (flat colours, slight shading) used at the very start
+function drawRealHouse(w,px,py,pw,ph,a){
+  const g=houseGeom(w,px,py,pw,ph);X.save();X.globalAlpha=a;
+  X.fillStyle='#e3d7bd';X.fillRect(px,g.gy,pw,ph*.26);
+  X.fillStyle='#cfc6b6';for(let i=0;i<60;i++){X.fillRect(px+pw*(.05+rnd(i)*.9),g.gy+6+rnd(i*7)*ph*.12,4,3)}
+  X.fillStyle='#ffffff';X.fillRect(g.x0,g.y0,g.hw*2,g.hh);
+  X.fillStyle='#e8eaee';X.fillRect(g.x1-g.hw*.18,g.y0,g.hw*.18,g.hh);
+  X.fillStyle='#8a8f98';X.fillRect(g.x0-6,g.y0-16,g.hw*2+12,16);
+  X.fillStyle=C.ink;X.fillRect(g.x0-30,g.y0+g.hh*.42-5,(g.cx+g.hw*.25)-(g.x0-30),10);
+  const wy=g.y0+g.hh*.48;X.fillStyle=C.lamp;X.fillRect(g.x0+20,wy,(g.cx+g.hw*.15)-(g.x0+20),g.gy-8-wy);
+  X.strokeStyle='#9aa3ad';X.lineWidth=3;X.strokeRect(g.x0+20,wy,(g.cx+g.hw*.15)-(g.x0+20),g.gy-8-wy);
+  const dx=g.x1-g.hw*.5;X.fillStyle='#b5835a';X.fillRect(dx,g.gy-g.hh*.5,g.hw*.3,g.hh*.5);
+  X.fillStyle='#7a5536';X.fillRect(px+pw*.13-5,g.gy-ph*.16,10,ph*.16);X.fillStyle='#7cc35a';X.beginPath();X.arc(px+pw*.13,g.gy-ph*.22,ph*.075,0,7);X.fill();
+  X.restore();
+}
+// paper page
+function page(px,py,pw,ph,shade=0){
+  X.save();X.fillStyle=C.paper;X.shadowColor='rgba(60,40,10,.18)';X.shadowBlur=18;X.shadowOffsetY=6;X.fillRect(px,py,pw,ph);X.restore();
+  // faint grain
+  X.save();X.globalAlpha=.05;X.fillStyle='#8a7a5a';for(let i=0;i<90;i++){X.fillRect(px+rnd(i*3.1)*pw,py+rnd(i*5.7)*ph,2,2)}X.restore();
+  if(shade){X.save();X.fillStyle=`rgba(40,30,10,${shade})`;X.fillRect(px,py,pw,ph);X.restore()}
+}
+function pageNo(w,px,py,pw,ph,alpha=1){grain(px,py,pw,ph-90,w.id*1+3);X.save();X.globalAlpha=alpha;ctext(w.id,px+pw-70,py+62,34,C.ink2,7,1,'left',HAND);X.restore()}
+// background desk with window light (bright morning)
+function bg(t){
+  const g=X.createLinearGradient(0,0,0,1080);g.addColorStop(0,'#f7efe0');g.addColorStop(1,'#ecdfc6');X.fillStyle=g;X.fillRect(0,0,1920,1080);
+  // morning light beam
+  X.save();X.globalAlpha=.22+.04*Math.sin(t*.8);const lg=X.createLinearGradient(1500,0,700,1080);lg.addColorStop(0,'#fff6d8');lg.addColorStop(1,'rgba(255,246,216,0)');
+  X.fillStyle=lg;X.beginPath();X.moveTo(1250,0);X.lineTo(1920,0);X.lineTo(1300,1080);X.lineTo(500,1080);X.closePath();X.fill();X.restore();
+  // drifting dust/petal specks (light)
+  for(let i=0;i<22;i++){const x=(rnd(i)*1920+t*(14+rnd(i+3)*18))%1920,y=(rnd(i*7)*1080+Math.sin(t*.7+i)*20);
+    X.save();X.globalAlpha=.25;X.fillStyle=i%3?'#ffffff':'#ffd9c2';X.beginPath();X.ellipse(x,y,4,2.4,t*.5+i,0,7);X.fill();X.restore()}
+}
+// ---------- main render
+const PW=1100,PH=720,PX=(1920-PW)/2,PY=150;
+function render(t){
+  X.setTransform(1,0,0,1,0,0);X.clearRect(0,0,1920,1080);bg(t);
+  const w07=W16[0];
+  // Scene 1 (0–3.6): the real built house, then the child's crayon traces over it (they coincide)
+  if(t<3.9){
+    page(PX,PY,PW,PH);
+    const ra=1-seg(t,2.3,3.4)*.85; drawRealHouse(w07,PX,PY,PW,PH,ra);
+    drawCrayonHouse(w07,PX,PY,PW,PH,7,eio(seg(t,.4,3.0)));
+    ctext(w07.say,PX+80,PY+PH-48,40,C.ink,77,seg(t,2.2,3.4));
+    pageNo(w07,PX,PY,PW,PH,seg(t,2.6,3.2));
+  }
+  // Scene 2 (3.6–9.6): it becomes page 1 of a flip book; 16 pages flip (fast, like a flipbook)
+  if(t>=3.6&&t<13.3){
+    const T=t-3.6; // book appears (slight zoom out)
+    const z=1-.12*eo(seg(T,0,.8));const fade=1-seg(t,12.8,13.3);X.globalAlpha=fade;const cx=960,cy=PY+PH/2;
+    X.save();X.translate(cx,cy);X.scale(z,z);X.translate(-cx,-cy);
+    // stack edge (thickness)
+    for(let k=6;k>0;k--){X.save();X.fillStyle=k%2?'#efe6d4':'#f6eee0';X.fillRect(PX+k*3,PY+k*4,PW,PH);X.restore()}
+    const per=0.28, start=.9; // seconds per page during flipping
+    const fi=(T-start)/per; // continuous page index
+    const idx=cl(Math.floor(fi),0,16);const ph_=cl(fi-Math.floor(fi));
+    // under-page (next)
+    const nextW=W16[Math.min(idx+1,15)];
+    if(T<start){page(PX,PY,PW,PH);drawCrayonHouse(w07,PX,PY,PW,PH,7,1);ctext(w07.say,PX+80,PY+PH-48,40,C.ink,77,1);pageNo(w07,PX,PY,PW,PH)}
+    else if(idx<15){
+      page(PX,PY,PW,PH);drawCrayonHouse(nextW,PX,PY,PW,PH,idx+20,1);ctext(nextW.say,PX+80,PY+PH-48,40,C.ink,88+idx,1);pageNo(nextW,PX,PY,PW,PH);
+      // turning page: binding at the top (flipbook), page rotates up
+      const cur=W16[idx];const ang=eio(ph_)*Math.PI; const sy=Math.cos(ang);
+      X.save();X.translate(0,PY);X.scale(1,sy);X.translate(0,-PY);
+      if(sy>0){page(PX,PY,PW,PH,(1-sy)*.12);drawCrayonHouse(cur,PX,PY,PW,PH,idx+19,1);ctext(cur.say,PX+80,PY+PH-48,40,C.ink,87+idx,1);pageNo(cur,PX,PY,PW,PH)}
+      else{page(PX,PY,PW,PH,.06)}
+      X.restore();
+    } else {
+      // last page reached (page 16) → shows "16" page, then turns to reveal a blank page
+      const lw=W16[15];const tEnd=start+per*15; const u=seg(T,tEnd+.6,tEnd+1.3);
+      page(PX,PY,PW,PH); // blank page underneath
+      const blankT=T-(tEnd+1.3);
+      if(u<1){const ang=eio(u)*Math.PI,sy=Math.cos(ang);X.save();X.translate(0,PY);X.scale(1,sy);X.translate(0,-PY);
+        if(sy>0){page(PX,PY,PW,PH,(1-sy)*.12);drawCrayonHouse(lw,PX,PY,PW,PH,40,1);ctext(lw.say,PX+80,PY+PH-48,40,C.ink,103,1);pageNo(lw,PX,PY,PW,PH)}
+        X.restore();}
+      else{ // blank 17th page: a new house begins in dashed crayon
+        ctext('17',PX+PW-70,PY+62,34,C.gold,9,1,'left',HAND);
+        const dp=seg(blankT,.2,1.6);
+        const bx=860,bw=200,gy=PY+PH-80,y0=gy-150;
+        dash([[bx,gy],[bx,y0],[bx+bw/2,y0-70],[bx+bw,y0],[bx+bw,gy],[bx,gy]],dp);
+      }
+    }
+    // page counter (small, top-left of book)
+    X.restore();
+    const shown=T<start?1:Math.min(16,idx+1+(ph_>.5?1:0));
+    if(T>start-.2&&T<start+per*15+1.3){X.save();X.globalAlpha=.85;ctext(`${shown} / 16`,PX+20,PY-28,30,C.ink2,5,1,'left',ROUND);X.restore()}
+  }
+  // Scene 3 (9.0–12.6): message written by the child's hand on the blank 17th page
+  if(t>=10.0&&t<13.3){
+    const a=seg(t,10.0,10.3)*(1-seg(t,12.8,13.3));
+    X.save();X.globalAlpha=a;
+    ctext('みらいは、16とおりより',960,PY+200,64,C.ink,201,seg(t,10.1,11.2),'center');
+    ctext('おおかった。',960,PY+290,64,C.ink,202,seg(t,11.1,11.8),'center');
+    X.restore();
+  }
+  // Scene 4 (12.6–16.2): the book closes; title on the cover
+  if(t>=12.8&&t<19){
+    const u=eo(seg(t,12.8,13.6));
+    X.save();X.globalAlpha=u;
+    // cover
+    const CW=1120,CH=660,CX=(1920-CW)/2,CY=150-20*(1-u);
+    X.save();X.shadowColor='rgba(60,40,10,.25)';X.shadowBlur=30;X.shadowOffsetY=10;X.fillStyle='#fffaf0';X.fillRect(CX,CY,CW,CH);X.restore();
+    // cover border in two colours (kazu / yuu) + gold dashed third line
+    cline([[CX+30,CY+30],[CX+CW-30,CY+30]],C.kazu,7,301,seg(t,13.0,13.6));
+    cline([[CX+CW-30,CY+CH-30],[CX+30,CY+CH-30]],C.yuu,7,302,seg(t,13.0,13.6));
+    // little 4x4 of tiny crayon houses = the 16 worlds
+    for(let i=0;i<16;i++){const gx=CX+CW/2-210+(i%4)*110,gy=CY+90+Math.floor(i/4)*64;const tp=seg(t,13.1+i*.04,13.6+i*.04);
+      if(tp<=0)continue;const w=W16[i];
+      if(w.roof==='none'){cline([[gx,gy+30],[gx+46,gy+30]],'#6c8f3e',4,400+i,tp);cline(circlePts(gx+24,gy+20,5,6),'#f2c230',4,420+i,tp);continue}
+      hatch([[gx,gy+30],[gx,gy+8],[gx+46,gy+8],[gx+46,gy+30]],w.wall==='#ffffff'?'#e6e9ee':w.wall,440+i,tp,.8,6);
+      cline([[gx,gy+30],[gx,gy+8],[gx+46,gy+8],[gx+46,gy+30],[gx,gy+30]],C.ink,3,460+i,tp);
+      if(w.roof==='gable')cline([[gx-4,gy+8],[gx+23,gy-8],[gx+50,gy+8]],w.roofc,4,480+i,tp);
+      if(w.roof==='shed')cline([[gx-3,gy+4],[gx+49,gy+10]],w.roofc,4,480+i,tp);
+      if(w.roof==='flat')cline([[gx-2,gy+6],[gx+48,gy+6]],w.roofc,5,480+i,tp);
+    }
+    // the 17th: dashed gold outline, slightly apart
+    dashSmall(CX+CW/2+250,CY+90+3*64,seg(t,13.9,14.5));
+    X.restore();
+    // title (clean type)
+    const ta=seg(t,14.2,14.9);
+    X.save();X.globalAlpha=ta;X.fillStyle=C.ink;X.textAlign='center';X.font=`700 92px ${ROUND}`;X.fillText('16軒目の、わが家',960,CY+CH-130+ (1-ta)*10);
+    X.font=`500 32px ${BODY}`;X.fillStyle=C.ink2;X.fillText('正解の家ではなく、大切にしたいことに出会う家づくり',960,CY+CH-62);
+    X.restore();
+  }
+  // Scene 5 (16.4–19): disclaimer
+  if(t>=16.4){
+    const a=seg(t,16.4,16.9);X.save();X.globalAlpha=a;
+    X.fillStyle='rgba(255,250,240,.92)';X.fillRect(0,860,1920,220);
+    X.fillStyle=C.ink2;X.textAlign='center';X.font=`500 26px ${BODY}`;
+    X.fillText('本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。',960,935);
+    X.fillText('実際の家づくりでは、地域・金融機関・住宅会社によって異なります。登場する住宅会社・人物・団体はすべて架空です。',960,980);
+    X.restore();
+  }
+}
+function dash(pts,p){ // gold dashed crayon outline, drawn progressively
+  X.save();X.setLineDash([26,22]);X.lineDashOffset=0;X.strokeStyle=C.gold;X.lineWidth=9;X.lineCap='round';X.globalAlpha=.95;
+  let L=0;for(let i=0;i<pts.length-1;i++)L+=Math.hypot(pts[i+1][0]-pts[i][0],pts[i+1][1]-pts[i][1]);
+  let tgt=L*p,acc=0;X.beginPath();X.moveTo(pts[0][0],pts[0][1]);
+  for(let i=0;i<pts.length-1;i++){const d=Math.hypot(pts[i+1][0]-pts[i][0],pts[i+1][1]-pts[i][1]);
+    if(acc+d<=tgt){X.lineTo(pts[i+1][0],pts[i+1][1])}else{const f=(tgt-acc)/d;X.lineTo(pts[i][0]+(pts[i+1][0]-pts[i][0])*f,pts[i][1]+(pts[i+1][1]-pts[i][1])*f);break}
+    acc+=d}
+  X.stroke();X.restore();
+}
+function dashSmall(gx,gy,p){if(p<=0)return;dash([[gx,gy+30],[gx,gy+8],[gx+23,gy-8],[gx+46,gy+8],[gx+46,gy+30],[gx,gy+30]],p)}
+// ---------- player
+const q=new URLSearchParams(location.search);let fixed=q.has('t')?parseFloat(q.get('t')):null;
+let playing=fixed===null,t0=performance.now(),tt=fixed??0;
+const sc=document.getElementById('sc'),tl=document.getElementById('tl'),pp=document.getElementById('pp');
+function draw(){render(tt);sc.value=tt;tl.textContent=tt.toFixed(1)+'s'}
+function loop(now){if(playing){tt=((now-t0)/1000)%DUR}draw();requestAnimationFrame(loop)}
+pp.onclick=()=>{playing=!playing;pp.textContent=playing?'一時停止':'再生';t0=performance.now()-tt*1000};
+sc.oninput=()=>{playing=false;pp.textContent='再生';tt=parseFloat(sc.value);draw()};
+if(!playing)pp.textContent='再生';
+window.render=render;window.DUR=DUR;
+(document.fonts?document.fonts.ready:Promise.resolve()).then(()=>{window.READY=true;requestAnimationFrame(loop)});
+</script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>P3-a 右に縦長のスマホ（タイムライン）</title><link rel="stylesheet" href="../_shared/common.css">
+<style>
+.lot{position:absolute;left:0;top:70px;width:1300px;height:1010px;background:linear-gradient(#DDEFF8,#F4FAFD 44%,var(--ground) 44.1%)}
+.lot .svgw{position:absolute;left:140px;top:150px;width:1000px;height:740px}
+.tl{height:100%;display:flex;flex-direction:column}
+.tl .tabs{display:flex;padding:50px 16px 0;border-bottom:1px solid var(--line)}
+.tl .tabs div{flex:1;text-align:center;padding:12px 0;font-size:18px;color:var(--ink2)}
+.tl .tabs div.on{color:var(--ink);font-weight:700;box-shadow:inset 0 -3px 0 var(--ink)}
+.post{padding:16px 18px;border-bottom:1px solid var(--line);font-size:18px;line-height:1.55}
+.post .u{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--ink2);margin-bottom:6px}
+.post .u i{width:30px;height:30px;border-radius:50%;display:inline-block}
+.post .img{height:120px;border-radius:12px;margin-top:8px;background:linear-gradient(135deg,#E9DCC7,#F7F1E6)}
+.post .tag{color:var(--yuuT);font-size:15px}
+.chips{position:absolute;left:60px;bottom:60px;display:flex;gap:12px}
+</style></head><body><div id="stage"></div>
+<script src="../../../../app/engine.js"></script><script src="../../../../app/iso.js"></script><script src="../_shared/parts.js"></script>
+<script>
+const posts = [
+  ['#C9A27A', 'ゆる北欧の家', '南の大きな窓と吹き抜け、やっぱり正解だった。光が全然ちがう。', 1, '#吹き抜け #南の大開口'],
+  ['#9CC9E6', 'こつこつ家計', '外構は入居後に少しずつ。最初の1年は砂利でも案外いける。', 0, '#外構 #後回し'],
+  ['#E8C15A', 'ふたりの家づくり記録', '新居の初めての冬。南の大きな窓、2月の朝は足元がひんやり。窓だけでも、性能を上げておけばよかったかな。', 0, '#家づくり記録 #南の大開口'],
+  ['#B5AEA3', '現場監督のつぶやき', 'テレビの壁掛けは、壁を閉じる前に言ってもらえれば下地を入れられます。', 0, '#家づくり'],
+];
+document.getElementById('stage').innerHTML = UI.progress(2) + `
+<div class="lot"><div class="abs" style="left:40px;top:26px"><span class="chip">44日目</span>　<span class="chip soft">プランの提案を待っているあいだ</span></div>
+  <div class="svgw">${UI.myLot(0, { ghost: { w: 64, d: 52, h: 46 } })}</div>
+  <div class="chips"><div class="btn">スマホを置く</div><div class="btn ghost">ゆうに見せる</div></div></div>
+<div class="phone" style="left:1390px;top:110px"><div class="notch"></div><div class="scr"><div class="tl">
+  <div class="tabs"><div class="on">タイムライン</div><div>相談</div><div>メッセージ</div></div>
+  ${posts.map(p => `<div class="post"><div class="u"><i style="background:${p[0]}"></i>${p[1]}</div>${p[2]}${p[3] ? '<div class="img"></div>' : ''}<div class="tag">${p[4]}</div></div>`).join('')}
+</div></div></div>
+${UI.cast(['yuu'], { left: 1180, bubble: 'この投稿、わかるかも。', bubbleLeft: -170 })}`;
+</script></body></html>

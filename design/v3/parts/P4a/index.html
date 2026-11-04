@@ -1,0 +1,78 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>P4-a コーディネート v3</title>
+<link rel="stylesheet" href="../_shared/v3.css">
+<script src="../../../../app/engine.js"></script><script src="../../../../app/iso.js"></script>
+<style>
+.hero > svg{left:120px;top:70px;width:860px;height:620px}
+.matlab{position:absolute;left:26px;top:84px;display:flex;gap:10px;flex-wrap:wrap;max-width:700px}
+.matlab span{font-size:16px;background:rgba(255,250,240,.94);border:1.5px solid rgba(30,43,54,.25);border-radius:999px;padding:4px 14px}
+.panel{position:absolute;left:1158px;top:104px;width:732px;height:900px;background:#fff;border:1.5px solid rgba(30,43,54,.2);border-radius:18px;box-shadow:0 10px 30px rgba(30,43,54,.10);padding:22px 26px;display:flex;flex-direction:column;gap:16px}
+.panel h2{font-size:22px;display:flex;align-items:baseline;gap:12px}
+.panel h2 small{font-size:15px;font-weight:400;color:var(--ink2)}
+.opts3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.o{border:1.5px solid rgba(30,43,54,.22);border-radius:12px;padding:10px 12px;background:var(--paper);cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:6px;font:16px var(--f)}
+.o .sw{height:44px;border-radius:6px;border:1px solid rgba(30,43,54,.2)}
+.o b{font-size:16px;line-height:1.35}
+.o em{font-style:normal;font-size:15px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.o[aria-pressed="true"]{border:3px solid var(--ink);background:#fff;padding:8.5px 10.5px}
+.pal{display:flex;gap:10px;align-items:center;font-size:15px;color:var(--ink2)}
+.pal button{width:44px;height:44px;border-radius:50%;border:2px solid rgba(30,43,54,.25);cursor:pointer}
+.pal button[aria-pressed="true"]{border:3.5px solid var(--ink);box-shadow:0 0 0 3px #fff inset}
+.sum{margin-top:auto;border-top:2px solid var(--ink);padding-top:12px;display:flex;align-items:center;gap:14px}
+.sum .t{font-size:18px}
+.sum .t b{font-family:var(--fr);font-weight:900;font-size:34px;font-variant-numeric:tabular-nums}
+.sum .acts{margin-left:auto;display:flex;gap:10px}
+.caster{left:44px;bottom:40px}
+.bub{background:#fff;border:1.5px solid var(--ink);border-radius:16px;padding:10px 16px;font-size:20px;line-height:1.5;margin-bottom:110px;max-width:470px;box-shadow:0 6px 18px rgba(30,43,54,.12)}
+.hero{height:960px}
+</style></head>
+<body><div id="stage"><div id="view"></div></div>
+<script src="../../../v2/layout/common.js"></script>
+<script src="../_shared/v3.js"></script>
+<script>
+// 価格は仮置き（engine.js に「仕上げ」の単価表として追加予定）。増額だけを出し、月々は出さない
+const WALL = [
+  { id: 'std', label: '窯業系サイディング（標準）', v: 0, colors: [['白', '#F2EFE8'], ['グレージュ', '#CFC5B5'], ['チャコール', '#55595E']] },
+  { id: 'galva', label: 'ガルバリウム鋼板', v: 48, colors: [['シルバー', '#B9BEC3'], ['ブラック', '#2E3236'], ['ネイビー', '#34445A']] },
+  { id: 'nuri', label: '塗り壁', v: 62, colors: [['白', '#F6F3EC'], ['生成り', '#EADFC9'], ['グレー', '#A9A8A3']] },
+];
+const FLOOR = [{ id: 'std', label: 'シート貼りフローリング（標準）', v: 0, sw: '#D9B98E' }, { id: 'oak', label: 'オークの挽き板', v: 42, sw: '#C49A66' }, { id: 'pine', label: '無垢のパイン', v: 28, sw: '#E2C28E' }];
+const INNER = [{ id: 'vinyl', label: 'ビニールクロス（標準）', v: 0, sw: '#F7F6F2' }, { id: 'eco', label: '自然素材クロス', v: 18, sw: '#F1ECE1' }, { id: 'nuri', label: '塗り壁', v: 45, sw: '#ECE6DA' }];
+const st = { wall: V3.Q.get('wall') || 'galva', color: +(V3.Q.get('color') || 1), floor: V3.Q.get('floor') || 'oak', inner: V3.Q.get('inner') || 'vinyl' };
+const ME = V3.ME(), IC = V3.STAFF.IC;
+const PRIOR = 12; // それまでの増工（ショールームでの変更など。本番は台帳から）
+const LINE = { std: 'サイディングは、いちばん扱いやすい標準です。', galva: 'ガルバは、箱型の屋根によく合います。', nuri: '塗り壁は、手の跡が残る、やわらかい表情になります。' };
+const FLINE = { std: '', oak: '床をオークの挽き板にすると、+42万円です。足ざわりが、ずいぶん違いますよ。', pine: '無垢のパインは、+28万円です。やわらかくて、傷も味になります。' };
+function draw() {
+  const w = WALL.find(x => x.id === st.wall), col = w.colors[st.color] || w.colors[0];
+  const f = FLOOR.find(x => x.id === st.floor), n = INNER.find(x => x.id === st.inner);
+  const add = w.v + f.v + n.v;
+  const I = ISO, P = I.P;
+  let s = I.poly([P(-20, -16), P(96, -16), P(96, 92), P(-20, 92)], '#F3E7CF', '#9BD27A', 2.4);
+  s += I.house({ x: 0, y: 0, w: 52, d: 44, h: 46, roof: 'flat', fin: { wall: col[1], roof: st.wall === 'galva' ? col[1] : '#4A4F57' }, stage: 4 });
+  if (st.wall === 'galva') for (let k = 1; k < 13; k++) { const a = P(k * 4, 44, 3), b = P(k * 4, 44, 46); s += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="rgba(30,43,54,.18)" stroke-width="1"/>`; }
+  [[-12, 80, 1.1], [86, -8, .9]].forEach(([x, y, k]) => { const a = P(x, y, 0), b = P(x, y, 12 * k); s += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#7A5A3A" stroke-width="2.4"/><circle cx="${b[0]}" cy="${b[1] - 7 * k}" r="${11 * k}" fill="#7DBF62" stroke="#1E2B36" stroke-width="1.2"/>`; });
+  const minX = P(-20, 92)[0] - 10, maxX = P(96, -16)[0] + 10, minY = P(-20, -16)[1] - 90, maxY = P(96, 92)[1] + 10;
+  const opt = (arr, key) => `<div class="opts3">${arr.map(x => `<button type="button" class="o" data-k="${key}" data-v="${x.id}" aria-pressed="${st[key] === x.id}">${x.sw ? `<span class="sw" style="background:${x.sw}"></span>` : `<span class="sw" style="background:${x.colors[key === 'wall' && st.wall === x.id ? st.color : 0][1]}"></span>`}<b>${x.label}</b><em>${x.v ? '+' + x.v + '万円' : '標準'}</em></button>`).join('')}</div>`;
+  document.getElementById('view').innerHTML = `
+  ${V3.topbar(6, { company: 'C', contract: true, amount: ME.quote.real, add: PRIOR + add, loan: ME.principal })}
+  <div class="hero">
+    <div class="lab"><span class="no">07</span>あなたの家</div>
+    <div class="ph">コーディネート　Cデザイン<br><span style="font-size:15px">外壁の色は、家の絵にそのまま映ります</span></div>
+    <svg viewBox="${minX} ${minY} ${maxX - minX} ${maxY - minY}">${s}</svg>
+    <div class="matlab"><span>外壁：${w.label.replace('（標準）', '')}・${col[0]}</span><span>床：${f.label.replace('（標準）', '')}</span><span>内壁：${n.label.replace('（標準）', '')}</span></div>
+  </div>
+  <div class="panel">
+    <h2>外壁<small>素材と色を選ぶ</small></h2>${opt(WALL, 'wall')}
+    <div class="pal" role="group" aria-label="外壁の色">色：${w.colors.map((c, i) => `<button type="button" data-c="${i}" aria-pressed="${st.color === i}" style="background:${c[1]}" title="${c[0]}" aria-label="${c[0]}"></button>`).join('')}<span>${col[0]}</span></div>
+    <h2>床</h2>${opt(FLOOR, 'floor')}
+    <h2>内壁<small>色は標準の白系</small></h2>${opt(INNER, 'inner')}
+    <div class="sum"><div class="t">このページの増額　<b>+${add}</b>万円</div><div class="acts"><button class="btn ghost" type="button">標準に戻す</button><button class="btn" type="button">この内容で決める</button></div></div>
+  </div>
+  <div class="caster"><div class="bub">${FLINE[st.floor] || LINE[st.wall]}</div><div class="cst">${V3.avatar('IC', 150, 'talk')}<div class="nm">${V3.coTag('C', 22)}Cデザイン　${IC.role}・${IC.name}</div></div></div>
+  <div class="ctrl"><button onclick="location.search=''">初期状態</button></div>`;
+  document.querySelectorAll('.o').forEach(b => b.onclick = () => { st[b.dataset.k] = b.dataset.v; if (b.dataset.k === 'wall') st.color = 0; draw(); });
+  document.querySelectorAll('.pal button').forEach(b => b.onclick = () => { st.color = +b.dataset.c; draw(); });
+}
+draw();
+</script></body></html>

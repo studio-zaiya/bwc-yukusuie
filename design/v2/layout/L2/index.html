@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>L2 分譲地の俯瞰＋大きなチャット</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="../../../../app/engine.js"></script><script src="../../../../app/iso.js"></script><script src="../common.js"></script>
+<style id="css"></style>
+<style>
+.sky{position:absolute;inset:0;background:linear-gradient(#CFEBFA,#EEF8FD 40%,#F3E7CF 40.1%)}
+.top{position:absolute;left:32px;right:32px;top:18px;display:flex;align-items:center;gap:24px;background:rgba(255,250,240,.9);border-radius:16px;padding:12px 22px 10px;border:1.5px solid rgba(30,43,54,.12)}
+.logo{font-family:var(--fr);font-weight:900;font-size:28px;white-space:nowrap}
+.top .pbar{flex:1}
+.est{position:absolute;left:-10px;top:120px;width:1250px;height:920px}
+.clks{position:absolute;left:40px;top:120px}
+.chatW{position:absolute;right:36px;top:120px;width:700px;height:640px}
+.chatW .chat{height:100%}
+.legend{position:absolute;left:40px;bottom:24px;font-size:16px;color:var(--ink2)}
+.caster{right:36px;bottom:24px;flex-direction:row}
+</style></head>
+<body><div id="stage"><div id="view"></div></div>
+<script>
+document.getElementById('css').textContent = L.CSS;
+L.mount(p => {
+  const list = L.worldsAt(p), sc = L.scene(p);
+  document.getElementById('view').innerHTML = `
+  <div class="sky"></div>
+  <div class="est">${L.estate2(list, { notes: [1, 4, 6, 10, 13, 15], style: 'width:100%;height:100%' })}</div>
+  <div class="top"><div class="logo">ゆくすいえ</div>${L.progressBar(p)}</div>
+  <div class="clks">${L.clocks(p)}</div>
+  <div class="chatW">${L.chatHTML(sc)}</div>
+  ${L.castOf(sc)}
+  <div class="legend">太い枠：あなたの家（07）　白い模型：計画中の家</div>`;
+});
+</script></body></html>

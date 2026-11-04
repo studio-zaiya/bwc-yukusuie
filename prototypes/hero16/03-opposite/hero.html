@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>16軒同時建築ショー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@800&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;background:#1a0b2e;overflow:hidden}
+  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  canvas{width:1920px;height:1080px;transform-origin:center center;box-shadow:0 0 0 6px #ffe600}
+  #ui{position:fixed;left:12px;bottom:10px;font:12px sans-serif;color:#fff;opacity:.7}
+  #ui button{font:12px sans-serif}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="1920" height="1080"></canvas></div>
+<div id="ui"><button id="pp">一時停止</button> <span id="tc"></span></div>
+<script>
+// 描画は時刻 t（秒）の純粋な関数。乱数はシード付き。
+const W=1920,H=1080,DUR=16;
+const cv=document.getElementById('c'),g=cv.getContext('2d');
+const FONT_POP='"Dela Gothic One","M PLUS Rounded 1c","Hiragino Sans",sans-serif';
+const FONT_ROUND='"M PLUS Rounded 1c","Hiragino Sans",sans-serif';
+function fit(){const s=Math.min(innerWidth/W,innerHeight/H);cv.style.transform=`scale(${s})`;}
+addEventListener('resize',fit);fit();
+
+// ---- 便利関数 ----
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const lerp=(a,b,u)=>a+(b-a)*u;
+const prog=(t,a,b)=>clamp((t-a)/(b-a));
+const easeOut=u=>1-Math.pow(1-u,3);
+const easeInOut=u=>u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2;
+const backOut=u=>{const c=2.2;return 1+(c+1)*Math.pow(u-1,3)+c*Math.pow(u-1,2);};
+const elastic=u=>u===0?0:u===1?1:Math.pow(2,-10*u)*Math.sin((u*10-.75)*2*Math.PI/3)+1;
+function hash(n){let x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x);}
+function hexMix(a,b,u){const pa=parseInt(a.slice(1),16),pb=parseInt(b.slice(1),16);
+  const r=Math.round(lerp(pa>>16,pb>>16,u)),gg=Math.round(lerp(pa>>8&255,pb>>8&255,u)),bb=Math.round(lerp(pa&255,pb&255,u));
+  return '#'+[r,gg,bb].map(v=>v.toString(16).padStart(2,'0')).join('');}
+
+// ---- 16軒の設定（仕上げ・屋根・色がバラバラ）----
+const FIN=[
+ {name:'レンガ調',wall:'#e2603b',roof:'#3b2a5c',pat:'brick'},
+ {name:'木目',wall:'#d99a4e',roof:'#2e6b4a',pat:'wood'},
+ {name:'白い塗り壁',wall:'#fff6e8',roof:'#ff4f8b',pat:'plain'},
+ {name:'ガルバリウム',wall:'#6fb7ff',roof:'#20335c',pat:'rib'},
+ {name:'ミント',wall:'#6ee7c8',roof:'#ff8a00',pat:'plain'},
+ {name:'レモン',wall:'#ffe14d',roof:'#e23b6d',pat:'plain'},
+ {name:'焼杉',wall:'#3a3346',roof:'#ffcc00',pat:'wood'},
+ {name:'ピンク',wall:'#ff9ac8',roof:'#5b3fd6',pat:'plain'},
+];
+const LOTS=[];
+for(let i=0;i<16;i++){
+  const f=FIN[Math.floor(hash(i+3)*FIN.length)];
+  LOTS.push({i,gx:i%4,gy:Math.floor(i/4),f,
+    form:hash(i+40)<.25?'hira':(hash(i+41)<.5?'box':'gable'),
+    h:hash(i+60)<.25?1:2,
+    fate:i===13?'empty':(i===9?'vacant':'ok'),
+    delay:(Math.abs((i%4)-1.5)+Math.abs(Math.floor(i/4)-1.5))*0.18+hash(i)*0.15});
+}
+const YOU=6; // あなたの世界
+
+// ---- アイソメ投影 ----
+let CAM={x:0,y:0,s:1};
+function P(x,y,z){ // 盤面の単位 → 画面
+  const k=58*CAM.s;
+  return [W/2+CAM.x+(x-y)*0.866*k, 470+CAM.y+(x+y)*0.5*k - z*k];
+}
+function poly(pts,fill,stroke){g.beginPath();pts.forEach((p,j)=>j?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();
+  if(fill){g.fillStyle=fill;g.fill();} if(stroke){g.strokeStyle=stroke;g.lineWidth=3;g.lineJoin='round';g.stroke();}}
+function shade(hex,u){return u>0?hexMix(hex,'#ffffff',u):hexMix(hex,'#1b1030',-u);}
+function box(x,y,z,w,d,h,col,stroke='#1a0b2e'){
+  // 左面・右面・上面
+  poly([P(x,y+d,z),P(x+w,y+d,z),P(x+w,y+d,z+h),P(x,y+d,z+h)],shade(col,-.18),stroke);
+  poly([P(x+w,y,z),P(x+w,y+d,z),P(x+w,y+d,z+h),P(x+w,y,z+h)],shade(col,-.38),stroke);
+  poly([P(x,y,z+h),P(x+w,y,z+h),P(x+w,y+d,z+h),P(x,y+d,z+h)],shade(col,.25),stroke);
+}
+function gable(x,y,z,w,d,rh,col){
+  const s='#1a0b2e';
+  poly([P(x+w,y,z),P(x+w,y+d,z),P(x+w,y+d/2,z+rh)],shade(col,-.35),s); // 妻面
+  poly([P(x,y+d/2,z+rh),P(x+w,y+d/2,z+rh),P(x+w,y+d,z),P(x,y+d,z)],shade(col,0),s);
+  poly([P(x,y,z),P(x+w,y,z),P(x+w,y+d/2,z+rh),P(x,y+d/2,z+rh)],shade(col,.3),s);
+}
+
+function drawHouse(L,t,localT,colorAmt,litAmt,highlight){
+  const ox=L.gx*3.2, oy=L.gy*3.2;
+  // 敷地
+  const tileU=easeOut(prog(localT,0,.35));
+  const tz=(1-tileU)*3;
+  g.globalAlpha=tileU;
+  box(ox,oy,-0.25+tz,2.6,2.6,0.25, highlight?'#ffe600':'#9be15d');
+  g.globalAlpha=1;
+  if(tileU<1)return;
+  if(L.fate==='empty'){
+    // 更地＋看板
+    const u=prog(localT,.5,.9);
+    if(u>0){box(ox+1.1,oy+1.1,0,0.15,0.15,1.1*backOut(u),'#ffffff');
+      const p=P(ox+1.18,oy+1.18,1.25*backOut(u));
+      g.save();g.translate(p[0],p[1]);g.rotate(-.12);
+      g.fillStyle='#ff2d55';g.fillRect(-60,-30,120,46);g.fillStyle='#fff';g.font=`26px ${FONT_POP}`;g.textAlign='center';g.fillText('更地!?',0,2);g.restore();}
+    return;
+  }
+  const base='#bfbfcf';
+  const fu=backOut(prog(localT,.35,.6));
+  if(fu<=0)return;
+  box(ox+.4,oy+.4,0,1.8,1.8,0.18*clamp(fu,0,1.2),base);
+  const wu=prog(localT,.55,1.05);
+  if(wu<=0)return;
+  const wallH=(L.form==='hira'?0.9:1.7)*backOut(wu);
+  const col=colorAmt>0?hexMix('#f4f1ea',L.f.wall,colorAmt):'#f4f1ea';
+  const roofCol=colorAmt>0?hexMix('#e9e6df',L.f.roof,colorAmt):'#e9e6df';
+  const wd=L.form==='hira'?2.0:1.8;
+  box(ox+.4,oy+.4,0.18,wd,1.8,wallH,col);
+  // 窓（灯り）
+  const winC=litAmt>0&&L.fate!=='vacant'?hexMix('#5ad1ff','#ffd24a',litAmt):'#5ad1ff';
+  if(wu>.6){
+    for(let k=0;k<2;k++){
+      const a=P(ox+.4+wd,oy+.7+k*.75,0.5),b=P(ox+.4+wd,oy+1.1+k*.75,0.5),c=P(ox+.4+wd,oy+1.1+k*.75,0.95),d=P(ox+.4+wd,oy+.7+k*.75,0.95);
+      poly([a,b,c,d],winC,'#1a0b2e');
+      if(L.form!=='hira'){
+        const a2=P(ox+.4+wd,oy+.7+k*.75,1.25),b2=P(ox+.4+wd,oy+1.1+k*.75,1.25),c2=P(ox+.4+wd,oy+1.1+k*.75,1.65),d2=P(ox+.4+wd,oy+.7+k*.75,1.65);
+        poly([a2,b2,c2,d2],winC,'#1a0b2e');
+      }
+    }
+    // 正面の大きな窓
+    const e=[P(ox+.7,oy+2.2,.4),P(ox+1.6,oy+2.2,.4),P(ox+1.6,oy+2.2,1.0),P(ox+.7,oy+2.2,1.0)];
+    poly(e,winC,'#1a0b2e');
+  }
+  // 屋根（2〜3コマ遅れて）
+  const ru=backOut(prog(localT,.95,1.25));
+  if(ru>0){
+    if(L.form==='gable') gable(ox+.3,oy+.3,0.18+wallH,wd+.2,2.0,0.9*ru,roofCol);
+    else box(ox+.32,oy+.32,0.18+wallH,wd+.16,1.96,0.16*ru,roofCol);
+  }
+  // 窓辺の光
+  if(litAmt>.3&&L.fate!=='vacant'){
+    const p=P(ox+1.3,oy+1.3,1.2);const r=g.createRadialGradient(p[0],p[1],5,p[0],p[1],120);
+    r.addColorStop(0,`rgba(255,210,80,${.35*litAmt})`);r.addColorStop(1,'rgba(255,210,80,0)');g.fillStyle=r;g.beginPath();g.arc(p[0],p[1],120,0,7);g.fill();
+  }
+  if(L.fate==='vacant'&&localT>1.3){
+    const p=P(ox+1.3,oy+1.3,2.3);g.font=`30px ${FONT_POP}`;g.fillStyle='#fff';g.textAlign='center';g.fillText('…空き家？',p[0],p[1]);
+  }
+}
+
+// ---- 背景：放射ストライプ ----
+function sunburst(t,c1,c2,cx=W/2,cy=H/2,n=24){
+  g.save();g.fillStyle=c2;g.fillRect(-100,-100,W+200,H+200);g.translate(cx,cy);g.rotate(t*.25);
+  for(let i=0;i<n;i+=2){g.beginPath();g.moveTo(0,0);g.arc(0,0,2400,i*2*Math.PI/n,(i+1)*2*Math.PI/n);g.closePath();g.fillStyle=c1;g.fill();}
+  g.restore();
+}
+// 集中線
+function speedLines(t,cx,cy,alpha=1,col='#ffffff'){
+  g.save();g.globalAlpha=alpha;g.strokeStyle=col;
+  for(let i=0;i<90;i++){
+    const a=hash(i*7+Math.floor(t*12))*Math.PI*2;
+    const r0=320+hash(i*3+Math.floor(t*12))*260;
+    g.lineWidth=2+hash(i)*7;
+    g.beginPath();g.moveTo(cx+Math.cos(a)*r0,cy+Math.sin(a)*r0);g.lineTo(cx+Math.cos(a)*2400,cy+Math.sin(a)*2400);g.stroke();
+  }
+  g.restore();
+}
+// 縁取りテロップ
+function telop(text,x,y,size,fill,stroke='#1a0b2e',rot=0,scale=1,shadow='#ff2d55'){
+  g.save();g.translate(x,y);g.rotate(rot);g.scale(scale,scale);
+  g.font=`${size}px ${FONT_POP}`;g.textAlign='center';g.textBaseline='middle';
+  g.lineJoin='round';
+  g.lineWidth=size*.34;g.strokeStyle=shadow;g.strokeText(text,size*.06,size*.08);
+  g.lineWidth=size*.22;g.strokeStyle=stroke;g.strokeText(text,0,0);
+  g.lineWidth=size*.1;g.strokeStyle='#ffffff';g.strokeText(text,0,0);
+  g.fillStyle=fill;g.fillText(text,0,0);
+  g.restore();
+}
+function pill(x,y,w,h,col,txt,tcol='#1a0b2e',size=34){
+  g.save();g.fillStyle=col;g.strokeStyle='#1a0b2e';g.lineWidth=5;
+  g.beginPath();g.roundRect(x,y,w,h,h/2);g.fill();g.stroke();
+  g.fillStyle=tcol;g.font=`${size}px ${FONT_POP}`;g.textAlign='center';g.textBaseline='middle';g.fillText(txt,x+w/2,y+h/2+2);g.restore();
+}
+function confetti(t,t0,n=160){
+  const u=t-t0;if(u<0)return;
+  const cols=['#ff2d55','#ffe600','#00d1ff','#7cff4f','#ff8a00','#b14dff','#ffffff'];
+  for(let i=0;i<n;i++){
+    const x=W*hash(i)+Math.sin(u*2+i)*40, y=-60+u*(260+hash(i+9)*420)-((i%5)*90);
+    if(y>H+40)continue;
+    g.save();g.translate(x,y);g.rotate(u*4*hash(i+2)+i);g.fillStyle=cols[i%cols.length];g.fillRect(-9,-5,18,10);g.restore();
+  }
+}
+// ルーレット式カウンター
+function rollNumber(val,x,y,size,col){
+  const s=Math.round(val).toLocaleString('ja-JP');
+  telop(s,x,y,size,col,'#1a0b2e',0,1,'#00d1ff');
+}
+
+// ---- 本体 ----
+function render(t){
+  t=((t%DUR)+DUR)%DUR;
+  g.setTransform(1,0,0,1,0,0);
+  // 画面揺れ（パンチ）
+  let shake=0;
+  [2.0,6.0,9.0,11.2,12.4].forEach(k=>{const u=t-k;if(u>0&&u<.35)shake+=(1-u/.35)*14;});
+  const sx=(hash(Math.floor(t*60))-.5)*shake, sy=(hash(Math.floor(t*60)+5)-.5)*shake;
+  g.translate(sx,sy);
+
+  // --- 背景 ---
+  const night=easeInOut(prog(t,12.6,13.8));
+  if(t<2.0){ sunburst(t,'#ffe600','#ff8a00'); }
+  else if(t<9){ sunburst(t*.6,'#7ee8ff','#a6f3ff'); }
+  else if(t<12.6){ sunburst(t,'#ff5fa2','#ff8fc0'); }
+  else { const c1=hexMix('#7ee8ff','#2a1b5c',night),c2=hexMix('#a6f3ff','#3a2470',night); sunburst(t*.3,c1,c2); }
+  // 夜の星
+  if(night>0){for(let i=0;i<80;i++){g.fillStyle=`rgba(255,255,220,${night*(.4+.6*hash(i+1))})`;const x=hash(i*3)*W,y=hash(i*5)*H*.55;g.fillRect(x,y,4,4);}}
+
+  // --- 0〜2秒：つかみ ---
+  if(t<2.2){
+    speedLines(t,W/2,H/2,.9,'#ffffff');
+    const u=elastic(prog(t,.05,.9));
+    telop('家、建てちゃう!?',W/2,H/2-40,170,'#ff2d55','#1a0b2e',-.06,u);
+    const u2=backOut(prog(t,.7,1.2));
+    if(u2>0) pill(W/2-330,H/2+110,660,92,'#00d1ff','共働き夫婦・初めての家づくり','#1a0b2e',40*u2>0?40:0);
+    // ワイプ（右下の夫婦）
+    const u3=backOut(prog(t,1.1,1.5));
+    if(u3>0){g.save();g.translate(W-260,H-220);g.scale(u3,u3);
+      g.fillStyle='#ffe600';g.strokeStyle='#1a0b2e';g.lineWidth=8;g.beginPath();g.roundRect(-180,-130,360,260,30);g.fill();g.stroke();
+      // 2人の顔（ドット風）
+      [[-70,'#ffb38a','#3b2a5c'],[70,'#ffd0a8','#6b3a1f']].forEach(([dx,sk,hair],j)=>{
+        g.fillStyle=hair;g.fillRect(dx-50,-80,100,40);g.fillStyle=sk;g.fillRect(dx-45,-50,90,90);
+        g.fillStyle='#1a0b2e';const blink=(Math.floor(t*3+j)%5===0)?2:10;g.fillRect(dx-25,-20,12,blink);g.fillRect(dx+13,-20,12,blink);
+        g.fillStyle='#ff2d55';g.fillRect(dx-15,15,30,8);
+      });
+      g.font=`30px ${FONT_POP}`;g.fillStyle='#1a0b2e';g.textAlign='center';g.fillText('かず と ゆう',0,105);g.restore();}
+  }
+
+  // --- 2〜13秒：盤面 ---
+  if(t>=2.0){
+    // カメラ：ズームパンチ
+    let s=1, cx=0, cy=0;
+    const zin=easeInOut(prog(t,9.0,9.5)), zout=easeInOut(prog(t,12.0,12.8));
+    const Y=LOTS[YOU]; const tp=[ (Y.gx*3.2+1.3), (Y.gy*3.2+1.3) ];
+    // 盤面全体を少し揺らす
+    s=lerp(1,2.3,zin*(1-zout));
+    const target=[(tp[0]-tp[1])*0.866*58, (tp[0]+tp[1])*0.5*58-60];
+    const base=[0-((6.4-6.4)),-(6.4*58*0.5)+40];
+    cx=lerp(0,-target[0]*s,zin*(1-zout)); cy=lerp(-170,-target[1]*s+30,zin*(1-zout));
+    CAM={x:cx,y:cy,s};
+    // 盤（島）
+    const bu=backOut(prog(t,2.0,2.6));
+    if(bu>0){g.save();
+      box(-0.6,-0.6,-1.1-(1-bu)*6,13.6,13.6,0.85,'#ff8a00');
+      g.restore();}
+    // 家（奥から手前へ描く）
+    const order=[...LOTS].sort((a,b)=>(a.gx+a.gy)-(b.gx+b.gy));
+    const colorAmt=easeOut(prog(t,6.0,7.2));
+    const lit=night;
+    for(const L of order){
+      const localT=(t-2.3-L.delay)/2.4*1.25;
+      drawHouse(L,t,localT,colorAmt,lit,L.i===YOU && t>9 && t<12.2);
+    }
+    // 区画番号
+    if(t>3.5&&zin<.5){
+      for(const L of LOTS){const p=P(L.gx*3.2+2.4,L.gy*3.2+2.6,0);g.font=`22px ${FONT_POP}`;g.fillStyle='#1a0b2e';g.textAlign='center';g.fillText(String(L.i+1).padStart(2,'0'),p[0],p[1]+18);}
+    }
+  }
+
+  // --- 画面固定のUI：上部の番組帯・カウンター ---
+  if(t>=2.0){
+    const u=backOut(prog(t,2.0,2.4));
+    g.save();g.translate(0,-140*(1-u));
+    // 左上：番組ロゴ風
+    g.fillStyle='#ff2d55';g.strokeStyle='#1a0b2e';g.lineWidth=6;g.beginPath();g.roundRect(30,26,520,96,20);g.fill();g.stroke();
+    g.fillStyle='#ffe600';g.font=`48px ${FONT_POP}`;g.textAlign='left';g.textBaseline='middle';g.fillText('16軒 同時建築中',58,78);
+    // 右上：建築中カウンター
+    const built=LOTS.filter(L=>(t-2.3-L.delay)/2.4*1.25>1.2&&L.fate!=='empty').length;
+    pill(W-470,30,440,90,'#7cff4f',`完成 ${built} / 16`,'#1a0b2e',50);
+    g.restore();
+  }
+  // 期限カウントダウン（6〜9秒で暴れる）
+  if(t>=5.6&&t<9.3){
+    const u=elastic(prog(t,5.6,6.2));
+    const days=Math.max(0,Math.round(lerp(60,46,easeOut(prog(t,6.0,8.4)))));
+    const pulse=1+Math.sin(t*18)*.04;
+    g.save();g.translate(330,H-230);g.scale(u*pulse,u*pulse);g.rotate(-.05);
+    g.fillStyle='#1a0b2e';g.beginPath();g.roundRect(-280,-150,560,300,36);g.fill();
+    g.fillStyle='#ffe600';g.beginPath();g.roundRect(-268,-138,536,276,28);g.fill();
+    g.fillStyle='#1a0b2e';g.font=`40px ${FONT_POP}`;g.textAlign='center';g.textBaseline='middle';g.fillText('土地の契約期限まで',0,-88);
+    telop(`あと${days}日`,0,30,128,'#ff2d55','#1a0b2e',0,1,'#00d1ff');
+    g.restore();
+    // 下のニュース帯
+    g.fillStyle='#1a0b2e';g.fillRect(0,H-74,W,74);g.fillStyle='#ffe600';g.fillRect(0,H-74,220,74);
+    g.fillStyle='#1a0b2e';g.font=`36px ${FONT_POP}`;g.textAlign='center';g.fillText('速報',110,H-36);
+    const msg='[世界04] Aハウスと仮契約！　[世界12] 和室を追加 +180万　[世界08] 着工！　[世界14] B工務店に着工金を半額　[世界02] 抽選で第2希望が当選　';
+    g.save();g.beginPath();g.rect(220,H-74,W-220,74);g.clip();
+    g.fillStyle='#fff';g.font=`36px ${FONT_ROUND}`;g.textAlign='left';
+    const off=((t-5.6)*420)%2400;g.fillText(msg+msg,240-off,H-36);g.restore();
+  }
+
+  // --- 9〜12秒：あなたの世界にズーム → 第3の答え ---
+  if(t>=9.0&&t<12.4){
+    speedLines(t,W/2,H/2-40,.35*(1-prog(t,9.6,10.2)),'#ffffff');
+    const u=backOut(prog(t,9.3,9.7));
+    if(u>0){
+      // 左右の2択カード
+      const cards=[['標準の窓で大きく','±0円','#6fb7ff'],['窓を小さくする','±0円','#b9b9c9']];
+      cards.forEach(([a,b,c],j)=>{
+        const x=j?W-430:430, y=330;
+        const dim=prog(t,10.4,10.8);
+        g.save();g.translate(x,y);g.scale(u*(1-dim*.25),u*(1-dim*.25));g.rotate(j?.05:-.05);g.globalAlpha=1-dim*.55;
+        g.fillStyle='#fff';g.strokeStyle='#1a0b2e';g.lineWidth=7;g.beginPath();g.roundRect(-250,-110,500,220,26);g.fill();g.stroke();
+        g.fillStyle=c;g.fillRect(-250,-110,500,22);
+        g.fillStyle='#1a0b2e';g.font=`46px ${FONT_POP}`;g.textAlign='center';g.textBaseline='middle';g.fillText(a,0,-15);
+        g.font=`36px ${FONT_ROUND}`;g.fillText(b,0,55);g.restore();
+        if(dim>.5){const p=[x,y];g.save();g.translate(p[0],p[1]);g.rotate(-.3);g.strokeStyle='#ff2d55';g.lineWidth=14;g.beginPath();g.moveTo(-230,-80);g.lineTo(230,80);g.moveTo(230,-80);g.lineTo(-230,80);g.globalAlpha=(dim-.5)*2;g.stroke();g.restore();}
+      });
+    }
+    // 第3の答え スタンプ
+    const su=elastic(prog(t,10.3,10.9));
+    if(su>0){
+      speedLines(t,W/2,560,.5,'#ffe600');
+      telop('第3の答え!?',W/2,250,150,'#ffe600','#1a0b2e',-.08,su,'#ff2d55');
+      pill(W/2-430,380,860,104,'#ff2d55','借入+60万で、窓をトリプルガラスに','#ffffff',44);
+    }
+    // 見積ルーレット
+    const mu=prog(t,10.9,11.9);
+    if(mu>0){
+      const val=lerp(4070,4130,easeOut(mu))+(mu<1?Math.sin(t*70)*9*(1-mu):0);
+      g.save();g.translate(W/2,H-200);
+      g.fillStyle='#1a0b2e';g.beginPath();g.roundRect(-430,-95,860,190,30);g.fill();
+      g.fillStyle='#fff';g.font=`36px ${FONT_POP}`;g.textAlign='left';g.textBaseline='middle';g.fillText('見積',-390,0);
+      g.restore();
+      rollNumber(val,W/2+60,H-200,120,'#7cff4f');
+      telop('万円',W/2+330,H-190,54,'#ffffff','#1a0b2e',0,1,'#1a0b2e');
+      // 温度計アイコン
+      if(mu>.8){const v=prog(t,11.6,12.2);telop(`冬の朝 ${Math.round(lerp(14,20,v))}℃`,W-330,H-330,64,'#ff8a00','#1a0b2e',.06,backOut(v),'#ffffff');}
+    }
+  }
+
+  // --- 12.6〜16秒：1年後の夜、タイトル ---
+  if(t>=12.8){
+    const u=backOut(prog(t,13.0,13.5));
+    pill(W/2-260,40,520,90,'#ffe600','そして 1年後…','#1a0b2e',48*1);
+    // 各区画の札
+    if(t>13.4){
+      [[2,'+380万 増額…','#ff2d55'],[13,'工務店が…!?','#b14dff'],[YOU,'冬もぽかぽか','#ff8a00'],[14,'2月が寒い…','#00d1ff']].forEach(([i,txt,c],k)=>{
+        const v=backOut(prog(t,13.5+k*.18,13.9+k*.18));if(v<=0)return;
+        const L=LOTS[i];const p=P(L.gx*3.2+1.3,L.gy*3.2+1.3,3.4);
+        g.save();g.translate(p[0],p[1]);g.scale(v,v);g.fillStyle=c;g.strokeStyle='#1a0b2e';g.lineWidth=5;
+        g.font=`30px ${FONT_POP}`;const w=g.measureText(txt).width+40;g.beginPath();g.roundRect(-w/2,-34,w,58,16);g.fill();g.stroke();
+        g.beginPath();g.moveTo(-12,24);g.lineTo(12,24);g.lineTo(0,46);g.closePath();g.fill();g.stroke();
+        g.fillStyle='#fff';g.textAlign='center';g.textBaseline='middle';g.fillText(txt,0,-4);g.restore();
+      });
+    }
+    const tu=elastic(prog(t,14.2,15.0));
+    if(tu>0){
+      telop('16軒目の、わが家',W/2,H-170,140,'#ffe600','#1a0b2e',-.03,tu,'#ff2d55');
+    }
+    confetti(t,14.3);
+  }
+
+  // --- 画面の縁：番組っぽい枠 ---
+  g.setTransform(1,0,0,1,0,0);
+  g.strokeStyle='#ffe600';g.lineWidth=14;g.strokeRect(7,7,W-14,H-14);
+  // 場面の切り替わりで白フラッシュ
+  [2.0,9.0,12.6].forEach(k=>{const u=t-k;if(u>0&&u<.18){g.fillStyle=`rgba(255,255,255,${(1-u/.18)*.85})`;g.fillRect(0,0,W,H);}});
+}
+window.render=render;window.DUR=DUR;
+
+// ---- 再生 ----
+let playing=true,t0=performance.now(),tPause=0;
+const tc=document.getElementById('tc');
+document.getElementById('pp').onclick=e=>{playing=!playing;e.target.textContent=playing?'一時停止':'再生';if(playing)t0=performance.now()-tPause*1000;};
+function loop(now){
+  if(!window.__manual){
+    if(playing)tPause=(now-t0)/1000;
+    render(tPause);tc.textContent=(tPause%DUR).toFixed(2)+' s';
+  }
+  requestAnimationFrame(loop);
+}
+document.fonts&&document.fonts.ready.then(()=>{window.READY=true;});
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

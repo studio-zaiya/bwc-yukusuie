@@ -1,0 +1,42 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>P1-b チャット主体のヒアリング</title><link rel="stylesheet" href="../_shared/common.css">
+<style>
+.lot{position:absolute;left:0;top:70px;width:820px;height:1010px;background:linear-gradient(#DDEFF8,#F4FAFD 44%,var(--ground) 44.1%)}
+.lot .svgw{position:absolute;left:20px;top:230px;width:780px;height:600px}
+.tagw{position:absolute;font-size:19px;background:#fff;border-radius:10px;padding:7px 12px;border:1.5px solid var(--line)}
+.tagw.k{box-shadow:inset 4px 0 0 var(--kazu)}.tagw.y{box-shadow:inset 4px 0 0 var(--yuu)}
+.main{position:absolute;left:820px;top:70px;width:1100px;height:1010px;padding:40px 70px 0}
+.form{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:8px 0 22px}
+.form div{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:10px 14px;font-size:17px}
+.form div b{display:block;font-size:14px;color:var(--ink2);font-weight:400}
+.quick{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.quick span{font-size:19px;padding:8px 16px;border-radius:999px;border:1.5px solid var(--ink);background:#fff}
+</style></head><body><div id="stage"></div>
+<script src="../../../../app/engine.js"></script><script src="../../../../app/iso.js"></script><script src="../_shared/parts.js"></script>
+<script>
+const Y = YKS, H = Y.HOUSEHOLDS.t2, cv = Y.coverageCheck({ floor1Tsubo: 25, carport: true, shed: true });
+document.getElementById('stage').innerHTML = UI.progress(1) + `
+<div class="lot">
+  <div class="abs" style="left:40px;top:28px"><span class="chip">12日目</span>　<span class="chip soft">Aハウス 展示場</span></div>
+  <div class="svgw">${UI.myLot(0, { ghost: { w: 82, d: 62, h: 34 } })}</div>
+  <div class="tagw k" style="left:70px;top:190px">外観はミニマルに</div>
+  <div class="tagw k" style="left:520px;top:220px">1階に寝室と大きなWIC</div>
+  <div class="tagw y" style="left:90px;top:760px">庭は広め、畑とうさぎ</div>
+  <div class="tagw y" style="left:470px;top:800px">木を使ったナチュラル</div>
+  <div class="abs note" style="left:40px;top:930px;width:740px">1階 ${cv.house}㎡ ＋ カーポート・物置 ${cv.extra}㎡ ＝ ${cv.total}㎡　／　建てられる上限 ${cv.limit}㎡</div>
+</div>
+<div class="main">
+  <div class="label">ご来場アンケート（Aハウス）</div>
+  <div class="form"><div><b>ご家族</b>4人</div><div><b>土地</b>分譲地に申込み中</div><div><b>ご予算</b>4,000〜5,000万</div><div><b>入居</b>来年の秋</div></div>
+  <div class="chat" style="height:600px;justify-content:flex-end">
+    <div class="msg"><small>高橋（Aハウス）</small>ではご主人、新しいお家で叶えたいことは？</div>
+    <div class="msg me kz"><small>かず</small>外観をかっこよく。1階に寝室と、大きめのウォークインクローゼット。シューズクロークも広く。</div>
+    <div class="msg"><small>高橋（Aハウス）</small>全部できますよ。奥様は？</div>
+    <div class="msg me yu"><small>ゆう</small>庭は広めがいいです。畑と、うさぎの囲いも。あと、木を使った感じが好きで……</div>
+    <div class="msg"><small>高橋（Aハウス）</small>素敵ですね。それでは来週、参考プランをお持ちします。</div>
+  </div>
+  <div class="input" style="margin-top:22px"><div class="box ph">まだ伝えたいことがあれば…</div><div class="btn">伝える</div></div>
+  <div class="quick"><span>この内容で終える</span><span>もう少し話す</span></div>
+</div>
+${UI.cast(['takahashi'], { left: 1720 })}`;
+</script></body></html>

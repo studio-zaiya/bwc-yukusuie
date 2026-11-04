@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>見積書の16枚</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F4EFE6;--ink:#2A2622}
+html,body{margin:0;height:100%;background:#E9E2D6;overflow:hidden}
+#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+canvas{width:1920px;height:1080px;transform-origin:center;box-shadow:0 10px 40px rgba(0,0,0,.12)}
+#ui{position:fixed;left:12px;bottom:10px;font:12px "Zen Kaku Gothic New",sans-serif;color:#6b6258;display:flex;gap:8px;align-items:center}
+#ui input{width:240px}
+</style></head><body>
+<div id="wrap"><canvas id="c" width="1920" height="1080"></canvas></div>
+<div id="ui"><button id="pp">一時停止</button><input id="sc" type="range" min="0" max="16" step="0.01" value="0"><span id="tt">0.0s</span></div>
+<script>
+// 16の世界のデータ（架空）。金額は万円。
+window.WORLDS = [
+  {id:1,  co:'Aハウス',   path:['A','間取り先行','月末契約','外構あと'], total:4650, base:4270, st:'増額', line:'打ち合わせは19回。14回目のあと、車の中で泣いた。', detail:true},
+  {id:2,  co:'Aハウス',   path:['A','間取り先行','全社比較','外構あと'], total:4380, base:4270, st:'完成', line:'展示場の吹き抜けは、うちにも来た。冬は少し寒い。'},
+  {id:3,  co:'B工務店',   path:['B','全部入り','着工金50%','外構あと'], total:2600, base:2600, st:'中止', line:'上棟の2か月後、職人が来なくなった。', detail:true},
+  {id:4,  co:'B工務店',   path:['B','全部入り','出来高払い','外構あと'], total:2950, base:2600, st:'引継ぎ', line:'別の会社が引き継いで、半年遅れで建った。'},
+  {id:5,  co:'Cデザイン', path:['C','絞り込み','窓を上げる','キッチン'], total:4130, base:3950, st:'完成', line:'キッチンは毎日使うから。外構はこれから。', detail:true, me:true},
+  {id:6,  co:'Cデザイン', path:['C','絞り込み','標準の窓','キッチン'], total:4070, base:3950, st:'完成', line:'2月の朝、暖房をつけても足元が冷たい。', detail:true},
+  {id:7,  co:'Cデザイン', path:['C','絞り込み','標準の窓','外構'],     total:4070, base:3950, st:'完成', line:'帰ってきたとき、家の顔がいいと思える。'},
+  {id:8,  co:'Cデザイン', path:['C','待ちきれず','期限切れ','—'],      total:0,    base:3950, st:'白紙', line:'見積が届く前に、土地の期限が来た。'},
+  {id:9,  co:'Dホーム',   path:['D','規格','太陽光無料','外構あと'],   total:2480, base:1980, st:'完成', line:'速かった。オプションが積み上がった。'},
+  {id:10, co:'Dホーム',   path:['D','規格','変更2回','外構'],          total:2710, base:1980, st:'完成', line:'プランの変更は、2回目から有料だった。'},
+  {id:11, co:'Aハウス',   path:['A','性能優先','全館空調','外構あと'], total:4720, base:4270, st:'完成', line:'家じゅう同じ温度。電気代の明細を見るのが怖い。'},
+  {id:12, co:'B工務店',   path:['B','和室あり','父の意見','外構あと'], total:2890, base:2600, st:'中止', line:'父が選んだ和室は、壁のないまま止まった。'},
+  {id:13, co:'Cデザイン', path:['C','絞り込み','平屋寄り','カーポート1台'], total:4210, base:3950, st:'完成', line:'カーポートは1台。もう1台は縦に停める。'},
+  {id:14, co:'Dホーム',   path:['D','規格','鬼門で変更','外構あと'],   total:2620, base:1980, st:'完成', line:'契約の1週間前に、玄関が反対側へ移った。'},
+  {id:15, co:'Aハウス',   path:['A','間取り先行','担当交代','外構'],   total:4510, base:4270, st:'増額', line:'頼んだはずの棚が、図面になかった。'},
+  {id:16, co:'Cデザイン', path:['C','絞り込み','箱型＋南の庇','エアコン位置'], total:4130, base:3950, st:'完成', line:'テレビの壁に、下地が入っていなかった。'}
+];
+window.ITEMS = ['本体工事','付帯工事','地盤改良','外構工事','設計料','諸費用','追加・変更'];
+// 世界ごとの内訳（合計に合うように配分）
+window.breakdown = function(w){
+  if(!w.total) return [0,0,0,0,0,0,0];
+  const s = w.id*9301 % 233;
+  const r = (k)=> ((s*(k+3)*49297) % 1000)/1000;
+  const extra = w.total - w.base;
+  const body = Math.round(w.base*0.72), fu = Math.round(w.base*0.1);
+  const ground = (w.id%3===0)?0:120, ext = Math.round(w.base*0.06 + r(2)*40);
+  const des = w.co==='Cデザイン'? 180 : (w.co==='Aハウス'? 90:0);
+  const misc = w.base - body - fu - ground - ext - des;
+  return [body,fu,ground,ext,des,misc,Math.max(0,extra)];
+};
+
+</script>
+<script>
+const C=document.getElementById('c'),X=C.getContext('2d');
+window.DUR=16;
+const W=WORLDS;
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const lin=(t,a,b)=>clamp((t-a)/(b-a));
+const eio=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+const eo=x=>1-Math.pow(1-x,3);
+const lerp=(a,b,k)=>a+(b-a)*k;
+function hash(n){n=Math.sin(n*127.1+311.7)*43758.5453;return n-Math.floor(n)}
+const PAPER='#FFFDF8',INK='#2A2622',SUB='#8A8076',RED='#D2452E',RULE='#E3DACB',ACC='#2F6FD6';
+const MIN='"Shippori Mincho",serif',GO='"Zen Kaku Gothic New",sans-serif',MONO='"DM Mono",monospace';
+function yen(v){return v.toLocaleString('ja-JP')}
+// 回転する数字：k=0..1で確定に近づく
+function roll(val,k,seed,t){
+  const s=String(Math.round(val));
+  if(k>=1) return yen(Math.round(val));
+  let out='';
+  for(let i=0;i<s.length;i++){
+    const settle=(i+1)/s.length; // 上の桁から確定
+    out+= k>settle*0.9? s[i] : String(Math.floor(hash(seed*13+i*7+Math.floor(t*24))*10));
+  }
+  return yen(Number(out));
+}
+function card(x,y,w,h,alpha){
+  X.save();X.globalAlpha=alpha;
+  X.fillStyle='rgba(60,40,20,.08)';X.fillRect(x+6,y+8,w,h);
+  X.fillStyle=PAPER;X.fillRect(x,y,w,h);
+  X.restore();
+}
+function stamp(x,y,txt,k,rot){
+  if(k<=0)return;
+  X.save();X.translate(x,y);X.rotate(rot);
+  const s=lerp(1.8,1,eo(k));X.scale(s,s);X.globalAlpha=clamp(k*2)*0.88;
+  X.strokeStyle=RED;X.lineWidth=4;
+  X.font='700 34px '+GO;const m=X.measureText(txt).width;
+  X.strokeRect(-m/2-16,-28,m+32,56);
+  X.fillStyle=RED;X.textAlign='center';X.textBaseline='middle';X.fillText(txt,0,2);
+  X.restore();
+}
+function render(t){
+  t=((t%DUR)+DUR)%DUR;
+  X.setTransform(1,0,0,1,0,0);
+  X.fillStyle='#F4EFE6';X.fillRect(0,0,1920,1080);
+  // 方眼の地
+  X.strokeStyle='rgba(42,38,34,.045)';X.lineWidth=1;
+  for(let i=0;i<=1920;i+=40){X.beginPath();X.moveTo(i,0);X.lineTo(i,1080);X.stroke()}
+  for(let j=0;j<=1080;j+=40){X.beginPath();X.moveTo(0,j);X.lineTo(1920,j);X.stroke()}
+
+  const split=eio(lin(t,2.6,4.4));      // 1枚→16枚
+  const talk=lin(t,10.2,11.2);           // 数字→言葉
+  const outro=eio(lin(t,13.2,14.0));     // 終幕
+  // ---- 1枚目の見積書（世界5を代表に）
+  const w0=W[4],bd0=breakdown(w0);
+  const big={x:560,y:90,w:800,h:900};
+  // 16枚の格子
+  const gx=150,gy=80,cw=380,ch=208,gapx=24,gapy=28;
+  W.forEach((w,i)=>{
+    const col=i%4,row=Math.floor(i/4);
+    const tx=gx+col*(cw+gapx), ty=gy+row*(ch+gapy);
+    const delay=(col+row)*0.06;
+    const k=eio(clamp((split*1.3)-delay));
+    const x=lerp(big.x,tx,k),y=lerp(big.y,ty,k),ww=lerp(big.w,cw,k),hh=lerp(big.h,ch,k);
+    const a=(i===4?1:clamp(k*3))*(1-outro);
+    if(a<=0.001)return;
+    card(x,y,ww,hh,a);
+    X.save();X.globalAlpha=a;X.beginPath();X.rect(x,y,ww,hh);X.clip();
+    if(k<0.98 && i===4){ drawBig(t,x,y,ww,hh,w0,bd0,1-k); }
+    if(k>0.02) drawSmall(t,x,y,ww,hh,w,i,k,talk);
+    X.restore();
+  });
+  // 終幕の言葉
+  if(outro>0){
+    X.save();X.globalAlpha=eo(lin(t,13.6,14.4));
+    X.fillStyle=INK;X.textAlign='center';X.textBaseline='middle';
+    X.font='700 58px '+MIN;
+    X.fillText('見積書には、書いていなかったこと。',960,470);
+    X.globalAlpha=eo(lin(t,14.4,15.0));
+    X.font='500 30px '+GO;X.fillStyle=SUB;
+    X.fillText('16の世界で、同じふたりが、同じ家を建てた。',960,560);
+    X.globalAlpha=eo(lin(t,14.9,15.4));
+    X.font='700 40px '+MIN;X.fillStyle=RED;
+    X.fillText('16軒目の、わが家',960,660);
+    X.restore();
+  }
+  // 時刻
+  document.getElementById('tt').textContent=t.toFixed(1)+'s';
+}
+function drawBig(t,x,y,w,h,wd,bd,a){
+  const s=w/800;
+  X.save();X.translate(x,y);X.scale(s,s);X.globalAlpha*=clamp(a*1.5);
+  X.fillStyle=INK;X.textBaseline='alphabetic';
+  X.font='700 46px '+MIN;X.textAlign='center';X.fillText('御 見 積 書',400,110);
+  X.font='400 22px '+GO;X.textAlign='left';X.fillStyle=SUB;
+  X.fillText('かず 様 ・ ゆう 様',70,175);X.textAlign='right';X.fillText('Cデザイン',730,175);
+  X.strokeStyle=INK;X.lineWidth=2;X.beginPath();X.moveTo(70,200);X.lineTo(730,200);X.stroke();
+  ITEMS.forEach((it,j)=>{
+    const ry=260+j*72, k=eo(lin(t,0.15+j*0.22,0.65+j*0.22));
+    if(k<=0)return;
+    X.globalAlpha=clamp(a*1.5)*k;
+    X.fillStyle=INK;X.font='400 28px '+GO;X.textAlign='left';X.fillText(it,90,ry);
+    X.font='500 30px '+MONO;X.textAlign='right';
+    X.fillText(roll(bd[j],k,j+1,t)+' 万円',710,ry);
+    X.strokeStyle=RULE;X.lineWidth=1;X.beginPath();X.moveTo(70,ry+22);X.lineTo(730,ry+22);X.stroke();
+  });
+  const k2=eo(lin(t,1.7,2.4));
+  if(k2>0){X.globalAlpha=clamp(a*1.5)*k2;X.fillStyle=INK;X.font='700 30px '+GO;X.textAlign='left';X.fillText('合計',90,820);
+    X.font='500 50px '+MONO;X.textAlign='right';X.fillText(roll(wd.base,k2,99,t)+' 万円',710,822);
+    X.strokeStyle=INK;X.lineWidth=3;X.beginPath();X.moveTo(70,845);X.lineTo(730,845);X.stroke();}
+  X.restore();
+}
+function drawSmall(t,x,y,w,h,wd,i,k,talk){
+  const s=w/380;X.save();X.translate(x,y);X.scale(s,s);
+  const a=clamp((k-0.4)*2);X.globalAlpha*=a;
+  // 見出し
+  X.fillStyle=SUB;X.font='400 15px '+GO;X.textAlign='left';X.textBaseline='alphabetic';
+  X.fillText('世界 '+String(wd.id).padStart(2,'0')+' ・ '+wd.co,20,32);
+  const numA=1-talk;
+  // 経路
+  X.globalAlpha*=1;X.fillStyle=INK;X.font='400 14px '+GO;
+  X.save();X.globalAlpha*=numA;X.fillText(wd.path.join(' → '),20,58);X.restore();
+  // 合計（回る）
+  const rk=eo(lin(t,4.2+i*0.07,6.6+i*0.09));
+  X.save();X.globalAlpha*=numA;
+  X.textAlign='right';X.font='500 54px '+MONO;
+  const inc=wd.total-wd.base;
+  X.fillStyle= wd.total===0? SUB : INK;
+  X.fillText(wd.total? roll(wd.total,rk,i+20,t):'——',300,140);
+  X.font='400 18px '+GO;X.fillText('万円',352,140);
+  // 増額の赤ペン
+  const pk=eo(lin(t,7.0+(i%5)*0.12,7.6+(i%5)*0.12));
+  if(inc>=300 && wd.st!=='中止' && wd.st!=='引継ぎ' && pk>0){
+    X.strokeStyle=RED;X.lineWidth=3;X.beginPath();
+    const r=1;X.ellipse(200,124,150,40,-0.05,-Math.PI*0.9,-Math.PI*0.9+Math.PI*2*pk);X.stroke();
+    X.fillStyle=RED;X.font='700 22px '+GO;X.textAlign='left';X.globalAlpha*=pk;
+    X.fillText('＋'+inc+'万',30,186);
+  }
+  X.restore();
+  // はんこ
+  const sk=lin(t,7.8+(i%4)*0.18,8.3+(i%4)*0.18);
+  X.save();X.globalAlpha*=numA;
+  if(wd.st==='中止')stamp(260,170,'工事中止',sk,-0.12);
+  if(wd.st==='白紙')stamp(250,170,'期限切れ',sk,0.08);
+  if(wd.st==='引継ぎ')stamp(260,170,'引き継ぎ',sk,-0.06);
+  X.restore();
+  // 1年後の言葉
+  if(talk>0){
+    X.save();X.globalAlpha*=eo(talk);
+    X.fillStyle=SUB;X.font='400 14px '+GO;X.textAlign='left';X.fillText('1年後',20,62);
+    X.fillStyle=INK;X.font='500 23px '+MIN;
+    const n=Math.floor(lin(t,10.4+i*0.08,11.8+i*0.08)*wd.line.length);
+    wrap(wd.line.slice(0,n),20,104,340,36);
+    X.restore();
+  }
+  X.restore();
+}
+function wrap(s,x,y,mw,lh){
+  let line='',yy=y;
+  for(const ch of s){ if(X.measureText(line+ch).width>mw){X.fillText(line,x,yy);line=ch;yy+=lh}else line+=ch }
+  X.fillText(line,x,yy);
+}
+window.render=render;
+// 再生
+let playing=true,t0=performance.now(),off=0;
+const sc=document.getElementById('sc'),pp=document.getElementById('pp');
+pp.onclick=()=>{playing=!playing;pp.textContent=playing?'一時停止':'再生';if(playing){t0=performance.now()-off*1000}};
+sc.oninput=()=>{off=+sc.value;t0=performance.now()-off*1000;render(off)};
+function fit(){const s=Math.min(innerWidth/1920,innerHeight/1080)*0.96;C.style.transform='scale('+s+')'}
+addEventListener('resize',fit);fit();
+document.fonts.ready.then(()=>{window.READY=true;
+  if(new URLSearchParams(location.search).has('t')){render(+new URLSearchParams(location.search).get('t'));return}
+  (function loop(now){ if(playing){off=((now-t0)/1000)%DUR;sc.value=off;render(off)} requestAnimationFrame(loop)})(performance.now());
+});
+</script></body></html>

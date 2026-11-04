@@ -1,0 +1,135 @@
+<title>16案の見比べ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Maru+Gothic:wght@700&display=swap">
+<style>
+/* Layout: 左に8つの立場の一覧、右に16:9の再生面。Hero／世界樹は上の切り替えで。狭い画面では縦に積む */
+:root{
+  --bg:#f6f3ec; --panel:#fffdf8; --fg:#24211c; --muted:#6f685c; --line:#e2dccf;
+  --accent:#e2683c; --accent2:#2f9e8f; --stage:#1d1b18;
+  --f-display:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1b1a17; --panel:#24221e; --fg:#efe9dd; --muted:#a79f90; --line:#3a362f;
+  --accent:#f0845a; --accent2:#4fc2b1; --stage:#0f0e0c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1b1a17; --panel:#24221e; --fg:#efe9dd; --muted:#a79f90; --line:#3a362f;
+  --accent:#f0845a; --accent2:#4fc2b1; --stage:#0f0e0c; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);line-height:1.7}
+.wrap{max-width:1400px;margin:0 auto;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px}
+h1{font-family:var(--f-display);font-size:clamp(22px,3vw,30px);margin:0;text-wrap:balance}
+header p{margin:4px 0 0;color:var(--muted);font-size:13px;max-width:60ch}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--panel)}
+.seg button{font:inherit;font-weight:700;border:0;background:transparent;color:var(--muted);padding:6px 16px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.seg button:focus-visible,.item:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.main{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:1fr}}
+.list{display:grid;gap:6px}
+.item{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;text-align:left;font:inherit;color:inherit;background:transparent;border:1px solid transparent;border-radius:10px;padding:8px 10px;cursor:pointer}
+.item:hover{background:var(--panel)}
+.item[aria-current="true"]{background:var(--panel);border-color:var(--line)}
+.num{font-family:var(--f-display);font-size:15px;color:var(--accent);font-variant-numeric:tabular-nums}
+.item b{display:block;font-size:14px;line-height:1.4}
+.item span{display:block;font-size:12px;color:var(--muted);line-height:1.4}
+.viewer{display:grid;gap:14px;min-width:0}
+.stage{position:relative;width:100%;max-width:100%;aspect-ratio:16/9;background:var(--stage);border-radius:10px;overflow:hidden}
+.stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.meta{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:grid;gap:10px;min-width:0}
+.meta h2{margin:0;font-family:var(--f-display);font-size:19px;text-wrap:balance}
+.stance{font-size:12px;letter-spacing:.06em;color:var(--accent2);font-weight:700}
+.meta p{margin:0;font-size:14px;max-width:72ch}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 20px;font-size:13px}
+.facts dt{font-weight:700;color:var(--muted);font-size:12px;letter-spacing:.04em}
+.facts dd{margin:0}
+.open{font-size:13px;color:var(--accent);font-weight:700}
+footer{color:var(--muted);font-size:12px}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>16案の見比べ</h1>
+      <p>8つの立場から、山場（Hero）と世界樹を1つずつ。どれも一から書いた試作で、書体の読み込みや描画は本番前の仮のものです。</p>
+    </div>
+    <div class="seg" role="group" aria-label="表示する案の種類">
+      <button id="b-hero" type="button" aria-pressed="true">山場（Hero）</button>
+      <button id="b-tree" type="button" aria-pressed="false">世界樹</button>
+    </div>
+  </header>
+  <div class="main">
+    <nav class="list" id="list" aria-label="8つの立場"></nav>
+    <section class="viewer">
+      <div class="stage"><iframe id="frame" title="選んだ案の再生" loading="lazy"></iframe></div>
+      <div class="meta">
+        <div class="stance" id="m-stance"></div>
+        <h2 id="m-name"></h2>
+        <p id="m-sum"></p>
+        <dl class="facts">
+          <div><dt>2日で作れるか</dt><dd id="m-cost"></dd></div>
+          <div><dt>いちばんの弱点（作った本人の評）</dt><dd id="m-weak"></dd></div>
+        </dl>
+        <a class="open" id="m-open" href="#" target="_blank" rel="noopener">この案を別のタブで大きく開く</a>
+      </div>
+    </section>
+  </div>
+  <footer>世界樹の案は、カードや葉を押すとその世界の概略が出るものがあります。音はありません。</footer>
+</div>
+
+<script>
+const P=[
+ {d:"01-intent",st:"添付の意図を素直に汲む",hero:"晴れの日の16軒",tree:"16の星座",
+  hs:"夫婦の色に塗り分けた世界線が16本に分かれて4×4の区画に降り、仕上げの違うカラフルな家が基礎、壁、屋根の順に育つ。数字の札が浮かび、最後は1年後の冬の夜に窓が灯る。",
+  ts:"左はかず（橙）とゆう（青緑）の色の世界線。2択の外の答えは紫の菱形から出る。右は16枚の星座カードで、4枚が詳しく読める。",
+  c:"Hero 6〜8時間＋書き出し2時間。世界樹 約6時間。",w:"線と区画の対応が恣意的で、盤の上で線が交差し、どの線がどの家か追いにくい。"},
+ {d:"02-reviews",st:"外部レビュー2本を丸呑み",hero:"付箋と台帳と、白い16の模型",tree:"もし、あのとき の樹",
+  hs:"白模型の16区画を常に表示し、付箋の要望リスト、期限のカウントダウン、金額の台帳、15世界のティッカーを同時に見せる。自由入力の判定から、変わった部分だけに色が入り、本音に裏返る。",
+  ts:"2の乗数にしない樹。早く閉じる枝と紫の第3の答え、空きの世界16に「もし、あのとき」の結果が入る。",
+  c:"約18〜20時間でぎりぎり。",w:"情報が多すぎて主役がなく、管理画面に見える。白模型中心で明るさも弱い。"},
+ {d:"03-opposite",st:"Claudeの好みと真逆",hero:"16軒同時建築ショー",tree:"世界樹すごろく",
+  hs:"家づくりをバラエティ番組の生中継に。集中線、縁取りテロップ、速報帯、暴れるカウンター。16軒が建ち、色が流れ込み、第3の答えにスタンプ、夜に紙吹雪で題名。",
+  ts:"水玉の地に太い色の枝のすごろく。第3の答えは虹色の点線と「!?」。空きのソケット「＋」付き。",
+  c:"1.5〜2日＋書き出し半日〜1日。",w:"騒がしさが倒産や夫婦の葛藤の重さとぶつかり、軽薄に見えるおそれ。"},
+ {d:"04-wrong",st:"あえての不正解",hero:"見積書の16枚",tree:"わが家の分岐台帳",
+  hs:"家を一度も見せない。1枚の見積書が16枚に分かれ、桁が回り、赤ペンと「工事中止」のはんこ。最後は数字が消え、1年後のひとことだけが残る。",
+  ts:"世界樹を帳簿として描く。第3の答えは「欄外」に赤ペンで書き足す。",
+  c:"いちばん安い。Hero 半日、台帳 半日〜1日。",w:"家が建つ楽しさがほぼ伝わらない。山場より、数字だけの差し込みやレポート画面向き。"},
+ {d:"05-impossible",st:"2日では不可能かもしれないが見たいもの",hero:"地縄が、世界樹になる",tree:"16の世界の樹冠",
+  hs:"three.jsの3D。1本の地縄が16本の光る枝に分かれ、敷地に届くと16軒が白い模型で建ち、屋根で色が入る。夜には枝が空へのぼって世界樹になる。",
+  ts:"4世界は小さな家、12世界は光る玉、第3の答えの受け皿は金の輪。2択に金の枝が接ぎ木される。",
+  c:"このままでは3〜4日。削れば動画素材として1日。",w:"夜の場面は情報が多すぎて読み切れない。見せる順番を絞る必要がある。"},
+ {d:"06-game",st:"ゲームUIの文法",hero:"ひらめきの一手",tree:"ひらめきのスキルツリー",
+  hs:"銀行の担当者とエンカウント。コマンドから「じぶんで考える」を選んで第3の答えを打ち込み、16枚の世界カードが裏返る。「クエスト達成」とふたりのバランス。",
+  ts:"明るい方眼紙のスキルツリー。金の星がひらめき、点線の「？」が次の空き枠。",
+  c:"約1.5日（家の描き分けでさらに半日）。",w:"ゲームの言い回しで数千万円の決断が軽く見える。「あたたかさ +3」が作り物に見える。"},
+ {d:"07-architect",st:"建築家の文法",hero:"地縄から16軒へ",tree:"16の世界の系統図",
+  hs:"明るい方眼紙に地縄が張られ、平面図、スタディ模型、仕上げ模型へ。引くと仕上げの違う16軒。横で見積書と工程表が同じ時刻で進む。",
+  ts:"配管の系統図のような直交の線。通り芯のような丸番号、点線の選ばなかった枝、太線の4世界。",
+  c:"Hero 半日、系統図 半日〜1日。",w:"手順の説明に見えやすく、世界が分かれる驚きが山場の中にない。図面に本職の突っ込みどころが残る。"},
+ {d:"08-family",st:"子どもと家族の目線",hero:"16まいの、わが家の絵",tree:"わが家の木",
+  hs:"子どものクレヨンの家が16枚の絵に増える。03は消しゴムで「あきち」、11は打ち合わせの正の字19本、15の窓に青いぐるぐる。最後は手紙「1ねんごの わたしたちへ」。",
+  ts:"クレヨンの木。左の枝は青（かず）、右はオレンジ（ゆう）、第3の答えは折り紙の接ぎ木。",
+  c:"約1.5日（ほかの画面もそろえるならさらに1日）。",w:"「かわいいけど浅い」と読まれるおそれ。芯は数字と分岐の正しさで補う必要。"}
+];
+let kind="hero",cur=0;
+const $=id=>document.getElementById(id);
+function renderList(){
+  $("list").innerHTML=P.map((p,i)=>`<button class="item" type="button" data-i="${i}" aria-current="${i===cur}"><span class="num">${String(i+1).padStart(2,"0")}</span><div><b>${kind==="hero"?p.hero:p.tree}</b><span>${p.st}</span></div></button>`).join("");
+}
+function show(){
+  const p=P[cur],src=`${p.d}/${kind}.html`;
+  if($("frame").getAttribute("src")!==src)$("frame").setAttribute("src",src);
+  $("m-stance").textContent=`立場${cur+1}　${p.st}`;
+  $("m-name").textContent=kind==="hero"?p.hero:p.tree;
+  $("m-sum").textContent=kind==="hero"?p.hs:p.ts;
+  $("m-cost").textContent=p.c;$("m-weak").textContent=p.w;
+  $("m-open").href=src;
+  renderList();
+}
+$("list").addEventListener("click",e=>{const b=e.target.closest(".item");if(!b)return;cur=+b.dataset.i;show()});
+function setKind(k){kind=k;$("b-hero").setAttribute("aria-pressed",k==="hero");$("b-tree").setAttribute("aria-pressed",k==="tree");show()}
+$("b-hero").onclick=()=>setKind("hero");$("b-tree").onclick=()=>setKind("tree");
+show();
+</script>

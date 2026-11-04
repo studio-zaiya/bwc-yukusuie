@@ -1,0 +1,80 @@
+<title>仕組みの動画3案</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Maru+Gothic:wght@700&display=swap">
+<style>
+/* Layout: 左に5つの項目（前振り4案＋デザインコード見本）、右に再生面と要約。狭い画面では縦に積む */
+:root{
+  --paper:#fffaf0; --panel:#ffffff; --ink:#1e2b36; --muted:#5f6b74; --line:#e7dcc8;
+  --kazu:#e8701f; --yuu:#1c8dcc; --stage:#1b2440;
+  --f-display:"Hiragino Maru Gothic ProN","Zen Maru Gothic","Hiragino Sans",sans-serif;
+  --f-body:"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic","Noto Sans JP",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#171c24; --panel:#212834; --ink:#eef1f3; --muted:#a8b2ba; --line:#333d4b;
+  --kazu:#f2893f; --yuu:#4aa9e0; --stage:#0e1320; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#171c24; --panel:#212834; --ink:#eef1f3; --muted:#a8b2ba; --line:#333d4b;
+  --kazu:#f2893f; --yuu:#4aa9e0; --stage:#0e1320; color-scheme:dark}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);line-height:1.7}
+.wrap{max-width:1400px;margin:0 auto;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+h1{font-family:var(--f-display);font-size:clamp(22px,3vw,30px);margin:0;text-wrap:balance}
+header p{margin:4px 0 0;color:var(--muted);font-size:13px;max-width:64ch}
+.main{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:1fr}}
+.list{display:grid;gap:6px}
+.group{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.06em;margin:8px 0 2px}
+.item{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;text-align:left;font:inherit;color:inherit;background:transparent;border:1px solid transparent;border-radius:10px;padding:8px 10px;cursor:pointer}
+.item:hover{background:var(--panel)}
+.item[aria-current="true"]{background:var(--panel);border-color:var(--line)}
+.item:focus-visible,a:focus-visible{outline:2px solid var(--yuu);outline-offset:2px}
+.num{font-family:var(--f-display);font-size:15px;color:var(--kazu)}
+.item b{display:block;font-size:14px;line-height:1.4}
+.item span{display:block;font-size:12px;color:var(--muted);line-height:1.4}
+.viewer{display:grid;gap:14px;min-width:0}
+.stage{position:relative;width:100%;max-width:100%;aspect-ratio:16/9;background:var(--stage);border-radius:10px;overflow:hidden}
+.stage.tall{aspect-ratio:auto;height:78vh;background:var(--panel)}
+.stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.meta{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:grid;gap:10px;min-width:0}
+.meta h2{margin:0;font-family:var(--f-display);font-size:19px;text-wrap:balance}
+.meta p{margin:0;font-size:14px;max-width:72ch}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 20px;font-size:13px;margin:0}
+.facts dt{font-weight:700;color:var(--muted);font-size:12px}
+.facts dd{margin:0}
+.open{font-size:13px;color:var(--yuu);font-weight:700}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>仕組みの動画3案</h1>
+    <p>デモ動画の中で5〜10秒、技術の仕組みを一発で見せるインフォグラフィックの試案です。静止画の確認は代わりの書体で行っています。</p>
+  </header>
+  <div class="main">
+    <nav class="list" id="list" aria-label="案の一覧"></nav>
+    <section class="viewer">
+      <div class="stage" id="stage"><iframe id="frame" title="選んだ案の再生"></iframe></div>
+      <div class="meta">
+        <h2 id="m-name"></h2>
+        <p id="m-sum"></p>
+        <dl class="facts">
+          <div><dt>尺・手間</dt><dd id="m-cost"></dd></div>
+          <div><dt>弱点（作った本人の評）</dt><dd id="m-weak"></dd></div>
+        </dl>
+        <a class="open" id="m-open" href="#" target="_blank" rel="noopener">別のタブで大きく開く</a>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+const P=[
+{g:"仕組み",k:"A",src:"A-zoomout/arch.html",name:"1軒の家の下で",s:"世界07の家に寄った絵から、カメラが家の下へ下がると担当者たちのAIの配線が現れ、引くと16世界ぶんの配線が1枚の計算エンジンに集まる。締めは「言葉は Claude、数字はエンジン。」。",c:"12秒（使うのは最初の7秒＋全体図2〜3秒）。磨くなら2〜3時間。",w:"全体図は2〜3秒では細部まで読めない。家の上の縦の配線が電柱に見えることがある。"},
+{g:"仕組み",k:"B",src:"B-flow/arch.html",name:"ひと言が、16の未来を書き換えるまで",s:"構成図が組み上がり、「窓だけトリプルにしたい」の一言が読み替え役、固定演算エンジン（＋60万円／＋7日／冬の朝14→20℃）を通り抜け、世界樹に金の17本目が伸びる。数字はエンジンの箱の中でだけ決まる。",c:"10秒。磨くなら2〜3時間。",w:"10秒では凡例まで読み切れない。世界07から世界樹への線が隣の08から出ているように見える。"},
+{g:"仕組み",k:"C",src:"C-exploded/arch.html",name:"画面の分解図",s:"（4層版）画面が分解して、下から「ふたりの一言→Claude→計算エンジン→世界樹と16の敷地」の4層が積み上がる。最上段は左に世界樹、右に枝先の16の敷地。金の◆が下から上へ通り抜け、エンジンの層でだけ＋60万円／＋7日が出て、17本目の枝の先に17番目の敷地が現れて家が建つ。記録は左端の背骨。",c:"12.5秒（見せ場は約2〜11秒）。磨くなら2〜3時間。",w:"最上段の左手前が混み、「17本目の未来」と「台帳」の札が近い。下の層は半透明で中身まで読み切れない。斜めの図なので左→右が左上→右下に見える。"}
+];
+let cur=0;const $=id=>document.getElementById(id);
+function list(){let h="",g="";P.forEach((p,i)=>{if(p.g!==g){g=p.g;h+=`<div class="group">${g}</div>`}h+=`<button class="item" type="button" data-i="${i}" aria-current="${i===cur}"><span class="num">${p.k}</span><div><b>${p.name}</b><span>${p.g}</span></div></button>`});$("list").innerHTML=h}
+function show(){const p=P[cur];if($("frame").getAttribute("src")!==p.src)$("frame").setAttribute("src",p.src);$("stage").classList.toggle("tall",!!p.tall);$("m-name").textContent=p.name;$("m-sum").textContent=p.s;$("m-cost").textContent=p.c;$("m-weak").textContent=p.w;$("m-open").href=p.src;list()}
+$("list").addEventListener("click",e=>{const b=e.target.closest(".item");if(!b)return;cur=+b.dataset.i;show()});
+show();
+</script>

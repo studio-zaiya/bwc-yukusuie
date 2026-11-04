@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>S9 それぞれの事情と見積の透視</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="../../../../app/engine.js"></script><script src="../../../../app/iso.js"></script><script src="../../play/common.js"></script><script src="../screens.js"></script>
+<link rel="stylesheet" href="../screens.css">
+<style id="css"></style>
+<style>
+/* 答え合わせ：左＝担当者それぞれの事情（2人だけ大きく）／右＝見積の透視（表紙と総額、別途の項目が浮かぶ） */
+.hon{position:absolute;left:30px;top:124px;width:860px;height:930px;display:flex;flex-direction:column;gap:20px}
+.hon h2,.xr h2{font-family:var(--fr);font-weight:900;font-size:30px}
+.hon .lead,.xr .lead{font-size:17px;color:var(--ink2);margin-top:-8px}
+.hc{background:#fff;border:1.5px solid rgba(30,43,54,.18);border-radius:20px;padding:34px 30px;display:grid;grid-template-columns:150px 1fr;gap:22px;align-items:start}
+.hc .fc{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:15px;color:var(--ink2);text-align:center}
+.hc .wd{font-size:15px;color:var(--ink2);display:flex;align-items:center;margin-bottom:8px}
+.hc .q{font-size:27px;line-height:1.8}
+.hc .ctx{margin-top:14px;font-size:16px;line-height:1.6;color:var(--ink2);border-top:1px dashed rgba(30,43,54,.2);padding-top:10px}
+.xr{position:absolute;left:920px;top:124px;width:970px;height:930px;background:#fff;border:1.5px solid rgba(30,43,54,.18);border-radius:20px;padding:24px 30px;display:flex;flex-direction:column;gap:16px}
+.row{display:grid;grid-template-columns:48px 1fr 150px;gap:16px;align-items:center}
+.bars{display:flex;height:50px;border:1.5px solid var(--ink);border-radius:6px;overflow:visible;position:relative}
+.bars .seg{height:100%;border-right:1px solid #fff;position:relative}
+.bars .seg.on{background:#1E2B36}
+.bars .seg.off{background:repeating-linear-gradient(45deg,#EFE9DD 0 6px,#E4DCCD 6px 12px)}
+.sep{grid-column:2/4;display:flex;flex-wrap:wrap;gap:6px;margin-top:-6px}
+.sep span{font-size:14px;background:#FFFAF0;border:1px dashed rgba(30,43,54,.35);border-radius:6px;padding:1px 8px;font-variant-numeric:tabular-nums}
+.sep .none{border:none;color:var(--ink2);padding-left:0}
+.am{font-size:16px;text-align:right;line-height:1.45;font-variant-numeric:tabular-nums}
+.am b{font-family:var(--fr);font-size:22px}
+.leg{display:flex;gap:20px;font-size:15px;color:var(--ink2);align-items:center}
+.leg i{display:inline-block;width:22px;height:14px;margin-right:6px;vertical-align:-2px;border:1px solid rgba(30,43,54,.3)}
+.note2{margin-top:auto;font-size:16px;line-height:1.6;background:var(--paper);border-radius:12px;padding:12px 16px}
+</style></head>
+<body><div id="stage"><div id="view"></div></div>
+<script>
+document.getElementById('css').textContent = S.L.CSS;
+const { L, Y, W, man } = S;
+// それぞれの事情（2人だけ。隠しごとではなく、それぞれの立場の事情として）
+const HON = [
+  { no: 15, co: 'A', who: 'takahashi', role: '営業・高橋', q: 'あのころ、展示場の来場が落ちていて、月末までにもう1棟、という数字がありました。それでも、性能と設備の話にうそはなかった、と思っています。', ctx: `この世界の総額は ${man(W(15).total)}万円。冬の朝は「${W(15).warmth.label}」でした。` },
+  { no: 5, co: 'C', who: 'sasaki', role: '設計・佐々木', q: '大きな窓は、ガラスの性能も上げたほうがいい、と一度だけ言いました。決めるのはご家族なので、強くは言えませんでした。', ctx: `この世界の冬の朝は「${W(5).warmth.label}」。浮いた予算で、春に庭を仕上げました。` },
+];
+function honCard(h) {
+  return `<div class="hc"><div class="fc">${L.face(h.who, 120)}<span>${Y.COMPANIES[h.co].name}<br>${h.role}</span></div>
+    <div><div class="wd">${L.coTag(h.co, 20)}世界${String(h.no).padStart(2, '0')}のとき</div><div class="q">「${h.q}」</div><div class="ctx">${h.ctx}</div></div></div>`;
+}
+function xray() {
+  const sp = Y.baseSpec(L.H);
+  const qs = 'ABCD'.split('').map(id => [id, Y.quote(sp, id)]);
+  const max = Math.max(...qs.map(([, q]) => q.real));
+  const SHORT = { futai: '付帯', ground: '地盤', exterior: '外構', lighting: '照明', aircon: 'エアコン', misc: '諸費用' };
+  return qs.map(([id, q]) => {
+    const segs = q.lines.map(l => `<div class="seg ${l.shown ? 'on' : 'off'}" style="width:${l.v / q.real * 100}%"></div>`).join('');
+    const off = q.lines.filter(l => !l.shown && SHORT[l.key]);
+    const sep = off.length ? off.map(l => `<span>${SHORT[l.key]} ${l.v}</span>`).join('') : '<span class="none">別途の項目なし（総額で提示）</span>';
+    return `<div class="row">${L.coTag(id, 40)}<div class="bars" style="width:${q.real / max * 100}%">${segs}</div><div class="am">表紙 ${man(q.cover)}<br><b>総額 ${man(q.real)}</b></div><div class="sep">${sep}</div></div>`;
+  }).join('<div style="height:46px"></div>');
+}
+function draw() {
+  document.getElementById('view').innerHTML = `
+  ${S.top(11)}${S.money('final')}
+  <div class="hon"><h2>それぞれの事情</h2><div class="lead">1年が過ぎて、担当者たちのそのときの事情がわかりました。</div>${HON.map(honCard).join('')}</div>
+  <div class="xr"><h2>見積の透視</h2><div class="lead">34坪・同じ仕様。4社の見積の、表紙に入っていた費用と「別途」だった費用。</div>
+    <div class="leg"><span><i style="background:#1E2B36"></i>表紙に入っていた</span><span><i style="background:repeating-linear-gradient(45deg,#EFE9DD 0 4px,#E4DCCD 4px 8px)"></i>別途だった</span><span>単位：万円（土地は別）</span></div>
+    <div style="margin-top:40px">${xray()}</div>
+    <div class="note2">見せ方は違っても、家を建てるのに要る費用の項目は、どの会社もほとんど同じでした。</div>
+  </div>`;
+}
+S.fit(); draw(); window.render = draw; window.DUR = 1; window.READY = true;
+</script></body></html>

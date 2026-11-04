@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>世界樹案02 レビュー丸呑み</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#2b2a28;--sub:#77736b;--bg:#f4f2ec;--line:#dcd8ce;--you:#e8553a;}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:#1d1c1a;overflow:hidden}
+body{display:flex;align-items:center;justify-content:center;font-family:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans CJK JP",sans-serif;color:var(--ink)}
+#stage{width:1920px;height:1080px;position:relative;background:var(--bg);transform-origin:0 0;flex:none;overflow:hidden}
+svg{position:absolute;left:0;top:0}
+#panel{position:absolute;left:1440px;top:96px;width:450px;height:950px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px 26px;overflow:hidden}
+#panel h2{font-size:30px;font-weight:900}
+#panel .k{display:inline-block;font-size:13px;padding:3px 10px;border-radius:999px;margin-left:8px;vertical-align:6px;color:#fff}
+#panel .sec{margin-top:18px}
+#panel .lab{font-size:13px;color:var(--sub);letter-spacing:.06em;margin-bottom:6px}
+#panel .chips span{display:inline-block;font-size:15px;border:1px solid var(--line);border-radius:6px;padding:4px 9px;margin:0 6px 6px 0;background:#faf9f6}
+#panel .chips span.third{border-color:#7b5cd6;color:#5b3fc0;background:#f2eefe}
+#panel p{font-size:17px;line-height:1.7}
+.cause{display:grid;grid-template-columns:1fr 26px 1fr;gap:6px;align-items:center;font-size:14px;margin-bottom:8px}
+.cause .a{background:#fff6d8;border-radius:8px;padding:8px 10px}
+.cause .b{background:#fde3dc;border-radius:8px;padding:8px 10px}
+.cause .ar{text-align:center;color:var(--sub)}
+.cause small{display:block;color:var(--sub);font-size:12px}
+#tg{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;width:max-content;margin-bottom:8px;cursor:pointer}
+#tg span{padding:5px 14px;font-size:14px}
+#tg span.on{background:var(--ink);color:#fff}
+.say{font-size:18px;font-weight:700;line-height:1.6;padding:12px 14px;border-radius:10px;background:#f5f3ee}
+.say.back{background:var(--ink);color:#fff}
+#led{display:flex;gap:18px}
+#led div{font-size:13px;color:var(--sub)}#led b{display:block;font-size:22px;color:var(--ink);font-variant-numeric:tabular-nums}
+#ifbox{margin-top:14px;border:2px dashed #7b5cd6;border-radius:12px;padding:12px}
+#ifbox input{width:100%;font:inherit;font-size:16px;padding:8px;border:1px solid var(--line);border-radius:8px}
+#ifbox button{margin-top:8px;font:inherit;font-weight:900;font-size:16px;background:var(--you);color:#fff;border:0;border-radius:999px;padding:8px 18px;cursor:pointer}
+.hint{font-size:13px;color:var(--sub);margin-top:6px}
+#ttl{position:absolute;left:40px;top:18px;font-size:30px;font-weight:900}
+#ttl small{font-size:17px;color:var(--sub);font-weight:500;margin-left:14px}
+#leg{position:absolute;left:40px;top:1030px;font-size:15px;color:var(--sub);display:flex;gap:26px;align-items:center}
+#leg i{display:inline-block;width:26px;height:4px;vertical-align:4px;margin-right:6px;border-radius:2px}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="ttl">世界樹　同じ家族の16の世界<small>くわしく見られる4つの世界　＋　タップで概略が読める12の世界</small></div>
+  <svg id="sv" width="1920" height="1080" viewBox="0 0 1920 1080"></svg>
+  <div id="panel"></div>
+  <div id="leg"><span><i style="background:#e8553a"></i>あなたの世界</span><span><i style="background:#3a6ea8"></i>くわしく見られる世界</span><span><i style="background:#c9c4b9"></i>概略だけの世界</span><span><i style="background:#7b5cd6"></i>第3の答え（2択の外）</span><span><i style="background:none;border-top:3px dashed #7b5cd6;height:0"></i>受け皿（まだ空き）</span><span>線の上の点：分かれ道</span></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+function fit(){const s=Math.min(innerWidth/1920,innerHeight/1080);$('stage').style.transform=`scale(${s})`;$('stage').style.marginRight=(1920*s-1920)+'px';$('stage').style.marginBottom=(1080*s-1080)+'px';}
+addEventListener('resize',fit);fit();
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),lin=(t,a,b)=>clamp((t-a)/(b-a)),ease=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+
+// ---- 木の定義（2の乗数にしない。早く物語が閉じる枝、第3の答え、空きの受け皿を含む） ----
+const N={
+ root:{p:null,d:0,t:'かず と ゆう'},
+ A:{p:'root',d:1,t:'Aハウスと月末に仮契約'},
+ B:{p:'root',d:1,t:'B工務店（全部入る）'},
+ C:{p:'root',d:1,t:'Cデザイン（絞り込む）'},
+ D:{p:'root',d:1,t:'Dホーム（規格）'},
+ A1:{p:'A',d:2,t:'参考プランのまま'},
+ A2:{p:'A',d:2,t:'プランを白紙から'},
+ A1a:{p:'A1',d:3,t:'外構は別途のまま'},
+ A1b:{p:'A1',d:3,t:'特典を窓に回す'},
+ B1:{p:'B',d:2,t:'着工金50%で値引き'},
+ B2:{p:'B',d:2,t:'出来高払いを交渉'},
+ B2a:{p:'B2',d:3,t:'口約束のまま'},
+ B2b:{p:'B2',d:3,t:'議事録を残す'},
+ C1:{p:'C',d:2,t:'造作キッチンを残す'},
+ C2:{p:'C',d:2,t:'外構を残す'},
+ C1a:{p:'C1',d:3,t:'借入を増やし外構を戻す'},
+ C1b:{p:'C1',d:3,t:'予算どおり'},
+ C1c:{p:'C1',d:3,t:'借入+60万で窓をトリプルに',third:1},
+ C1a1:{p:'C1a',d:4,t:'箱型の屋根'},
+ C1a2:{p:'C1a',d:4,t:'勾配屋根'},
+ C1b1:{p:'C1b',d:4,t:'標準の窓で大きく'},
+ C1c1:{p:'C1c',d:4,t:'箱型の屋根'},
+ C1c2:{p:'C1c',d:4,t:'勾配屋根'},
+ C1c3:{p:'C1c',d:4,t:'箱型＋南だけ庇',third:1},
+ D1:{p:'D',d:2,t:'太陽光つきで即決'},
+ D2:{p:'D',d:2,t:'オプションを積む'},
+};
+// 葉＝16の世界（並び順＝上から）
+const L=[
+ {id:'11',p:'A1a',k:'det',s:'契約後の打ち合わせ19回。別途が積み上がり +380万円。',col:'#3a6ea8'},
+ {id:'12',p:'A1b',k:'sum',s:'特典の150万円分を窓に。外構とカーテンは別途で後払い。'},
+ {id:'10',p:'A2',k:'sum',s:'白紙からやり直し。着工が3か月遅れ、家賃が重なる。'},
+ {id:'03',p:'B1',k:'det',s:'上棟の2か月後に工事が止まる。約800万円が戻らない。',col:'#3a6ea8'},
+ {id:'04',p:'B2a',k:'sum',s:'言った・言わないで、引き渡し時に +90万円。'},
+ {id:'05',p:'B2b',k:'sum',s:'議事録のおかげで追加はゼロ。ただ翌年、会社が事業を止める。'},
+ {id:'06',p:'C1a1',k:'sum',s:'外構は入居日にそろう。月々の返済が約8,000円増える。'},
+ {id:'08',p:'C1a2',k:'sum',s:'軒の深い家。夏は涼しく、外構もそろう。返済は重め。'},
+ {id:'15',p:'C1b1',k:'det',s:'ほぼあなたと同じ。違うのは南の窓のガラスだけ。2月の朝が寒い。',col:'#3a6ea8'},
+ {id:'16',p:null,k:'slot',s:'受け皿（まだ空き）。「もし、あのとき」で、ここに新しい世界が入る。'},
+ {id:'14',p:'C1c1',k:'sum',s:'窓は暖かい。箱型の南面が夏に暑く、すだれを買う。'},
+ {id:'13',p:'C1c2',k:'sum',s:'窓は暖かく、軒で夏も楽。家の顔は、かずの思いと少し違う。'},
+ {id:'07',p:'C1c3',k:'you',s:'2択の外の答えを2回出した世界。冬は暖かい。玄関前はまだ砂利。',col:'#e8553a'},
+ {id:'09',p:'C2',k:'sum',s:'外構は完璧。キッチンはシステムに。ゆうは少しだけ不満。'},
+ {id:'01',p:'D1',k:'sum',s:'いちばん早く入居。太陽光は付いたが、収納が足りない。'},
+ {id:'02',p:'D2',k:'sum',s:'オプションを積んで +150万円。結局、Cの見積に近づく。'},
+];
+// 詳しく見られる4世界の中身
+const DET={
+ '07':{name:'世界07（あなた）',path:['Cデザイン','造作キッチンを残す','借入+60万で窓をトリプルに','箱型＋南だけ庇'],third:[2,3],
+   front:'佐々木「窓はまだ発注前なので、間に合います」',back:'本音：やっと窓の話をしてくれた。ほっとした。',
+   led:[['建物','4,130万'],['借入','4,760万'],['月々','13.44万']],
+   cause:[['仕様の打ち合わせを、ゆうひとりに任せる','151日目','テレビの壁に下地がない','入居後の冬'],['外構を削る','88日目','玄関前が砂利のまま、霜取り5分','入居後1年']]},
+ '15':{name:'世界15',path:['Cデザイン','造作キッチンを残す','予算どおり','標準の窓で大きく'],third:[],
+   front:'佐々木「ご家族でお決めいただければ、どちらでも設計できます」',back:'本音：本当は、窓だけは性能を上げてほしかった。',
+   led:[['建物','4,070万'],['借入','4,700万'],['月々','13.27万']],
+   cause:[['南の窓を標準のまま幅いっぱいに','74日目','2月の朝、足元が冷たい（室温14℃）','入居後の冬'],['暖房を強める','入居後','冬の電気代が月+6,000円','入居後1年']]},
+ '11':{name:'世界11',path:['Aハウスと月末に仮契約','参考プランのまま','外構は別途のまま'],third:[],
+   front:'高橋「今月中なら、グレードアップ150万円分をお付けできます」',back:'本音：月末のノルマまで、あと1棟だった。',
+   led:[['建物','4,660万'],['借入','5,080万'],['月々','14.34万']],
+   cause:[['参考プランで先に契約','28日目','打ち合わせ19回、別途が積み上がる','契約後'],['担当が引き継がれる','契約後','頼んだ造作が入っていない','引き渡し']]},
+ '03':{name:'世界03',path:['B工務店（全部入る）','着工金50%で値引き'],third:[],
+   front:'森社長「値段は大手さんより、だいぶ頑張れる。ははは」',back:'本音：資金繰りが3か月前から苦しかった。着工金を前の現場に回したい。',
+   led:[['払った額','1,950万'],['戻らない','約800万'],['状態','更地']],
+   cause:[['着工金を厚く払う','着工','上棟の2か月後に職人が来ない','上棟後'],['完成保証を確かめない','契約時','工事を引き継ぐ会社がない','停止後']]},
+};
+// ---- 配置 ----
+const X0=110,DX=240,LX=1110,Y0=134,DY=55;
+const pos={};
+L.forEach((l,i)=>{l.y=Y0+i*DY;});
+function leafY(nid){return L.filter(l=>isDesc(l.p,nid)).map(l=>l.y)}
+function isDesc(p,nid){while(p){if(p===nid)return true;p=N[p].p}return false}
+for(const k in N){const ys=leafY(k);pos[k]={x:X0+N[k].d*DX,y:ys.reduce((a,b)=>a+b,0)/ys.length}}
+const forks=['会社選び','間取り','契約','仕様'];
+// 葉ごとの色
+function leafCol(l){return l.k==='you'?'#e8553a':l.k==='det'?'#3a6ea8':l.k==='slot'?'#7b5cd6':'#c9c4b9'}
+function pathColor(nid){ // その枝の下にある葉で一番強いもの
+  const ls=L.filter(l=>isDesc(l.p,nid));
+  if(ls.some(l=>l.k==='you'))return '#e8553a'; if(ls.some(l=>l.k==='det'))return '#3a6ea8'; return '#c9c4b9';}
+// ---- 状態 ----
+let sel='07',showBack=false,ifEv={node:'C',t0:7.0,text:'父の言う和室を、本格的につくっていたら？',auto:true};
+const sv=$('sv');
+function curve(x1,y1,x2,y2){const mx=(x1+x2)/2;return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`}
+function dog(x1,y1,x2,y2){return `M${x1},${y1} L${x1+30},${y1} L${x1+30},${y2} L${x2},${y2}`}
+// ---- render(t) ----
+function render(t){
+  let h='';
+  // 列の見出し
+  forks.forEach((f,i)=>{const x=X0+(i+1)*DX;h+=`<line x1="${x}" y1="104" x2="${x}" y2="1000" stroke="#e6e2d8" stroke-width="1"/>`;
+    h+=`<text x="${x}" y="98" font-size="16" fill="#77736b" text-anchor="middle">分かれ道${i+1}　${f}</text>`});
+  h+=`<text x="${LX+56}" y="98" font-size="16" fill="#77736b">1年後</text>`;
+  // 枝
+  for(const k in N){const n=N[k];if(!n.p)continue;const a=pos[n.p],b=pos[k];
+    const g=ease(lin(t,(n.d-1)*0.7,(n.d-1)*0.7+0.9));
+    const col=n.third?'#7b5cd6':pathColor(k);const w=col==='#c9c4b9'?2:4;
+    const d=n.third?dog(a.x,a.y,b.x,b.y):curve(a.x,a.y,b.x,b.y);
+    h+=`<path d="${d}" fill="none" stroke="${col}" stroke-width="${w}" pathLength="1" stroke-dasharray="1" stroke-dashoffset="${1-g}" stroke-linecap="round"/>`;
+    if(g>.95){h+=`<circle cx="${b.x}" cy="${b.y}" r="${n.third?7:6}" fill="${n.third?'#7b5cd6':'#fff'}" stroke="${col}" stroke-width="2" data-n="${k}" style="cursor:pointer" ${n.third?'transform="rotate(45 '+b.x+' '+b.y+')"':''}/>`;
+      h+=`<text x="${n.d===4?b.x-10:b.x+10}" y="${b.y-10}" text-anchor="${n.d===4?'end':'start'}" font-size="14" fill="${n.third?'#5b3fc0':'#4a4741'}" font-weight="${n.third?700:500}">${n.t}</text>`;}
+  }
+  // 葉への線
+  L.forEach(l=>{if(!l.p)return;const a=pos[l.p];const g=ease(lin(t,3.0,3.8));const col=leafCol(l)==='#7b5cd6'?'#7b5cd6':leafCol(l);
+    const third=N[l.p].third&&l.k==='you';
+    h+=`<path d="${curve(a.x,a.y,LX,l.y)}" fill="none" stroke="${third?'#7b5cd6':col}" stroke-width="${l.k==='sum'?2:4}" ${l.k==='sum'?'stroke-dasharray="1"':'stroke-dasharray="1"'} pathLength="1" stroke-dashoffset="${1-g}"/>`;});
+  // もし、あのとき：受け皿16に新しい枝が入る
+  const ifg=ease(lin(t,ifEv.t0,ifEv.t0+1.4));
+  const slot=L.find(l=>l.k==='slot');
+  if(ifg>0){const a=pos[ifEv.node];h+=`<path d="${dog(a.x,a.y,LX,slot.y)}" fill="none" stroke="#7b5cd6" stroke-width="4" pathLength="1" stroke-dasharray="1" stroke-dashoffset="${1-ifg}"/>`;
+    if(ifg>.9)h+=`<text x="640" y="${slot.y+24}" font-size="14" fill="#5b3fc0" font-weight="700">もし、あのとき：${ifEv.text}</text>`;}
+  // 葉（白模型のサムネイル＋番号＋一言）
+  L.forEach(l=>{const g=lin(t,3.5,4.2);const c=leafCol(l);const on=sel===l.id;
+    const filled=l.k==='slot'&&ifg>=1;
+    h+=`<g transform="translate(${LX},${l.y})" opacity="${g}" data-l="${l.id}" style="cursor:pointer">`;
+    h+=`<rect x="0" y="-22" width="320" height="44" rx="10" fill="${on?'#fff':'transparent'}" stroke="${on?c:'transparent'}" stroke-width="2"/>`;
+    if(l.k==='slot'&&!filled){h+=`<rect x="10" y="-16" width="32" height="32" rx="6" fill="none" stroke="#7b5cd6" stroke-dasharray="4 3"/>`}
+    else h+=mini(26,8,l);
+    h+=`<text x="56" y="-2" font-size="17" font-weight="900" fill="${c==='#c9c4b9'?'#8f8a80':c}">世界${l.id}${l.k==='you'?'（あなた）':''}</text>`;
+    const s=filled?'もし、あのとき：和室を本格的に。+180万円、外構はさらに先へ（試算）':l.s;
+    h+=`<text x="56" y="16" font-size="12.5" fill="#6b675f">${s.length>20?s.slice(0,20)+'…':s}</text></g>`;});
+  sv.innerHTML=h;
+}
+function mini(cx,cy,l){ // ちいさな白模型：変化した部分だけ色
+  const s=1.5,P=(x,y,z)=>[(cx+(x-y)*.866*s*3).toFixed(1),(cy+(x+y)*.5*s*3-z*s*3).toFixed(1)].join(',');
+  const pg=(pts,f)=>`<polygon points="${pts.map(p=>P(...p)).join(' ')}" fill="${f}" stroke="#b9b4aa" stroke-width=".6"/>`;
+  const acc={ '07':'#f2a63a','15':'#5b8fd6','11':'#f2a63a','03':null,'12':'#9fc3e8','06':'#8fa3b8','08':'#b5736b','13':'#a7b98a','14':'#f2a63a','09':'#8fa3b8','01':'#7fb3a0','02':'#d9c3a5','04':'#c98b5a','05':'#cdb8d9','10':'#cdb8d9','16':'#7b5cd6'}[l.id];
+  if(l.id==='03')return pg([[-2,-2,0],[2,-2,0],[2,2,0],[-2,2,0]],'#d5cfc2');
+  return pg([[-2,2,0],[2,2,0],[2,2,2.4],[-2,2,2.4]],'#ebe9e3')+pg([[2,-2,0],[2,2,0],[2,2,2.4],[2,-2,2.4]],'#d7d4cc')+pg([[-2,-2,2.4],[2,-2,2.4],[2,2,2.4],[-2,2,2.4]],'#fdfcf9')+pg([[2.01,-1.2,.5],[2.01,1.2,.5],[2.01,1.2,1.7],[2.01,-1.2,1.7]],acc||'#e4e8ec');
+}
+// ---- パネル ----
+function panel(){
+  const l=L.find(x=>x.id===sel),d=DET[sel];let h='';
+  if(d){
+    h+=`<h2>${d.name}<span class="k" style="background:${leafCol(l)}">${l.k==='you'?'あなたの世界':'くわしく見られる世界'}</span></h2>`;
+    h+=`<div class="sec"><div class="lab">たどった分かれ道</div><div class="chips">${d.path.map((p,i)=>`<span class="${d.third.includes(i)?'third':''}">${p}</span>`).join('')}</div></div>`;
+    h+=`<div class="sec"><div class="lab">表の言葉と本音</div><div id="tg"><span class="${showBack?'':'on'}">表</span><span class="${showBack?'on':''}">本音</span></div><div class="say ${showBack?'back':''}">${showBack?d.back:d.front}</div></div>`;
+    h+=`<div class="sec"><div class="lab">お金（エンジンの計算）</div><div id="led">${d.led.map(x=>`<div>${x[0]}<b>${x[1]}</b></div>`).join('')}</div></div>`;
+    h+=`<div class="sec"><div class="lab">時間差の因果（種 → 芽）</div>${d.cause.map(c=>`<div class="cause"><div class="a">${c[0]}<small>${c[1]}</small></div><div class="ar">→</div><div class="b">${c[2]}<small>${c[3]}</small></div></div>`).join('')}</div>`;
+  }else{
+    h+=`<h2>世界${l.id}<span class="k" style="background:${l.k==='slot'?'#7b5cd6':'#a39e94'}">${l.k==='slot'?'受け皿':'概略だけの世界'}</span></h2>`;
+    h+=`<div class="sec"><div class="lab">この世界の概略</div><p>${l.s}</p></div>`;
+    if(l.p){let p=l.p,ch=[];while(p&&p!=='root'){ch.unshift(N[p].t);p=N[p].p}h+=`<div class="sec"><div class="lab">たどった分かれ道</div><div class="chips">${ch.map(c=>`<span>${c}</span>`).join('')}</div></div>`}
+  }
+  h+=`<div id="ifbox"><div class="lab">もし、あのとき</div><input id="ifin" value="${ifEv.text}"><button id="ifgo">この分かれ道から、別の答えを試す</button><div class="hint">線の上の点を押すと、そこから先だけを作り直します。結果は受け皿（世界16）に入ります。</div></div>`;
+  $('panel').innerHTML=h;
+  const tg=$('tg');if(tg)tg.onclick=()=>{showBack=!showBack;panel()};
+  $('ifgo').onclick=()=>{ifEv={node:ifEv.node,t0:now()+0.1,text:$('ifin').value,auto:false}};
+}
+sv.addEventListener('click',e=>{const g=e.target.closest('[data-l]');if(g){sel=g.dataset.l;showBack=false;panel();return}
+  const n=e.target.closest('[data-n]');if(n){ifEv={node:n.dataset.n,t0:now()+0.1,text:'ここで、もう一方を選んでいたら？',auto:false};panel()}});
+const t0=performance.now();const now=()=>(performance.now()-t0)/1000;
+window.render=render;window.seek=t=>render(t);window.DUR=9;
+panel();
+(function loop(){if(!window.PAUSE)render(now());requestAnimationFrame(loop)})();
+</script>
+</body>
+</html>

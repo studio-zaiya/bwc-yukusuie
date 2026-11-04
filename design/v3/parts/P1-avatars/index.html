@@ -1,0 +1,44 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>P1 担当者のアバターと口調 v3</title>
+<link rel="stylesheet" href="../_shared/v3.css">
+<script src="../../../../app/engine.js"></script><script src="../../../../app/iso.js"></script>
+<style>
+.ttl{position:absolute;left:60px;top:44px}
+.ttl h1{font-family:var(--fr);font-weight:900;font-size:40px}
+.ttl p{font-size:19px;color:var(--ink2);margin-top:4px}
+.cols{position:absolute;left:60px;right:60px;top:160px;bottom:60px;display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+.col{background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:22px 22px 18px;display:flex;flex-direction:column;gap:14px}
+.col .hd{display:flex;align-items:center;gap:12px}
+.col .hd .co{width:40px;height:40px;font-size:20px}
+.col .hd b{font-size:24px}
+.col .hd small{display:block;font-size:15px;color:var(--ink2)}
+.col .big{display:flex;justify-content:center;background:linear-gradient(#EEF6FB,#FFFAF0);border-radius:14px;padding-top:10px}
+.tone{font-size:16px;font-weight:700;display:inline-block;border:1.5px solid var(--ink);border-radius:999px;padding:2px 12px;align-self:flex-start}
+.line{font-size:19px;line-height:1.6;background:#F4F1EA;border-radius:12px;padding:12px 14px;min-height:150px}
+.states{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:auto}
+.states figure{display:flex;flex-direction:column;align-items:center;font-size:13px;color:var(--ink2)}
+.how{font-size:15px;color:var(--ink2);line-height:1.6}
+</style></head>
+<body><div id="stage"><div id="view"></div></div>
+<script src="../../../v2/layout/common.js"></script>
+<script src="../_shared/v3.js"></script>
+<script>
+const LOOK = { A: 'スーツにネクタイ、整えた髪', B: '明るい色のジャケットに名札、立てた髪', C: 'ニットに眼鏡、少し長めの前髪', D: 'ベストに作業着の名残、笑いじわ' };
+document.getElementById('view').innerHTML = `
+<div class="ttl"><h1>担当者のアバターと口調</h1><p>線画のSVG。表情は「待機・考え中・話す・笑顔」の4つで、CSSのクラスを切り替えるだけで動きます（まばたきは常に）。</p></div>
+<div class="cols">${['A', 'B', 'C', 'D'].map(k => { const s = V3.STAFF[k], c = YKS.COMPANIES[k]; return `
+  <div class="col">
+    <div class="hd">${V3.coTag(k, 40)}<div><b>${s.role}・${s.name}</b><small>${c.name}（${c.kind}）</small></div></div>
+    <div class="big">${V3.avatar(k, 230, 'idle', `data-k="${k}"`)}</div>
+    <span class="tone">口調：${s.tone}</span>
+    <div class="line">「${s.line}」</div>
+    <div class="how">見た目：${LOOK[k]}</div>
+    <div class="states">${[['idle', '待機'], ['think', '考え中'], ['talk', '話す'], ['smile', '笑顔']].map(([st, lb]) => `<figure>${V3.avatar(k, 84, st)}<figcaption>${lb}</figcaption></figure>`).join('')}</div>
+  </div>`; }).join('')}</div>
+<div class="ctrl"><button id="play">4人の表情を順に再生</button></div>`;
+document.getElementById('play').onclick = () => {
+  const seq = ['think', 'talk', 'smile', 'idle']; let i = 0;
+  const step = () => { document.querySelectorAll('.big svg.av').forEach(a => V3.setFace(a, seq[i])); i++; if (i < seq.length) setTimeout(step, 1400); };
+  step();
+};
+</script></body></html>

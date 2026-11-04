@@ -1,0 +1,92 @@
+<title>前振りとデザインコード</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Maru+Gothic:wght@700&display=swap">
+<style>
+/* Layout: 左に5つの項目（前振り4案＋デザインコード見本）、右に再生面と要約。狭い画面では縦に積む */
+:root{
+  --paper:#fffaf0; --panel:#ffffff; --ink:#1e2b36; --muted:#5f6b74; --line:#e7dcc8;
+  --kazu:#e8701f; --yuu:#1c8dcc; --stage:#1b2440;
+  --f-display:"Hiragino Maru Gothic ProN","Zen Maru Gothic","Hiragino Sans",sans-serif;
+  --f-body:"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic","Noto Sans JP",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#171c24; --panel:#212834; --ink:#eef1f3; --muted:#a8b2ba; --line:#333d4b;
+  --kazu:#f2893f; --yuu:#4aa9e0; --stage:#0e1320; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#171c24; --panel:#212834; --ink:#eef1f3; --muted:#a8b2ba; --line:#333d4b;
+  --kazu:#f2893f; --yuu:#4aa9e0; --stage:#0e1320; color-scheme:dark}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);line-height:1.7}
+.wrap{max-width:1400px;margin:0 auto;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+h1{font-family:var(--f-display);font-size:clamp(22px,3vw,30px);margin:0;text-wrap:balance}
+header p{margin:4px 0 0;color:var(--muted);font-size:13px;max-width:64ch}
+.main{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:1fr}}
+.list{display:grid;gap:6px}
+.group{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.06em;margin:8px 0 2px}
+.item{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;text-align:left;font:inherit;color:inherit;background:transparent;border:1px solid transparent;border-radius:10px;padding:8px 10px;cursor:pointer}
+.item:hover{background:var(--panel)}
+.item[aria-current="true"]{background:var(--panel);border-color:var(--line)}
+.item:focus-visible,a:focus-visible{outline:2px solid var(--yuu);outline-offset:2px}
+.num{font-family:var(--f-display);font-size:15px;color:var(--kazu)}
+.item b{display:block;font-size:14px;line-height:1.4}
+.item span{display:block;font-size:12px;color:var(--muted);line-height:1.4}
+.viewer{display:grid;gap:14px;min-width:0}
+.stage{position:relative;width:100%;max-width:100%;aspect-ratio:16/9;background:var(--stage);border-radius:10px;overflow:hidden}
+.stage.tall{aspect-ratio:auto;height:78vh;background:var(--panel)}
+.stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.meta{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:grid;gap:10px;min-width:0}
+.meta h2{margin:0;font-family:var(--f-display);font-size:19px;text-wrap:balance}
+.meta p{margin:0;font-size:14px;max-width:72ch}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 20px;font-size:13px;margin:0}
+.facts dt{font-weight:700;color:var(--muted);font-size:12px}
+.facts dd{margin:0}
+.open{font-size:13px;color:var(--yuu);font-weight:700}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>前振りとデザインコード</h1>
+    <p>前振り（背景・問題提起）を4つの見せ方で試作したものと、UIと動画に共通するデザインコードの見本です。どれも一から書いた試作で、数字の一部は公表元での確認がまだです。</p>
+  </header>
+  <div class="main">
+    <nav class="list" id="list" aria-label="案の一覧"></nav>
+    <section class="viewer">
+      <div class="stage" id="stage"><iframe id="frame" title="選んだ案の再生"></iframe></div>
+      <div class="meta">
+        <h2 id="m-name"></h2>
+        <p id="m-sum"></p>
+        <dl class="facts">
+          <div><dt>尺・手間</dt><dd id="m-cost"></dd></div>
+          <div><dt>弱点（作った本人の評）</dt><dd id="m-weak"></dd></div>
+        </dl>
+        <a class="open" id="m-open" href="#" target="_blank" rel="noopener">別のタブで大きく開く</a>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+const P=[
+ {g:"前振り",k:"A",src:"A-numbers/intro.html",name:"数字で見る、家づくりの今",
+  s:"白地の上で大きな数字が回って止まり、同じアイコンを並べて量を見せる。最後は世界線が16本に分かれ、先の3つが光って「見られるのは16のうち3つだけ」。",
+  c:"44秒。磨くなら4〜5時間。",w:"1場面4〜5秒で字幕を読み切れない場面がある。記号的な絵で、山場の絵柄とずれやすい。"},
+ {g:"前振り",k:"B",src:"B-family/intro.html",name:"ひと組の家族の物語",
+  s:"後ろ姿の家族が明るいアイソメの場面を歩く。展示場の値札、スマホからあふれる付箋、両側の吹き出しと回る時計。数字は看板や札として場面に置く。",
+  c:"46秒。仕上げに5〜6時間。",w:"1場面4秒前後で忙しい。人物が小さく、家族に気持ちが寄りにくい。"},
+ {g:"前振り",k:"C",src:"C-line/intro.html",name:"1本の線の一筆書き",
+  s:"明るい方眼紙の上を1本の線が描き進み、場面から場面へつながる。描き終えた線は薄くなり、最後に16本の先が色の違う16軒の家に変わる。",
+  c:"44秒。4〜6時間。",w:"省エネやリフォームの場面が地味。文字が多めで約4秒では読み切れない行がある。"},
+ {g:"前振り",k:"D",src:"D-slides/intro.html",name:"1枚に、ひとつ。",
+  s:"12枚のスライド。1枚に1つのことを大きな文字と数字で。背景では夫婦の2色の世界線が薄く育ち、最後に前に出て16本に分かれる。",
+  c:"約62秒（短縮版で約47秒）。3〜4時間。",w:"正攻法で驚きは少なめ。背景の線が動画の圧縮で消えるおそれ。大工の数字は記憶にもとづく値で未確認。"},
+ {g:"デザインコード",k:"見本",src:"design-code/specimen.html",name:"色・文字・部品の見本",tall:true,
+  s:"昼の分譲地を基調に、かず＝橙、ゆう＝空色寄りの青。第3の答えは金で、色だけでなく線と印（■・●・◆）でも区別する。住宅会社A〜Dは同じ墨の札で形だけを変え、どれも正解に見せない。家の状態も色ではなく形で見せる。",
+  c:"文字の大きさ、数字の書式、使う動き・使わない動き、書き出し前のチェックリストまで。",w:"確認は代わりの書体で行ったもの。ヒラギノでは字幅が少し変わる。"}
+];
+let cur=0;const $=id=>document.getElementById(id);
+function list(){let h="",g="";P.forEach((p,i)=>{if(p.g!==g){g=p.g;h+=`<div class="group">${g}</div>`}h+=`<button class="item" type="button" data-i="${i}" aria-current="${i===cur}"><span class="num">${p.k}</span><div><b>${p.name}</b><span>${p.g}</span></div></button>`});$("list").innerHTML=h}
+function show(){const p=P[cur];if($("frame").getAttribute("src")!==p.src)$("frame").setAttribute("src",p.src);$("stage").classList.toggle("tall",!!p.tall);$("m-name").textContent=p.name;$("m-sum").textContent=p.s;$("m-cost").textContent=p.c;$("m-weak").textContent=p.w;$("m-open").href=p.src;list()}
+$("list").addEventListener("click",e=>{const b=e.target.closest(".item");if(!b)return;cur=+b.dataset.i;show()});
+show();
+</script>

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="../../../../app/engine.js"></script><script src="../../../../app/iso.js"></script><script src="../../play/common.js"></script><script src="../_s.js"></script>
+<title>S5 契約</title>
+<style>
+.doc{position:absolute;right:30px;top:62px;width:440px;background:#fff;border:1.5px solid rgba(30,43,54,.35);border-radius:6px;box-shadow:0 12px 30px rgba(30,43,54,.14);padding:20px 24px;z-index:3;transform:rotate(1.2deg)}
+.doc h3{font-size:22px;font-weight:700;text-align:center;letter-spacing:.2em;border-bottom:2px double var(--ink);padding-bottom:8px;margin-bottom:8px}
+.doc table.kv{font-size:17.5px;margin-top:4px}
+.loan{position:absolute;right:30px;top:436px;width:440px;background:rgba(255,255,255,.96);border:1.5px solid rgba(30,43,54,.3);border-radius:14px;padding:12px 18px;z-index:3}
+.loan .t{font-size:15px;color:var(--ink2);font-weight:700}
+.loan .r{display:flex;justify-content:space-between;align-items:baseline;font-size:18px;margin-top:4px}
+.loan .r b{font-family:var(--fr);font-weight:900;font-size:24px;font-variant-numeric:tabular-nums}
+.hero > svg{left:40px!important}
+</style></head>
+<body><div id="stage"><div id="view"></div></div>
+<script>
+S.mountStatic(() => {
+  const L = S.L, Y = S.Y, H = S.H, man = S.man, sim = S.SIM, p = 5.3;
+  const me = L.worldsAt(p)[L.YOU - 1];
+  const amount = S.BASE.quote.real + sim.diff;
+  const lc = Y.loanCheck(H, sim.principal);
+  const days = S.W(L.YOU).days - 120;
+  document.getElementById('view').innerHTML = `
+  ${S.chrome(p, 'contract', { clocks: L.clocks(p) + '<span class="clk soft">土地：契約済み</span>' })}
+  <div class="hero">
+    <div class="lab"><span class="no">07</span>あなたの家　${L.coTag('C', 28)}Cデザイン</div>
+    ${L.bigHouse(me.w, me.stage, { ghost: me.ghost })}
+    <div class="doc"><h3>工事請負契約書</h3>
+      <table class="kv">
+        <tr><td>請負金額</td><td><b style="font-size:22px">${man(amount)}万円</b></td></tr>
+        <tr><td>工事の内容</td><td>木造2階建て 34坪</td></tr>
+        <tr><td>含むもの</td><td><small>付帯工事・外構・諸費用</small></td></tr>
+        <tr><td>工期</td><td>着工から約${days}日</td></tr>
+        <tr><td>注文者</td><td>かず・ゆう</td></tr>
+        <tr><td>請負者</td><td>Cデザイン</td></tr>
+      </table></div>
+    <div class="loan"><div class="t">住宅ローンの本審査</div>
+      <div class="r"><span>借入金額</span><b>${man(sim.principal)}万円</b></div>
+      <div class="r"><span>返済負担率（審査金利で計算）</span><b>${lc.ratio}%</b></div>
+      <div class="r"><span>月々の返済（変動 年${Y.RATE.variable * 100}%）</span><b>約${lc.monthly.toFixed(1)}万円</b></div>
+      <div class="r" style="font-size:16px;color:var(--ink2)"><span>結果</span><span>${lc.ok ? '承認' : '再検討'}</span></div></div>
+  </div>
+  <div class="right"><div class="chat" style="height:100%">
+    <div class="log" style="justify-content:flex-start">
+      <div class="msg"><div class="who">${L.coTag('C', 18)}Cデザイン・設計・佐々木</div>請負契約の書類です。図面と見積の内容を、ご確認ください。この金額に、付帯工事と外構、諸費用まで入っています。</div>
+      <div class="msg me"><div class="who"><i class="sq"></i>かず</div>窓の変更も、入っていますか。</div>
+      <div class="msg"><div class="who">${L.coTag('C', 18)}Cデザイン・設計・佐々木</div>はい。南の大きな窓のトリプルガラスも、この金額に含めています。</div>
+    </div>
+    <div class="opts"><button class="opt" style="background:var(--ink);color:var(--paper)">署名する</button><button class="opt">もう一度確認する</button></div>
+    ${S.navs(1)}
+    <div class="in"><input placeholder="担当者に、自由に伝える・聞く"><button class="btn">送る</button></div></div></div>
+  ${L.caster([{ who: 'C', text: '気になる点は、今のうちに。' }, { who: 'kazu', text: '別途の欄も、見ておこう。' }])}
+  ${S.gallery(p)}`;
+});
+</script></body></html>

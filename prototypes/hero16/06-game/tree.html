@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>世界樹：ひらめきのスキルツリー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=M+PLUS+Rounded+1c:wght@500;800&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;background:#2b2b45;overflow:hidden;font-family:"M PLUS Rounded 1c",sans-serif}
+  #wrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+  svg{width:2400px;height:1350px;flex:none;transform-origin:center center}
+  .dot{font-family:"DotGothic16",monospace}
+  .rd{font-family:"M PLUS Rounded 1c",sans-serif;font-weight:800}
+  .leaf{cursor:pointer}
+  .leaf:hover .lbg{filter:brightness(1.06)}
+</style>
+</head>
+<body>
+<div id="wrap"><svg id="s" viewBox="0 0 2400 1350" xmlns="http://www.w3.org/2000/svg"></svg></div>
+<script>
+// ===== 世界樹：ひらめきのスキルツリー（ゲームUIの文法）=====
+// 描画は時刻 t の関数 render(t)。クリックで選ぶ世界だけが状態として変わる。
+const NS='http://www.w3.org/2000/svg',S=document.getElementById('s');
+const C={ink:'#2b2b45',cream:'#fff6e0',kaz:'#ff9a3c',yuu:'#22bfa8',gold:'#ffcc33',pink:'#ff6f91',red:'#ef5350',blue:'#5b8def',green:'#4caf6a',grey:'#a9a4b8'};
+const KCOL={ok:C.green,warn:C.kaz,bad:C.red,cold:C.blue,me:C.gold};
+const cl=(x,a=0,b=1)=>Math.max(a,Math.min(b,x)),seg=(t,a,b)=>cl((t-a)/(b-a)),eo=x=>1-Math.pow(1-x,3);
+function el(tag,at={},parent=S){const e=document.createElementNS(NS,tag);for(const k in at)e.setAttribute(k,at[k]);parent.appendChild(e);return e}
+function tx(s,x,y,size,col=C.ink,cls='dot',anchor='start',parent=S){const e=el('text',{x,y,'font-size':size,fill:col,class:cls,'text-anchor':anchor},parent);e.textContent=s;return e}
+
+// ---- 世界の中身 ----
+const WD={
+ '05':{co:'Dホーム',ln:'太陽光つきの規格住宅',st:'オプション+150万',k:'warn',sum:'決算キャンペーンで即決。早くて安いが、標準が最低限で、気づけばオプションが積み上がった。'},
+ '07':{co:'Cデザイン',ln:'窓だけトリプル、南だけ庇',st:'冬もあたたか',k:'me',sum:'2択の外側を2回選んだ世界。外構はまだ砂利だが、2月の朝も足元が冷えない。',me:true,stats:[.92,.88,.46,.7]},
+ '15':{co:'Cデザイン',ln:'標準の窓で大きく',st:'2月の朝が寒い',k:'cold',sum:'あなたとほとんど同じ。違ったのは南の窓のガラスだけ。「新築1年目の冬」の投稿は、この世界から流れてきた。',stats:[.38,.88,.62,.78]},
+ '09':{co:'Cデザイン',ln:'勾配屋根の家',st:'雨だれ知らず',k:'ok',sum:'ゆうの「ナチュラル」に寄せた世界。軒が外壁を守り、10年後の塗り替えが少し先になった。'},
+ '14':{empty:true},
+ '06':{co:'Cデザイン',ln:'借りて外構もそろえた',st:'返済が月+1.1万',k:'ok',sum:'入居の日から家の顔がそろった。そのかわり、毎月の返済が少しだけ重い。'},
+ '13':{empty:true},
+ '12':{co:'Cデザイン',ln:'外構を残し、標準窓',st:'2月の朝が寒い',k:'cold',sum:'カーポートで霜取りは要らない。けれど、リビングの足元が冷える。'},
+ '02':{co:'Cデザイン',ln:'勾配屋根の木の家',st:'ナチュラルに',k:'ok',sum:'外構もキッチンも少しずつ。どちらの願いも7割ずつかなえた、穏やかな世界。'},
+ '01':{co:'Cデザイン',ln:'外構を残し、既製のキッチン',st:'台所は既製品',k:'warn',sum:'かずの「家の顔」は完成。毎日立つ台所は、カタログのものになった。'},
+ '10':{co:'Cデザイン',ln:'父の和室を入れた',st:'予算+180万',k:'warn',sum:'お正月はみんなで泊まれる。そのぶん、うさぎの庭が小さくなった。'},
+ '03':{co:'B工務店',ln:'全部入りの家、着工金は半分',st:'上棟後に倒産',k:'bad',sum:'値引きのかわりに代金の半分を先払い。上棟の2か月後に職人が来なくなり、更地に戻った。',stats:[0,0,0,.1]},
+ '04':{co:'B工務店',ln:'前払いを抑えた',st:'倒産、損失は小',k:'warn',sum:'同じく工事は止まったが、払いすぎていなかった。別の会社が引き継ぎ、半年遅れで完成。'},
+ '08':{co:'B工務店',ln:'外構込みの一式',st:'口約束で追加請求',k:'warn',sum:'「それはサービスで」の約束が、引き渡しの日に請求書になった。'},
+ '16':{empty:true},
+ '11':{co:'Aハウス',ln:'月末に仮契約',st:'契約後+380万',k:'bad',sum:'150万円分のグレードアップに惹かれて月末に契約。打ち合わせは19回、別途が積み上がった。',stats:[.8,.6,.82,.3]},
+};
+// ---- 木の形（w：その枝を勝ちとった人 kaz/yuu/gold=ひらめき/ink=どちらでもない/socket=空き）----
+const T={id:'R',lb:'ふたりの要望 28項目',kind:'root',ch:[
+ {id:'F1',lb:'どこで建てる？',kind:'fork',no:1,w:'ink',ch:[
+   {w:'gold',lb:'Dホームで太陽光',kind:'idea',ch:[{leaf:'05',w:'gold'}]},
+   {w:'ink',lb:'Cデザインで絞る',kind:'choice',ch:[
+     {id:'F2',lb:'キッチンか外構か',kind:'fork',no:2,w:'ink',ch:[
+       {w:'yuu',lb:'造作キッチン',kind:'choice',ch:[
+         {id:'F3',lb:'借入をふやす？',kind:'fork',no:3,w:'yuu',ch:[
+           {w:'gold',lb:'窓だけトリプル',kind:'idea',ch:[{w:'gold',lb:'箱型＋南だけ庇',kind:'idea',ch:[{leaf:'07',w:'gold'}]}]},
+           {w:'ink',lb:'予算内で',kind:'choice',ch:[
+             {id:'F4',lb:'屋根は？',kind:'fork',no:4,w:'ink',ch:[{leaf:'15',w:'kaz',lb:'箱型'},{leaf:'09',w:'yuu',lb:'勾配屋根'},{leaf:'14',w:'socket'}]}]},
+           {leaf:'06',w:'kaz',lb:'外構をとりもどす'},
+           {leaf:'13',w:'socket'}]}]},
+       {w:'kaz',lb:'外構',kind:'choice',ch:[
+         {id:'F3b',lb:'窓と仕上げは？',kind:'fork',no:3,w:'kaz',ch:[{leaf:'12',w:'ink',lb:'標準窓'},{leaf:'02',w:'yuu',lb:'木の家に'},{leaf:'01',w:'ink',lb:'既製キッチン'}]}]},
+       {w:'gold',lb:'父の和室を入れる',kind:'idea',ch:[{leaf:'10',w:'gold'}]}]}]},
+   {w:'ink',lb:'B工務店で全部入り',kind:'choice',ch:[
+     {id:'F3c',lb:'着工金は？',kind:'fork',no:3,w:'ink',ch:[{leaf:'03',w:'ink',lb:'半分を前払い'},{leaf:'04',w:'ink',lb:'前払いを抑える'},{leaf:'08',w:'kaz',lb:'外構込み一式'},{leaf:'16',w:'socket'}]}]},
+   {w:'gold',lb:'月末に仮契約',kind:'idea',ch:[{leaf:'11',w:'gold'}]}]}]};
+const DETAIL=new Set(['07','15','03','11']);
+const MEPATH=new Set();
+
+// ---- 自動の並べ方 ----
+const LX=1640,LW_S=330,LW_D=390,TOP=140;
+let yCur=TOP;const leaves=[];
+function layout(n,d,parent){
+  n.d=d;n.parent=parent;
+  if(n.leaf){const big=DETAIL.has(n.leaf),h=big?108:40;n.h=h;n.y=yCur+h/2;yCur+=h+(big?12:9);n.x=LX;leaves.push(n);return}
+  n.ch.forEach(c=>layout(c,d+1,n));
+  n.y=n.ch.reduce((a,c)=>a+c.y,0)/n.ch.length;n.x=170+d*198;
+}
+layout(T,0,null);
+(function mark(n){if(n.leaf==='07'){let p=n;while(p){MEPATH.add(p);p=p.parent}}(n.ch||[]).forEach(mark)})(T);
+
+// ---- 背景 ----
+const defs=el('defs');
+const pat=el('pattern',{id:'dots',width:30,height:30,patternUnits:'userSpaceOnUse'},defs);el('circle',{cx:15,cy:15,r:1.6,fill:'rgba(43,43,69,.13)'},pat);
+const glow=el('filter',{id:'glow',filterUnits:'userSpaceOnUse',x:0,y:0,width:2400,height:1350},defs);el('feGaussianBlur',{stdDeviation:10,result:'b'},glow);const fm=el('feMerge',{},glow);el('feMergeNode',{in:'b'},fm);el('feMergeNode',{in:'SourceGraphic'},fm);
+const grad=el('linearGradient',{id:'bg',x1:0,y1:0,x2:0,y2:1},defs);el('stop',{offset:0,'stop-color':'#fffaf0'},grad);el('stop',{offset:1,'stop-color':'#ffe9c7'},grad);
+el('rect',{width:2400,height:1350,fill:'url(#bg)'});el('rect',{width:2400,height:1350,fill:'url(#dots)'});
+
+// 見出し
+tx('世界樹',60,92,64,C.ink,'rd');
+tx('同じふたりの、16通りの家づくり',290,88,30,C.ink);
+const head=el('g',{});
+function chip(x,y,w,label,col,parent){const g=el('g',{transform:`translate(${x},${y})`},parent);el('rect',{x:0,y:-36,width:w,height:52,rx:26,fill:'#fff',stroke:C.ink,'stroke-width':4},g);el('circle',{cx:28,cy:-10,r:11,fill:col},g);tx(label,50,0,26,C.ink,'dot','start',g);return g}
+chip(1640,92,260,'解放 13 / 16',C.gold,head);
+chip(1920,92,240,'くわしく 4',C.pink,head);
+chip(2180,92,190,'空き 3',C.grey,head);
+
+// 凡例
+const lg=el('g',{transform:'translate(60,1300)'});
+[['かずの願いが通った枝',C.kaz],['ゆうの願いが通った枝',C.yuu],['ひらめき（第3の答え）',C.gold],['どちらでもない',C.ink]].forEach(([s,c],i)=>{el('rect',{x:i*330,y:-14,width:44,height:12,rx:6,fill:c},lg);tx(s,i*330+56,0,24,C.ink,'dot','start',lg)});
+el('rect',{x:1320,y:-14,width:44,height:12,rx:6,fill:'none',stroke:C.ink,'stroke-width':3,'stroke-dasharray':'8 6'},lg);tx('空きスロット：次のひらめきが入る',1376,0,24,C.ink,'dot','start',lg);
+
+// ---- 枝 ----
+const edges=[];
+const gE=el('g',{}),gN=el('g',{}),gL=el('g',{}),gP=el('g',{});
+function colOf(w){return w==='kaz'?C.kaz:w==='yuu'?C.yuu:w==='gold'?C.gold:w==='socket'?C.grey:C.ink}
+(function walk(n){(n.ch||[]).forEach(c=>{
+  const x1=n.x+(n.kind==='fork'||n.kind==='root'?30:10),y1=n.y,x2=c.leaf?c.x:c.x-10,y2=c.y,mx=(x1+x2)/2;
+  const d=`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+  const me=MEPATH.has(c),big=c.leaf&&DETAIL.has(c.leaf);
+  const w=me?12:big?8:c.leaf?5:7;
+  const p=el('path',{d,fill:'none',stroke:colOf(c.w),'stroke-width':w,'stroke-linecap':'round',opacity:c.w==='ink'?.55:1},gE);
+  if(c.w==='socket')p.setAttribute('stroke-dasharray','10 9');
+  if(me)p.setAttribute('filter','url(#glow)');
+  const L=p.getTotalLength();edges.push({p,L,d:c.d,socket:c.w==='socket'});
+  if(c.leaf&&c.lb){const lt=tx(c.lb,x2-24,y2-12,20,colOf(c.w)==C.ink?C.ink:colOf(c.w),'dot','end',gE);lt.setAttribute('paint-order','stroke');lt.setAttribute('stroke','#fff8ea');lt.setAttribute('stroke-width',6)}
+  walk(c)})})(T);
+
+// ---- 節点 ----
+const nodes=[];
+(function walk(n){
+  if(!n.leaf){
+    const g=el('g',{transform:`translate(${n.x},${n.y})`},gN);
+    if(n.kind==='root'){el('circle',{r:54,fill:C.pink,stroke:C.ink,'stroke-width':6},g);tx('ふたり',0,10,30,'#fff','rd','middle',g);
+      const t2=tx(n.lb,0,96,24,C.ink,'dot','middle',g)}
+    else if(n.kind==='fork'){el('circle',{r:32,fill:'#fff',stroke:C.ink,'stroke-width':6},g);tx(String(n.no),0,12,36,C.ink,'rd','middle',g);
+      const t2=tx('分かれ道'+n.no+'　'+n.lb,n.x>1400?36:0,n.x>1400?-48:-48,22,C.ink,'dot',n.x>1400?'end':'middle',g);t2.setAttribute('paint-order','stroke');t2.setAttribute('stroke','#fff8ea');t2.setAttribute('stroke-width',7)}
+    else{
+      const idea=n.kind==='idea';
+      if(idea){el('path',{d:starPath(0,0,24,11),fill:C.gold,stroke:C.ink,'stroke-width':4},g)}else{el('circle',{r:12,fill:colOf(n.w),stroke:C.ink,'stroke-width':3},g)}
+      const below=idea&&n.parent&&n.parent.kind==='idea';const t2=tx((idea?'ひらめき ':'')+n.lb,below?20:0,below?54:-30,21,idea?'#b07d00':C.ink,'dot',below?'end':'middle',g);t2.setAttribute('paint-order','stroke');t2.setAttribute('stroke','#fff8ea');t2.setAttribute('stroke-width',7)}
+    nodes.push({g,n});
+  }
+  (n.ch||[]).forEach(walk)})(T);
+function starPath(x,y,R,r){let s='';for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r:R;s+=(i?'L':'M')+(x+Math.cos(a)*rr).toFixed(1)+','+(y+Math.sin(a)*rr).toFixed(1)}return s+'Z'}
+
+// ---- 葉（世界のカード）----
+const leafEls=[];
+leaves.forEach((lf,i)=>{
+  const id=lf.leaf,w=WD[id],big=DETAIL.has(id),W_=big?LW_D:LW_S,h=lf.h;
+  const g=el('g',{class:'leaf',transform:`translate(${lf.x},${lf.y-h/2})`},gL);
+  if(w.empty){
+    el('rect',{class:'lbg',width:W_,height:h,rx:22,fill:'rgba(255,255,255,.55)',stroke:C.grey,'stroke-width':3,'stroke-dasharray':'10 8'},g);
+    tx('？ 世界'+id+'　ひらめき待ちの空き',20,h/2+8,21,'#7d7890','dot','start',g);
+  }else if(big){
+    el('rect',{class:'lbg',width:W_,height:h,rx:18,fill:'#fff',stroke:w.me?C.gold:C.ink,'stroke-width':w.me?7:4},g);
+    el('path',{d:`M0,18 a18,18 0 0 1 18,-18 h${W_-36} a18,18 0 0 1 18,18 v18 h-${W_} z`,fill:KCOL[w.k]},g);
+    tx('世界'+id,16,28,22,'#fff','dot','start',g);tx(w.co,W_-16,28,20,'#fff','dot','end',g);
+    tx(w.ln,16,66,22,C.ink,'dot','start',g);
+    const names=['冬','手ざわり','顔','ゆとり'];
+    w.stats.forEach((v,j)=>{const bx=16+j*92;tx(names[j],bx,86,15,C.ink,'dot','start',g);el('rect',{x:bx,y:92,width:80,height:10,rx:5,fill:'#e6e1d3'},g);el('rect',{x:bx,y:92,width:Math.max(4,80*v),height:10,rx:5,fill:[C.kaz,C.yuu,C.blue,C.green][j]},g)});
+    if(w.me){const b=el('g',{transform:`translate(${W_-30},-4) rotate(10)`},g);el('rect',{x:-58,y:-22,width:116,height:42,rx:21,fill:C.pink,stroke:C.ink,'stroke-width':4},b);tx('あなた',0,8,24,'#fff','rd','middle',b)}
+  }else{
+    el('rect',{class:'lbg',width:W_,height:h,rx:22,fill:'#fff',stroke:C.ink,'stroke-width':3},g);
+    el('circle',{cx:24,cy:h/2,r:10,fill:KCOL[w.k]},g);
+    tx('世界'+id,44,h/2+8,20,C.ink,'dot','start',g);
+    tx(w.st,W_-16,h/2+8,19,KCOL[w.k],'dot','end',g);
+  }
+  g.addEventListener('click',()=>select(id));
+  leafEls.push({g,id,i});
+});
+
+// ---- 右の概略パネル ----
+const PX=2060,PY=170,PW=310,PH=1040;
+const panel=el('g',{transform:`translate(${PX},${PY})`},gP);
+el('rect',{x:6,y:10,width:PW,height:PH,rx:22,fill:'rgba(43,43,69,.2)'},panel);
+el('rect',{width:PW,height:PH,rx:22,fill:'#fff',stroke:C.ink,'stroke-width':6},panel);
+el('rect',{x:10,y:10,width:PW-20,height:PH-20,rx:14,fill:'none',stroke:C.ink,'stroke-width':2},panel);
+const pBody=el('g',{},panel);
+function wrap(s,n){const out=[];let a=[...s];while(a.length){out.push(a.slice(0,n).join(''));a=a.slice(n)}return out}
+function pathOf(id){const out=[];let n=leaves.find(l=>l.leaf===id);if(n.lb)out.unshift([n.lb,n.w]);let p=n.parent;while(p&&p.kind!=='root'){if(p.kind!=='fork')out.unshift([p.lb,p.w]);p=p.parent}return out}
+let SEL='07',selT=0;
+function select(id){SEL=id;selT=performance.now()/1000;drawPanel()}
+function drawPanel(){
+  while(pBody.firstChild)pBody.removeChild(pBody.firstChild);
+  const w=WD[SEL];
+  tx('世界'+SEL,28,70,44,C.ink,'rd','start',pBody);
+  if(w.empty){wrap('まだ誰も選んでいない世界。プレイ中に2択の外側を答えると、ここに新しい世界が生まれます。',12).forEach((l,i)=>tx(l,28,140+i*36,23,C.ink,'dot','start',pBody));return}
+  el('rect',{x:28,y:96,width:PW-56,height:44,rx:22,fill:KCOL[w.k]},pBody);tx(w.st,PW/2,126,22,'#fff','dot','middle',pBody);
+  tx(w.co,28,186,24,C.ink,'dot','start',pBody);
+  tx('この世界の選択',28,240,22,'#7d7890','dot','start',pBody);
+  pathOf(SEL).forEach(([s,ww],i)=>{const y=280+i*46;el('circle',{cx:40,cy:y-8,r:9,fill:colOf(ww)},pBody);(wrap(s,10)).forEach((l,j)=>tx(l,60,y+j*26,22,C.ink,'dot','start',pBody))});
+  tx('1年後',28,560,22,'#7d7890','dot','start',pBody);
+  wrap(w.sum,11).forEach((l,i)=>tx(l,28,600+i*36,23,C.ink,'dot','start',pBody));
+  if(DETAIL.has(SEL)){el('rect',{x:28,y:PH-110,width:PW-56,height:64,rx:16,fill:C.gold,stroke:C.ink,'stroke-width':4},pBody);tx('▶ くわしく見る',PW/2,PH-68,26,C.ink,'rd','middle',pBody)}
+  else tx('概略だけ読める世界',PW/2,PH-70,22,'#7d7890','dot','middle',pBody);
+}
+drawPanel();
+
+// 選んだ道を走る光
+const runner=el('circle',{r:13,fill:'#fff',stroke:C.gold,'stroke-width':6,filter:'url(#glow)'},gE);
+const mePaths=edges.filter(e=>e.p.getAttribute('filter'));
+const meLen=mePaths.reduce((a,e)=>a+e.L,0);
+
+// ---- 時刻の関数 ----
+function render(t){
+  // 枝が根元から順に描かれていく
+  edges.forEach(e=>{const k=eo(seg(t,.2+e.d*.32,.2+e.d*.32+.6));e.p.style.strokeDasharray=e.socket?'10 9':`${e.L} ${e.L}`;if(!e.socket)e.p.style.strokeDashoffset=e.L*(1-k);else e.p.style.opacity=k});
+  nodes.forEach(({g,n})=>{const k=eo(seg(t,.1+n.d*.32,.1+n.d*.32+.4));g.style.opacity=k;
+    if(n.kind==='idea'){const s=1+.12*Math.sin(t*5+n.y);g.setAttribute('transform',`translate(${n.x},${n.y}) scale(${(k*s).toFixed(3)})`)}});
+  leafEls.forEach(({g,i})=>{g.style.opacity=eo(seg(t,2.0+i*.06,2.4+i*.06))});
+  // 光が「あなた」の道をくり返し走る
+  if(t>3.2){let u=((t-3.2)%3.6)/3.6*meLen;for(const e of mePaths){if(u<=e.L){const pt=e.p.getPointAtLength(u);runner.setAttribute('cx',pt.x);runner.setAttribute('cy',pt.y);break}u-=e.L}runner.style.opacity=1}else runner.style.opacity=0;
+  gP.style.opacity=eo(seg(t,2.6,3.2));
+}
+window.render=render;
+
+function fit(){const s=Math.min(innerWidth/2400,innerHeight/1350);S.style.transform=`scale(${s})`}
+addEventListener('resize',fit);fit();
+const t0=performance.now();function loop(now){render((now-t0)/1000);requestAnimationFrame(loop)}
+document.fonts.ready.then(()=>{window.READY=true;requestAnimationFrame(loop)});
+</script>
+</body>
+</html>

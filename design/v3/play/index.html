@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>プレイ画面 v3（L1改訂）</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="../../../app/engine.js"></script><script src="../../../app/iso.js"></script><script src="common.js"></script>
+<style id="css"></style>
+<style>
+/* L1改訂：上＝ロゴ・詰めた進捗バー・お金の札／中＝自分の家（大）＋チャット／下＝選ばれなかった世界線（低く） */
+.top{position:absolute;left:36px;top:16px;width:1400px;display:flex;align-items:center;gap:22px}
+.logo{font-family:var(--fr);font-weight:900;font-size:28px;white-space:nowrap}
+.top .pbar{width:1180px;flex:none}
+.pbar.compact{font-size:12.5px}
+.money{position:absolute;right:30px;top:10px;width:480px;background:#fff;border:1.5px solid var(--ink);border-radius:14px;padding:6px 16px 7px;display:grid;grid-template-columns:1fr 1fr;column-gap:14px}
+.money .co{grid-column:1/-1;display:flex;align-items:center;font-size:13px;font-weight:700;color:var(--ink2)}
+.money .c{min-width:0}
+.money .c+.c{border-left:1px dashed rgba(30,43,54,.25);padding-left:14px}
+.money .k{font-size:13px;color:var(--ink2);white-space:nowrap}
+.money .v{font-family:var(--fr);font-weight:900;font-size:32px;line-height:1.15;font-variant-numeric:tabular-nums;white-space:nowrap}
+.money .v small{font-size:16px;font-weight:700;margin-left:2px}
+.money .sub{font-size:12.5px;color:var(--ink2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.clks{position:absolute;left:36px;top:76px}
+.clks .clk{font-size:17px;padding:3px 14px}.clks .clk b{font-size:19px}
+.hero{position:absolute;left:30px;top:124px;width:1124px;height:676px;background:linear-gradient(#DDF0FA,#F4FAFD 52%,#F3E7CF 52.1%);border-radius:22px;overflow:hidden}
+.hero svg{position:absolute;left:150px;top:22px;width:840px;height:600px}
+.hero .lab{position:absolute;left:28px;top:22px;display:flex;align-items:center;gap:10px;font-size:22px;font-weight:700}
+.hero .no{font-family:var(--fr);font-weight:900;font-size:44px}
+.hero .ph{position:absolute;right:26px;top:24px;font-size:18px;color:var(--ink2);text-align:right;line-height:1.5}
+.right{position:absolute;left:1180px;top:124px;width:710px;height:676px}
+.right .chat{height:100%}
+.navs{display:flex;gap:10px;padding:10px 16px 0;border-top:1px solid rgba(30,43,54,.1)}
+.nav{display:inline-flex;align-items:center;gap:8px;font:700 17px var(--f);padding:8px 14px;border-radius:999px;border:1.5px solid rgba(30,43,54,.45);background:var(--paper);color:var(--ink);cursor:pointer}
+.nav .n{font-weight:400;font-size:14px;color:var(--ink2)}
+.nav svg{width:18px;height:18px}
+.chat .in{border-top:none}
+.caster{left:44px;top:690px}
+.galT{position:absolute;left:34px;top:814px;font-size:16px;color:var(--ink2);display:flex;gap:14px;align-items:baseline}
+.galT b{font-size:17px;color:var(--ink)}
+.gal{position:absolute;left:30px;right:30px;top:842px;height:222px;display:grid;grid-template-columns:repeat(15,1fr);gap:8px}
+.th{background:#fff;border:1.5px solid rgba(30,43,54,.14);border-radius:12px;padding:5px 6px 7px;display:flex;flex-direction:column;align-items:center;font-size:12.5px;line-height:1.3;overflow:hidden}
+.th .hd{display:flex;align-items:center;justify-content:space-between;width:100%;font-weight:700;font-size:15px}
+.th svg{width:100%;height:104px}
+.th .st{font-weight:700;font-size:13px;white-space:nowrap}
+.th .nt{color:var(--ink2);text-align:center;min-height:32px}
+.th .bar{width:100%;height:5px;border-radius:3px;background:rgba(30,43,54,.1);margin-top:auto}.th .bar i{display:block;height:100%;background:var(--ink);border-radius:3px}
+/* ポップアップ（通知はしない。開いて、閉じたら自由回答へ戻る） */
+.veil{position:absolute;inset:0;background:rgba(30,43,54,.28);z-index:30}
+.pop{position:absolute;z-index:31;background:#fff;border:1.5px solid var(--ink);border-radius:20px;box-shadow:0 18px 50px rgba(30,43,54,.22);display:flex;flex-direction:column}
+.pop .ph2{display:flex;align-items:center;justify-content:space-between;padding:16px 22px 10px;border-bottom:1px solid rgba(30,43,54,.1)}
+.pop .ttl{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px}
+.pop .meta{font-size:14px;color:var(--ink2)}
+.pop .body{padding:16px 24px;overflow:hidden}
+.pop .ft{display:flex;align-items:center;justify-content:space-between;padding:12px 22px 16px;border-top:1px solid rgba(30,43,54,.1)}
+.pop .ft .meta{font-size:15px}
+.ask{font-size:17px;color:var(--ink2);margin-bottom:10px}
+.ask b{color:var(--ink);font-weight:700}
+.ans{font-size:21px;line-height:1.7}
+.ans p+p{margin-top:10px}
+.aiMark{width:34px;height:34px;border-radius:10px;background:var(--paper);border:1.5px solid var(--ink);display:grid;place-items:center}
+.sk{display:grid;grid-template-columns:330px 1fr;gap:20px;align-items:start;margin-top:4px}
+.sk figure{background:var(--paper);border:1px solid rgba(30,43,54,.15);border-radius:12px;padding:10px}
+.sk figcaption{font-size:13px;color:var(--ink2);margin-top:4px;text-align:center}
+.post{display:grid;grid-template-columns:44px 1fr;gap:12px;padding:12px 0;border-bottom:1px solid rgba(30,43,54,.08)}
+.post:last-child{border-bottom:none}
+.av{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:17px;color:var(--ink);border:1.5px solid rgba(30,43,54,.2)}
+.post .nm{font-size:15px;font-weight:700}.post .nm span{font-weight:400;color:var(--ink2);margin-left:8px}
+.post .tx{font-size:19px;line-height:1.55;margin-top:2px}
+.post .rx{font-size:13.5px;color:var(--ink2);margin-top:4px;display:flex;gap:18px;font-variant-numeric:tabular-nums}
+.sns-h{font-family:var(--fr);font-weight:900;font-size:22px;letter-spacing:.06em}
+.vsw{position:absolute;left:520px;top:80px;display:flex;gap:6px;z-index:40}
+.vsw button{font:700 13px var(--f);padding:4px 10px;border-radius:8px;border:1.5px solid rgba(30,43,54,.4);background:var(--paper);cursor:pointer}
+.vsw button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.ctrl{top:80px!important;right:auto!important;left:880px}
+.ctrl button{font-size:13px!important;padding:4px 10px!important}
+body.rec .vsw{display:none}
+</style></head>
+<body><div id="stage"><div id="view"></div></div>
+<script>
+document.getElementById('css').textContent = L.CSS;
+const Q = new URLSearchParams(location.search);
+let V = Q.get('v') || 'normal';
+const Y = L.Y, H = L.H;
+const W = n => L.WORLDS[n - 1];
+const man = n => n.toLocaleString('ja-JP');
+
+// お金の札：数字はエンジンから。契約の前は見積の総額、契約の後は契約金額＋増工金額
+function moneyBox(p) {
+  const me = W(L.YOU), base = W(5); // 05＝窓を変える前と同じ仕様
+  const land = Y.SITE.price + Y.SITE.waterFee;
+  const ico = L.coTag('C', 18);
+  if (p < 5) {
+    return `<div class="money"><div class="co">${ico}Cデザイン</div>
+      <div class="c"><div class="k">見積金額（建物の総額）</div><div class="v">${man(base.quote.real)}<small>万円</small></div><div class="sub">付帯・外構・諸費用込み</div></div>
+      <div class="c"><div class="k">借入金額</div><div class="v">${man(base.principal)}<small>万円</small></div><div class="sub">土地 ${man(land)}万円を含む</div></div></div>`;
+  }
+  const st = { spec: base.spec, company: 'C', principal: base.principal, household: H, loanDeadlineLeft: 17 };
+  const sim = Y.simulate(st, { borrowAdd: 60, spec: { window: 'triple' } });
+  const contract = base.quote.real, add = sim.diff;
+  return `<div class="money"><div class="co">${ico}Cデザイン　契約済み</div>
+    <div class="c"><div class="k">契約金額＋増工金額</div><div class="v">${man(contract + add)}<small>万円</small></div><div class="sub">契約 ${man(contract)} ＋ 増工 ${man(add)}</div></div>
+    <div class="c"><div class="k">借入金額</div><div class="v">${man(sim.principal)}<small>万円</small></div><div class="sub">土地 ${man(land)}万円を含む</div></div></div>`;
+}
+
+const ICON = {
+  sns: '<svg viewBox="0 0 20 20"><rect x="2" y="3" width="16" height="11" rx="3" fill="none" stroke="#1E2B36" stroke-width="1.8"/><path d="M6 14 L5 18 L10 14" fill="none" stroke="#1E2B36" stroke-width="1.8" stroke-linejoin="round"/><line x1="6" y1="7" x2="14" y2="7" stroke="#1E2B36" stroke-width="1.6"/><line x1="6" y1="10" x2="11" y2="10" stroke="#1E2B36" stroke-width="1.6"/></svg>',
+  ai: '<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5" fill="none" stroke="#1E2B36" stroke-width="1.8"/><circle cx="7.4" cy="9" r="1.2" fill="#1E2B36"/><circle cx="12.6" cy="9" r="1.2" fill="#1E2B36"/><path d="M7 12.5 Q10 14.6 13 12.5" fill="none" stroke="#1E2B36" stroke-width="1.6" stroke-linecap="round"/></svg>',
+};
+
+// チャット（v2の部品に、SNS・自分のAIのナビを足す）
+function chatWithNav(sc, aiLeft) {
+  const html = L.chatHTML(sc);
+  const nav = `<div class="navs"><button class="nav" data-open="sns">${ICON.sns}SNSを見る</button><button class="nav" data-open="ai">${ICON.ai}自分のAIに聞く<span class="n">このターン あと${aiLeft}回</span></button></div>`;
+  return html.replace('<div class="in">', nav + '<div class="in">');
+}
+
+// 自分のAI：1ターンに1回、短い回答を1回だけ（文例。本番は最も安価なモデルにロールを与えて生成）
+function aiPop(sketch) {
+  const text = `
+    <div class="ask">聞いたこと：<b>土地の契約が近いけど、詳細の見積まで待つべき？</b></div>
+    <div class="ans"><p>土地の期限を優先するなら、主な仕様の見積で進めるのが現実的です。そのぶん、契約のあとで金額が動く幅は大きくなりがちです。</p>
+    <p>決める前に、担当の方に「まだ決まっていない項目と、増えそうな幅」を聞いておくと安心だと思います。</p></div>`;
+  const sk = `
+    <div class="ask">聞いたこと：<b>1階に寝室、2階に子ども部屋2つと書斎。34坪に入る？</b></div>
+    <div class="sk"><figure>${planSketch()}<figcaption>配置のイメージ</figcaption></figure>
+    <div class="ans" style="font-size:19.5px"><p>入りそうです。たとえば、こんな配置はいかがでしょう。家族が集まるLDKを南に広くとり、寝室は北側の静かな位置にしました。</p>
+    <p>細かい寸法や、決まりごとに合っているかは、設計の方に確認してみてくださいね。</p></div></div>`;
+  return `<div class="veil"></div><div class="pop" style="left:560px;top:190px;width:${sketch ? 940 : 800}px">
+    <div class="ph2"><div class="ttl"><span class="aiMark">${ICON.ai.replace('viewBox', 'width="22" height="22" viewBox')}</span>わたしのAI</div><span class="meta">これまでの打ち合わせを参考にしています</span></div>
+    <div class="body">${sketch ? sk : text}</div>
+    <div class="ft"><span class="meta">このターンは、あと0回</span><button class="btn" data-close>閉じて、自由回答に戻る</button></div></div>`;
+}
+// 破綻を含む間取りのスケッチ（階段が2か所。説明はしない）
+function planSketch() {
+  const r = (x, y, w, h, t) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fff" stroke="#1E2B36" stroke-width="1.6"/><text x="${x + w / 2}" y="${y + h / 2 + 5}" text-anchor="middle" font-size="13" fill="#1E2B36">${t}</text>`;
+  const stair = (x, y, w, h) => { let s = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#F3E7CF" stroke="#1E2B36" stroke-width="1.4"/>`; for (let i = 1; i < 6; i++) s += `<line x1="${x}" y1="${y + h * i / 6}" x2="${x + w}" y2="${y + h * i / 6}" stroke="#1E2B36" stroke-width="1"/>`; return s + `<text x="${x + w / 2}" y="${y - 4}" text-anchor="middle" font-size="11" fill="#6B6358">階段</text>`; };
+  return `<svg viewBox="0 0 310 230" width="100%">
+    <text x="4" y="14" font-size="12" font-weight="700" fill="#1E2B36">1階</text>
+    ${r(4, 22, 180, 110, 'LDK')}${r(184, 22, 112, 66, '寝室')}${r(184, 88, 112, 44, 'WIC')}
+    ${r(4, 132, 90, 60, '水まわり')}${r(94, 132, 90, 60, '玄関')}${stair(206, 140, 40, 52)}
+    ${stair(140, 40, 34, 48)}
+    <text x="4" y="216" font-size="12" fill="#6B6358">2階：子ども部屋2・書斎</text>
+  </svg>`;
+}
+
+// SNS：いまの話題に関連するポスト（一括生成した投稿から、傾向をもたせて呼び出す想定）
+function snsPop() {
+  const P = [
+    { n: 'みどりのいえ', h: '@midori_ie', av: 'み', bg: '#DCEFD3', t: '詳細の見積が出るまで、契約はしないほうがいい。あとから300万円増えた友人を知ってる。', r: [412, 38], tm: '2時間前' },
+    { n: '土地さがし3年目', h: '@tochi_3', av: '土', bg: '#F3E7CF', t: '土地は早い者勝ち。迷っているあいだに、となりの区画が売れた。決めるときは、決める。', r: [289, 51], tm: '5時間前' },
+    { n: 'こつこつ建てる', h: '@kotsu_kotsu', av: 'こ', bg: '#E4EEF5', t: 'うちは概算の見積で契約したけど、ほとんど増えなかった。結局、担当さんしだいだと思う。', r: [96, 12], tm: '昨日' },
+    { n: 'ふたりの家ノート', h: '@futari_note', av: 'ふ', bg: '#FDE9D6', t: '見積の「別途」の欄、ぜんぶ聞いた？ 外構とエアコンが入ってなくて、あとで焦った。', r: [633, 74], tm: '昨日' },
+    { n: 'あおぞら設計待ち', h: '@aozora_wait', av: 'あ', bg: '#EDE7F2', t: '設計の打ち合わせ、6週間待ち。土地の期限ぎりぎりで、毎日カレンダーを見てる。', r: [57, 9], tm: '3日前' },
+  ];
+  return `<div class="veil"></div><div class="pop" style="left:560px;top:150px;width:820px">
+    <div class="ph2"><div class="ttl"><span class="sns-h">ひろば</span></div><span class="meta">「見積」「契約」の話題</span></div>
+    <div class="body" style="padding-top:4px">${P.map(x => `<div class="post"><div class="av" style="background:${x.bg}">${x.av}</div><div><div class="nm">${x.n}<span>${x.h}・${x.tm}</span></div><div class="tx">${x.t}</div><div class="rx"><span>いいね ${x.r[0]}</span><span>返信 ${x.r[1]}</span></div></div></div>`).join('')}</div>
+    <div class="ft"><span class="meta"></span><button class="btn" data-close>閉じて、自由回答に戻る</button></div></div>`;
+}
+
+let curP = 3.4;
+function draw(p) {
+  curP = p;
+  const list = L.worldsAt(p), me = list[L.YOU - 1], sc = L.scene(p);
+  const others = list.filter(x => x.w.no !== L.YOU);
+  const aiLeft = V.startsWith('ai') ? 0 : 1;
+  const sameChoice = n => { const w = W(n); return w.bits[0] === 0 && w.bits[1] === 1; };
+  document.getElementById('view').innerHTML = `
+  <div class="top"><div class="logo">ゆくすいえ</div>${L.progressBar(p, { compact: true })}</div>
+  ${moneyBox(p)}
+  <div class="clks">${L.clocks(p)}</div>
+  <div class="vsw">${['normal', 'ai', 'ai-sketch', 'sns'].map(k => `<button data-v="${k}" aria-pressed="${V === k}">${{ normal: '通常', ai: 'AI（文章）', 'ai-sketch': 'AI（図つき）', sns: 'SNS' }[k]}</button>`).join('')}</div>
+  <div class="hero">
+    <div class="lab"><span class="no">07</span>あなたの家　${L.coTag('C', 28)}Cデザイン</div>
+    <div class="ph">${L.STEPS[Math.floor(p)]}<br><span style="font-size:15px">34坪・総二階　箱型の屋根</span></div>
+    ${L.bigHouse(me.w, me.stage, { ghost: me.ghost })}
+  </div>
+  <div class="right">${chatWithNav(sc, aiLeft)}</div>
+  ${L.castOf(sc)}
+  <div class="galT"><b>選ばれなかった世界線</b></div>
+  <div class="gal">${others.map(x => `<div class="th"><div class="hd"><span>${String(x.w.no).padStart(2, '0')}</span>${L.coTag(x.w.company, 18)}</div>${L.thumb(x)}<div class="st">${L.STEPS_S[Math.floor(x.s)]}</div><div class="nt">${x.note}</div><div class="bar"><i style="width:${x.s / 11 * 100}%"></i></div></div>`).join('')}</div>
+  ${V === 'ai' ? aiPop(false) : V === 'ai-sketch' ? aiPop(true) : V === 'sns' ? snsPop() : ''}`;
+}
+document.getElementById('view').addEventListener('click', e => {
+  const b = e.target.closest('[data-v],[data-open],[data-close]'); if (!b) return;
+  if (b.dataset.v) V = b.dataset.v;
+  else if (b.dataset.open) V = b.dataset.open === 'ai' ? (V === 'normal' ? 'ai' : V) : 'sns';
+  else V = 'normal';
+  draw(curP);
+});
+L.mount(draw);
+</script></body></html>

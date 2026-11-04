@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>エンディング E4 1年後のひとコマ</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&family=BIZ+UDPGothic:wght@400;700&display=swap">
+<style>
+:root{--paper:#FFFAF0;--ink:#1E2B36;--muted:#5F6B74;--line:#E7DCC8;color-scheme:light}
+html,body{margin:0;height:100%;background:#E9E2D3;color:var(--ink);font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic",sans-serif}
+.wrap{display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px}
+.stage{width:min(100%,calc((100vh - 90px)*16/9));aspect-ratio:16/9;max-width:100%;box-shadow:0 6px 24px rgba(30,43,54,.18);background:var(--paper)}
+canvas{width:100%;height:100%;display:block}
+.ctl{display:flex;align-items:center;gap:10px;width:min(100%,960px);font-size:13px}
+.ctl button{font:inherit;font-weight:700;border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 14px;cursor:pointer;color:var(--ink)}
+.ctl input{flex:1;min-width:0}
+.ctl span{font-variant-numeric:tabular-nums;color:var(--muted);min-width:7em;text-align:right}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage"><canvas id="cv" width="1920" height="1080"></canvas></div>
+  <div class="ctl">
+    <button id="pp" type="button">一時停止</button>
+    <input id="sc" type="range" min="0" step="0.01" value="0" aria-label="時刻">
+    <span id="tl">0.00 秒</span>
+  </div>
+</div>
+<script>
+// ===== 色（デザインコードに合わせる） =====
+const C={paper:'#FFFAF0',sky:'#CFEBFA',sky2:'#EAF6FD',ground:'#F3E7CF',grass:'#9BD27A',grass2:'#7FBF5F',
+  ink:'#1E2B36',kazu:'#E8701F',yuu:'#1C8DCC',gold:'#F2C230',wood:'#C98B5A',wood2:'#A86E43',white:'#FFFFFF',
+  plaster:'#F6F1E7',gray:'#B9B4AA',skin:'#F2C9A5',hair:'#3A2E28',red:'#E2513B',pink:'#F4A6B8',green:'#5BA65A'};
+const FONT_D='"Hiragino Maru Gothic ProN","Zen Maru Gothic","Hiragino Sans",sans-serif';
+const FONT_B='"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic",sans-serif';
+const W=1920,H=1080;
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+
+// ===== 道具 =====
+const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const eo=t=>1-Math.pow(1-clamp(t),3);
+const eio=t=>{t=clamp(t);return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2};
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
+function fillRR(c,x,y,w,h,r,col){rr(c,x,y,w,h,r);c.fillStyle=col;c.fill()}
+function sky(c,top=C.sky,bot=C.sky2){const g=c.createLinearGradient(0,0,0,H);g.addColorStop(0,top);g.addColorStop(1,bot);c.fillStyle=g;c.fillRect(0,0,W,H)}
+// 後ろ姿の人
+function person(c,x,y,s,top,opt={}){
+  c.save();c.translate(x,y);c.scale(s,s);
+  const bob=opt.bob||0;c.translate(0,bob);
+  // 脚
+  c.fillStyle=opt.pants||'#4A5866';
+  fillRR(c,-26,40,22,90,10,opt.pants||'#4A5866');fillRR(c,4,40,22,90,10,opt.pants||'#4A5866');
+  // 胴
+  fillRR(c,-40,-60,80,115,30,top);
+  // 腕
+  if(opt.armUp){c.save();c.translate(32,-45);c.rotate(-2.3);fillRR(c,-9,0,18,70,9,top);c.restore()}
+  // 頭（後ろ）
+  c.beginPath();c.arc(0,-92,36,0,Math.PI*2);c.fillStyle=C.skin;c.fill();
+  c.beginPath();c.arc(0,-98,37,Math.PI*1.0,Math.PI*2.0);c.lineTo(37,-80);c.quadraticCurveTo(0,-64,-37,-80);c.closePath();c.fillStyle=opt.hair||C.hair;c.fill();
+  c.restore();
+}
+// うさぎ
+function rabbit(c,x,y,s,ph=0){
+  c.save();c.translate(x,y);c.scale(s,s);
+  c.fillStyle='#FFFFFF';c.strokeStyle=C.gray;c.lineWidth=3;
+  c.beginPath();c.ellipse(0,0,46,32,0,0,Math.PI*2);c.fill();c.stroke();
+  c.beginPath();c.ellipse(36,-26,22,20,0,0,Math.PI*2);c.fill();c.stroke();
+  c.save();c.translate(36,-40);c.rotate(-0.25+Math.sin(ph)*0.08);fillRR(c,-8,-48,14,50,7,'#FFFFFF');c.strokeRect;c.restore();
+  c.save();c.translate(44,-40);c.rotate(0.15+Math.sin(ph+1)*0.08);fillRR(c,-6,-44,13,46,7,'#FFFFFF');c.restore();
+  c.beginPath();c.arc(44,-28,3.5,0,Math.PI*2);c.fillStyle=C.ink;c.fill();
+  c.beginPath();c.arc(-46,-4,10,0,Math.PI*2);c.fillStyle='#FFFFFF';c.fill();
+  c.restore();
+}
+function leaf(c,x,y,s,rot,col){c.save();c.translate(x,y);c.rotate(rot);c.beginPath();c.ellipse(0,0,s,s*0.45,0,0,Math.PI*2);c.fillStyle=col;c.fill();c.restore()}
+function gravel(c,x,y,w,h,seed,dens=0.004){const r=rng(seed);const n=Math.floor(w*h*dens);for(let i=0;i<n;i++){const gx=x+r()*w,gy=y+r()*h;c.beginPath();c.ellipse(gx,gy,3+r()*5,2+r()*3,r()*3,0,Math.PI*2);c.fillStyle=['#D8CDBA','#C9BDA8','#E6DDCD','#B8AC98'][Math.floor(r()*4)];c.fill()}}
+
+// ===== 16のひとコマ（07は最後の場面） =====
+const V={};
+// 01 洗濯物
+V[1]=(c,t)=>{sky(c);c.fillStyle=C.grass;c.fillRect(0,820,W,260);
+  // 木の外壁
+  c.fillStyle=C.wood;c.fillRect(0,0,620,840);c.strokeStyle=C.wood2;c.lineWidth=4;for(let y=30;y<840;y+=46){c.beginPath();c.moveTo(0,y);c.lineTo(620,y);c.stroke()}
+  fillRR(c,140,220,330,380,8,'#DDEFF8');c.strokeStyle=C.white;c.lineWidth=14;c.strokeRect(140,220,330,380);
+  // 物干し
+  c.fillStyle='#8A8F94';c.fillRect(760,330,14,500);c.fillRect(1760,330,14,500);
+  c.strokeStyle='#8A8F94';c.lineWidth=5;c.beginPath();c.moveTo(767,360);c.quadraticCurveTo(1265,410,1767,360);c.stroke();
+  const items=[[880,C.kazu,'t'],[1040,C.white,'s'],[1200,C.yuu,'t'],[1360,C.gold,'s'],[1520,C.pink,'t'],[1650,C.white,'k']];
+  items.forEach(([x,col,k],i)=>{const sw=Math.sin(t*3.2+i*0.9)*0.09;const y0=360+Math.sin((x-767)/1000*Math.PI)*45;
+    c.save();c.translate(x,y0);c.rotate(sw);
+    if(k==='t'){c.beginPath();c.moveTo(-70,0);c.lineTo(70,0);c.lineTo(100,50);c.lineTo(62,66);c.lineTo(60,190);c.lineTo(-60,190);c.lineTo(-62,66);c.lineTo(-100,50);c.closePath();c.fillStyle=col;c.fill()}
+    else if(k==='s'){fillRR(c,-60,0,120,150,10,col);c.strokeStyle='#E0D8CA';c.lineWidth=3;rr(c,-60,0,120,150,10);c.stroke()}
+    else{fillRR(c,-38,0,76,110,8,col);c.strokeStyle='#E0D8CA';c.lineWidth=3;rr(c,-38,0,76,110,8);c.stroke()}
+    c.fillStyle='#6D7378';c.fillRect(-30,-8,10,16);c.fillRect(20,-8,10,16);c.restore()});
+};
+// 02 うさぎが庭を走る
+V[2]=(c,t)=>{sky(c);c.fillStyle=C.grass;c.fillRect(0,560,W,520);
+  const r=rng(2);for(let i=0;i<70;i++){const x=r()*W,y=600+r()*460;c.beginPath();c.arc(x,y,5+r()*5,0,Math.PI*2);c.fillStyle=['#FFFFFF','#F6E27A','#F4A6B8'][i%3];c.fill()}
+  // 柵
+  c.fillStyle=C.white;for(let x=-20;x<W+40;x+=70){fillRR(c,x,600,34,150,8,C.white)}c.fillRect(0,640,W,16);c.fillRect(0,700,W,16);
+  const p=(t*0.55)%1;const x=lerp(260,1660,p);const hop=Math.abs(Math.sin(t*7))*90;
+  c.beginPath();c.ellipse(x,930,70,14,0,0,Math.PI*2);c.fillStyle='rgba(30,43,54,.12)';c.fill();
+  rabbit(c,x,900-hop,1.6,t*7);
+};
+// 03 更地に咲いた花と、通りがかる家族
+V[3]=(c,t)=>{sky(c);c.fillStyle=C.ground;c.fillRect(0,600,W,480);
+  c.fillStyle='#D9CDB6';c.fillRect(0,930,W,150);
+  const r=rng(3);for(let i=0;i<140;i++){const x=r()*W,y=620+r()*290,h=40+r()*70,sw=Math.sin(t*2+i)*6;
+    c.strokeStyle=C.green;c.lineWidth=3;c.beginPath();c.moveTo(x,y+h);c.quadraticCurveTo(x+sw,y+h/2,x+sw*1.4,y);c.stroke();
+    const col=['#F4A6B8','#FFFFFF','#E86F9A','#F7C6D4'][i%4];for(let k=0;k<6;k++){leaf(c,x+sw*1.4+Math.cos(k)*11,y+Math.sin(k)*11,10,k,col)}c.beginPath();c.arc(x+sw*1.4,y,5,0,Math.PI*2);c.fillStyle=C.gold;c.fill()}
+  const wx=lerp(1500,1100,eo(t/1.2));
+  person(c,wx,880,1.0,C.yuu,{bob:Math.sin(t*9)*3});person(c,wx+130,890,0.95,'#7E9A6E',{bob:Math.sin(t*9+1)*3});person(c,wx-110,930,0.62,C.gold,{armUp:true,bob:Math.sin(t*9+2)*3});
+};
+// 04 ミニトマト
+V[4]=(c,t)=>{sky(c,'#DFF2E2','#F4FBF2');
+  c.strokeStyle=C.green;c.lineWidth=12;
+  [[500,0.0],[960,0.6],[1420,1.2]].forEach(([x,ph])=>{c.beginPath();c.moveTo(x,1080);c.bezierCurveTo(x-40,800,x+60,500,x+Math.sin(t*1.6+ph)*20,140);c.stroke();
+    for(let k=0;k<7;k++){leaf(c,x+(k%2?70:-70),900-k*110,60,(k%2?0.5:-0.5),C.grass2)}
+    for(let k=0;k<5;k++){const tx=x+(k%2?50:-40)+Math.sin(t*1.6+ph+k)*6,ty=760-k*120;c.beginPath();c.arc(tx,ty,32,0,Math.PI*2);c.fillStyle=k===2?'#F59A3A':C.red;c.fill();c.beginPath();c.arc(tx-10,ty-12,9,0,Math.PI*2);c.fillStyle='rgba(255,255,255,.55)';c.fill()}});
+  // 子どもの手
+  const hx=lerp(1900,1560,eo(t/0.7));c.save();c.translate(hx,560);c.rotate(-0.2);fillRR(c,0,0,320,90,45,C.skin);fillRR(c,-40,10,70,30,15,C.skin);fillRR(c,-34,48,60,26,13,C.skin);fillRR(c,40,0,280,90,40,C.kazu);c.restore();
+};
+// 05 砂利の玄関とチョークの絵
+V[5]=(c,t)=>{c.fillStyle='#EDE6D8';c.fillRect(0,0,W,H);
+  c.fillStyle=C.plaster;c.fillRect(0,0,W,560);c.fillStyle=C.wood;fillRR(c,760,80,400,520,6,C.wood);c.strokeStyle=C.wood2;c.lineWidth=5;c.strokeRect(800,120,320,440);
+  c.beginPath();c.arc(1090,360,10,0,Math.PI*2);c.fillStyle=C.ink;c.fill();
+  c.fillStyle='#D9D3C8';c.fillRect(640,600,640,70);c.fillStyle='#CFC8BB';c.fillRect(600,670,720,40);
+  gravel(c,0,700,W,380,55,0.006);gravel(c,0,600,600,100,56,0.006);gravel(c,1320,600,600,100,57,0.006);
+  // 雑草
+  const r=rng(5);for(let i=0;i<14;i++){const x=r()*W,y=720+r()*340;for(let k=0;k<4;k++)leaf(c,x+k*8-12,y-k*4,22,-1.2+k*0.6+Math.sin(t*2+i)*0.1,C.grass2)}
+  // チョークのいえ（段の上）
+  c.strokeStyle=C.white;c.lineWidth=6;c.lineCap='round';const d=clamp(t/0.8);c.setLineDash([600]);c.lineDashOffset=600*(1-d);
+  c.beginPath();c.moveTo(700,660);c.lineTo(700,622);c.lineTo(740,600);c.lineTo(780,622);c.lineTo(780,660);c.stroke();c.setLineDash([]);
+  // 三輪車
+  c.save();c.translate(1460,900);c.strokeStyle=C.ink;c.lineWidth=10;c.beginPath();c.arc(-90,40,48,0,Math.PI*2);c.stroke();c.beginPath();c.arc(110,40,48,0,Math.PI*2);c.stroke();
+  c.beginPath();c.arc(10,30,70,0,Math.PI*2);c.stroke();c.strokeStyle=C.yuu;c.lineWidth=16;c.beginPath();c.moveTo(-90,40);c.lineTo(10,-50);c.lineTo(110,40);c.stroke();fillRR(c,-40,-70,90,26,13,C.kazu);c.restore();
+};
+// 06 壁寄せのテレビ
+V[6]=(c,t)=>{c.fillStyle='#F6EFE2';c.fillRect(0,0,W,H);c.fillStyle='#D9B48A';c.fillRect(0,720,W,360);
+  c.strokeStyle='#C99F72';c.lineWidth=3;for(let x=0;x<W;x+=140){c.beginPath();c.moveTo(x,720);c.lineTo(x-80,1080);c.stroke()}
+  // スタンド
+  c.fillStyle='#8A8F94';c.fillRect(950,560,20,190);fillRR(c,860,740,200,20,8,'#8A8F94');
+  const glow=0.5+0.5*Math.sin(t*5);fillRR(c,700,240,520,320,14,C.ink);const g=c.createLinearGradient(700,240,1220,560);g.addColorStop(0,`rgba(28,141,204,${0.55+0.2*glow})`);g.addColorStop(1,`rgba(242,194,48,${0.45+0.2*(1-glow)})`);c.fillStyle=g;rr(c,716,256,488,288,8);c.fill();
+  // ラグ
+  c.beginPath();c.ellipse(960,930,640,120,0,0,Math.PI*2);c.fillStyle='#F2E3C4';c.fill();
+  // 寝転がる家族（後ろ姿）
+  [[700,C.kazu,1],[960,C.yuu,1],[1190,C.gold,0.7],[1330,'#7E9A6E',0.7]].forEach(([x,col,s],i)=>{c.save();c.translate(x,900);c.scale(s,s);fillRR(c,-110,-40,220,90,45,col);c.beginPath();c.arc(-120,-20,40,0,Math.PI*2);c.fillStyle=C.hair;c.fill();c.restore()});
+  // ルンバ風の丸い掃除機
+  const rx=lerp(300,520,(Math.sin(t*1.3)+1)/2);c.beginPath();c.ellipse(rx,1010,70,20,0,0,Math.PI*2);c.fillStyle='#3B4650';c.fill();c.beginPath();c.ellipse(rx,1002,30,8,0,0,Math.PI*2);c.fillStyle=C.yuu;c.fill();
+};
+// 08 窓辺の植物と朝の光
+V[8]=(c,t)=>{c.fillStyle=C.plaster;c.fillRect(0,0,W,H);
+  sky(c,'#FBE3C6','#CFEBFA');c.save();c.beginPath();c.rect(0,0,W,H);c.restore();
+  c.fillStyle=C.plaster;c.fillRect(0,0,380,H);c.fillRect(1540,0,380,H);c.fillRect(0,0,W,120);c.fillRect(0,820,W,260);
+  c.strokeStyle=C.white;c.lineWidth=22;c.strokeRect(380,120,1160,700);c.beginPath();c.moveTo(960,120);c.lineTo(960,820);c.stroke();
+  fillRR(c,340,800,1240,40,6,'#E9DFCC');
+  // 光の帯
+  c.fillStyle=`rgba(242,194,48,${0.18+0.05*Math.sin(t*2)})`;c.beginPath();c.moveTo(420,840);c.lineTo(1500,840);c.lineTo(1800,1080);c.lineTo(600,1080);c.closePath();c.fill();
+  [[560,C.kazu],[820,'#D9CFC0'],[1120,C.yuu],[1380,'#E9E1D2']].forEach(([x,col],i)=>{fillRR(c,x-60,690,120,110,14,col);
+    for(let k=0;k<6;k++)leaf(c,x+Math.cos(k*1.1+Math.sin(t+i)*0.1)*60,640-k*28,46,k*1.1-1.5+Math.sin(t*1.5+i)*0.06,k%2?C.grass:C.grass2)});
+};
+// 09 カーポートの下で雨宿り
+V[9]=(c,t)=>{sky(c,'#C6D9E4','#E3EDF2');c.fillStyle='#BFC6C9';c.fillRect(0,760,W,320);
+  // 雨
+  const r=rng(9);c.strokeStyle='rgba(28,141,204,.45)';c.lineWidth=3;for(let i=0;i<160;i++){const x=r()*W,sp=900+r()*400,y=((r()*H+t*sp)%H);c.beginPath();c.moveTo(x,y);c.lineTo(x-8,y+34);c.stroke()}
+  // 屋根
+  fillRR(c,240,200,1440,40,10,'rgba(255,255,255,.85)');c.fillStyle='#8A8F94';c.fillRect(300,240,18,560);c.fillRect(1600,240,18,560);
+  c.fillStyle='rgba(255,255,255,.35)';c.fillRect(260,240,1400,560);
+  // 車と自転車
+  fillRR(c,420,560,620,220,60,C.yuu);fillRR(c,500,480,420,140,50,'#7FB7DC');c.beginPath();c.arc(540,780,56,0,Math.PI*2);c.arc(920,780,56,0,Math.PI*2);c.fillStyle=C.ink;c.fill();
+  c.strokeStyle=C.ink;c.lineWidth=8;[[1200],[1420]].forEach(([x])=>{c.beginPath();c.arc(x,760,52,0,Math.PI*2);c.stroke();c.beginPath();c.arc(x+150,760,52,0,Math.PI*2);c.stroke();c.strokeStyle=C.kazu;c.beginPath();c.moveTo(x,760);c.lineTo(x+60,680);c.lineTo(x+150,760);c.stroke();c.strokeStyle=C.ink});
+  // 水たまり
+  const rp=(t*1.4)%1;c.strokeStyle=`rgba(255,255,255,${0.8*(1-rp)})`;c.lineWidth=3;c.beginPath();c.ellipse(240,960,40+rp*120,10+rp*30,0,0,Math.PI*2);c.stroke();
+};
+// 10 デッキでスイカ
+V[10]=(c,t)=>{sky(c,'#9FD8F4','#E8F7FD');
+  const g=c.createRadialGradient(1600,180,20,1600,180,220);g.addColorStop(0,'#FFF4C2');g.addColorStop(1,'rgba(255,244,194,0)');c.fillStyle=g;c.fillRect(1300,0,620,500);
+  c.fillStyle=C.grass;c.fillRect(0,640,W,140);c.fillStyle=C.wood;c.fillRect(0,760,W,320);c.strokeStyle=C.wood2;c.lineWidth=4;for(let y=780;y<H;y+=50){c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke()}
+  [[760,C.kazu],[1080,C.yuu]].forEach(([x,col],i)=>{person(c,x,780,1.0,col,{bob:Math.sin(t*4+i)*2})});
+  [[600,0],[930,1],[1250,2]].forEach(([x,i])=>{c.save();c.translate(x,900);c.beginPath();c.moveTo(-70,0);c.arc(0,0,70,Math.PI,0);c.closePath();c.fillStyle=C.red;c.fill();c.strokeStyle=C.green;c.lineWidth=12;c.beginPath();c.arc(0,0,70,Math.PI,0);c.stroke();for(let k=0;k<4;k++){c.beginPath();c.ellipse(-40+k*26,-26-(k%2)*12,4,7,0,0,Math.PI*2);c.fillStyle=C.ink;c.fill()}c.restore()});
+};
+// 11 造作キッチンで並んで料理
+V[11]=(c,t)=>{c.fillStyle='#F7F0E3';c.fillRect(0,0,W,H);
+  [[600],[960],[1320]].forEach(([x])=>{c.strokeStyle='#8A8F94';c.lineWidth=3;c.beginPath();c.moveTo(x,0);c.lineTo(x,180);c.stroke();c.beginPath();c.arc(x,200,40,Math.PI,0);c.fillStyle=C.gold;c.fill()});
+  fillRR(c,240,700,1440,60,8,'#E3D2B8');c.fillStyle=C.wood;c.fillRect(240,760,1440,320);c.strokeStyle=C.wood2;c.lineWidth=4;for(let x=240;x<1680;x+=240){c.beginPath();c.moveTo(x,770);c.lineTo(x,1080);c.stroke()}
+  person(c,780,640,1.15,C.kazu);person(c,1140,640,1.15,C.yuu);
+  // 湯気
+  c.strokeStyle='rgba(255,255,255,.95)';c.lineWidth=10;c.lineCap='round';for(let k=0;k<3;k++){const ph=(t*0.8+k*0.33)%1;c.globalAlpha=1-ph;c.beginPath();c.moveTo(960+k*30,560-ph*260);c.bezierCurveTo(940+k*30,520-ph*260,990+k*30,480-ph*260,960+k*30,440-ph*260);c.stroke()}c.globalAlpha=1;
+  fillRR(c,900,600,130,90,20,'#5B6670');
+};
+// 12 吹き抜けの紙の飾り
+V[12]=(c,t)=>{c.fillStyle=C.plaster;c.fillRect(0,0,W,H);fillRR(c,760,40,400,300,6,'#DDEFF8');c.strokeStyle=C.white;c.lineWidth=14;c.strokeRect(760,40,400,300);
+  c.strokeStyle='#C8B9A0';c.lineWidth=3;c.beginPath();c.moveTo(120,240);c.quadraticCurveTo(960,520,1800,240);c.stroke();
+  const cols=[C.kazu,C.yuu,C.gold,C.pink,C.grass];for(let i=0;i<13;i++){const u=i/12,x=lerp(160,1760,u),y=240+Math.sin(u*Math.PI)*235;const sw=Math.sin(t*2.4+i*0.7)*0.18;c.save();c.translate(x,y);c.rotate(sw);c.beginPath();c.moveTo(-34,0);c.lineTo(34,0);c.lineTo(0,70);c.closePath();c.fillStyle=cols[i%5];c.fill();c.restore()}
+  c.fillStyle='#D9B48A';c.fillRect(0,860,W,220);
+  person(c,860,880,0.7,C.gold,{armUp:true});person(c,1050,890,0.62,'#7E9A6E');
+};
+// 13 畳の間でトランプ
+V[13]=(c,t)=>{c.fillStyle='#F3EEDC';c.fillRect(0,0,W,520);
+  for(let y=520;y<H;y+=140)for(let x=(y/140%2)*140-140;x<W;x+=280){fillRR(c,x+4,y+4,272,132,4,'#D7D7A4');c.strokeStyle='#B9B888';c.lineWidth=3;rr(c,x+4,y+4,272,132,4);c.stroke()}
+  c.fillStyle='#EDE4CF';c.fillRect(1500,60,320,460);c.strokeStyle='#C9B894';c.lineWidth=6;for(let y=60;y<520;y+=76){c.beginPath();c.moveTo(1500,y);c.lineTo(1820,y);c.stroke()}for(let x=1500;x<=1820;x+=80){c.beginPath();c.moveTo(x,60);c.lineTo(x,520);c.stroke()}
+  c.beginPath();c.ellipse(960,820,360,90,0,0,Math.PI*2);c.fillStyle=C.wood2;c.fill();c.beginPath();c.ellipse(960,800,360,90,0,0,Math.PI*2);c.fillStyle=C.wood;c.fill();
+  person(c,620,760,1.0,'#8E9AA6',{hair:'#D8D8D8'});person(c,1300,760,1.0,'#B78FA0',{hair:'#E2E2E2'});person(c,960,700,0.7,C.yuu);
+  for(let k=0;k<5;k++){c.save();c.translate(880+k*40,800);c.rotate(-0.3+k*0.15+Math.sin(t*3+k)*0.03);fillRR(c,-20,-30,40,60,5,C.white);c.restore()}
+};
+// 14 夕方の窓辺で宿題
+V[14]=(c,t)=>{sky(c,'#F6B48A','#FCE1C4');c.fillStyle=C.plaster;c.fillRect(0,0,W,120);c.fillRect(0,0,420,H);c.fillRect(1500,0,420,H);c.fillRect(0,720,W,360);
+  c.strokeStyle=C.white;c.lineWidth=18;c.strokeRect(420,120,1080,600);
+  c.beginPath();c.arc(1260,560,90,Math.PI,0);c.fillStyle='rgba(255,214,140,.9)';c.fill();
+  
+  // スタンドの灯り
+  c.fillStyle='rgba(242,194,48,.25)';c.beginPath();c.moveTo(560,520);c.lineTo(440,720);c.lineTo(820,720);c.closePath();c.fill();c.strokeStyle=C.ink;c.lineWidth=8;c.beginPath();c.moveTo(620,720);c.lineTo(620,560);c.lineTo(560,520);c.stroke();fillRR(c,520,500,90,40,14,C.kazu);
+  person(c,960,760,0.85,C.yuu);
+  fillRR(c,360,720,1200,40,6,C.wood);c.fillStyle=C.wood2;c.fillRect(420,760,30,320);c.fillRect(1470,760,30,320);
+  const pen=Math.sin(t*9)*6;c.strokeStyle=C.ink;c.lineWidth=6;c.beginPath();c.moveTo(1030+pen,690);c.lineTo(1060+pen,650);c.stroke();
+};
+// 15 ひだまりのクッション
+V[15]=(c,t)=>{c.fillStyle='#F4EDE0';c.fillRect(0,0,W,H);
+  fillRR(c,300,60,1320,560,6,'#CFEBFA');c.strokeStyle=C.white;c.lineWidth=18;c.strokeRect(300,60,1320,560);c.beginPath();c.moveTo(740,60);c.lineTo(740,620);c.moveTo(1180,60);c.lineTo(1180,620);c.stroke();
+  c.fillStyle='#D9B48A';c.fillRect(0,640,W,440);
+  c.fillStyle=`rgba(242,194,48,${0.32+0.06*Math.sin(t*2)})`;c.beginPath();c.moveTo(320,640);c.lineTo(1600,640);c.lineTo(1780,1080);c.lineTo(420,1080);c.closePath();c.fill();
+  [[640,C.kazu],[860,C.yuu],[1080,C.gold],[1300,C.pink]].forEach(([x,col],i)=>{fillRR(c,x-90,820+Math.sin(t*2+i)*2,180,100,40,col)});
+  person(c,800,820,0.9,'#7E9A6E');person(c,1120,830,0.9,C.white,{pants:'#6D7A86'});
+  // マグの湯気
+  [[960,900]].forEach(([x,y])=>{fillRR(c,x-28,y,56,60,10,C.white);c.strokeStyle='rgba(255,255,255,.9)';c.lineWidth=6;const ph=(t*0.7)%1;c.globalAlpha=1-ph;c.beginPath();c.moveTo(x,y-10-ph*100);c.quadraticCurveTo(x-18,y-40-ph*100,x,y-70-ph*100);c.stroke();c.globalAlpha=1});
+};
+// 16 段ボールの家
+V[16]=(c,t)=>{c.fillStyle='#F7F1E4';c.fillRect(0,0,W,H);c.fillStyle='#D9B48A';c.fillRect(0,760,W,320);
+  [[300,640,260,200],[1500,600,300,240],[1640,520,200,120]].forEach(([x,y,w,h])=>{fillRR(c,x,y,w,h,4,'#D2A675');c.fillStyle='#BE915F';c.fillRect(x,y+h/2-8,w,16)});
+  // 子どもが入った箱（クレヨンの窓）
+  const bx=860,by=560;fillRR(c,bx,by,420,300,4,'#D2A675');c.beginPath();c.moveTo(bx-20,by);c.lineTo(bx+210,by-150);c.lineTo(bx+440,by);c.closePath();c.fillStyle='#C8996A';c.fill();
+  c.strokeStyle=C.kazu;c.lineWidth=8;c.lineCap='round';c.strokeRect(bx+50,by+70,110,100);c.beginPath();c.moveTo(bx+105,by+70);c.lineTo(bx+105,by+170);c.moveTo(bx+50,by+120);c.lineTo(bx+160,by+120);c.stroke();
+  c.strokeStyle=C.yuu;c.beginPath();c.moveTo(bx+260,by+300);c.lineTo(bx+260,by+150);c.lineTo(bx+360,by+150);c.lineTo(bx+360,by+300);c.stroke();
+  c.beginPath();c.arc(bx+105,by+120-30+Math.sin(t*4)*6,30,0,Math.PI*2);c.fillStyle=C.skin;c.fill();
+  person(c,560,820,1.0,C.yuu,{bob:Math.sin(t*6)*4});
+};
+// 07 わたしたちの世界（白い箱に南だけの庇、砂利の玄関、物置、うさぎ、畑）
+V[7]=(c,t)=>{sky(c);c.fillStyle=C.grass;c.fillRect(0,700,W,380);
+  // 物置
+  fillRR(c,150,470,230,250,6,'#9AA7AE');c.fillStyle='#8996A0';c.fillRect(150,470,230,30);c.strokeStyle='#7B8892';c.lineWidth=3;c.beginPath();c.moveTo(265,510);c.lineTo(265,720);c.stroke();
+  // 家
+  c.fillStyle='rgba(30,43,54,.10)';c.fillRect(560,712,880,20);
+  fillRR(c,560,230,860,490,4,C.white);c.fillStyle='#ECE8E0';c.fillRect(560,230,860,18);
+  // 南の庇
+  fillRR(c,600,420,600,22,3,'#6E7B85');c.fillStyle='rgba(30,43,54,.10)';c.fillRect(620,442,560,26);
+  // 大きな窓（暖かい室内）
+  fillRR(c,630,470,540,240,4,'#FBE3B5');c.strokeStyle='#9AA3AA';c.lineWidth=8;c.strokeRect(630,470,540,240);c.beginPath();c.moveTo(810,470);c.lineTo(810,710);c.moveTo(990,470);c.lineTo(990,710);c.stroke();
+  fillRR(c,700,300,140,90,4,'#DDEFF8');c.strokeStyle='#9AA3AA';c.lineWidth=6;c.strokeRect(700,300,140,90);fillRR(c,1000,300,140,90,4,'#DDEFF8');c.strokeRect(1000,300,140,90);
+  // 玄関
+  fillRR(c,1260,450,110,270,4,C.wood);c.beginPath();c.arc(1350,590,6,0,Math.PI*2);c.fillStyle=C.ink;c.fill();
+  // 砂利の前庭
+  c.fillStyle='#E6DDCD';c.beginPath();c.moveTo(1180,720);c.lineTo(1450,720);c.lineTo(1700,1080);c.lineTo(980,1080);c.closePath();c.fill();
+  gravel(c,980,720,720,360,77,0.004);
+  // 畑
+  fillRR(c,90,780,440,150,10,'#A9825E');for(let k=0;k<5;k++){const x=130+k*85;for(let j=0;j<4;j++)leaf(c,x+(j%2?14:-14),890-j*26,26,(j%2?0.6:-0.6)+Math.sin(t*1.6+k)*0.06,C.grass2);c.beginPath();c.arc(x+12,836,11,0,Math.PI*2);c.fillStyle=C.red;c.fill()}
+  // うさぎの囲い
+  c.strokeStyle=C.white;c.lineWidth=8;c.strokeRect(1500,760,330,170);for(let x=1520;x<1830;x+=44){c.beginPath();c.moveTo(x,760);c.lineTo(x,930);c.stroke()}
+  rabbit(c,1650+Math.sin(t*1.8)*70,880-Math.abs(Math.sin(t*5))*26,0.9,t*5);
+  // 家族（後ろ姿）
+  person(c,820,940,1.05,C.kazu,{bob:Math.sin(t*2)*2});person(c,980,950,1.0,C.yuu,{bob:Math.sin(t*2+1)*2});
+  person(c,1120,985,0.66,C.gold,{armUp:true,bob:Math.abs(Math.sin(t*5))*-12});person(c,700,990,0.6,'#7E9A6E');
+};
+
+// ===== 時間割 =====
+const ORDER=[1,2,3,4,5,6,8,9,10,11,12,13,14,15,16];
+const CUTS=[];{let s=0,d=0.88;for(const id of ORDER){CUTS.push({id,s,e:s+d});s+=d;d*=0.92}}
+const M_END=CUTS[CUTS.length-1].e;           // モンタージュの終わり（約8.2秒）
+const S07=M_END, PULL0=S07+1.1, PULL1=PULL0+1.8;     // 07で止まり、引いて16枚に
+const MSG0=PULL0+0.4, MSG1=MSG0+4.7;          // 「未来は、16通りより多かった。」
+const TIT0=MSG1, TIT1=TIT0+2.6;               // 題名
+const NOTE0=TIT1, DUR=NOTE0+3.7;               // 注記
+window.DUR=DUR;
+
+// 4×4の並び
+const GW=330,GH=186,GG=14,GX=(W-(GW*4+GG*3))/2,GY=56;
+const cell=i=>({x:GX+(i%4)*(GW+GG),y:GY+Math.floor(i/4)*(GH+GG)});
+
+function drawScene(id,t,x,y,w,h,push=1){
+  ctx.save();rr(ctx,x,y,w,h,w<W?10:0);ctx.clip();ctx.translate(x,y);ctx.scale(w/W,h/H);
+  if(push!==1){ctx.translate(W/2,H/2);ctx.scale(push,push);ctx.translate(-W/2,-H/2)}
+  V[id](ctx,t);ctx.restore();
+}
+function chip(text,x,y,size=34,bg='rgba(255,250,240,.92)'){
+  ctx.font=`700 ${size}px ${FONT_B}`;const w=ctx.measureText(text).width+size*1.1;
+  fillRR(ctx,x,y,w,size*1.6,size*0.8,bg);ctx.fillStyle=C.ink;ctx.textBaseline='middle';ctx.fillText(text,x+size*0.55,y+size*0.82);return w;
+}
+function worldLabel(id){return '世界'+String(id).padStart(2,'0')}
+
+function render(t){
+  t=clamp(t,0,DUR);
+  ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=C.paper;ctx.fillRect(0,0,W,H);
+  if(t<M_END){
+    const cut=CUTS.find(k=>t>=k.s&&t<k.e)||CUTS[CUTS.length-1];const lt=t-cut.s;const u=lt/(cut.e-cut.s);
+    drawScene(cut.id,lt,0,0,W,H,1+0.035*u);
+    chip(worldLabel(cut.id),64,60,34);
+    if(t<2.6){ctx.globalAlpha=clamp(t/0.3)*clamp((2.6-t)/0.3);ctx.font=`700 64px ${FONT_D}`;const tw=ctx.measureText('1年後').width;fillRR(ctx,W/2-tw/2-44,56,tw+88,104,52,'rgba(30,43,54,.82)');ctx.fillStyle=C.paper;ctx.textBaseline='middle';ctx.fillText('1年後',W/2-tw/2,110);ctx.globalAlpha=1}
+  } else if(t<TIT0){
+    const lt07=t-S07;const p=eio((t-PULL0)/(PULL1-PULL0));
+    // ほかの15枚（引きのあいだに出てくる）
+    if(p>0){ORDER.forEach((id,k)=>{const i=id-1;const q=eo((p-0.15-k*0.03)/0.5);if(q<=0)return;const {x,y}=cell(i);ctx.globalAlpha=q;drawScene(id,t-S07+k,x,y+(1-q)*30,GW,GH);ctx.globalAlpha=1});}
+    // 07（全画面→自分のマス）
+    const c7=cell(6);const x=lerp(0,c7.x,p),y=lerp(0,c7.y,p),w=lerp(W,GW,p),h=lerp(H,GH,p);
+    drawScene(7,lt07,x,y,w,h);
+    if(p>0.6){ctx.strokeStyle=C.ink;ctx.lineWidth=5;rr(ctx,c7.x-4,c7.y-4,GW+8,GH+8,13);ctx.globalAlpha=eo((p-0.6)/0.4);ctx.stroke();ctx.globalAlpha=1}
+    if(p<0.05)chip(worldLabel(7)+'　わたしたち',64,60,34);
+    // 16の外側の、点線の枠
+    const q=eo((t-(PULL1-0.2))/1.2);if(q>0){ctx.save();ctx.globalAlpha=0.55*q;ctx.setLineDash([14,12]);ctx.strokeStyle=C.muted;ctx.lineWidth=4;
+      [[4,0],[-1,1],[4,2],[-1,3],[2,-1]].forEach(([cx,cy])=>{rr(ctx,GX+cx*(GW+GG),GY+cy*(GH+GG),GW,GH,10);ctx.stroke()});ctx.restore()}
+    // メッセージ
+    const m=clamp((t-MSG0)/0.5)*clamp((MSG1-t)/0.4);if(m>0){ctx.globalAlpha=m;fillRR(ctx,0,880,W,200,0,'rgba(255,250,240,.94)');ctx.font=`700 64px ${FONT_D}`;ctx.fillStyle=C.ink;ctx.textBaseline='middle';const s='未来は、16通りより多かった。';const tw=ctx.measureText(s).width;ctx.fillText(s,W/2-tw/2,972);ctx.globalAlpha=1}
+  } else if(t<NOTE0){
+    const a=eo((t-TIT0)/0.6);
+    // うしろに16枚をうすく
+    ctx.globalAlpha=0.16*(1-a*0.4);for(let i=0;i<16;i++){const {x,y}=cell(i);drawScene(i+1,t,x,y,GW,GH)}ctx.globalAlpha=1;
+    ctx.fillStyle=`rgba(255,250,240,${0.6+0.3*a})`;ctx.fillRect(0,0,W,H);
+    ctx.globalAlpha=a;ctx.font=`700 132px ${FONT_D}`;ctx.fillStyle=C.ink;ctx.textBaseline='middle';const s='16軒目の、わが家';const tw=ctx.measureText(s).width;ctx.fillText(s,W/2-tw/2,500+(1-a)*20);
+    fillRR(ctx,W/2-130,610,120,12,6,C.kazu);fillRR(ctx,W/2+10,610,120,12,6,C.yuu);ctx.globalAlpha=1;
+  } else {
+    const a=eo((t-NOTE0)/0.5);ctx.fillStyle=C.paper;ctx.fillRect(0,0,W,H);
+    ctx.globalAlpha=a;ctx.font=`700 56px ${FONT_D}`;ctx.fillStyle=C.ink;ctx.textBaseline='middle';let s='16軒目の、わが家';let tw=ctx.measureText(s).width;ctx.fillText(s,W/2-tw/2,380);
+    ctx.font=`400 30px ${FONT_B}`;ctx.fillStyle='#46525C';
+    ['本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。','実際の家づくりでは、地域・金融機関・住宅会社によって異なります。','登場する住宅会社・人物・団体はすべて架空です。'].forEach((l,i)=>{const w2=ctx.measureText(l).width;ctx.fillText(l,W/2-w2/2,560+i*58)});ctx.globalAlpha=1;
+  }
+}
+window.render=render;
+
+// ===== 再生まわり =====
+const sc=document.getElementById('sc'),tl=document.getElementById('tl'),pp=document.getElementById('pp');
+sc.max=DUR.toFixed(2);
+const q=new URLSearchParams(location.search);let playing=!q.has('t');let cur=q.has('t')?parseFloat(q.get('t'))||0:0;let last=null;
+function show(){render(cur);sc.value=cur;tl.textContent=cur.toFixed(2)+' 秒 / '+DUR.toFixed(1);pp.textContent=playing?'一時停止':'再生'}
+function loop(ts){if(playing){if(last!=null){cur+= (ts-last)/1000;if(cur>DUR)cur=0}last=ts}else last=null;show();requestAnimationFrame(loop)}
+pp.onclick=()=>{playing=!playing};sc.oninput=()=>{playing=false;cur=parseFloat(sc.value)};
+const start=()=>{window.READY=true;requestAnimationFrame(loop)};
+(document.fonts&&document.fonts.ready?Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,1500))]):Promise.resolve()).then(start);
+</script>
+</body>
+</html>

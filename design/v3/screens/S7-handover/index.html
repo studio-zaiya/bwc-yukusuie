@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>S7 引渡し</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="../../../../app/engine.js"></script><script src="../../../../app/iso.js"></script><script src="../../play/common.js"></script><script src="../screens.js"></script>
+<link rel="stylesheet" href="../screens.css">
+<style id="css"></style>
+<style>
+/* 引渡し：切り絵のジオラマ（W4）を主役に大きく。右は鍵の受け渡しの短いやり取りだけ。文字のキャッチは入れない */
+.w4{position:absolute;left:30px;top:124px;width:1300px;height:731px;border-radius:22px;overflow:hidden;background:#F3E7CF;box-shadow:0 10px 30px rgba(30,43,54,.12)}
+/* 1920×1136 の試作を、舞台（1920×1080）だけが見えるように縮小して切り抜く */
+.w4 iframe{position:absolute;left:0;top:0;width:1920px;height:1136px;border:0;transform:scale(.677083);transform-origin:0 0;pointer-events:none}
+.w4 .lab{position:absolute;left:24px;top:20px;display:flex;align-items:center;gap:10px;font-size:22px;font-weight:700;background:rgba(255,250,240,.9);border-radius:12px;padding:6px 14px}
+.w4 .no{font-family:var(--fr);font-weight:900;font-size:36px}
+.side{position:absolute;left:1356px;top:124px;width:534px;height:731px;display:flex;flex-direction:column;gap:14px}
+.side .chat{flex:1}
+.keys{background:#fff;border:1.5px solid rgba(30,43,54,.2);border-radius:18px;padding:16px 20px}
+.keys h3{font-size:16px;color:var(--ink2);font-weight:400;margin-bottom:6px}
+.keys table{width:100%;border-collapse:collapse;font-size:18px;font-variant-numeric:tabular-nums}
+.keys td{padding:6px 2px;border-bottom:1px solid rgba(30,43,54,.08)}
+.keys td+td{text-align:right}
+.galT{top:872px}.gal{top:898px;height:166px}
+.gal .th svg{height:72px}.gal .th .nt{min-height:18px}
+</style></head>
+<body><div id="stage"><div id="view"></div></div>
+<script>
+document.getElementById('css').textContent = S.L.CSS;
+const { L, Y, W, man } = S;
+const me = W(L.YOU);
+// 切り絵は「完成した瞬間」（キャッチの文字が出る直前、6.0秒）で止める
+const W4 = '../../../../prototypes/completion/W4-paper/completion.html?t=6.0';
+const sc = { log: [['C', '鍵をお渡しします。おめでとうございます。'], ['me', 'ありがとうございました。'], ['C', '1年後の点検で、またうかがいます。']], opts: ['鍵を受け取る'], cast: [] };
+function draw() {
+  const p = 10.4, list = L.worldsAt(p);
+  document.getElementById('view').innerHTML = `
+  ${S.top(p)}${S.money('final')}
+  <div class="clks"><span class="clk"><b>300</b>日目</span><span class="clk soft">引渡しの日</span></div>
+  <div class="w4"><iframe src="${W4}" title="完成した家の切り絵" tabindex="-1"></iframe>
+    <div class="lab"><span class="no">07</span>あなたの家　${L.coTag('C', 26)}Cデザイン</div></div>
+  <div class="side">
+    <div class="keys"><h3>引渡しの書類（エンジンの計算）</h3><table>
+      <tr><td>建物の総額</td><td>${man(me.quote.real)}万円</td></tr>
+      <tr><td>うち増工（南の窓）</td><td>${man(me.quote.real - W(5).quote.real)}万円</td></tr>
+      <tr><td>借入金額</td><td>${man(me.principal)}万円</td></tr>
+      <tr><td>着工から引渡しまで</td><td>${me.days - 120}日</td></tr></table></div>
+    ${L.chatHTML(sc)}
+  </div>
+  ${S.gallery(list, { sub: '同じ日の、ほかの世界' })}`;
+}
+S.fit(); draw(); window.render = draw; window.DUR = 1; window.READY = true;
+</script></body></html>

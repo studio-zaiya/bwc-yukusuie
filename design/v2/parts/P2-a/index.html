@@ -1,0 +1,37 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>P2-a 伝え忘れをメッセージで送る</title><link rel="stylesheet" href="../_shared/common.css">
+<style>
+.lot{position:absolute;left:0;top:70px;width:1120px;height:1010px;background:linear-gradient(#F6E7D3,#FBF3E7 44%,var(--ground) 44.1%)}
+.lot .svgw{position:absolute;left:120px;top:200px;width:880px;height:640px}
+.app{height:100%;display:flex;flex-direction:column;font-size:19px}
+.app .top{padding:52px 20px 12px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;font-weight:700}
+.app .top .av{width:38px;height:38px;border-radius:50%;background:#E9E4DA;display:grid;place-items:center;font-size:15px}
+.app .body{flex:1;padding:16px 16px;display:flex;flex-direction:column;gap:10px;background:#F7F4EE}
+.b{max-width:80%;padding:10px 14px;border-radius:16px;line-height:1.5;background:#fff;border:1px solid var(--line)}
+.b.me{align-self:flex-end;background:#1E2B36;color:#fff;border-color:#1E2B36}
+.b small{display:block;font-size:13px;color:var(--ink2)}
+.b.me small{color:#B9C3CB}
+.app .bar{padding:12px;border-top:1px solid var(--line);display:flex;gap:8px}
+.app .bar div{flex:1;border:1.5px solid var(--line);border-radius:20px;padding:9px 14px;color:#9A9186}
+.toast{position:absolute;left:60px;top:930px;width:640px;background:#fff;border:1.5px solid var(--ink);border-radius:16px;padding:16px 22px;font-size:20px;line-height:1.55;box-shadow:0 10px 26px rgba(30,43,54,.12)}
+.side{position:absolute;left:1640px;top:150px;width:250px}
+</style></head><body><div id="stage"></div>
+<script src="../../../../app/engine.js"></script><script src="../../../../app/iso.js"></script><script src="../_shared/parts.js"></script>
+<script>
+document.getElementById('stage').innerHTML = UI.progress(1) + `
+<div class="lot"><div class="abs" style="left:40px;top:26px"><span class="chip">12日目・夜</span>　<span class="chip soft">帰り道の車の中</span></div>
+  <div class="svgw">${UI.myLot(0, { ghost: { w: 70, d: 56, h: 40 } })}</div></div>
+<div class="phone" style="left:1170px;top:120px"><div class="notch"></div><div class="scr">
+  <div class="app"><div class="top"><div class="av">ゆ</div>ゆう<span style="margin-left:auto;font-weight:400;font-size:14px;color:var(--ink2)">ことづて</span></div>
+    <div class="body">
+      <div class="b"><small>ゆう 20:41</small>今日の打ち合わせ、なんか伝え忘れたことあったかな？</div>
+      <div class="b me"><small>かず 20:43</small>テレビを壁に掛けたいって、言ってなかった気がする</div>
+      <div class="b"><small>ゆう 20:43</small>あと、パソコンの部屋の線（LAN）！ 高橋さんに送っとこ</div>
+      <div style="text-align:center;font-size:13px;color:var(--ink2);margin:6px 0">― Aハウス 高橋さん とのトーク ―</div>
+      <div class="b me"><small>かず 20:50</small>本日はありがとうございました。言い忘れましたが、リビングのテレビは壁掛けにしたいです。書斎にLANの配線もお願いします。</div>
+      <div class="b"><small>高橋（Aハウス） 21:12</small>承知しました！ ちなみに、エアコンの室外機はどこに置くか、イメージはありますか？</div>
+    </div>
+    <div class="bar"><div>メッセージ</div></div></div></div></div>
+<div class="toast"><span class="di"></span>Bハウス・Cデザイン・D工務店にも、同じ要望を伝えました。<br><span class="note">2社目からは、打ち合わせの最初に、この内容が渡された状態で始まります。</span></div>
+${UI.cast(['yuu', 'kazu'], { left: 760 })}`;
+</script></body></html>

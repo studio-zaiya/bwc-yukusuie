@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hero案 晴れの日の16軒</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FFF8EC;--ink:#2A2433;}
+  html,body{margin:0;height:100%;background:#1d1b22;overflow:hidden;font-family:"Zen Kaku Gothic New",sans-serif}
+  #wrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+  canvas{display:block;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+  #ui{position:fixed;left:12px;bottom:10px;display:flex;gap:8px;align-items:center;color:#ddd;font-size:12px;z-index:2}
+  #ui button{background:#333;color:#eee;border:1px solid #555;border-radius:6px;padding:4px 10px;cursor:pointer}
+  #ui input{width:260px}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="1920" height="1080"></canvas></div>
+<div id="ui"><button id="pp">一時停止</button><input id="sc" type="range" min="0" max="18" step="0.01" value="0"><span id="tt">0.00s</span></div>
+<script>
+/* 立場1：添付の意図を素直に汲む ― Hero案「晴れの日の16軒」
+   描画はすべて render(t) の純関数。外部コード・素材は不使用。 */
+const W=1920,H=1080,DUR=18;
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+function fit(){const s=Math.min(innerWidth/W,innerHeight/H);cv.style.width=W*s+'px';cv.style.height=H*s+'px';}
+addEventListener('resize',fit);fit();
+
+/* ---------- 数学・イージング ---------- */
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const seg=(t,a,b)=>clamp((t-a)/(b-a));
+const eio=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const eout=t=>1-Math.pow(1-t,3);
+const back=t=>{const c1=1.9,c3=c1+1;return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2);};
+function hex(h){h=h.replace('#','');return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+function mix(a,b,t){const A=hex(a),B=hex(b);return'#'+A.map((v,i)=>Math.round(lerp(v,B[i],t)).toString(16).padStart(2,'0')).join('');}
+function rgba(h,a){const A=hex(h);return`rgba(${A[0]},${A[1]},${A[2]},${a})`;}
+function rnd(i){const x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x);}
+
+/* ---------- アイソメ投影（自作） ---------- */
+const K=27, C30=Math.cos(Math.PI/6);
+let OX=1150,OY=300;
+function P(x,y,z){return[OX+(x-y)*C30*K, OY+(x+y)*0.5*K - z*K];}
+function poly(pts,fill){ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.fillStyle=fill;ctx.fill();}
+function tones(base){return{top:mix(base,'#FFFDF6',.28),left:base,right:mix(base,'#2B2340',.24)};}
+// 箱：x,y,z基点、w(x方向) d(y方向) h(高さ)
+function box(x,y,z,w,d,h,base){
+  const T=tones(base);
+  poly([P(x,y+d,z),P(x+w,y+d,z),P(x+w,y+d,z+h),P(x,y+d,z+h)],T.left);   // +y面
+  poly([P(x+w,y,z),P(x+w,y+d,z),P(x+w,y+d,z+h),P(x+w,y,z+h)],T.right);  // +x面
+  poly([P(x,y,z+h),P(x+w,y,z+h),P(x+w,y+d,z+h),P(x,y+d,z+h)],T.top);     // 上面
+}
+
+/* ---------- 16区画の設定 ---------- */
+const LOT=5.2, ROAD=1.4, STEP=LOT+ROAD, BOARD=4*LOT+3*ROAD;
+const FIN=[ // 外壁の仕上げ（色が意味を持つ：仕上げの違い＝選択の違い）
+  {n:'白い塗り壁',c:'#F3EEE4'},{n:'木目',c:'#C98F5C'},{n:'レンガ調',c:'#C8613E'},{n:'ガルバリウム',c:'#7F8C99'},
+  {n:'紺のサイディング',c:'#3F5F93'},{n:'ミントの塗り壁',c:'#8CCBB2'},{n:'からし色',c:'#E9B949'},{n:'淡い桃色',c:'#E9A7A0'}];
+const ROOFC=['#3A3E47','#C4513B','#5B8A5E','#4C6A8F','#8A6C58'];
+const lots=[];
+for(let j=0;j<4;j++)for(let i=0;i<4;i++){
+  const n=j*4+i+1, r=k=>rnd(n*13+k);
+  const fate = n===3?'empty': n===13?'vacant':'ok';
+  const floors = r(1)<.22?1:2;
+  lots.push({n,i,j,x:i*STEP,y:j*STEP,fin:FIN[Math.floor(r(2)*FIN.length)],
+    roof:['gable','flat','shed','gable','hip'][Math.floor(r(3)*5)],roofc:ROOFC[Math.floor(r(4)*ROOFC.length)],
+    floors,w:floors===1?3.6:3.0,d:floors===1?2.8:2.4,fate,player:n===7,trees:1+Math.floor(r(5)*3)});
+}
+// 主人公の世界は明るい白＋木の箱型（予行演習の結果）
+Object.assign(lots[6],{fin:{n:'白い塗り壁',c:'#F6F2EA'},roof:'flat',roofc:'#3A3E47',floors:2,w:3.0,d:2.4});
+// 建つ順番：主人公の区画から波のように
+lots.forEach(l=>{l.dist=Math.hypot(l.i-2,l.j-1);});
+const order=[...lots].sort((a,b)=>a.dist-b.dist);
+order.forEach((l,k)=>{l.t0=4.4+k*0.2;});
+
+/* ---------- 世界線（16本） ---------- */
+const ROOT=[150,520];
+const FORKX=[330,520,700,860];
+const FORKNAME=['会社選び','間取り','契約','仕様'];
+const KAZU='#F08A3C', YUU='#22B3A6';
+function lotTop(l){return P(l.x+LOT/2,l.y+LOT/2,0);}
+// 葉の並び（画面上のyで並べ、交差を減らす）
+const leafLots=[...lots].sort((a,b)=>lotTop(a)[1]-lotTop(b)[1] || lotTop(a)[0]-lotTop(b)[0]);
+const SPREAD=[200,100,50,25];
+function nodeY(bits){let y=ROOT[1];bits.forEach((b,L)=>{y+=(b?1:-1)*SPREAD[L];});return y;}
+function bez(a,b,n=26){const pts=[];for(let s=0;s<=n;s++){const u=s/n,mx=(a[0]+b[0])/2;
+  const x=Math.pow(1-u,3)*a[0]+3*Math.pow(1-u,2)*u*mx+3*(1-u)*u*u*mx+u*u*u*b[0];
+  const y=Math.pow(1-u,3)*a[1]+3*Math.pow(1-u,2)*u*a[1]+3*(1-u)*u*u*b[1]+u*u*u*b[1];pts.push([x,y]);}return pts;}
+const segments=[]; // {pts,level,bit,leaf}
+(function build(){
+  const seen={};
+  for(let leaf=0;leaf<16;leaf++){
+    const bits=[(leaf>>3)&1,(leaf>>2)&1,(leaf>>1)&1,leaf&1];
+    let prev=ROOT;
+    for(let L=0;L<4;L++){
+      const key=bits.slice(0,L+1).join('');
+      const pt=[FORKX[L]+ (L===3?0:0), nodeY(bits.slice(0,L+1))];
+      if(!seen[key]){seen[key]=1;segments.push({pts:bez(prev,pt),level:L,bit:bits[L],key});}
+      prev=pt;
+    }
+    const lot=leafLots[leaf]; lot.leaf=leaf; lot.bits=bits;
+    const end=lotTop(lot);
+    segments.push({pts:bez(prev,[end[0],end[1]-4],40),level:4,bit:bits[3],lot:lot.n,key:'L'+leaf});
+  }
+})();
+// 誰の希望が通ったか：分かれ道ごとに夫（かず）／妻（ゆう）の色
+function segColor(s){if(s.level===4)return s.bit?YUU:KAZU;return s.bit?YUU:KAZU;}
+function drawPartial(pts,f,color,width,alpha,glow){
+  if(f<=0)return;const n=Math.max(1,Math.floor((pts.length-1)*f));
+  ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.lineJoin='round';
+  if(glow){ctx.shadowColor=color;ctx.shadowBlur=glow;}
+  ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<=n;i++)ctx.lineTo(pts[i][0],pts[i][1]);
+  const fr=(pts.length-1)*f-n; if(n<pts.length-1&&fr>0){const a=pts[n],b=pts[n+1];ctx.lineTo(lerp(a[0],b[0],fr),lerp(a[1],b[1],fr));}
+  ctx.stroke();ctx.restore();
+  return pts[Math.min(pts.length-1,n)];
+}
+
+/* ---------- 家（育つ：基礎→壁→屋根） ---------- */
+let WINQ=[]; // 夜に灯す窓
+function house(l,t){
+  const g=t-l.t0; if(g<0)return;
+  const hx=l.x+(LOT-l.w)/2+0.2, hy=l.y+(LOT-l.d)/2-0.1;
+  const H1=1.25, Hh=l.floors*H1;
+  // 基礎
+  const fb=eout(seg(g,0,.25));
+  box(hx-.08,hy-.08,0,l.w+.16,l.d+.16,.18*fb,'#C9C2B4');
+  if(g<.22)return;
+  if(l.fate==='empty'){ // 骨組みで止まる世界
+    const fr=seg(g,.25,.9), stop=seg(t,9.6,10.4);
+    if(stop>=1)return;
+    ctx.save();ctx.globalAlpha=1-stop;ctx.strokeStyle='#B08A62';ctx.lineWidth=3;
+    const hh=Hh*back(fr);
+    [[0,0],[l.w,0],[0,l.d],[l.w,l.d]].forEach(([a,b])=>{const p=P(hx+a,hy+b,.18),q=P(hx+a,hy+b,.18+hh);ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.lineTo(q[0],q[1]);ctx.stroke();});
+    const cs=[[0,0],[l.w,0],[l.w,l.d],[0,l.d]].map(([a,b])=>P(hx+a,hy+b,.18+hh));ctx.beginPath();cs.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.stroke();ctx.restore();return;
+  }
+  const wf=g<.9?back(seg(g,.25,.9)):1;
+  const hh=Hh*wf, z0=.18;
+  box(hx,hy,z0,l.w,l.d,hh,l.fin.c);
+  // 窓（+y面と+x面）
+  if(wf>.85){
+    const wins=[];
+    for(let fl=0;fl<l.floors;fl++){
+      const zz=z0+fl*H1+.42;
+      const nx=l.w>3.2?3:2;
+      for(let k=0;k<nx;k++){const u=(k+.5)/nx*l.w; wins.push({face:'y',u,zz,ww:fl===0&&k===0&&l.player?.9:.55,hh:fl===0&&l.player&&k===0?.7:.5});}
+      wins.push({face:'x',u:l.d*.5,zz,ww:.5,hh:.5});
+    }
+    wins.forEach(w=>{
+      let q;
+      if(w.face==='y'){const yy=hy+l.d+.001;q=[P(hx+w.u-w.ww/2,yy,w.zz),P(hx+w.u+w.ww/2,yy,w.zz),P(hx+w.u+w.ww/2,yy,w.zz+w.hh),P(hx+w.u-w.ww/2,yy,w.zz+w.hh)];}
+      else{const xx=hx+l.w+.001;q=[P(xx,hy+w.u-w.ww/2,w.zz),P(xx,hy+w.u+w.ww/2,w.zz),P(xx,hy+w.u+w.ww/2,w.zz+w.hh),P(xx,hy+w.u-w.ww/2,w.zz+w.hh)];}
+      poly(q,'#9CC9E6');
+      if(l.fate==='ok')WINQ.push({q,lot:l.n,seed:rnd(l.n*7+w.u*3+w.zz)});
+    });
+    // 玄関
+    const dz=z0, du=.55; poly([P(hx+du,hy+l.d+.002,dz),P(hx+du+.42,hy+l.d+.002,dz),P(hx+du+.42,hy+l.d+.002,dz+.85),P(hx+du,hy+l.d+.002,dz+.85)],'#6B4A32');
+  }
+  // 屋根（2〜3コマ遅れて落ちてくる）
+  const rg=seg(g,.85,1.2); if(rg<=0)return;
+  const drop=(1-eout(rg))*2.2, zt=z0+Hh+drop;
+  ctx.save();ctx.globalAlpha=clamp(rg*3);
+  const T=tones(l.roofc), o=.18;
+  if(l.roof==='flat'){ box(hx-.05,hy-.05,zt,l.w+.1,l.d+.1,.16,l.roofc); if(l.player){ // 南だけ庇
+      box(hx-.05,hy+l.d,z0+H1-.05+drop,l.w+.1,.6,.08,'#C98F5C');}}
+  else if(l.roof==='shed'){
+    const r=.9; poly([P(hx-o,hy-o,zt+r),P(hx+l.w+o,hy-o,zt+r),P(hx+l.w+o,hy+l.d+o,zt),P(hx-o,hy+l.d+o,zt)],T.top);
+    poly([P(hx+l.w,hy,zt),P(hx+l.w,hy+l.d,zt),P(hx+l.w,hy,zt+r*.95)],mix(l.fin.c,'#2B2340',.24));
+  }else if(l.roof==='hip'){
+    const r=1.0,cx=hx+l.w/2,cy=hy+l.d/2;
+    poly([P(hx-o,hy-o,zt),P(hx+l.w+o,hy-o,zt),P(cx+.5,cy,zt+r),P(cx-.5,cy,zt+r)],T.top);
+    poly([P(hx+l.w+o,hy-o,zt),P(hx+l.w+o,hy+l.d+o,zt),P(cx+.5,cy,zt+r)],T.right);
+    poly([P(hx-o,hy+l.d+o,zt),P(hx+l.w+o,hy+l.d+o,zt),P(cx+.5,cy,zt+r),P(cx-.5,cy,zt+r)],T.left);
+  }else{ // 切妻（棟はx方向）
+    const r=1.05, my=hy+l.d/2;
+    poly([P(hx-o,hy-o,zt),P(hx+l.w+o,hy-o,zt),P(hx+l.w+o,my,zt+r),P(hx-o,my,zt+r)],T.top);
+    poly([P(hx-o,hy+l.d+o,zt),P(hx+l.w+o,hy+l.d+o,zt),P(hx+l.w+o,my,zt+r),P(hx-o,my,zt+r)],T.left);
+    poly([P(hx+l.w,hy,zt),P(hx+l.w,hy+l.d,zt),P(hx+l.w,my,zt+r*.95)],mix(l.fin.c,'#2B2340',.24));
+  }
+  ctx.restore();
+  l.peak=P(hx+l.w/2,hy+l.d/2,zt+1.1);
+}
+function tree(x,y,s,t0,t){const g=seg(t,t0,t0+.35);if(g<=0)return;const k=back(g)*s;
+  const b=P(x,y,0); ctx.fillStyle='#7A5A3C';ctx.fillRect(b[0]-2,b[1]-10*k,4,10*k);
+  ctx.beginPath();ctx.arc(b[0],b[1]-20*k,12*k,0,7);ctx.fillStyle='#6DBB6A';ctx.fill();
+  ctx.beginPath();ctx.arc(b[0]-4*k,b[1]-24*k,6*k,0,7);ctx.fillStyle='#93D486';ctx.fill();}
+
+/* ---------- 地面（タイルが波のように落ちてくる） ---------- */
+function ground(t){
+  // 盤の側面（地層）
+  const a=eout(seg(t,0,.5));
+  ctx.save();ctx.globalAlpha=a;
+  const bt=.0, dep=1.1;
+  poly([P(0,BOARD,bt),P(BOARD,BOARD,bt),P(BOARD,BOARD,bt-dep),P(0,BOARD,bt-dep)],'#D8B98C');
+  poly([P(BOARD,0,bt),P(BOARD,BOARD,bt),P(BOARD,BOARD,bt-dep),P(BOARD,0,bt-dep)],'#B9966A');
+  poly([P(0,BOARD,bt-dep*.55),P(BOARD,BOARD,bt-dep*.55),P(BOARD,BOARD,bt-dep),P(0,BOARD,bt-dep)],'#C9A578');
+  poly([P(0,0,0),P(BOARD,0,0),P(BOARD,BOARD,0),P(0,BOARD,0)],'#EFE6D2'); // 道路
+  ctx.restore();
+  // 道路の白線
+  ctx.save();ctx.globalAlpha=a*.7;ctx.strokeStyle='#FFFFFF';ctx.lineWidth=2;ctx.setLineDash([8,10]);
+  for(let k=1;k<4;k++){const m=k*STEP-ROAD/2;let p=P(m,0,0),q=P(m,BOARD,0);ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.lineTo(q[0],q[1]);ctx.stroke();
+    p=P(0,m,0);q=P(BOARD,m,0);ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.lineTo(q[0],q[1]);ctx.stroke();}
+  ctx.restore();
+}
+function lotTile(l,t){
+  const st=.1+l.dist*.12, g=seg(t,st,st+.45); if(g<=0)return;
+  const dz=(1-back(g))*2.5;
+  ctx.save();ctx.globalAlpha=clamp(g*2);
+  box(l.x,l.y,dz-.12,LOT,LOT,.12,l.player?'#A9DD8E':'#BFE3A5');
+  ctx.restore();
+  // 区画番号（地面に寝かせる）
+  if(g>.6){const p=P(l.x+.6,l.y+LOT-.5,0);ctx.save();ctx.translate(p[0],p[1]);ctx.transform(C30,.5,-C30,.5,0,0);
+    ctx.font='700 30px "Zen Maru Gothic"';ctx.fillStyle=l.player?'#2F6B3A':'rgba(60,90,50,.55)';ctx.fillText(String(l.n).padStart(2,'0'),0,0);ctx.restore();}
+}
+
+/* ---------- 札（数字は主役） ---------- */
+function card(t,t0,anchor,w,h,draw,pos){
+  const g=seg(t,t0,t0+.45), out=seg(t,12.3,12.8); if(g<=0||out>=1)return;
+  const s=back(g)*(1-out), x=pos?pos[0]:anchor[0], y=(pos?pos[1]:anchor[1]-60)-30*eout(g);
+  ctx.save();ctx.globalAlpha=clamp(g*2)*(1-out);
+  ctx.strokeStyle='#2A2433';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(anchor[0],anchor[1]);ctx.lineTo(x,y);ctx.stroke();
+  ctx.beginPath();ctx.arc(anchor[0],anchor[1],5,0,7);ctx.fillStyle='#2A2433';ctx.fill();
+  ctx.translate(x,y);ctx.scale(s,s);
+  ctx.shadowColor='rgba(40,30,60,.25)';ctx.shadowBlur=18;ctx.shadowOffsetY=6;
+  roundRect(-w/2,-h,w,h,16);ctx.fillStyle='#FFFFFF';ctx.fill();ctx.shadowColor='transparent';
+  draw(-w/2,-h,w,h);ctx.restore();
+}
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function txt(s,x,y,size,color,weight=700,align='left',font='Zen Maru Gothic'){ctx.font=`${weight} ${size}px "${font}"`;ctx.fillStyle=color;ctx.textAlign=align;ctx.fillText(s,x,y);ctx.textAlign='left';}
+function rollNum(v,t,a,b){return Math.round(v*eio(seg(t,a,b)));}
+function fmt(n){return n.toLocaleString('ja-JP');}
+
+/* ---------- 1フレームを描く ---------- */
+function render(t){
+  t=((t%DUR)+DUR)%DUR;
+  WINQ=[];
+  const night=eio(seg(t,12.4,14.2))*(1-eio(seg(t,17.4,18)));
+  // 空：晴れた昼 → 1年後の冬の夜
+  const sky=ctx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,mix('#BFE6FF','#1B2350',night));sky.addColorStop(.6,mix('#FFF4DE','#33305E',night));sky.addColorStop(1,mix('#FFE9C7','#4A3A63',night));
+  ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+  // 雲（昼だけ）
+  if(night<1){ctx.save();ctx.globalAlpha=1-night;for(let k=0;k<4;k++){const cx=((k*530+t*22)%2300)-200, cy=110+k*38;ctx.fillStyle='rgba(255,255,255,.85)';
+    [[0,0,34],[30,-12,28],[60,0,30],[28,8,26]].forEach(([dx,dy,r])=>{ctx.beginPath();ctx.arc(cx+dx,cy+dy,r,0,7);ctx.fill();});}ctx.restore();}
+  // 星（夜だけ）
+  if(night>0){for(let k=0;k<120;k++){const x=rnd(k)*W,y=rnd(k+400)*H*.45,tw=.5+.5*Math.sin(t*3+k);ctx.fillStyle=`rgba(255,248,220,${night*tw*.8})`;ctx.fillRect(x,y,2,2);}}
+
+  ground(t);
+  // 区画を奥から手前へ
+  const sorted=[...lots].sort((a,b)=>(a.i+a.j)-(b.i+b.j)||a.i-b.i);
+  sorted.forEach(l=>lotTile(l,t));
+  // 世界線：分かれ道ごとに夫婦の色で描き進む
+  const dim=lerp(1,.35,eio(seg(t,5.0,6.2)));
+  const glowN=eio(seg(t,14.2,15.4))*(1-eio(seg(t,17.3,17.9)));
+  segments.forEach(s=>{
+    const a=.5+s.level*.95, f=eio(seg(t,a,a+.95));
+    const fade=1-.7*eio(seg(t,15.6,16.2));const lineAlpha=Math.max(s.level===4?Math.min(dim,lerp(1,.18,eio(seg(t,5,6.2)))):dim,glowN*fade);
+    const end=drawPartial(s.pts,f,segColor(s),s.level===4?3:4.5,lineAlpha,glowN>0?14*glowN:0);
+    if(f>0&&f<1&&end){ctx.save();ctx.beginPath();ctx.arc(end[0],end[1],7,0,7);ctx.fillStyle='#FFF7E0';ctx.shadowColor=segColor(s);ctx.shadowBlur=20;ctx.fill();ctx.restore();}
+  });
+  sorted.forEach(l=>{
+    house(l,t);
+    for(let k=0;k<l.trees;k++){const tx=l.x+.6+rnd(l.n*5+k)*1.2+(k%2)*3.4, ty=l.y+LOT-.6-rnd(l.n*9+k)*.8;tree(tx,ty,1,l.t0+1.1+k*.08,t);}
+    if(l.fate==='empty'&&t>10.2){ // 更地の看板
+      const g=seg(t,10.2,10.6),p=P(l.x+LOT/2,l.y+LOT/2,0);ctx.save();ctx.globalAlpha=g;
+      ctx.fillStyle='#8A6C58';ctx.fillRect(p[0]-2,p[1]-40,4,40);roundRect(p[0]-56,p[1]-78,112,40,6);ctx.fillStyle='#FFFDF6';ctx.fill();ctx.strokeStyle='#8A6C58';ctx.lineWidth=2;ctx.stroke();
+      txt('売地',p[0],p[1]-50,22,'#8A6C58',900,'center');ctx.restore();}
+  });
+
+  // 夜：全体を暗くして、窓だけ灯す
+  if(night>0){
+    ctx.save();ctx.globalAlpha=night*.62;ctx.fillStyle='#141A40';ctx.fillRect(0,0,W,H);ctx.restore();
+    WINQ.forEach(w=>{const on=seg(t,12.8+w.seed*1.4,13.0+w.seed*1.4);if(on<=0)return;
+      ctx.save();ctx.globalAlpha=on*night;ctx.shadowColor='#FFC56B';ctx.shadowBlur=24;poly(w.q,'#FFD58A');ctx.restore();});
+  }
+
+  // 根元と分かれ道の名前
+  {const g=eout(seg(t,.3,.8));ctx.save();ctx.globalAlpha=g*Math.max(dim,glowN);
+    ctx.beginPath();ctx.arc(ROOT[0],ROOT[1],16*g,0,7);ctx.fillStyle='#FFFFFF';ctx.fill();ctx.lineWidth=4;ctx.strokeStyle='#2A2433';ctx.stroke();
+    txt('かず と ゆう',ROOT[0],ROOT[1]+48,24,night>.5?'#FFF':'#2A2433',900,'center');
+    FORKX.forEach((x,L)=>{const fg=seg(t,.5+L*.95,.9+L*.95);ctx.globalAlpha=fg*Math.max(dim,glowN);
+      txt(`分かれ道 ${L+1}`,x,110,16,night>.5?'#C9C3E8':'#8A8199',700,'center');
+      txt(FORKNAME[L],x,138,24,night>.5?'#FFFFFF':'#2A2433',900,'center');});
+    ctx.restore();}
+  // 凡例
+  {const g=seg(t,1,1.5)*(1-seg(t,12,12.5));if(g>0){ctx.save();ctx.globalAlpha=g;
+    ctx.fillStyle=KAZU;ctx.beginPath();ctx.arc(110,930,9,0,7);ctx.fill();txt('かずの希望が通った',130,938,22,'#2A2433',700);
+    ctx.fillStyle=YUU;ctx.beginPath();ctx.arc(110,968,9,0,7);ctx.fill();txt('ゆうの希望が通った',130,976,22,'#2A2433',700);ctx.restore();}}
+
+  // 主人公の目印
+  {const l=lots[6];if(t>l.t0+1.2&&l.peak){const g=back(seg(t,l.t0+1.2,l.t0+1.6)),bob=Math.sin(t*3)*4;
+    ctx.save();ctx.translate(l.peak[0],l.peak[1]-20+bob);ctx.scale(g,g);roundRect(-62,-46,124,40,20);ctx.fillStyle='#2A2433';ctx.fill();
+    txt('あなた',0,-18,22,'#FFFFFF',900,'center');ctx.beginPath();ctx.moveTo(-8,-6);ctx.lineTo(8,-6);ctx.lineTo(0,6);ctx.fillStyle='#2A2433';ctx.fill();ctx.restore();}}
+
+  // 札：数字が主役（エンジンの値を出す場所）
+  const L=n=>lots[n-1], top=n=>{const l=L(n);return l.peak||P(l.x+LOT/2,l.y+LOT/2,3);};
+  card(t,9.0,top(11),350,124,(x,y,w,h)=>{txt('11  Aハウスで月末に仮契約',x+18,y+30,16,'#8A8199',700);
+    txt('+'+rollNum(380,t,9.1,10.2)+'万円',x+18,y+76,44,'#C4513B',900);
+    for(let k=0;k<19;k++){ctx.fillStyle=k<rollNum(19,t,9.2,10.4)?'#C4513B':'#EEE';ctx.fillRect(x+18+k*11,y+94,8,14);} txt('打ち合わせ19回',x+18+19*11+4,y+107,12,'#8A8199',700);},[1110,300]);
+  card(t,9.4,top(15),230,112,(x,y,w,h)=>{txt('15  標準の窓で大きく',x+18,y+30,16,'#8A8199',700);
+    txt('2月の朝',x+18,y+72,22,'#3F5F93',900);txt(rollNum(14,t,9.5,10.4)+'℃',x+120,y+80,44,'#3F5F93',900);},[1760,900]);
+  card(t,9.8,top(3),230,112,(x,y,w,h)=>{txt('03  全部入る家',x+18,y+30,16,'#8A8199',700);
+    txt('B工務店',x+18,y+70,22,'#2A2433',900);txt('事業停止',x+18,y+100,28,'#C4513B',900);},[1620,330]);
+  card(t,10.2,top(7),260,112,(x,y,w,h)=>{txt('07  あなたの世界',x+18,y+30,16,'#2F6B3A',900);
+    txt('契約後の増額',x+18,y+70,20,'#2A2433',700);txt(rollNum(0,t,10.3,10.8)+'円',x+160,y+80,44,'#2F6B3A',900);},[1770,640]);
+
+  // 下の帯：合計と月々（商品を選ぶ画面の考え方）
+  {const g=eout(seg(t,13.4,14.0))*(1-seg(t,17.4,17.9));if(g>0){ctx.save();ctx.globalAlpha=g;const y=H-110+ (1-g)*40;
+    roundRect(560,y,1100,78,39);ctx.fillStyle='rgba(255,255,255,.95)';ctx.fill();
+    txt('1年後　16の世界',600,y+48,24,'#8A8199',700);
+    txt('建った家',830,y+48,22,'#2A2433',700);txt(String(rollNum(14,t,13.6,14.6)),930,y+52,36,'#2F6B3A',900);
+    txt('売地',990,y+48,22,'#2A2433',700);txt(String(rollNum(1,t,13.6,14.6)),1050,y+52,36,'#C4513B',900);
+    txt('空き家',1100,y+48,22,'#2A2433',700);txt(String(rollNum(1,t,13.6,14.6)),1180,y+52,36,'#3F5F93',900);
+    txt('あなたの月々',1260,y+48,22,'#2A2433',700);txt(rollNum(142,t,13.7,15)/10+'万円',1410,y+54,36,'#2A2433',900);
+    ctx.restore();}}
+
+  // タイトル：敷地の手前の地面に寝かせる
+  {const g=eout(seg(t,15.2,16.2))*(1-seg(t,17.5,18));if(g>0){const p=P(1.2,BOARD+5.6,0);
+    ctx.save();ctx.globalAlpha=g;ctx.translate(p[0],p[1]);ctx.transform(C30,.5,-C30,.5,0,0);ctx.translate(0,(1-g)*40);
+    ctx.shadowColor='rgba(255,200,120,.8)';ctx.shadowBlur=night*20;
+    txt('16軒目の、',0,0,78,'#FFFFFF',900);txt('わが家',0,96,110,'#FFD58A',900);ctx.restore();
+    const g2=seg(t,16.0,16.6)*(1-seg(t,17.5,18));ctx.save();ctx.globalAlpha=g2;txt('選ばなかった未来まで、建ててみる。',1300,240,34,'#FFFFFF',700,'center','Zen Kaku Gothic New');ctx.restore();}}
+
+  // 月日の札（左上）
+  {const stamps=[[0,'0日目　分譲地の予告'],[1.5,'60日目　区画が当たる'],[4.4,'着工'],[8.6,'引き渡し'],[12.4,'1年後の冬']];
+    let cur=stamps[0];stamps.forEach(s=>{if(t>=s[0])cur=s;});const g=seg(t,cur[0],cur[0]+.3);
+    ctx.save();ctx.globalAlpha=g*(1-seg(t,17.4,17.9));roundRect(W-420,56,360,58,29);ctx.fillStyle=night>.5?'rgba(255,255,255,.15)':'#2A2433';ctx.fill();
+    txt(cur[1],W-390,95,26,'#FFFFFF',900);ctx.restore();}
+}
+window.DUR=DUR;window.render=render;window.READY=true;
+
+/* ---------- 再生（表示用。描画は render(t) だけ） ---------- */
+let playing=true,start=performance.now(),off=0;const sc=document.getElementById('sc'),tt=document.getElementById('tt');
+document.getElementById('pp').onclick=()=>{playing=!playing;if(playing){start=performance.now();}else{off=cur;} document.getElementById('pp').textContent=playing?'一時停止':'再生';};
+sc.oninput=()=>{off=+sc.value;start=performance.now();cur=off;render(cur);};
+let cur=0;
+const q=new URLSearchParams(location.search);
+if(q.has('t')){playing=false;cur=+q.get('t');}
+function loop(now){if(playing){cur=(off+(now-start)/1000)%DUR;}render(cur);sc.value=cur;tt.textContent=cur.toFixed(2)+'s';requestAnimationFrame(loop);}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

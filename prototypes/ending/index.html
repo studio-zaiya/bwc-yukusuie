@@ -1,0 +1,95 @@
+<title>エンディング6案</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Maru+Gothic:wght@700&display=swap">
+<style>
+/* Layout: 左に5つの項目（前振り4案＋デザインコード見本）、右に再生面と要約。狭い画面では縦に積む */
+:root{
+  --paper:#fffaf0; --panel:#ffffff; --ink:#1e2b36; --muted:#5f6b74; --line:#e7dcc8;
+  --kazu:#e8701f; --yuu:#1c8dcc; --stage:#1b2440;
+  --f-display:"Hiragino Maru Gothic ProN","Zen Maru Gothic","Hiragino Sans",sans-serif;
+  --f-body:"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic","Noto Sans JP",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#171c24; --panel:#212834; --ink:#eef1f3; --muted:#a8b2ba; --line:#333d4b;
+  --kazu:#f2893f; --yuu:#4aa9e0; --stage:#0e1320; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#171c24; --panel:#212834; --ink:#eef1f3; --muted:#a8b2ba; --line:#333d4b;
+  --kazu:#f2893f; --yuu:#4aa9e0; --stage:#0e1320; color-scheme:dark}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);line-height:1.7}
+.wrap{max-width:1400px;margin:0 auto;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+h1{font-family:var(--f-display);font-size:clamp(22px,3vw,30px);margin:0;text-wrap:balance}
+header p{margin:4px 0 0;color:var(--muted);font-size:13px;max-width:64ch}
+.main{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:1fr}}
+.list{display:grid;gap:6px}
+.group{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.06em;margin:8px 0 2px}
+.item{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;text-align:left;font:inherit;color:inherit;background:transparent;border:1px solid transparent;border-radius:10px;padding:8px 10px;cursor:pointer}
+.item:hover{background:var(--panel)}
+.item[aria-current="true"]{background:var(--panel);border-color:var(--line)}
+.item:focus-visible,a:focus-visible{outline:2px solid var(--yuu);outline-offset:2px}
+.num{font-family:var(--f-display);font-size:15px;color:var(--kazu)}
+.item b{display:block;font-size:14px;line-height:1.4}
+.item span{display:block;font-size:12px;color:var(--muted);line-height:1.4}
+.viewer{display:grid;gap:14px;min-width:0}
+.stage{position:relative;width:100%;max-width:100%;aspect-ratio:16/9;background:var(--stage);border-radius:10px;overflow:hidden}
+.stage.tall{aspect-ratio:auto;height:78vh;background:var(--panel)}
+.stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.meta{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:grid;gap:10px;min-width:0}
+.meta h2{margin:0;font-family:var(--f-display);font-size:19px;text-wrap:balance}
+.meta p{margin:0;font-size:14px;max-width:72ch}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 20px;font-size:13px;margin:0}
+.facts dt{font-weight:700;color:var(--muted);font-size:12px}
+.facts dd{margin:0}
+.open{font-size:13px;color:var(--yuu);font-weight:700}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>エンディング6案</h1>
+    <p>3分動画の最後15〜20秒、締めの試案です。どれも一から書いた試作で、注記の表示時間はまだ短いままです。</p>
+  </header>
+  <div class="main">
+    <nav class="list" id="list" aria-label="案の一覧"></nav>
+    <section class="viewer">
+      <div class="stage" id="stage"><iframe id="frame" title="選んだ案の再生"></iframe></div>
+      <div class="meta">
+        <h2 id="m-name"></h2>
+        <p id="m-sum"></p>
+        <dl class="facts">
+          <div><dt>尺・手間</dt><dd id="m-cost"></dd></div>
+          <div><dt>弱点（作った本人の評）</dt><dd id="m-weak"></dd></div>
+        </dl>
+        <a class="open" id="m-open" href="#" target="_blank" rel="noopener">別のタブで大きく開く</a>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+const P=[
+ {g:"エンディング",k:"E1",src:"E1-crayon/ending.html",name:"パラパラの16ページ",
+  s:"実際に建った家に子どものクレヨンの線が重なり、絵本の1ページ目になる。16ページがパラパラ漫画のようにめくれ、白紙の17ページ目に新しい家が描かれ始めて本が閉じる。",
+  c:"19秒。磨くなら3〜4時間。",w:"クレヨンの質感がまだ弱い。1ページ0.28秒でひとことは読めない。"},
+ {g:"エンディング",k:"E2",src:"E2-sky/ending.html",name:"1年分の空",
+  s:"夜明け前の群青から朝日が差し、16軒に順に光が当たる。空と地面の色だけで1年が一巡し、最後に空で光の筋が16本に分かれる。",
+  c:"18秒。磨くなら2〜3時間、雲をシェーダーにするならさらに4〜6時間。",w:"写実の密度にはまだ届かない。雲が単調。最後の筋は夫婦の2色にしたほうが本編とつながる。"},
+ {g:"エンディング",k:"E3",src:"E3-morning/ending.html",name:"夜明け、世界樹は花びらになる",
+  s:"立場5の夜の続き。夜明けに窓の灯りが消え、空の世界樹が桜の花びらと若葉になって16軒に降る。盤の外に新しい区画と光る地縄が広がる。",
+  c:"20秒。素材にするまで3〜4時間。",w:"見下ろす角度で朝の空の青さが出にくい。題名の後ろを雲が通り少しにぎやか。"},
+ {g:"エンディング",k:"E4",src:"E4-life/ending.html",name:"1年後の、ひとコマ",
+  s:"16の世界の1年後を、洗濯物、うさぎ、更地に咲いた花、砂利の玄関のチョークの絵などのひとコマで見せ、07で止まって16枚の並びへ引く。",
+  c:"約20秒。磨くなら3〜4時間。",w:"フラットイラストで山場のアイソメとそろわない。後半のカットが速すぎて読み切れない。"},
+ {g:"エンディング",k:"E5",src:"E5-words/ending.html",name:"ふたりの線が、地縄になる",
+  s:"17本の世界線がほどけて橙と青の1本の線に戻り、1軒分の地縄になる。玄関が開いたところで面になり、「建てる前に、何度でも。」。",
+  c:"20秒。磨くなら2〜3時間。",w:"線と面だけで、山場の16区画とのつながりが弱い。線がほどける場面が一瞬ごちゃつく。"},
+ {g:"エンディング",k:"E6",src:"E6-handoff/ending.html",name:"手渡す",
+  s:"「わが家のバランス」のカードがこちらへ手渡され、打ち合わせの机で作り手が鉛筆で描き足していく。作り手と施主をつなぐ締め。",
+  c:"19秒。3〜4時間＋音と書き出し1時間。",w:"手と袖が記号的。カードの文字が小さい。机の場面への切り替えがただのフェード。"}
+];
+let cur=0;const $=id=>document.getElementById(id);
+function list(){let h="",g="";P.forEach((p,i)=>{if(p.g!==g){g=p.g;h+=`<div class="group">${g}</div>`}h+=`<button class="item" type="button" data-i="${i}" aria-current="${i===cur}"><span class="num">${p.k}</span><div><b>${p.name}</b><span>${p.g}</span></div></button>`});$("list").innerHTML=h}
+function show(){const p=P[cur];if($("frame").getAttribute("src")!==p.src)$("frame").setAttribute("src",p.src);$("stage").classList.toggle("tall",!!p.tall);$("m-name").textContent=p.name;$("m-sum").textContent=p.s;$("m-cost").textContent=p.c;$("m-weak").textContent=p.w;$("m-open").href=p.src;list()}
+$("list").addEventListener("click",e=>{const b=e.target.closest(".item");if(!b)return;cur=+b.dataset.i;show()});
+show();
+</script>

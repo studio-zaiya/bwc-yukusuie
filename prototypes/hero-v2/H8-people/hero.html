@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ゆくすいえ 山場 H8 人と暮らし</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Zen+Maru+Gothic:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1E2B36;--paper:#FFFAF0;--kazu:#E8701F;--yuu:#1C8DCC;--gold:#F2C230}
+html,body{margin:0;height:100%;background:#cfe6f5;overflow:hidden;font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Zen Kaku Gothic New","BIZ UDPGothic",sans-serif}
+#wrap{position:fixed;left:0;top:0;right:0;bottom:40px;overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform-origin:50% 50%;overflow:hidden;background:#cfebfa}
+#stage canvas{position:absolute;left:0;top:0;width:1920px;height:1080px}
+.ov{position:absolute;left:0;top:0;width:1920px;height:1080px;pointer-events:none}
+.lot{position:absolute;transform:translate(-50%,-50%);font-weight:700;font-size:22px;color:var(--ink);background:rgba(255,250,240,.92);padding:2px 10px;border-radius:999px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.lot.me{background:var(--gold);font-size:26px}
+.chip{position:absolute;transform:translate(-50%,-100%);font-weight:700;font-size:30px;color:var(--ink);background:var(--paper);padding:10px 20px;border-radius:18px;white-space:nowrap;box-shadow:0 6px 20px rgba(30,43,54,.18)}
+.chip:after{content:"";position:absolute;left:50%;bottom:-12px;margin-left:-10px;border:10px solid transparent;border-top-color:var(--paper);border-bottom:0}
+#hud{position:absolute;left:64px;top:52px;color:var(--ink);text-shadow:0 0 12px rgba(255,250,240,.95),0 0 4px rgba(255,250,240,.95)}
+#hud .k{font-size:30px;font-weight:700;letter-spacing:.08em}
+#hud .d{font-family:"Hiragino Maru Gothic ProN","Zen Maru Gothic",sans-serif;font-size:120px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;margin-top:6px}
+#count{position:absolute;right:64px;top:52px;text-align:right;color:var(--ink);text-shadow:0 0 12px rgba(255,250,240,.95),0 0 4px rgba(255,250,240,.95)}
+#count .a{font-size:26px;font-weight:700;letter-spacing:.08em}
+#count .b{font-family:"Hiragino Maru Gothic ProN","Zen Maru Gothic",sans-serif;font-size:96px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+#count .b.gold{color:#8C6A00}
+#logo{position:absolute;left:0;right:0;top:96px;text-align:center;color:var(--ink)}
+#logo .n{font-family:"Hiragino Maru Gothic ProN","Zen Maru Gothic",sans-serif;font-size:176px;font-weight:900;letter-spacing:.08em;line-height:1;text-shadow:0 0 30px rgba(255,250,240,.9),0 0 8px rgba(255,250,240,.9)}
+#logo .e{font-size:38px;font-weight:700;letter-spacing:.14em;margin-top:22px;text-shadow:0 0 14px rgba(255,250,240,.95)}
+#logo .s{font-size:40px;font-weight:700;margin-top:26px;text-shadow:0 0 14px rgba(255,250,240,.95)}
+#veil{position:absolute;inset:0;background:var(--paper);opacity:0}
+#ctl{position:fixed;left:0;right:0;bottom:0;height:40px;display:flex;gap:10px;align-items:center;padding:0 14px;box-sizing:border-box;background:#1E2B36;color:#fff;font-size:13px;z-index:9}
+#ctl button{background:var(--gold);color:#1E2B36;border:0;border-radius:6px;padding:5px 12px;font-weight:700;cursor:pointer}
+#ctl input{flex:1}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<div id="wrap"><div id="stage">
+  <div class="ov" id="labels"></div>
+  <div id="hud"><div class="k" id="hudk">地縄を張った日</div><div class="d" id="hudd">0日</div></div>
+  <div id="count"><div class="a">同時に進む世界</div><div class="b" id="countb">16</div></div>
+  <div id="logo" style="opacity:0"><div class="n">ゆくすいえ</div><div class="e">YUKUSUIE: 16 unbuilt futures</div><div class="s">もしもの家づくりを、16の世界で、同時に。</div></div>
+  <div id="veil"></div>
+</div></div>
+<div id="ctl"><button id="pp" type="button">一時停止</button><input id="scrub" type="range" min="0" max="26" step="0.01" value="0" aria-label="再生位置"><span id="tt">0.00s</span></div>
+
+<script type="module">
+import * as THREE from 'three';
+
+const DUR = 26; window.DUR = DUR;
+const W = 1920, H = 1080;
+
+// ---------- 小道具 ----------
+const cl=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const ss=(a,b,x)=>{const t=cl((x-a)/(b-a));return t*t*(3-2*t);};
+const lin=(a,b,x)=>cl((x-a)/(b-a));
+const back=x=>{if(x<=0)return 0;const c1=1.4,c3=c1+1;return 1+c3*Math.pow(x-1,3)+c1*Math.pow(x-1,2);};
+const hash=n=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x);};
+const lerp=(a,b,t)=>a+(b-a)*t;
+const C=h=>new THREE.Color(h);
+const mixC=(a,b,t)=>a.clone().lerp(b,t);
+const _t=new THREE.Vector3(),_n=new THREE.Vector3(),_b=new THREE.Vector3(),UP=new THREE.Vector3(0,1,0),XX=new THREE.Vector3(1,0,0);
+
+// ---------- 舞台の拡縮（中央に置く） ----------
+const stage=document.getElementById('stage'),wrap=document.getElementById('wrap');
+function fit(){const s=Math.min(wrap.clientWidth/W,wrap.clientHeight/H);stage.style.transform=`translate(-50%,-50%) scale(${s})`;}
+addEventListener('resize',fit);fit();
+
+// ---------- レンダラ ----------
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(1);renderer.setSize(W,H,false);
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+stage.insertBefore(renderer.domElement,stage.firstChild);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(26,W/H,.5,700);
+
+// 空
+const skyU={top:{value:C('#4fb0f2')},bot:{value:C('#e3f5ff')},hz:{value:C('#ffffff')}};
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(420,32,16),new THREE.ShaderMaterial({uniforms:skyU,side:THREE.BackSide,depthWrite:false,
+  vertexShader:`varying vec3 vp;void main(){vp=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`uniform vec3 top,bot,hz;varying vec3 vp;void main(){float h=clamp(vp.y*1.6+.15,0.,1.);vec3 c=mix(bot,top,pow(h,.8));c=mix(c,hz,exp(-abs(vp.y)*9.)*.35);gl_FragColor=vec4(c,1.);}`})));
+const hemi=new THREE.HemisphereLight(0xd6eeff,0xa6d98a,1.15);scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xfff6e8,2.6);sun.position.set(34,46,30);
+sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-40,right:40,top:40,bottom:-40,near:1,far:170});
+sun.shadow.bias=-.0004;sun.shadow.normalBias=.02;scene.add(sun);scene.add(sun.target);
+
+// ---------- 敷地 ----------
+const S=12,L=10;
+const lotC=i=>{const r=Math.floor(i/4),c=i%4;return new THREE.Vector3((c-1.5)*S,0,(r-1.5)*S);};
+const box=new THREE.BoxGeometry(1,1,1);
+const std=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:C(c),roughness:.85,metalness:0},o));
+function mk(geo,mat,x,y,z,sx,sy,sz,parent){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.castShadow=true;m.receiveShadow=true;(parent||scene).add(m);return m;}
+const BW=4*S+6;
+mk(box,std('#efe6d2'),0,-.25,0,BW,.5,BW);
+mk(box,std('#c99a68'),0,-1.2,0,BW-.3,1.4,BW-.3);
+mk(box,std('#a3744b'),0,-2.5,0,BW-.8,1.2,BW-.8);
+const GRASS=C('#a8dc84');
+const lotMeshes=[];for(let i=0;i<16;i++){const p=lotC(i);lotMeshes.push(mk(box,std('#a8dc84'),p.x,.03,p.z,L,.06,L));}
+// 17番目の区画（盤の外、はじめは隠れている）
+const P17=new THREE.Vector3(BW/2+9,0,-6);
+const lot17=mk(box,std('#bfe6a0'),P17.x,-.1,P17.z,L,.3,L);lot17.visible=false;
+
+const treeG=new THREE.ConeGeometry(1,2.4,7),trunkG=new THREE.CylinderGeometry(.16,.2,1,6),ballG=new THREE.IcosahedronGeometry(1,0);
+const leafMats=['#5fb35a','#7cc96a','#4aa368','#9ad45a'].map(c=>std(c,{flatShading:true}));
+const trunkMat=std('#8a5a36');
+function tree(x,z,s,k,parent){const g=new THREE.Group();g.position.set(x,0,z);(parent||scene).add(g);
+  mk(trunkG,trunkMat,0,.5*s,0,s,s,s,g);
+  if(k%2)mk(ballG,leafMats[k%4],0,1.7*s,0,1.1*s,1.2*s,1.1*s,g);else mk(treeG,leafMats[k%4],0,2.0*s,0,1.1*s,1.1*s,1.1*s,g);
+  return g;}
+const edgeTrees=[];
+for(let k=0;k<44;k++){const side=k%4,u=(hash(k*3.1)-.5)*(BW-4),off=BW/2-1.3;
+  const x=side<2?u:(side===2?-off:off),z=side===0?-off:(side===1?off:u);
+  if(side===1&&Math.abs(x)<5)continue;edgeTrees.push(tree(x,z,.7+hash(k)*.5,k));}
+const clouds=[];
+for(let k=0;k<7;k++){const g=new THREE.Group();scene.add(g);const m=new THREE.MeshStandardMaterial({color:0xffffff,roughness:1,flatShading:true});
+  for(let j=0;j<5;j++){const s=1.6+hash(k*9+j)*1.8;const b=new THREE.Mesh(ballG,m);b.position.set((j-2)*1.9,hash(k*5+j)*.8,hash(k*7+j)*1.2);b.scale.set(s,s*.7,s);g.add(b);}
+  g.userData={x0:-70+k*22,y:24+hash(k)*7,z:-40+hash(k*2)*30};clouds.push(g);}
+
+// ---------- 仕上げ材の手描きテクスチャ（自作） ----------
+function finTex(kind,base){const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');x.fillStyle=base;x.fillRect(0,0,256,256);
+  if(kind==='brick'){x.strokeStyle='rgba(255,240,225,.55)';x.lineWidth=4;for(let r=0;r<16;r++){const y=r*16;x.beginPath();x.moveTo(0,y);x.lineTo(256,y);x.stroke();for(let k=0;k<8;k++){const xx=k*32+(r%2?16:0);x.beginPath();x.moveTo(xx,y);x.lineTo(xx,y+16);x.stroke();}}}
+  if(kind==='wood'){for(let r=0;r<12;r++){x.fillStyle=r%2?'rgba(90,50,20,.10)':'rgba(255,235,200,.10)';x.fillRect(0,r*21.3,256,21.3);x.fillStyle='rgba(80,45,15,.35)';x.fillRect(0,r*21.3,256,2);}}
+  if(kind==='galva'){for(let k=0;k<32;k++){x.fillStyle=k%2?'rgba(255,255,255,.22)':'rgba(20,30,40,.16)';x.fillRect(k*8,0,4,256);}}
+  if(kind==='plaster'){for(let k=0;k<600;k++){x.fillStyle=`rgba(${hash(k)>.5?255:150},${hash(k)>.5?250:140},${hash(k)>.5?240:120},.12)`;x.fillRect(hash(k*3)*256,hash(k*5)*256,3,3);}}
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;}
+
+// ---------- 16の世界 ----------
+// fate: ok / park（工事が止まり、花の咲く原っぱに）
+const FIN={plaster:['plaster','#f7f2e8'],wood:['wood','#c98b55'],brick:['brick','#c0563f'],galva:['galva','#7f8c99'],navy:['galva','#3d5a80'],mint:['plaster','#a9dccb'],butter:['plaster','#f2d27a'],coral:['plaster','#f08a6c'],sage:['wood','#a9c49a'],cedar:['wood','#8b5a3c']};
+const ROOF=['#4b5563','#2f3e4e','#a0522d','#6b7f5e','#3b3b48','#8a4b3a'];
+const worlds=[
+ {roof:'gable',st:2,w:6.4,d:5.2,fin:'wood',rc:2,cp:2,shed:1,line:1},
+ {roof:'flat',st:2,w:6.8,d:5.4,fin:'navy',rc:1,cp:2,shed:1,bike:1},
+ {roof:'gable',st:2,w:6.6,d:5.4,fin:'butter',rc:2,cp:0,shed:0,fate:'park'},
+ {roof:'shed',st:2,w:6.2,d:5.2,fin:'plaster',rc:1,cp:1,shed:0,line:1},
+ {roof:'shed',st:2,w:6.0,d:5.0,fin:'galva',rc:0,cp:1,shed:1,rab:1},
+ {roof:'gable',st:2,w:6.8,d:5.6,fin:'brick',rc:4,cp:2,shed:1,line:1},
+ {roof:'flat',st:2,w:6.6,d:5.4,fin:'plaster',rc:0,cp:0,shed:1,me:1,eave:1,big:1,rab:1,line:1,farm:1},
+ {roof:'gable',st:1,w:7.2,d:5.4,fin:'sage',rc:3,cp:1,shed:1,bike:1},
+ {roof:'flat',st:2,w:6.0,d:5.0,fin:'coral',rc:1,cp:2,shed:0,line:1},
+ {roof:'gable',st:2,w:6.4,d:5.2,fin:'mint',rc:5,cp:2,shed:1,rab:1},
+ {roof:'gable',st:2,w:7.0,d:5.6,fin:'galva',rc:1,cp:2,shed:1},
+ {roof:'shed',st:2,w:6.2,d:5.2,fin:'cedar',rc:0,cp:1,shed:0,line:1},
+ {roof:'gable',st:1,w:7.4,d:5.4,fin:'plaster',rc:2,cp:2,shed:1,farm:1},
+ {roof:'flat',st:2,w:6.4,d:5.2,fin:'brick',rc:1,cp:1,shed:1,bike:1},
+ {roof:'flat',st:2,w:6.6,d:5.4,fin:'wood',rc:0,cp:0,shed:1,big:1,line:1},
+ {roof:'gable',st:2,w:6.6,d:5.4,fin:'navy',rc:3,cp:2,shed:1,rab:1},
+];
+const h1=2.7,h2=2.6;
+const triShape=(span,rh,ov)=>{const s=new THREE.Shape();s.moveTo(-span/2-ov,0);s.lineTo(span/2+ov,0);s.lineTo(0,rh);s.closePath();return s;};
+const shedShape=(span,rh,ov)=>{const s=new THREE.Shape();s.moveTo(-span/2-ov,0);s.lineTo(span/2+ov,0);s.lineTo(span/2+ov,.25);s.lineTo(-span/2-ov,rh);s.closePath();return s;};
+function roofGeo(shape,len){const g=new THREE.ExtrudeGeometry(shape,{depth:len,bevelEnabled:false});g.translate(0,0,-len/2);g.rotateY(Math.PI/2);return g;}
+const WOOD=std('#e3bd84'),CONC=std('#cfcac0'),SHEET=C('#eef4f7');
+const glassM=std('#9ec9e6',{roughness:.15,metalness:.2});
+const workerBody=std('#5c7a99'),helmet=std('#F2C230'),skin=std('#f5d3b3');
+const headG=new THREE.SphereGeometry(.22,10,8),bodyG=new THREE.CylinderGeometry(.16,.24,.7,8);
+const pMat=['#e2574c','#1C8DCC','#F2C230','#2ec4b6','#E8701F','#7a5cc8','#ffffff'].map(c=>std(c));
+function person(mat,s,hat){const g=new THREE.Group();const b=new THREE.Mesh(bodyG,mat);b.position.y=.45;b.castShadow=true;const h=new THREE.Mesh(headG,skin);h.position.y=1.0;h.castShadow=true;g.add(b,h);
+  if(hat){const hm=new THREE.Mesh(new THREE.SphereGeometry(.25,10,6,0,Math.PI*2,0,Math.PI/2),helmet);hm.position.y=1.06;g.add(hm);}g.scale.setScalar(s);scene.add(g);return g;}
+
+worlds.forEach((w,i)=>{
+  const p=lotC(i);const g=new THREE.Group();g.position.copy(p);scene.add(g);w.g=g;
+  const hx=1.4,hz=-1.6;w.hx=hx;w.hz=hz;
+  const [kind,base]=FIN[w.fin];
+  w.delay=i===6?0:hash(i*13.7)*1.1;
+  const HH=h1+(w.st===2?h2:0);w.top=.3+HH;
+  // 基礎
+  w.slab=mk(box,CONC,hx,.15,hz,w.w+.3,.3,w.d+.3,g);
+  // 骨組み（柱と梁）
+  w.frame=new THREE.Group();g.add(w.frame);w.posts=[];w.beams=[];
+  const nx=4,nz=3;
+  for(let a=0;a<=nx;a++)for(const zz of [-w.d/2,w.d/2])w.posts.push(mk(box,WOOD,hx-w.w/2+a*w.w/nx,0,hz+zz,.2,1,.2,w.frame));
+  for(let b=1;b<nz;b++)for(const xx of [-w.w/2,w.w/2])w.posts.push(mk(box,WOOD,hx+xx,0,hz-w.d/2+b*w.d/nz,.2,1,.2,w.frame));
+  const levels=w.st===2?[h1,HH]:[HH];
+  levels.forEach(yy=>{for(const zz of [-w.d/2,w.d/2])w.beams.push(mk(box,WOOD,hx,.3+yy,hz+zz,w.w+.2,.22,.22,w.frame));for(const xx of [-w.w/2,w.w/2])w.beams.push(mk(box,WOOD,hx+xx,.3+yy,hz,.22,.22,w.d+.2,w.frame));});
+  if(w.roof==='gable')w.beams.push(mk(box,WOOD,hx,.3+HH+1.8,hz,w.w+.3,.22,.22,w.frame));
+  // 下地（白い面・防水シート）
+  w.sheet=std('#eef4f7');
+  w.f1=mk(box,w.sheet,hx,0,hz,w.w,h1,w.d,g);
+  w.f2=w.st===2?mk(box,w.sheet,hx,0,hz,w.w,h2,w.d,g):null;
+  // 仕上げ材（下地の外側に重ねて、下から張っていく）
+  const tex=finTex(kind,base);tex.repeat.set(w.w/3,HH/3);
+  w.skinM=new THREE.MeshStandardMaterial({map:tex,roughness:kind==='galva'?.45:.85,metalness:kind==='galva'?.25:0});
+  w.skin=mk(box,w.skinM,hx,0,hz,w.w+.06,1,w.d+.06,g);w.skin.visible=false;
+  // 屋根（陸屋根は薄い屋根版と立ち上がりだけ。中央には何も置かない）
+  w.roofM=std(ROOF[w.rc]);w.rf=new THREE.Group();g.add(w.rf);
+  if(w.roof==='flat'){mk(box,w.roofM,hx,.09,hz,w.w+.12,.18,w.d+.12,w.rf);
+    for(const zz of [-w.d/2,w.d/2])mk(box,w.roofM,hx,.32,hz+zz,w.w+.12,.3,.12,w.rf);
+    for(const xx of [-w.w/2,w.w/2])mk(box,w.roofM,hx+xx,.32,hz,.12,.3,w.d+.12,w.rf);}
+  else if(w.roof==='gable'){const m=new THREE.Mesh(roofGeo(triShape(w.d,1.9,.45),w.w+.6),w.roofM);m.castShadow=true;m.position.set(hx,0,hz);w.rf.add(m);}
+  else{const m=new THREE.Mesh(roofGeo(shedShape(w.d,1.5,.4),w.w+.5),w.roofM);m.castShadow=true;m.position.set(hx,0,hz);w.rf.add(m);}
+  w.rf.position.y=w.top;w.rf.visible=false;
+  if(w.eave)w.ev=mk(box,std('#3b3b48'),hx+.4,.3+h1+.05,hz+w.d/2+.55,w.w*.72,.12,1.1,g);
+  // 窓と扉
+  w.wins=[];const zf=hz+w.d/2+.05;
+  const addWin=(x,y,ww,hh)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(ww,hh),glassM);m.position.set(x,y,zf);g.add(m);m.visible=false;w.wins.push(m);};
+  if(w.big)addWin(hx+.4,.3+1.15,w.w*.62,1.9);else{addWin(hx-w.w*.22,.3+1.25,1.2,1.3);addWin(hx+w.w*.22,.3+1.25,1.2,1.3);}
+  if(w.st===2){addWin(hx-w.w*.28,.3+h1+1.3,.95,.9);addWin(hx+.05,.3+h1+1.3,.95,.9);addWin(hx+w.w*.3,.3+h1+1.3,.95,.9);}
+  w.door=new THREE.Mesh(new THREE.PlaneGeometry(.95,2.0),std('#7a4b2a'));w.door.position.set(hx-w.w/2+.75,.3+1.0,zf+.01);g.add(w.door);w.door.visible=false;
+  // 外まわり
+  w.ext=[];
+  if(w.cp){const cg=new THREE.Group();cg.position.set(-2.6,0,3.3);g.add(cg);const span=w.cp*2.7;
+    for(const sx of [-span/2+.15,span/2-.15])for(const sz of [-1.3,1.3])mk(box,std('#dfe3e8'),sx,1.2,sz,.16,2.4,.16,cg);
+    mk(box,std('#e9edf1'),0,2.45,0,span+.3,.12,3.0,cg);
+    const carC=['#e2574c','#3d7dd8','#f2c14e','#ffffff'];
+    for(let k=0;k<w.cp;k++)mk(box,std(carC[(i+k)%4],{roughness:.4}),-span/2+1.35+k*2.7,.55,0,1.5,.8,2.6,cg);w.ext.push(cg);}
+  if(w.shed)w.ext.push(mk(box,std(['#e2574c','#f2c14e','#5fa8d3','#9ed9c3'][i%4]),-3.6,.7,-3.6,1.6,1.4,1.1,g));
+  w.ext.push(tree(4.0,3.6,.55+hash(i)*.25,i,g));if(i%3)w.ext.push(tree(-4.1,.6,.45,i+1,g));
+  // 暮らしの小道具
+  w.life=[];
+  if(w.line){const lg=new THREE.Group();lg.position.set(3.4,0,1.2);g.add(lg);
+    mk(box,std('#bfc6cc'),-1.1,.8,0,.08,1.6,.08,lg);mk(box,std('#bfc6cc'),1.1,.8,0,.08,1.6,.08,lg);mk(box,std('#bfc6cc'),0,1.58,0,2.2,.03,.03,lg);
+    lg.userData.cloth=[0,1,2].map(k=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(.5,.62),std(['#ffffff','#9ed9f2','#ffd6a0','#f7b6c2'][(i+k)%4],{side:THREE.DoubleSide}));m.position.set(-.65+k*.65,1.26,0);m.castShadow=true;lg.add(m);return m;});
+    w.life.push(lg);w.lineG=lg;}
+  if(w.farm){const fg=new THREE.Group();fg.position.set(3.2,0,-3.9);g.add(fg);mk(box,std('#9b6b43'),0,.08,0,2.6,.16,1.4,fg);
+    for(let k=0;k<6;k++){mk(ballG,std('#4aa368',{flatShading:true}),-1+k*.4,.35,(k%2-.5)*.6,.2,.22,.2,fg);if(k%2)mk(ballG,std('#e2574c'),-1+k*.4,.42,(k%2-.5)*.6+.12,.08,.08,.08,fg);}
+    w.life.push(fg);}
+  if(w.rab){w.rabbit=new THREE.Group();g.add(w.rabbit);const rm=std('#ffffff');mk(box,rm,0,.18,0,.42,.3,.3,w.rabbit);mk(box,rm,.22,.38,0,.22,.22,.22,w.rabbit);mk(box,rm,.25,.62,.05,.05,.26,.07,w.rabbit);mk(box,rm,.25,.62,-.05,.05,.26,.07,w.rabbit);w.rabbit.visible=false;}
+  if(w.bike){const bg=new THREE.Group();bg.position.set(-4.0,0,3.9);g.add(bg);const tm=std('#2a3340');
+    for(const xx of [-.45,.45]){const wh=new THREE.Mesh(new THREE.TorusGeometry(.3,.05,6,16),tm);wh.position.set(xx,.32,0);bg.add(wh);}
+    mk(box,std(['#E8701F','#1C8DCC','#F2C230'][i%3]),0,.55,0,.9,.06,.06,bg);w.life.push(bg);}
+  // 地縄
+  w.rope=ropeRect(hx,hz,w.w+.4,w.d+.4,'#ffffff');g.add(w.rope);
+  // 職人
+  w.workers=[0,1].map(k=>person(workerBody,.9,true));
+  // 原っぱ（工事が止まった世界）：花とベンチ
+  if(w.fate==='park'){w.park=new THREE.Group();g.add(w.park);const fc=['#f7b6c2','#ffffff','#F2C230','#c9a0e8','#ff9f8a'];
+    for(let k=0;k<70;k++){const x=(hash(k*1.7)-.5)*8.6,z=(hash(k*2.3)-.5)*8.6;mk(ballG,std(fc[k%5],{flatShading:true}),x,.18,z,.16,.16,.16,w.park);}
+    mk(box,std('#a0703f'),-1,.42,3,2.2,.12,.6,w.park);for(const xx of [-1.9,-.1])mk(box,std('#6b4a2a'),xx,.2,3,.12,.4,.5,w.park);
+    w.park.visible=false;}
+});
+
+// ---------- 管（線を太く描く、自作） ----------
+function tubeBuf(n,rad=6){const pos=new Float32Array(n*rad*3),col=new Float32Array(n*rad*3),idx=[];
+  for(let i=0;i<n-1;i++)for(let k=0;k<rad;k++){const a=i*rad+k,b=i*rad+(k+1)%rad,c=(i+1)*rad+k,d=(i+1)*rad+(k+1)%rad;idx.push(a,c,b,b,c,d);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(col,3));g.setIndex(idx);g.userData={n,rad};return g;}
+function tubeWrite(g,pts,r,cols){const {n,rad}=g.userData;const P=g.attributes.position.array,Cc=g.attributes.color.array;
+  for(let i=0;i<n;i++){const p=pts[i],q=pts[Math.min(n-1,i+1)],o=pts[Math.max(0,i-1)];_t.subVectors(q,o).normalize();
+    _n.crossVectors(_t,Math.abs(_t.y)>.9?XX:UP).normalize();_b.crossVectors(_t,_n).normalize();const rr=typeof r==='function'?r(i/(n-1)):r;
+    for(let k=0;k<rad;k++){const a=k/rad*Math.PI*2,j=(i*rad+k)*3;P[j]=p.x+rr*(Math.cos(a)*_n.x+Math.sin(a)*_b.x);P[j+1]=p.y+rr*(Math.cos(a)*_n.y+Math.sin(a)*_b.y);P[j+2]=p.z+rr*(Math.cos(a)*_n.z+Math.sin(a)*_b.z);
+      const c=cols[i];Cc[j]=c.r;Cc[j+1]=c.g;Cc[j+2]=c.b;}}
+  g.attributes.position.needsUpdate=true;g.attributes.color.needsUpdate=true;g.computeBoundingSphere();}
+function ropeRect(cx,cz,w,d,col){const pts=[],c=[[cx-w/2,cz-d/2],[cx+w/2,cz-d/2],[cx+w/2,cz+d/2],[cx-w/2,cz+d/2],[cx-w/2,cz-d/2]];
+  for(let s=0;s<4;s++)for(let k=0;k<12;k++){const t=k/12;pts.push(new THREE.Vector3(lerp(c[s][0],c[s+1][0],t),.12,lerp(c[s][1],c[s+1][1],t)));}
+  pts.push(new THREE.Vector3(c[4][0],.12,c[4][1]));
+  const g=tubeBuf(pts.length,5);tubeWrite(g,pts,.07,pts.map(()=>C(col)));
+  const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false,transparent:true}));m.userData.count=g.index.count;g.setDrawRange(0,0);return m;}
+
+// ---------- 世界の線（前振りの1本の線を受けて、地面→空へ） ----------
+const KAZ=C('#E8701F'),YU=C('#1C8DCC'),GOLD=C('#F2C230'),WH=C('#ffffff');
+const ROOT_G=new THREE.Vector3(-BW/2-16,.14,BW/2+4), ROOT_S=new THREE.Vector3(0,27,-4);
+const groupC=(lv,i)=>{const sh=4-lv,base=(i>>sh)<<sh,v=new THREE.Vector3(),n=1<<sh;for(let k=0;k<n;k++)v.add(lotC(base+k));return v.multiplyScalar(1/n);};
+const NS=150,branches=[];
+function leafTex(){if(leafTex.t)return leafTex.t;const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');x.fillStyle='#fff';x.beginPath();x.ellipse(32,32,26,14,Math.PI/5,0,Math.PI*2);x.fill();leafTex.t=new THREE.CanvasTexture(c);return leafTex.t;}
+function dotTex(){if(dotTex.t)return dotTex.t;const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const gr=x.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.5,'rgba(255,255,255,.8)');gr.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=gr;x.fillRect(0,0,64,64);dotTex.t=new THREE.CanvasTexture(c);return dotTex.t;}
+for(let i=0;i<16;i++){
+  const gp=[ROOT_G.clone(),new THREE.Vector3(-BW/2-4,.14,BW/2+3)],sp=[ROOT_S.clone().add(new THREE.Vector3(-14,-6,0)),ROOT_S.clone()];
+  const pull=[.55,.32,.12];
+  for(let lv=1;lv<=3;lv++){const c=groupC(lv,i);gp.push(c.clone().lerp(new THREE.Vector3(0,.14,BW/2+3),pull[lv-1]).setY(.14));sp.push(c.clone().setY(13+(4-lv)*3.2).add(new THREE.Vector3(0,0,-3+lv*.6)));}
+  const lc=lotC(i);gp.push(lc.clone().add(new THREE.Vector3(worlds[i].hx,.14,worlds[i].hz)));sp.push(lc.clone().setY(12.4).add(new THREE.Vector3(worlds[i].hx,0,worlds[i].hz)));
+  const gc=new THREE.CatmullRomCurve3(gp,false,'centripetal').getPoints(NS-1);
+  const sc=new THREE.CatmullRomCurve3(sp,false,'centripetal').getPoints(NS-1);
+  const cols=[];for(let k=0;k<NS;k++){const seg=Math.min(3,Math.floor((k/NS-.18)/.82*4));let c;
+    if(seg<0)c=WH;else{const bit=(i>>(3-seg))&1;c=bit?YU:KAZ;if(i===6&&seg>=2)c=GOLD;if(i===10&&seg===0)c=GOLD;}cols.push(c);}
+  const geo=tubeBuf(NS,6),mat=new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false,transparent:true});
+  const mesh=new THREE.Mesh(geo,mat);scene.add(mesh);
+  const tip=new THREE.Sprite(new THREE.SpriteMaterial({map:dotTex(),color:0xffffff,transparent:true,depthWrite:false,toneMapped:false}));scene.add(tip);
+  const leaves=[0,1,2].map(k=>{const s=new THREE.Sprite(new THREE.SpriteMaterial({map:leafTex(),color:[0x6cc35a,0x9ad45a,0x4aa368][k],transparent:true,depthWrite:false,rotation:hash(i*3+k)*6.28}));scene.add(s);return s;});
+  branches.push({gc,sc,cols,geo,mesh,mat,tip,leaves,cur:gc.map(v=>v.clone())});
+}
+// 17本目（第3の答えから伸びる金の枝）：わが家の枝の途中から、盤の外の区画へ
+const b17={};{const from=branches[6].gc[Math.floor(NS*.72)].clone();
+  const pts=[from,from.clone().lerp(P17,.35).setY(2.2),P17.clone().add(new THREE.Vector3(-2,1.2,1)),P17.clone().setY(.2)];
+  b17.pts=new THREE.CatmullRomCurve3(pts,false,'centripetal').getPoints(NS-1);b17.geo=tubeBuf(NS,6);tubeWrite(b17.geo,b17.pts,.15,b17.pts.map(()=>GOLD));
+  b17.mesh=new THREE.Mesh(b17.geo,new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false,transparent:true}));b17.mesh.geometry.setDrawRange(0,0);scene.add(b17.mesh);
+  b17.rope=ropeRect(P17.x,P17.z,7,6,'#F2C230');scene.add(b17.rope);}
+
+// ---------- 人・車・花びら ----------
+const people=[];
+for(let k=0;k<30;k++){const kid=k%3===0;const g=person(pMat[k%7],kid?.66:1,false);people.push({g,lot:(k*7+3)%16,ph:hash(k)*6.28,r:1.0+hash(k*3)*1.6,kid});}
+// 上棟の日の家族（わが家）
+const fam=[0,1,2,3].map(k=>({g:person(pMat[[1,4,2,6][k]],k>1?.62:1,false),k}));
+const cars=[];
+for(let k=0;k<6;k++){const g=new THREE.Group();mk(box,std(['#ffffff','#e2574c','#3d7dd8','#f2c14e','#2ec4b6','#E8701F'][k],{roughness:.4}),0,.5,0,2.4,.7,1.3,g);mk(box,std('#2a3340',{roughness:.2}),-.1,1.0,0,1.3,.45,1.15,g);scene.add(g);cars.push(g);}
+const walkers=[0,1,2].map(k=>person(pMat[k+3],k===2?.62:1,false)); // 原っぱを通りがかる家族
+// 花びら・葉
+const NP=700,pGeo=new THREE.BufferGeometry(),pPos=new Float32Array(NP*3),pCol=new Float32Array(NP*3);
+pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));pGeo.setAttribute('color',new THREE.BufferAttribute(pCol,3));
+const pMatP=new THREE.PointsMaterial({size:1.1,map:leafTex(),vertexColors:true,transparent:true,depthWrite:false,alphaTest:.05});
+const petals=new THREE.Points(pGeo,pMatP);scene.add(petals);
+const PAL={spring:['#f7b6c2','#ffd1dc','#ffffff','#f4a6b8'],autumn:['#E8701F','#F2C230','#d9622b','#f0a050'],confetti:['#E8701F','#1C8DCC','#F2C230','#f7b6c2','#9BD27A','#ffffff']};
+
+// ---------- オーバーレイ ----------
+const labels=document.getElementById('labels');
+const lotTags=[...Array(16)].map((_,i)=>{const d=document.createElement('div');d.className='lot'+(i===6?' me':'');d.textContent=i===6?'07 わが家':String(i+1).padStart(2,'0');labels.appendChild(d);return d;});
+const CHIPS=[
+ {i:6,txt:'上棟。骨組みの中を、子どもが走った',a:6.0,b:8.2,y:6.8},
+ {i:6,txt:'うさぎが、庭を3周した',a:11.2,b:13.4,y:6.6},
+ {i:2,txt:'まだ、はらっぱ。花がいっぱい',a:12.6,b:14.6,y:2.0},
+ {i:12,txt:'畑に、ミニトマト',a:13.6,b:15.4,y:5.0},
+];
+CHIPS.forEach(c=>{const d=document.createElement('div');d.className='chip';d.textContent=c.txt;labels.appendChild(d);c.el=d;});
+const hudk=document.getElementById('hudk'),hudd=document.getElementById('hudd'),countb=document.getElementById('countb'),hud=document.getElementById('hud'),count=document.getElementById('count');
+const logo=document.getElementById('logo'),veil=document.getElementById('veil');
+const _v=new THREE.Vector3();
+function scr(v){_v.copy(v).project(camera);return {x:(_v.x*.5+.5)*W,y:(-_v.y*.5+.5)*H,ok:_v.z<1};}
+function place(el,v,op){const s=scr(v);el.style.left=s.x+'px';el.style.top=s.y+'px';el.style.opacity=s.ok?op:0;}
+
+// ---------- カメラ ----------
+const P07=lotC(6).add(new THREE.Vector3(1.4,0,-1.6));
+const CK=[
+ [0.0,new THREE.Vector3(-BW/2-4,9,BW/2+22),new THREE.Vector3(-BW/2-10,0,BW/2+4)],
+ [1.6,new THREE.Vector3(-6,22,66),new THREE.Vector3(-6,0,10)],
+ [3.6,new THREE.Vector3(16,30,62),new THREE.Vector3(0,0,4)],
+ [5.8,P07.clone().add(new THREE.Vector3(8,12,22)),P07.clone().add(new THREE.Vector3(0,2,1))],
+ [8.2,new THREE.Vector3(-14,24,58),new THREE.Vector3(0,1,0)],
+ [10.6,P07.clone().add(new THREE.Vector3(2,19,25)),P07.clone().add(new THREE.Vector3(0,1,2.5))],
+ [13.2,new THREE.Vector3(-22,16,48),new THREE.Vector3(0,2,0)],
+ [15.6,new THREE.Vector3(-4,12,66),new THREE.Vector3(2,9,0)],
+ [18.4,new THREE.Vector3(14,22,84),new THREE.Vector3(6,9,0)],
+ [22.0,new THREE.Vector3(16,32,110),new THREE.Vector3(5,6,0)],
+ [26.0,new THREE.Vector3(18,35,118),new THREE.Vector3(5,6,0)],
+];
+const _cp=new THREE.Vector3(),_ct=new THREE.Vector3();
+function camAt(t){let k=0;while(k<CK.length-2&&t>CK[k+1][0])k++;const f=ss(CK[k][0],CK[k+1][0],t);
+  _cp.lerpVectors(CK[k][1],CK[k+1][1],f);_ct.lerpVectors(CK[k][2],CK[k+1][2],f);camera.position.copy(_cp);camera.lookAt(_ct);}
+
+// ========== render(t) ==========
+function render(t){
+  t=((t%DUR)+DUR)%DUR;
+  // 季節（入居後）：春→夏→秋→冬→春。空はずっと昼のまま
+  const autumn=ss(14.6,15.6,t)*(1-ss(16.6,17.4,t)), winter=ss(16.8,17.4,t)*(1-ss(17.8,18.6,t));
+  skyU.top.value.copy(mixC(C('#4fb0f2'),C('#7cc0ee'),winter*.6));
+  skyU.bot.value.copy(mixC(mixC(C('#e3f5ff'),C('#fff0dc'),autumn*.6),C('#f2f7ff'),winter));
+  lotMeshes.forEach((m,i)=>m.material.color.copy(mixC(mixC(GRASS,C('#c9c36a'),autumn*.7),C('#e9eef0'),winter*.75)));
+  edgeTrees.forEach((g,k)=>{});
+  clouds.forEach((g,k)=>{const u=g.userData;g.position.set(u.x0+t*1.4,u.y,u.z);});
+  sun.position.set(34+Math.sin(t*.05)*6,46,30);
+
+  // 地縄（線が届いたとき）
+  worlds.forEach((w,i)=>{const arrive=2.4+((i>>2)*.12+(i&3)*.07);const p=ss(arrive,arrive+.5,t);
+    w.rope.geometry.setDrawRange(0,Math.floor(w.rope.userData.count*p/3)*3);w.rope.material.opacity=1-ss(5.2,6.2,t);});
+
+  // 工事：地縄 → 基礎 → 骨組み（上棟）→ 白い下地 → 仕上げ材 → 外まわり
+  worlds.forEach((w,i)=>{
+    const s=3.4+w.delay;const park=w.fate==='park';
+    const eF=ss(s,s+.5,t),eP=lin(s+.5,s+1.5,t),eB=ss(s+1.2,s+1.7,t),eW=lin(s+1.9,s+2.7,t),eR=lin(s+2.5,s+3.0,t),eS=lin(s+3.1,s+3.9,t),eX=lin(s+3.7,s+4.6,t);
+    const HH=w.top-.3;
+    w.slab.visible=eF>0;w.slab.scale.y=.3*Math.max(.001,eF);w.slab.position.y=.15*eF;
+    // 骨組み
+    const fade=park?ss(7.4,8.4,t):ss(s+2.9,s+3.3,t); // 下地が張られたら、骨組みは見えなくなる
+    w.frame.visible=eP>0&&fade<1;
+    w.posts.forEach((m,k)=>{const q=back(cl(eP*1.3-k*.02));m.scale.y=Math.max(.001,HH*q);m.position.y=.3+HH*q/2;});
+    w.beams.forEach(m=>{m.visible=eB>.02;m.scale.x=m.scale.x;});
+    w.frame.scale.set(1,1-fade*.98,1);
+    if(park){ // 工事が止まった世界は、骨組みのあと原っぱになる
+      w.f1.visible=false;if(w.f2)w.f2.visible=false;w.skin.visible=false;w.rf.visible=false;w.door.visible=false;w.wins.forEach(m=>m.visible=false);w.ext.forEach(m=>m.visible=false);
+      w.slab.visible=eF>0&&t<8.4;const pq=back(lin(8.4,9.4,t));w.park.visible=pq>0.01;w.park.scale.setScalar(Math.max(.001,pq));
+    }else{
+      // 白い下地
+      const show1=eW>0;w.f1.visible=show1;if(show1){const q=cl(eW*2);w.f1.scale.y=h1*q;w.f1.position.y=.3+h1*q/2;}
+      if(w.f2){const q=cl(eW*2-1);w.f2.visible=q>0;if(q>0){w.f2.scale.y=h2*q;w.f2.position.y=.3+h1+h2*q/2;}}
+      // 屋根
+      w.rf.visible=eR>0;if(eR>0){w.rf.position.y=w.top+(1-ss(0,1,eR))*2.2;}
+      if(w.ev)w.ev.visible=eR>.6;
+      // 仕上げ材を下から張る
+      w.skin.visible=eS>0;if(eS>0){const hh=HH*eS;w.skin.scale.y=hh;w.skin.position.y=.3+hh/2;}
+      w.door.visible=eS>.9;w.wins.forEach(m=>m.visible=eS>.95);
+      w.ext.forEach((m,k)=>{const q=back(cl(eX*1.4-k*.15));m.visible=q>0.01;if(m.visible){const s0=m.userData.s0||(m.userData.s0=m.scale.clone());m.scale.set(s0.x*q,s0.y*q,s0.z*q);}});
+    }
+    // 暮らし（入居後）
+    const live=ss(9.0,9.8,t);
+    w.life.forEach(m=>{m.visible=live>.01&&!park;if(m.visible){const s0=m.userData.s1||(m.userData.s1=m.scale.clone());const q=back(live);m.scale.set(s0.x*q,s0.y*q,s0.z*q);}});
+    if(w.lineG)w.lineG.userData.cloth.forEach((m,k)=>{m.rotation.y=Math.sin(t*3+k+i)*.25;m.rotation.x=Math.sin(t*2.3+k)*.12;});
+    if(w.rabbit){w.rabbit.visible=live>.5;if(w.rabbit.visible){const a=t*1.6+i;w.rabbit.position.set(3.2+Math.cos(a)*1.5,Math.abs(Math.sin(t*7+i))*.35,2.6+Math.sin(a)*1.1);w.rabbit.rotation.y=-a-Math.PI/2;}}
+    // 職人（工事のあいだ）
+    const wk=ss(s,s+.4,t)*(1-ss(s+3.8,s+4.3,t))*(park?(1-ss(7.0,7.6,t)):1);
+    w.workers.forEach((g,k)=>{g.visible=wk>.05;if(g.visible){const c=lotC(i);const a=t*.9+k*2.6+i;g.position.set(c.x+w.hx+Math.cos(a)*(w.w/2+.9),Math.abs(Math.sin(t*5+k))*.05,c.z+w.hz+Math.sin(a)*(w.d/2+.9));g.rotation.y=-a;}});
+  });
+
+  // わが家の上棟の日：家族が骨組みの中へ
+  const sM=3.4,famOn=ss(sM+1.6,sM+2.0,t)*(1-ss(sM+2.8,sM+3.1,t));
+  fam.forEach(({g,k})=>{g.visible=famOn>.05;if(g.visible){const a=t*(k>1?2.4:.8)+k*1.6;g.position.set(P07.x+Math.cos(a)*(k>1?1.6:.9),Math.abs(Math.sin(t*(k>1?9:4)+k))*(k>1?.25:.05),P07.z+Math.sin(a)*(k>1?1.2:.6));g.rotation.y=-a;}});
+
+  // 世界の線：前振りの線が左手前から入り(0〜1.2)、16本に分かれて区画へ(1.0〜3.0)、地面に沈み(5〜6.5)、1年後に空へのぼる(15.4〜18)
+  const grow=1-Math.pow(1-lin(0,3.0,t),2),sinkOp=1-ss(5.0,6.4,t),rise=ss(15.4,18.0,t),riseOp=ss(15.2,16.0,t);
+  branches.forEach((b,i)=>{const d=i*.015,r=ss(0,1,cl((rise-d)/(1-.25)));
+    for(let k=0;k<NS;k++){const lag=cl(r*1.25-(1-k/NS)*.25);b.cur[k].lerpVectors(b.gc[k],b.sc[k],ss(0,1,lag));}
+    const rad=i===6?.2:.12;tubeWrite(b.geo,b.cur,u=>rad*(1-u*.3),b.cols);
+    const op=Math.max(grow>0?sinkOp:0,riseOp)*(1-.6*ss(20.6,21.6,t));b.mat.opacity=op;b.mesh.visible=op>.01;
+    const reveal=t<15.2?grow:1;const cnt=Math.floor(b.geo.index.count*reveal/(b.geo.userData.rad*6))*(b.geo.userData.rad*6);b.geo.setDrawRange(0,cnt);
+    const ti=Math.min(NS-1,Math.floor(reveal*(NS-1)));b.tip.position.copy(b.cur[ti]);b.tip.material.opacity=(grow>0&&grow<1)?1:0;b.tip.scale.setScalar(1.4);
+    const lo=ss(17.4,18.4,t);b.leaves.forEach((s,k)=>{s.position.copy(b.sc[NS-1]).add(new THREE.Vector3((k-1)*.9,Math.sin(t*2+i+k)*.15+(k===1?.6:0),hash(i+k)*.6));s.material.opacity=lo*(worlds[i].fate==='park'?.85:1);s.scale.setScalar((1.6+.3*k)*lo);});
+  });
+  // 17本目の枝と17番目の区画
+  const g17=ss(18.4,19.6,t);b17.mesh.geometry.setDrawRange(0,Math.floor(b17.geo.index.count*g17/36)*36);b17.mesh.material.opacity=1;
+  lot17.visible=t>18.9;lot17.position.y=-.1+back(lin(18.9,19.5,t))*.1-.1*(1-lin(18.9,19.5,t));
+  const r17=ss(19.4,20.2,t);b17.rope.geometry.setDrawRange(0,Math.floor(b17.rope.userData.count*r17/3)*3);b17.rope.material.opacity=1;
+
+  // 人と車
+  const lifeOn=ss(9.0,9.8,t);
+  people.forEach((p,k)=>{const w=worlds[p.lot];p.g.visible=lifeOn>.05&&w.fate!=='park';
+    if(p.g.visible){const c=lotC(p.lot);const a=p.ph+t*(p.kid?2.0:1.0);p.g.position.set(c.x-1.0+Math.cos(a)*p.r,Math.abs(Math.sin(t*(p.kid?8:5)+k))*(p.kid?.22:.06),c.z+3.4+Math.sin(a)*p.r*.55);p.g.rotation.y=-a;}});
+  walkers.forEach((g,k)=>{g.visible=lifeOn>.05;if(g.visible){const c=lotC(2);const u=((t*.55+k*.08)%1);g.position.set(c.x-5+u*10,Math.abs(Math.sin(t*6+k))*.06,c.z+1.6+k*.5);g.rotation.y=-Math.PI/2;}});
+  cars.forEach((g,k)=>{const lane=[-S/2,S/2,-S*1.5,S*1.5,S/2,-S/2][k],dir=k%2?1:-1;const x=((t*7*dir+k*19)%(BW-6)+(BW-6))%(BW-6)-(BW-6)/2;
+    g.position.set(x,0,lane+(dir>0?.5:-.5));g.rotation.y=dir>0?0:Math.PI;g.visible=t>3.4;});
+
+  // 花びら：入居の春(9.4〜14.4)・秋の葉(14.6〜17)・ロゴの紙吹雪(19.5〜)
+  const spring=ss(9.4,10.2,t)*(1-ss(13.6,14.4,t)),leaf=autumn,conf=ss(19.4,20.2,t);
+  const act=Math.max(spring,leaf,conf);pMatP.opacity=act;petals.visible=act>.01;
+  const pal=conf>.5?PAL.confetti:(leaf>spring?PAL.autumn:PAL.spring);
+  for(let k=0;k<NP;k++){const v=.8+hash(k*1.3)*1.4,ph=hash(k*2.7)*34;const y=32-((t*v*1.6+ph)%34);
+    pPos[k*3]=(hash(k)-.5)*84+Math.sin(t*.9+k)*1.6+t*.6;pPos[k*3+1]=y;pPos[k*3+2]=(hash(k*5.1)-.5)*84+Math.cos(t*.7+k)*1.2;
+    const c=C(pal[k%pal.length]);pCol[k*3]=c.r;pCol[k*3+1]=c.g;pCol[k*3+2]=c.b;}
+  pGeo.attributes.position.needsUpdate=true;pGeo.attributes.color.needsUpdate=true;
+
+  camAt(t);
+  renderer.render(scene,camera);
+
+  // ---- オーバーレイ ----
+  lotTags.forEach((d,i)=>{const w=worlds[i];const hgt=lerp(.4,w.top+2.4,ss(3.4+w.delay+.4,3.4+w.delay+2.6,t));const c=lotC(i).add(new THREE.Vector3(w.hx,w.fate==='park'?1.6:hgt,w.hz));
+    const op=ss(2.6,3.2,t)*(1-ss(8.6,9.2,t));place(d,c,i===6?Math.max(op,ss(.2,.6,t)*(1-ss(8.6,9.2,t))):op);});
+  CHIPS.forEach(c=>{const w=worlds[c.i];const v=lotC(c.i).add(new THREE.Vector3(w.hx,c.y,w.hz));const op=ss(c.a,c.a+.35,t)*(1-ss(c.b,c.b+.35,t));place(c.el,v,op);
+    c.el.style.transform=`translate(-50%,-100%) scale(${.8+.2*back(cl((t-c.a)/.4))})`;});
+  // 大きな日数（期限の大きな表示を取り入れる）
+  let k,dtxt;
+  if(t<3.4){k='地縄を張った日';dtxt='0日';}
+  else if(t<9.0){k='着工から';dtxt=Math.round(lerp(0,120,lin(3.4,8.6,t)))+'日';}
+  else if(t<18.4){k='入居から';const d=Math.round(lerp(0,365,lin(9.0,18.0,t)));dtxt=d>=365?'1年':d+'日';}
+  else{k='入居から';dtxt='1年';}
+  hudk.textContent=k;hudd.textContent=dtxt;
+  const hop=(1-ss(19.0,19.6,t))*ss(.3,.8,t);hud.style.opacity=hop;
+  count.style.opacity=hop*ss(2.6,3.2,t)+ss(19.6,20.2,t)*(1-ss(21.2,21.8,t));
+  const is17=t>19.4;countb.textContent=is17?'17':'16';countb.className='b'+(is17?' gold':'');
+  logo.style.opacity=ss(21.0,21.9,t);logo.style.transform=`translateY(${(1-ss(21,22,t))*26}px)`;
+  veil.style.opacity=Math.max(1-ss(0,.5,t),ss(25.4,26,t));
+}
+window.render=render;
+
+// ---------- 再生 ----------
+const q=new URLSearchParams(location.search);const fixed=q.has('t')?parseFloat(q.get('t')):null;
+let playing=fixed===null,t0=performance.now(),base=fixed||0;
+const scrub=document.getElementById('scrub'),tt=document.getElementById('tt'),pp=document.getElementById('pp');
+pp.textContent=playing?'一時停止':'再生';
+pp.onclick=()=>{playing=!playing;if(playing){t0=performance.now();}else{base=parseFloat(scrub.value);}pp.textContent=playing?'一時停止':'再生';};
+scrub.oninput=()=>{base=parseFloat(scrub.value);t0=performance.now();render(base);tt.textContent=base.toFixed(2)+'s';};
+function loop(now){if(playing){const t=(base+(now-t0)/1000)%DUR;try{render(t);}catch(e){console.error(e);}scrub.value=t;tt.textContent=t.toFixed(2)+'s';}requestAnimationFrame(loop);}
+let started=false;function start(){if(started)return;started=true;render(base);window.READY=true;requestAnimationFrame(loop);}
+(document.fonts?document.fonts.ready:Promise.resolve()).then(start,start);setTimeout(start,1500);
+</script>
+</body>
+</html>

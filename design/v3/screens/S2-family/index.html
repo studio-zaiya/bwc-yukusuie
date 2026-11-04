@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="../../../../app/engine.js"></script><script src="../../../../app/iso.js"></script><script src="../../play/common.js"></script><script src="../_s.js"></script>
+<title>S2 世帯と家計</title>
+<style>
+.fam{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:18px}
+.fc{border:1.5px solid rgba(30,43,54,.2);border-radius:14px;padding:16px 18px;background:#fff;opacity:.55}
+.fc.on{border:3px solid var(--ink);opacity:1}
+.fc .n{font-size:15px;color:var(--ink2)}.fc .t{font-size:21px;line-height:1.6;margin-top:6px;min-height:100px}
+.who{display:flex;gap:30px;align-items:flex-end;margin-top:26px}
+.who .p{display:flex;flex-direction:column;align-items:center;font-size:20px;font-weight:700;gap:4px}
+.big{font-family:var(--fr);font-weight:900;font-size:56px;line-height:1.2;font-variant-numeric:tabular-nums}
+.big small{font-size:24px}
+</style></head>
+<body><div id="stage"><div id="view"></div></div>
+<script>
+S.mountStatic(() => {
+  const L = S.L, Y = S.Y, H = S.H, man = S.man;
+  const lim = Y.loanLimit(H), mo = Y.payment(4700, Y.RATE.variable);
+  const fam = Object.values(Y.HOUSEHOLDS).map((h, i) => `<div class="fc ${h.id === 't2' ? 'on' : ''}"><div class="n">家族 ${i + 1}</div><div class="t">${h.story}</div></div>`).join('');
+  document.getElementById('view').innerHTML = `
+  ${S.chrome(0.2, 'pending', { clocks: '<span class="clk"><b>0</b>日目</span>' })}
+  <div class="hero" style="background:var(--paper);border:1.5px solid rgba(30,43,54,.12)">
+    <div style="position:absolute;left:44px;top:34px;right:44px">
+      <h2 style="font-family:var(--fr);font-weight:900;font-size:40px">どの家族で、建てますか。</h2>
+      <div class="fam">${fam}</div>
+      <div class="who">
+        <div class="p">${L.face('kazu', 120)}<span><i class="sq"></i>かず</span></div>
+        <div class="p">${L.face('yuu', 120)}<span><i class="ci"></i>ゆう</span></div>
+        <div style="font-size:21px;color:var(--ink2);padding-bottom:6px">子ども ふたり（5歳・2歳）　共働き</div>
+      </div>
+    </div>
+  </div>
+  <div class="right"><div class="panel" style="height:100%">
+    <h2>わが家のお財布</h2>
+    <table class="kv">
+      <tr><td>世帯年収（税込）</td><td>${man(H.income)}万円</td></tr>
+      <tr><td>毎月の手取り <small>ボーナスを除く</small></td><td>${Y.monthlyTakeHome(H)}万円</td></tr>
+      <tr><td>家に入れられる預金</td><td>${man(H.saveHouse)}万円</td></tr>
+      <tr><td>手元に残す預金</td><td>${man(H.saveKeep)}万円</td></tr>
+    </table>
+    <div style="margin-top:26px;font-size:17px;color:var(--ink2)">借りられそうな額（審査の目安）</div>
+    <div class="big">約${man(lim)}<small>万円</small></div>
+    <div style="font-size:19px;line-height:1.6;margin-top:6px">4,700万円を変動 年${Y.RATE.variable * 100}%・35年で借りると、月々 約${mo.toFixed(1)}万円</div>
+    <div style="font-size:15px;color:var(--ink2);margin-top:14px">金利・審査の基準はゲーム内の仮定です。</div>
+    <div style="position:absolute;right:56px;bottom:40px"><button class="btn">この家族で始める</button></div>
+  </div></div>
+  ${L.caster([{ who: 'kazu', text: '予算、どのくらいで考える？' }, { who: 'yuu', text: '月々で考えたほうが、わかりやすいかも。' }])}
+  ${S.gallery(0.2, { noCompany: true, stepLabel: () => '家族を選ぶ', noteFn: () => '同じ家族で、はじめる', pct: () => 0 })}`;
+});
+</script></body></html>

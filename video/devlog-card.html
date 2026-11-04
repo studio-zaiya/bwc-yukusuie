@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>開発記録（仮）</title>
+<style>
+:root{--paper:#FFFAF0;--ink:#1E2B36;--ink2:#6B6358;--gold:#F2C230;--goldT:#8C6A00}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;background:var(--ink);font-family:"Hiragino Sans","BIZ UDPGothic",sans-serif;color:#E9EEF2;overflow:hidden}
+.wrap{position:absolute;left:140px;top:110px;right:140px}
+h1{font-size:46px;font-weight:700;color:#fff;margin-bottom:10px}
+.sub{font-size:24px;color:#9FB0BC;margin-bottom:46px}
+.row{display:grid;grid-template-columns:200px 1fr;gap:30px;font-size:26px;line-height:1.5;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.1);opacity:0}
+.row b{color:#FFD98A;font-family:Menlo,monospace;font-weight:400}
+.tag{position:absolute;right:140px;bottom:90px;font-size:22px;color:#9FB0BC;border:1px dashed #9FB0BC;padding:8px 16px;border-radius:8px}
+</style></head><body>
+<div class="wrap">
+  <h1>作品の中のClaudeと、作るときのClaude Code</h1>
+  <div class="sub">期間中の記録（コミット・テスト・作業画面）から</div>
+  <div class="row"><b>11/2</b><span>構想と予行演習。Claudeが進行役になって、紙の上で1回遊ぶ</span></div>
+  <div class="row"><b>11/3</b><span>見せ方の試作。前振り、山場、完成の瞬間、仕組み、締め</span></div>
+  <div class="row"><b>11/4</b><span>計算エンジン（台帳3層・16の世界・自由回答の取引）と通しの画面</span></div>
+  <div class="row"><b>11/4〜5</b><span>Claude Codeで本番の実装。テスト、Workers、記録の仕組み</span></div>
+</div>
+<div class="tag">仮のカード：本番はClaude Codeの作業画面とコミットの実写に差し替え</div>
+<script>
+const rows=[...document.querySelectorAll('.row')];
+window.DUR=7.5;
+window.render=t=>rows.forEach((r,i)=>{const a=Math.max(0,Math.min(1,(t-0.4-i*0.9)/0.5));r.style.opacity=a;r.style.transform=`translateY(${(1-a)*14}px)`});
+window.READY=true;render(0);
+</script>
+</body></html>

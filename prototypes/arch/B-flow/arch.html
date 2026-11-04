@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ゆくすいえ 仕組み 案B 生きている構成図</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap">
+<style>
+html,body{margin:0;height:100%;background:#EFE8DA;font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Zen Kaku Gothic New","Noto Sans CJK JP",sans-serif;color:#1E2B36}
+#wrap{position:fixed;left:0;right:0;top:0;bottom:56px;overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform-origin:center;box-shadow:0 10px 40px rgba(60,40,20,.12)}
+canvas{display:block;width:1920px;height:1080px}
+#bar{position:fixed;left:0;right:0;bottom:0;height:56px;display:flex;align-items:center;gap:12px;padding:0 16px;background:#FFFAF0;border-top:1px solid #E2D9C6;font-size:14px;box-sizing:border-box}
+#bar button{font:inherit;font-weight:700;border:1px solid #E2D9C6;background:#fff;border-radius:999px;padding:6px 16px;cursor:pointer}
+#bar input{flex:1}
+#time{font-variant-numeric:tabular-nums;min-width:96px;text-align:right}
+</style>
+</head>
+<body>
+<div id="wrap"><div id="stage"><canvas id="c" width="1920" height="1080"></canvas></div></div>
+<div id="bar"><button id="play" type="button">一時停止</button><input id="seek" type="range" min="0" max="10" step="0.01" value="0" aria-label="再生位置"><span id="time">0.0 秒</span></div>
+<script>
+const W=1920,H=1080,DUR=10;window.DUR=DUR;
+const cv=document.getElementById('c'),X=cv.getContext('2d');
+const FONT='"Hiragino Sans","Hiragino Kaku Gothic ProN","Zen Kaku Gothic New","Noto Sans CJK JP",sans-serif';
+const K={paper:'#FFFAF0',ground:'#F3E7CF',ink:'#1E2B36',ink2:'#6B6358',line:'#D9CFBC',kazu:'#E8701F',kazuT:'#B3541A',yuu:'#1C8DCC',yuuT:'#14699A',gold:'#F2C230',goldT:'#8C6A00',navy:'#2E5A88',grass:'#9BD27A',sky:'#CFEBFA'};
+const cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
+const eo=x=>1-Math.pow(1-cl(x),3);
+const eio=x=>{x=cl(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2};
+const lerp=(a,b,u)=>a+(b-a)*u;
+function rr(x,y,w,h,r){X.beginPath();X.moveTo(x+r,y);X.arcTo(x+w,y,x+w,y+h,r);X.arcTo(x+w,y+h,x,y+h,r);X.arcTo(x,y+h,x,y,r);X.arcTo(x,y,x+w,y,r);X.closePath()}
+function tx(s,x,y,size,o={}){X.save();X.globalAlpha*=o.a==null?1:o.a;X.fillStyle=o.c||K.ink;X.font=`${o.w||700} ${size}px ${FONT}`;X.textAlign=o.al||'left';X.textBaseline=o.bl||'alphabetic';X.fillText(s,x,y);X.restore()}
+function tw(s,size,w=700){X.font=`${w} ${size}px ${FONT}`;return X.measureText(s).width}
+
+// ---------- layout ----------
+const N={
+ U:{x:70,y:430,w:270,h:220,t:'ふたりの入力',s:'2択の外の答えも'},
+ G:{x:420,y:236,w:150,h:120,t:'生成役',s:'2択をつくる'},
+ J:{x:600,y:236,w:150,h:120,t:'審査役',s:'誘導を止める'},
+ R:{x:420,y:450,w:330,h:180,t:'読み替え役',s:'ひと言を、変更の提案に'},
+ A:{x:420,y:760,w:330,h:150,t:'担当者・進行役',s:'話す。数字は書かない'},
+ E:{x:840,y:300,w:330,h:610,t:'固定演算エンジン',s:'数字は、ここでだけ決まる'},
+};
+const GX=1260,GY=300,TS=84,GAP=14; // 16 worlds grid
+const DET=[1,6,8,15]; // detailed 4 (07 = index 6)
+const ME=6;
+const TX0=1710,TX1=1860; // tree column
+function tile(i){const c=i%4,r=Math.floor(i/4);return {x:GX+c*(TS+GAP),y:GY+r*(TS+GAP)}}
+function leafY(i){return 300+i*(470/15)}
+
+// polyline helpers
+function plen(p){let L=0;for(let i=1;i<p.length;i++)L+=Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]);return L}
+function pat(p,u){const L=plen(p)*cl(u);let a=0;for(let i=1;i<p.length;i++){const d=Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]);if(a+d>=L){const k=(L-a)/d;return [lerp(p[i-1][0],p[i][0],k),lerp(p[i-1][1],p[i][1],k)]}a+=d}return p[p.length-1]}
+function drawPart(p,u,col,lw,dash){if(u<=0)return;X.save();X.strokeStyle=col;X.lineWidth=lw;X.lineCap='round';X.lineJoin='round';if(dash)X.setLineDash(dash);X.beginPath();X.moveTo(p[0][0],p[0][1]);const L=plen(p)*cl(u);let a=0;for(let i=1;i<p.length;i++){const d=Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]);if(a+d>=L){const k=(L-a)/d;X.lineTo(lerp(p[i-1][0],p[i][0],k),lerp(p[i-1][1],p[i][1],k));break}X.lineTo(p[i][0],p[i][1]);a+=d}X.stroke();X.restore()}
+
+const t07=tile(ME);
+const P={
+ UR:[[340,540],[420,540]],
+ RG:[[495,450],[495,356]],
+ JR:[[675,356],[675,450]],
+ RE:[[750,540],[840,540]],
+ EA:[[840,835],[750,835]],
+ EW:[[1170,540],[1215,540],[1215,GY+42],[GX,GY+42]],
+ EWme:[[1170,560],[1225,560],[1225,t07.y+TS/2],[t07.x,t07.y+TS/2]],
+ AW:[[585,910],[585,950],[1230,950],[1230,GY+3*(TS+GAP)+TS/2],[GX,GY+3*(TS+GAP)+TS/2]],
+ WT:[[GX+4*TS+3*GAP,t07.y+TS/2],[TX0-30,t07.y+TS/2],[TX0-30,leafY(6)],[TX0,leafY(6)]],
+};
+
+// ---------- build schedule ----------
+const B={U:.15,G:.45,J:.6,R:.35,A:.75,E:.55,W:.9,T:1.25};
+function node(n,t0,t,o={}){
+ const p=eo((t-t0)/.55);if(p<=0)return 0;
+ X.save();X.globalAlpha=p;const dy=(1-p)*18;
+ X.shadowColor='rgba(60,40,20,.10)';X.shadowBlur=24;X.shadowOffsetY=8;
+ rr(n.x,n.y+dy,n.w,n.h,18);X.fillStyle=o.fill||'#fff';X.fill();X.shadowColor='transparent';
+ X.lineWidth=o.lw||2;X.strokeStyle=o.stroke||K.line;X.stroke();
+ tx(n.t,n.x+24,n.y+dy+48,o.ts||30,{w:900,c:o.tc||K.ink});
+ if(n.s)tx(n.s,n.x+24,n.y+dy+84,20,{w:500,c:K.ink2});
+ X.restore();return p}
+function badge(s,x,y,col,a){X.save();X.globalAlpha=a;X.font=`700 18px ${FONT}`;const w=X.measureText(s).width+24;rr(x,y,w,30,15);X.fillStyle=col;X.fill();X.fillStyle='#fff';X.textBaseline='middle';X.fillText(s,x+12,y+16);X.restore();return w}
+function chip(s,x,y,size,o={}){X.save();X.globalAlpha=o.a==null?1:o.a;X.font=`${o.w||700} ${size}px ${FONT}`;const w=X.measureText(s).width+size*1.1,h=size*1.8;
+ X.shadowColor='rgba(60,40,20,.18)';X.shadowBlur=14;X.shadowOffsetY=4;rr(x-w/2,y-h/2,w,h,h/2);X.fillStyle=o.bg||'#fff';X.fill();X.shadowColor='transparent';X.lineWidth=2.5;X.strokeStyle=o.bd||K.ink;X.stroke();
+ X.fillStyle=o.c||K.ink;X.textAlign='center';X.textBaseline='middle';X.fillText(s,x,y+1);X.restore()}
+function sq(x,y,s,c){X.fillStyle=c;X.fillRect(x-s/2,y-s/2,s,s)}
+function dot(x,y,r,c){X.fillStyle=c;X.beginPath();X.arc(x,y,r,0,7);X.fill()}
+function dia(x,y,r,c){X.fillStyle=c;X.beginPath();X.moveTo(x,y-r);X.lineTo(x+r,y);X.lineTo(x,y+r);X.lineTo(x-r,y);X.closePath();X.fill()}
+
+// ---------- story times ----------
+const TYPE0=2.3,TYPE1=3.4;      // user types
+const F1=[3.5,4.6];             // phrase U->R
+const F2=[4.9,5.7];             // proposal R->E
+const ENG=[5.6,6.6];            // engine computes
+const F3=[6.5,7.3];             // result E->world07
+const F4=[7.4,8.0];             // world07 -> tree
+const GROW=[7.9,8.9];           // 17th branch
+const END=8.9;
+
+function render(t){
+ // background
+ X.fillStyle=K.paper;X.fillRect(0,0,W,H);
+ X.fillStyle='rgba(30,43,54,.07)';for(let y=60;y<H;y+=40)for(let x=60;x<W;x+=40){X.fillRect(x,y,2,2)}
+ // title
+ const ta=eo((t-.05)/.5);
+ tx('ゆくすいえ',70,92,26,{w:700,c:K.ink2,a:ta});
+ tx('ひと言が、16の未来を書き換えるまで',70,150,50,{w:900,a:ta});
+
+ // connectors (drawn under nodes)
+ const cu=(k,t0)=>eio((t-t0)/.6);
+ drawPart(P.UR,cu('UR',.7),K.line,4);
+ drawPart(P.RG,cu('RG',.85),K.line,4);drawPart(P.JR,cu('JR',.95),K.line,4);
+ drawPart(P.RE,cu('RE',.95),K.line,4);
+ drawPart(P.EA,cu('EA',1.05),K.line,4,[2,10]);
+ drawPart(P.EW,cu('EW',1.15),K.line,4);
+ drawPart(P.AW,cu('AW',1.2),K.line,4,[2,10]);
+ drawPart(P.WT,cu('WT',1.4),K.line,4);
+
+ // nodes
+ const pU=node(N.U,B.U,t);
+ if(pU){X.save();X.globalAlpha=pU;sq(N.U.x+44,N.U.y+130,22,K.kazu);dot(N.U.x+110,N.U.y+130,11,K.yuu);tx('かず',N.U.x+44,N.U.y+172,18,{w:700,c:K.kazuT,al:'center'});tx('ゆう',N.U.x+110,N.U.y+172,18,{w:700,c:K.yuuT,al:'center'});X.restore()}
+ const pG=node(N.G,B.G,t,{ts:28}),pJ=node(N.J,B.J,t,{ts:28});
+ if(pG*pJ>0){X.save();X.globalAlpha=pG*pJ;
+   // loop between G and J: two arcs with a travelling dot
+   X.strokeStyle=K.navy;X.lineWidth=3;X.setLineDash([6,8]);X.beginPath();X.moveTo(570,276);X.lineTo(600,276);X.moveTo(600,316);X.lineTo(570,316);X.stroke();X.setLineDash([]);
+   const ph=(t*1.2)%1;const lx=ph<.5?lerp(570,600,ph*2):lerp(600,570,(ph-.5)*2),ly=ph<.5?276:316;dot(lx,ly,6,K.navy);
+   badge('Claude 上位',N.G.x+N.G.w/2+15-62,N.G.y-44,K.navy,1);
+   tx('2択をつくり、確かめあう',N.G.x,N.G.y-56,20,{w:500,c:K.ink2,a:0});
+ X.restore()}
+ const pR=node(N.R,B.R,t,{stroke:K.ink,lw:2.5});
+ if(pR)badge('Claude 上位',N.R.x+24,N.R.y+N.R.h-50,K.navy,pR);
+ const pA=node(N.A,B.A,t);
+ if(pA)badge('Claude 中位',N.A.x+24,N.A.y+N.A.h-48,K.navy,pA);
+ const pE=node(N.E,B.E,t,{fill:K.ink,stroke:K.ink,tc:'#FFFAF0'});
+ // engine rows
+ const rows=[['台帳','お金','＋60万円'],['時計','日数','＋7日（再審査）'],['判定','敷地・性能','冬の朝 14→20℃']];
+ if(pE){X.save();X.globalAlpha=pE;
+  tx('数字は、ここでだけ決まる',N.E.x+24,N.E.y+84,20,{w:500,c:'#CFC6B6'});
+  rows.forEach((r,i)=>{const y=N.E.y+130+i*150;rr(N.E.x+20,y,N.E.w-40,128,14);X.fillStyle='rgba(255,250,240,.08)';X.fill();
+    tx(r[0],N.E.x+44,y+46,28,{w:900,c:'#FFFAF0'});tx(r[1],N.E.x+44+tw(r[0],28,900)+14,y+46,20,{w:500,c:'#CFC6B6'});
+    const hit=eo((t-ENG[0]-i*.25)/.45),fade=1-cl((t-ENG[0]-i*.25-1.6)/.5)*0;
+    if(hit>0){tx(r[2],N.E.x+44,y+98,30,{w:900,c:K.gold,a:hit*fade})}
+    else tx('—',N.E.x+44,y+98,34,{w:500,c:'#5C6772'});
+    // ticking caret
+    if(t>ENG[0]+i*.25&&t<ENG[0]+i*.25+.3){X.fillStyle=K.gold;X.fillRect(N.E.x+N.E.w-60,y+70,10,30)}
+  });X.restore()}
+
+ // worlds grid
+ const pW=eo((t-B.W)/.6);
+ if(pW>0){X.save();X.globalAlpha=pW;
+  tx('16の未来',GX,GY-62,30,{w:900});
+  tx('詳しく4・概略12',GX+150,GY-62,20,{w:500,c:K.ink2});
+  for(let i=0;i<16;i++){const p=eo((t-B.W-i*.03)/.4),{x,y}=tile(i),det=DET.includes(i);
+   X.save();X.globalAlpha=pW*p;
+   rr(x,y+(1-p)*10,TS,TS,12);X.fillStyle=det?'#fff':K.ground;X.fill();X.lineWidth=det?2.5:1.5;X.strokeStyle=det?K.ink:K.line;X.stroke();
+   tx(String(i+1).padStart(2,'0'),x+10,y+26,16,{w:700,c:K.ink2});
+   if(det){ // actors: 担当者■ 親● SNS◆ AI dot
+     sq(x+20,y+52,10,K.ink);dot(x+40,y+52,5.5,K.ink2);dia(x+59,y+52,6.5,K.navy);
+     X.strokeStyle=K.ink2;X.lineWidth=1.5;X.beginPath();X.arc(x+20,y+70,4,0,7);X.stroke();
+   } else { // light model pulse
+     const ph=((t*0.9+i*0.137)%1);dot(x+TS/2,y+TS/2+8,4+2*Math.sin(ph*6.28),K.navy+'66');
+   }
+   X.restore()}
+  badge('Claude 軽量 ×12',GX,GY+4*(TS+GAP)+6,K.navy,pW);
+  // legend for actors
+  const ly=GY+4*(TS+GAP)+60;X.save();X.globalAlpha=pW;
+  sq(GX+8,ly-6,10,K.ink);tx('担当者',GX+20,ly,18,{w:500,c:K.ink2});
+  dot(GX+96,ly-6,5.5,K.ink2);tx('親',GX+106,ly,18,{w:500,c:K.ink2});
+  dia(GX+142,ly-6,6.5,K.navy);tx('SNS',GX+152,ly,18,{w:500,c:K.ink2});
+  X.strokeStyle=K.ink2;X.lineWidth=1.5;X.beginPath();X.arc(GX+204,ly-6,4,0,7);X.stroke();tx('アシスタントAI',GX+214,ly,18,{w:500,c:K.ink2});
+  X.restore();
+  X.restore()}
+ // ambient flow engine -> worlds (light dots)
+ if(t>1.6){for(let k=0;k<3;k++){const u=((t*0.45+k/3)%1);const [x,y]=pat(P.EW,u);X.save();X.globalAlpha=.5*cl((t-1.6)/.4);dot(x,y,5,K.navy);X.restore()}
+  for(let k=0;k<2;k++){const u=((t*0.35+k/2)%1);const [x,y]=pat(P.AW,u);X.save();X.globalAlpha=.4*cl((t-1.6)/.4);dot(x,y,5,K.ink2);X.restore()}}
+
+ // tree column
+ const pT=eo((t-B.T)/.6);
+ if(pT>0){X.save();X.globalAlpha=pT;
+  tx('世界樹',TX0-20,GY-62,30,{w:900});
+  const rootY=leafY(7.5);
+  for(let i=0;i<16;i++){const p=eio((t-B.T-.2-i*.025)/.5);const y=leafY(i);
+   X.strokeStyle=i%2?K.yuu:K.kazu;X.lineWidth=3;X.beginPath();X.moveTo(TX0,rootY);
+   const ex=lerp(TX0,TX1,p),ey=lerp(rootY,y,p);X.bezierCurveTo(TX0+50,rootY,ex-50,ey,ex,ey);X.stroke();
+   if(p>=1){if(i%2)dot(TX1,y,7,K.yuu);else sq(TX1,y,12,K.kazu)}}
+  dot(TX0,rootY,9,K.ink);
+  X.restore()}
+ // 17th branch
+ const g=eio((t-GROW[0])/(GROW[1]-GROW[0]));
+ if(g>0){const rootY=leafY(7.5),y=leafY(15)+64;X.save();X.strokeStyle=K.gold;X.lineWidth=6;X.setLineDash([14,9]);X.lineCap='round';X.beginPath();X.moveTo(TX0,rootY);
+   const ex=lerp(TX0,TX1,g),ey=lerp(rootY,y,g);X.bezierCurveTo(TX0+50,rootY,ex-50,ey,ex,ey);X.stroke();X.setLineDash([]);
+   if(g>=1){const pop=eo((t-GROW[1])/.3);dia(TX1,y,11+5*pop,K.gold);X.strokeStyle=K.goldT;X.lineWidth=2;X.beginPath();X.moveTo(TX1,y-16);X.lineTo(TX1+16,y);X.lineTo(TX1,y+16);X.lineTo(TX1-16,y);X.closePath();X.stroke();
+     tx('17本目',TX1-6,y+52,24,{w:900,c:K.goldT,al:'center',a:pop})}
+   X.restore()}
+
+ // ---------- the travelling story ----------
+ // 1. typing in user box
+ const phrase='窓だけトリプルにしたい';
+ if(t>=TYPE0){const n=Math.floor(cl((t-TYPE0)/(TYPE1-TYPE0))*phrase.length);
+   const s=phrase.slice(0,n);const a=t<F1[0]?1:0;
+   if(a){X.save();rr(N.U.x+16,N.U.y+N.U.h-58,N.U.w-32,44,10);X.fillStyle=K.paper;X.fill();X.strokeStyle=K.gold;X.lineWidth=2.5;X.stroke();X.restore();
+     tx(s,N.U.x+30,N.U.y+N.U.h-28,22,{w:700});if(Math.floor(t*3)%2===0||n<phrase.length){const cw=tw(s,22);X.fillStyle=K.ink;X.fillRect(N.U.x+32+cw,N.U.y+N.U.h-50,2.5,28)}}}
+ // 2. phrase travels to R
+ if(t>=F1[0]&&t<F1[1]+.15){const u=eio((t-F1[0])/(F1[1]-F1[0]));
+   const p=[[N.U.x+N.U.w/2,N.U.y+N.U.h-36],[N.U.x+N.U.w/2,N.U.y+N.U.h+0],[380,N.U.y+N.U.h],[380,540],[N.R.x+N.R.w/2,540]];
+   const [x,y]=pat(p,u);chip('「'+phrase+'」',x,y,24,{bd:K.gold,a:1-cl((t-F1[1])/.15)})}
+ // R glows while reading
+ if(t>F1[1]-.1&&t<F2[0]+.3){const a=Math.sin(cl((t-F1[1]+.1)/(F2[0]-F1[1]+.4))*Math.PI);X.save();X.globalAlpha=a;rr(N.R.x-6,N.R.y-6,N.R.w+12,N.R.h+12,22);X.strokeStyle=K.gold;X.lineWidth=5;X.stroke();X.restore()}
+ // proposal appears at R then travels to E
+ const prop='窓：トリプル｜借入：＋60万';
+ if(t>=F1[1]&&t<F2[1]+.15){const k=eo((t-F1[1])/.35);let x=N.R.x+N.R.w/2,y=N.R.y+N.R.h+26;
+   if(t>=F2[0]){const u=eio((t-F2[0])/(F2[1]-F2[0]));[x,y]=pat([[x,y],[x,N.R.y+N.R.h+24],[800,N.R.y+N.R.h+24],[800,580],[N.E.x+N.E.w/2,580]],u)}
+   chip(prop,x,y,22,{bd:K.navy,c:K.navy,a:k*(1-cl((t-F2[1])/.15))})}
+ // engine glow
+ if(t>F2[1]-.1&&t<F3[0]+.2){const a=Math.sin(cl((t-F2[1]+.1)/(F3[0]-F2[1]+.3))*Math.PI);X.save();X.globalAlpha=a;rr(N.E.x-6,N.E.y-6,N.E.w+12,N.E.h+12,24);X.strokeStyle=K.gold;X.lineWidth=5;X.stroke();X.restore()}
+ // 3. result travels to world 07
+ if(t>=F3[0]&&t<F3[1]+.15){const u=eio((t-F3[0])/(F3[1]-F3[0]));const [x,y]=pat(P.EWme,u);chip('＋60万・＋7日・20℃',x,y,22,{bd:K.gold,a:1-cl((t-F3[1])/.15)})}
+ // world 07 rewritten
+ if(t>=F3[1]-.05){const p=eo((t-F3[1]+.05)/.4);const {x,y}=tile(ME);X.save();
+   rr(x-6,y-6,TS+12,TS+12,16);X.lineWidth=5;X.strokeStyle=K.gold;X.globalAlpha=p;X.stroke();
+   X.fillStyle=K.gold;X.globalAlpha=p*.22;rr(x,y,TS,TS,12);X.fill();X.restore();
+   tx('書き換え',x+TS/2,y-14,20,{w:900,c:K.goldT,al:'center',a:p*(1-cl((t-F4[0]-.3)/.4))})}
+ // 4. world07 -> tree
+ if(t>=F4[0]&&t<F4[1]+.1){const u=eio((t-F4[0])/(F4[1]-F4[0]));const [x,y]=pat(P.WT,u);X.save();dia(x,y,11,K.gold);X.restore()}
+
+ // ending line
+ const ea=eo((t-END)/.45);
+ if(ea>0){X.save();X.globalAlpha=ea;rr(70,968,1780,72,36);X.fillStyle='#fff';X.fill();X.strokeStyle=K.line;X.lineWidth=2;X.stroke();X.restore();
+   tx('16の未来 × 役割のちがうClaude × 決まった計算',960,1016,34,{w:900,al:'center',a:ea})}
+}
+window.render=render;
+
+// ---------- playback ----------
+const qs=new URLSearchParams(location.search);
+const seek=document.getElementById('seek'),tl=document.getElementById('time'),pb=document.getElementById('play');
+let playing=!qs.has('t'),t=parseFloat(qs.get('t')||'0'),last=null;
+function sync(){seek.value=t;tl.textContent=`${t.toFixed(1)} / ${DUR.toFixed(1)} 秒`;pb.textContent=playing?'一時停止':'再生'}
+function loop(now){if(playing){if(last!=null)t+=(now-last)/1000;if(t>=DUR+1)t=0}last=now;try{render(Math.min(t,DUR))}catch(e){console.error(e)}sync();requestAnimationFrame(loop)}
+pb.onclick=()=>{playing=!playing;last=null};seek.oninput=()=>{t=+seek.value;playing=false};
+function fit(){const s=Math.min(innerWidth/W,(innerHeight-56)/H);document.getElementById('stage').style.transform=`translate(-50%,-50%) scale(${s})`}
+addEventListener('resize',fit);fit();
+let started=false;function start(){if(started)return;started=true;window.READY=true;requestAnimationFrame(loop)}
+(document.fonts?document.fonts.ready:Promise.resolve()).then(start,start);setTimeout(start,1500);
+</script>
+</body>
+</html>

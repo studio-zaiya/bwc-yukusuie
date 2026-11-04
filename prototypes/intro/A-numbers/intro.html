@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>前振り 案A 数字が主役</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Zen+Maru+Gothic:wght@700;900&display=swap">
+<style>
+:root{--bg:#eef3fb;--ui:#1f2a44;--uibg:#ffffff;color-scheme:light}
+html,body{height:100%}
+body{margin:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Zen Kaku Gothic New","Noto Sans CJK JP",sans-serif;color:var(--ui)}
+#wrap{width:min(100vw - 24px,(100vh - 80px)*16/9);aspect-ratio:16/9;max-width:100%;box-shadow:0 10px 40px rgba(31,42,68,.18);border-radius:8px;overflow:hidden;background:#fff}
+canvas{width:100%;height:100%;display:block}
+.bar{display:flex;gap:10px;align-items:center;width:min(100vw - 24px,(100vh - 80px)*16/9);font-size:13px}
+.bar button{font:inherit;font-weight:700;border:0;border-radius:999px;background:var(--ui);color:#fff;padding:6px 14px;cursor:pointer}
+.bar input{flex:1}
+.bar span{font-variant-numeric:tabular-nums;min-width:7em;text-align:right}
+</style>
+<div id="wrap"><canvas id="c" width="1920" height="1080"></canvas></div>
+<div class="bar"><button id="pp" type="button">一時停止</button><input id="sl" type="range" min="0" max="44" step="0.01" value="0" aria-label="時刻"><span id="tt">0.0 / 44.0 秒</span></div>
+<script>
+const W=1920,H=1080,DUR=44;
+window.DUR=DUR;
+const cv=document.getElementById('c'),g=cv.getContext('2d');
+const JP='"Hiragino Sans","Hiragino Kaku Gothic ProN","Zen Kaku Gothic New","Noto Sans CJK JP",sans-serif';
+const MARU='"Hiragino Maru Gothic ProN","Zen Maru Gothic","Hiragino Sans","Noto Sans CJK JP",sans-serif';
+const C={bg:'#f7faff',ink:'#1f2a44',sub:'#5b6785',sky:'#2f8fe8',sun:'#ffc23d',coral:'#ff6a55',leaf:'#2fb67a',kaz:'#ff8a2a',yu:'#16b3a6',paper:'#ffffff',line:'#dbe4f2'};
+// ---------- helpers ----------
+const cl=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const lin=(t,a,b)=>cl((t-a)/(b-a));
+const eo=x=>1-Math.pow(1-x,3);
+const eio=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+const back=x=>{const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(x-1,3)+c1*Math.pow(x-1,2)};
+function hash(n){const s=Math.sin(n*127.1+311.7)*43758.5453;return s-Math.floor(s)}
+function txt(s,x,y,size,o={}){g.save();g.font=`${o.w||700} ${size}px ${o.f||JP}`;g.fillStyle=o.c||C.ink;g.textAlign=o.a||'center';g.textBaseline=o.b||'alphabetic';g.globalAlpha*=o.al??1;g.fillText(s,x,y);g.restore()}
+function tw(s,size,w=700,f=JP){g.save();g.font=`${w} ${size}px ${f}`;const m=g.measureText(s).width;g.restore();return m}
+function rr(x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
+// scene alpha: fade in over 0.5s from a, out over 0.4s to b
+function win(t,a,b){if(t<a||t>b)return 0;return Math.min(eo(lin(t,a,a+.5)),1-eo(lin(t,b-.4,b)))}
+// tag chip: kind 'stat' or 'field'
+function tag(kind,x,y,al){const s=kind==='stat'?'統計':'現場の実感';const fs=26;const w=tw(s,fs,900)+44;g.save();g.globalAlpha*=al;rr(x,y,w,48,24);if(kind==='stat'){g.fillStyle=C.sky;g.fill();txt(s,x+w/2,y+33,fs,{w:900,c:'#fff'})}else{g.fillStyle=C.sun;g.fill();g.lineWidth=3;g.strokeStyle=C.ink;g.stroke();txt(s,x+w/2,y+33,fs,{w:900,c:C.ink})}g.restore();return w}
+function src(s,al){txt(s,64,H-44,20,{a:'left',w:500,c:C.sub,al})}
+function fmt(n){return Math.round(n).toLocaleString('ja-JP')}
+// little house icon
+function house(x,y,s,col,al=1,roof){g.save();g.globalAlpha*=al;g.translate(x,y);g.scale(s,s);g.fillStyle=col;g.beginPath();g.moveTo(-50,0);g.lineTo(-50,-60);g.lineTo(0,-100);g.lineTo(50,-60);g.lineTo(50,0);g.closePath();g.fill();g.fillStyle=roof||'rgba(31,42,68,.25)';g.beginPath();g.moveTo(-62,-56);g.lineTo(0,-108);g.lineTo(62,-56);g.lineTo(56,-50);g.lineTo(0,-96);g.lineTo(-56,-50);g.closePath();g.fill();g.fillStyle='#fff';g.fillRect(-30,-46,22,20);g.fillRect(8,-46,22,20);g.fillStyle='rgba(31,42,68,.55)';g.fillRect(-10,-26,20,26);g.restore()}
+function person(x,y,s,col,al=1){g.save();g.globalAlpha*=al;g.translate(x,y);g.scale(s,s);g.fillStyle=col;g.beginPath();g.arc(0,-62,14,0,7);g.fill();rr(-16,-44,32,44,12);g.fill();g.restore()}
+function hammer(x,y,s,col,al=1){g.save();g.globalAlpha*=al;g.translate(x,y);g.scale(s,s);g.fillStyle=col;rr(-4,-30,8,34,3);g.fill();rr(-16,-38,32,12,4);g.fill();g.restore()}
+// rolling digit number: draws string where digits roll from 0
+function rollNum(target,p,x,y,size,o={}){const str=fmt(target);const chars=[...str];g.save();g.font=`900 ${size}px ${o.f||JP}`;const widths=chars.map(ch=>g.measureText(ch).width);const total=widths.reduce((a,b)=>a+b,0);let cx=x-(o.a==='left'?0:total/2);let di=0;const nd=chars.filter(ch=>/\d/.test(ch)).length;chars.forEach((ch,i)=>{const w=widths[i];if(/\d/.test(ch)){const d=+ch;const delay=(nd-1-di)*.07;const q=eo(cl((p-delay)/(1-delay*.9)));const v=q*(d+10*(2-(di%2)));const fv=v%10;const k=Math.floor(fv);const fr=fv-k;g.save();g.beginPath();g.rect(cx-4,y-size*.92,w+8,size*1.1);g.clip();g.fillStyle=o.c||C.ink;g.textBaseline='alphabetic';g.fillText(String(k),cx,y-fr*size*1.02);g.fillText(String((k+1)%10),cx,y+(1-fr)*size*1.02);g.restore();di++}else{g.fillStyle=o.c||C.ink;g.fillText(ch,cx,y)}cx+=w});g.restore();return total}
+// ---------- background ----------
+function bg(t){g.fillStyle=C.bg;g.fillRect(0,0,W,H);g.save();g.globalAlpha=.55;g.fillStyle=C.line;for(let x=0;x<W;x+=48)for(let y=0;y<H;y+=48){g.beginPath();g.arc(x+24,y+24,2,0,7);g.fill()}g.restore();
+ // progress ribbon
+ const p=t/DUR;g.fillStyle=C.line;g.fillRect(0,H-8,W,8);const gr=g.createLinearGradient(0,0,W,0);gr.addColorStop(0,C.kaz);gr.addColorStop(1,C.yu);g.fillStyle=gr;g.fillRect(0,H-8,W*p,8)}
+// ---------- scenes ----------
+const S=[];
+// 1 つかみ 0-4.2
+S.push([0,4.2,(t,al)=>{
+ const cols=[C.coral,C.sun,C.sky];
+ for(let i=0;i<3;i++){const p=back(cl(lin(t,.2+i*.35,.8+i*.35)));house(W/2+(i-1)*240,520,1.4*p,cols[i],al*cl(p*2))}
+ txt('「家は、3回建てないと',W/2,700,72,{w:900,f:MARU,al:al*eo(lin(t,1.2,1.8))});
+ txt('満足できない」',W/2,800,72,{w:900,f:MARU,al:al*eo(lin(t,1.5,2.1))});
+ txt('と、昔から言われます。',W/2,880,40,{w:700,c:C.sub,al:al*eo(lin(t,2.1,2.6))});
+}]);
+// 2a 総額 4.2-10
+S.push([4.2,10,(t,al)=>{const l=t-4.2;
+ tag('stat',140,120,al);
+ txt('土地と建物で',W/2,300,52,{w:700,c:C.sub,al});
+ const p=lin(l,.3,2.0);
+ const wNum=rollNum(5007,p,W/2-60,520,230,{c:C.ink});
+ txt('万円',W/2-60+wNum/2+20,520,90,{a:'left',w:900,al});
+ // years of income isotype: 7.5 blocks
+ const q=lin(l,2.4,4.2);txt('年収の',560,760,48,{a:'right',w:700,al:al*cl(q*3)});
+ for(let i=0;i<8;i++){const f=i<7?1:.5;const pi=eo(cl((q*8-i)));const x=600+i*120,y=700;g.save();g.globalAlpha=al*pi;rr(x,y,96*f,96,18);g.fillStyle=i%2?C.sun:C.kaz;g.fill();g.restore();if(pi>.5)txt(String(i+1)+(i===7?'':''),x+48*f,y+64,i<7?40:30,{w:900,c:'#fff',al:al*pi})}
+ txt('7.5年分',1530,772,64,{a:'left',w:900,c:C.coral,al:al*eo(lin(l,4.0,4.6))});
+ src('出典：住宅金融支援機構「2024年度 フラット35利用者調査」土地付注文住宅の所要資金・年収倍率（全国）',al);
+}]);
+// 2b 費用・金利・大工 10-15.6
+S.push([10,15.6,(t,al)=>{const l=t-10;
+ tag('stat',140,120,al);
+ // cost bar
+ txt('建てる費用',420,300,44,{w:900,al});
+ const p=eo(lin(l,.3,1.8));const base=430,h1=260,h2=h1*(1+.298*p);
+ [[300,100,'2015年度',C.line],[540,129.8,'2024年4月',C.kaz]].forEach(([x,v,lab,col],i)=>{const hh=i?h2:h1;g.save();g.globalAlpha=al;rr(x,base+380-hh,160,hh,16);g.fillStyle=col;g.fill();g.restore();txt(lab,x+80,base+430,28,{w:700,c:C.sub,al});txt(i?(100+29.8*p).toFixed(1):'100',x+80,base+380-hh-20,48,{w:900,al})});
+ txt('約1.3倍',420,370,60,{w:900,c:C.coral,al:al*eo(lin(l,1.6,2.1))});
+ // interest
+ const q=eo(lin(l,1.2,2.2));txt('金利も',1000,300,44,{w:900,al:al*q});txt('上がり始めた',1000,360,44,{w:900,al:al*q});
+ g.save();g.globalAlpha=al*q;g.strokeStyle=C.sky;g.lineWidth=10;g.lineCap='round';g.beginPath();const pts=[[860,700],[930,700],[1000,690],[1060,650],[1120,560]];const n=Math.floor(cl(lin(l,1.4,2.6))*(pts.length-1)*100)/100;g.moveTo(...pts[0]);for(let i=1;i<pts.length;i++){if(i-1>n)break;const f=cl(n-(i-1));g.lineTo(pts[i-1][0]+(pts[i][0]-pts[i-1][0])*f,pts[i-1][1]+(pts[i][1]-pts[i-1][1])*f)}g.stroke();g.restore();
+ txt('政策金利 1.25%',1000,780,34,{w:700,c:C.sub,al:al*q});
+ // carpenters isotype (1 icon = 1万人)
+ const r=lin(l,2.4,4.6);txt('建てる人も、減っている',1580,300,44,{w:900,al:al*cl(r*3)});
+ [[35,'2015年','35万人',C.leaf],[30,'2020年','29.8万人',C.leaf],[13,'2040年見通し','約13万人',C.sun]].forEach(([n,y,lab,col],row)=>{const rp=cl(r*3-row);const yy=440+row*150;txt(y,1330,yy-14,24,{a:'right',w:700,c:C.sub,al:al*cl(rp*2)});txt(lab,1330,yy+22,30,{a:'right',w:900,al:al*cl(rp*2)});for(let i=0;i<n;i++){const ip=cl(rp*n*1.3-i);if(ip<=0)continue;const x=1370+(i%18)*26,y2=yy+Math.floor(i/18)*46;hammer(x,y2,.85,col,al*ip)}});
+ txt('ハンマー1本＝1万人',1600,900,22,{w:500,c:C.sub,al:al*cl(r*3-2)});
+ src('出典：国土交通省「建設工事費デフレーター」（住宅、2015年度=100）／日本銀行（2026年9月）／野村総合研究所の推計（大工就業者数）',al);
+}]);
+// 3 性能は当たり前 15.6-20.4
+S.push([15.6,20.4,(t,al)=>{const l=t-15.6;
+ tag('stat',140,120,al);
+ txt('2025年から、すべての新築に「省エネ基準」',W/2,270,56,{w:900,al});
+ for(let i=0;i<8;i++){const p=back(cl(lin(l,.3+i*.08,.8+i*.08)));const x=W/2+(i-3.5)*190;house(x,560,.95*p,[C.coral,C.sky,C.sun,C.leaf,C.kaz,C.yu,C.coral,C.sky][i],al*cl(p*2));
+  const cp=eo(lin(l,1.1+i*.06,1.4+i*.06));if(cp>0){g.save();g.globalAlpha=al*cp;g.fillStyle=C.leaf;g.beginPath();g.arc(x+42,460,26,0,7);g.fill();g.strokeStyle='#fff';g.lineWidth=7;g.lineCap='round';g.beginPath();g.moveTo(x+30,460);g.lineTo(x+40,471);g.lineTo(x+56,449);g.stroke();g.restore()}}
+ txt('性能は「当たり前」に。だから、違いが見えにくい。',W/2,700,44,{w:700,c:C.sub,al:al*eo(lin(l,1.6,2.1))});
+ const q=eo(lin(l,2.5,3.1));
+ {const s3='決め手は、広告と「誰が担当になるか」というめぐり合わせ。';const tw3=tw(s3,42,900);const tagw=tw('現場の実感',26,900)+44;const x0=W/2-(tw3+tagw+24)/2;tag('field',x0,774,al*q);txt(s3,x0+tagw+24,812,42,{a:'left',w:900,al:al*q});}
+ src('出典：国土交通省（建築物省エネ法の改正、2025年4月施行）',al);
+}]);
+// 4 ほかの選択肢 20.4-24.8
+S.push([20.4,24.8,(t,al)=>{const l=t-20.4;
+ const b1=back(cl(lin(l,.1,.6))),b2=back(cl(lin(l,.4,.9)));
+ [[560,'リフォームは？',b1,C.sky],[1360,'マンションは？',b2,C.yu]].forEach(([x,s,p,col])=>{g.save();g.globalAlpha=al*cl(p*1.5);g.translate(x,250);g.scale(p,p);rr(-230,-70,460,120,60);g.fillStyle=col;g.fill();g.beginPath();g.moveTo(-40,48);g.lineTo(0,90);g.lineTo(20,48);g.fill();g.restore();txt(s,x,272,52,{w:900,c:'#fff',al:al*cl(p*1.5)})});
+ txt('もちろん、それも答えのひとつ。',W/2,440,48,{w:700,c:C.sub,al:al*eo(lin(l,1.0,1.5))});
+ const q=lin(l,1.6,3.2);
+ txt('それでも毎年、およそ',W/2-430,620,44,{w:700,al:al*cl(q*3)});
+ const wn=rollNum(201285,q,W/2+170,650,130,{c:C.coral});
+ txt('の家族が、新しく家を建てています。',W/2,760,48,{w:900,al:al*eo(lin(l,2.8,3.3))});
+ // families: 20 icons (1 = 1万戸)
+ for(let i=0;i<20;i++){const p=eo(cl(q*24-i-2));if(p<=0)continue;const x=W/2-570+i*60;person(x,900,.7,[C.kaz,C.yu][i%2],al*p);person(x+20,900,.5,[C.sun,C.leaf][i%2],al*p)}
+ tag('stat',140,120,al*eo(lin(l,1.6,2)));
+ src('出典：国土交通省「建築着工統計調査」持家の新設住宅着工戸数（2025年）。人の絵1組＝約1万戸',al);
+}]);
+// 5 情報があふれる 24.8-29.4
+S.push([24.8,29.4,(t,al)=>{const l=t-24.8;
+ tag('field',140,120,al);
+ // phone
+ const px=420,py=560;g.save();g.globalAlpha=al;rr(px-130,py-250,260,500,40);g.fillStyle=C.ink;g.fill();rr(px-112,py-226,224,452,24);g.fillStyle='#fff';g.fill();
+ for(let i=0;i<4;i++){const yy=py-200+((i*110+l*120)%440);if(yy<py-226||yy>py+150)continue;rr(px-96,yy,192,92,14);g.fillStyle=[C.sun,C.sky,C.coral,C.leaf][i];g.globalAlpha=al*.85;g.fill();g.globalAlpha=al}g.restore();
+ txt('流れてくるのは、',1240,250,44,{w:700,c:C.sub,al});
+ txt('お金をかけた映える家か、',1240,330,50,{w:900,al:al*eo(lin(l,.3,.8))});
+ txt('「正解・不正解」で言い切れる家。',1240,410,50,{w:900,al:al*eo(lin(l,.7,1.2))});
+ // stickies fly to house which grows
+ const words=['吹き抜け','大開口','回遊動線','造作キッチン','書斎','広い玄関収納','ガレージ','畳コーナー','全館空調','ランドリー室','大きな庭','ハイドア'];
+ const hx=1240,hy=900;const grow=1+.3*eo(lin(l,1.4,4.0));g.save();g.shadowColor='rgba(31,42,68,.18)';g.shadowBlur=30;house(hx,hy,2.2*grow,C.paper,al,C.sky);g.restore();
+ words.forEach((w,i)=>{const s=1.3+i*.18;const p=eo(lin(l,s,s+.6));if(p<=0)return;const sx=px+80,sy=py-120;const ang=Math.PI*(1.08+i/11*.84);const rad=i%2?330:250;const tx=hx+Math.cos(ang)*rad*1.45,ty=hy-150+Math.sin(ang)*rad*.75;const x=sx+(tx-sx)*p,y=sy+(ty-sy)*p-Math.sin(p*Math.PI)*160;const fw=tw(w,26,900)+28;g.save();g.globalAlpha=al;g.translate(x,y);g.rotate((hash(i+3)-.5)*.3);rr(-fw/2,-24,fw,48,6);g.fillStyle=[C.sun,'#ffd8cf','#cfe8ff','#d3f2e3'][i%4];g.fill();txt(w,0,10,26,{w:900});g.restore()});
+ txt('要望が、いろいろな家の「切り貼り」になっていく。',W/2+180,H-70,40,{w:700,c:C.sub,al:al*eo(lin(l,3.2,3.7))});
+}]);
+// 6 現場で起きていること 29.4-34.2
+S.push([29.4,34.2,(t,al)=>{const l=t-29.4;
+ tag('field',140,120,al);
+ const b1=back(cl(lin(l,.1,.6))),b2=back(cl(lin(l,.6,1.1)));
+ [[430,b1,C.kaz,'施主','全部伝えたのに、','なぜか違う。'],[1490,b2,C.yu,'作り手','いちばんを勧めているのに、','伝わらない。']].forEach(([x,p,col,who,a,b],i)=>{g.save();g.globalAlpha=al*cl(p*1.5);g.translate(x,420);g.scale(p,p);rr(-300,-130,600,230,40);g.fillStyle='#fff';g.fill();g.lineWidth=6;g.strokeStyle=col;g.stroke();g.fillStyle=col;g.beginPath();const dx=i?60:-60;g.moveTo(dx-30,98);g.lineTo(dx+(i?40:-40),170);g.lineTo(dx+30,98);g.fill();g.restore();
+  txt(a,x,410,40,{w:900,al:al*cl(p*1.5)});txt(b,x,470,40,{w:900,al:al*cl(p*1.5)});person(x+(i?110:-110),720,1.4,col,al*cl(p*1.5));txt(who,x+(i?110:-110),780,30,{w:900,c:col,al:al*cl(p*1.5)})});
+ // clock
+ const cx=W/2,cy=470,q=eo(lin(l,1.0,1.5));g.save();g.globalAlpha=al*q;g.fillStyle='#fff';g.beginPath();g.arc(cx,cy,130,0,7);g.fill();g.lineWidth=10;g.strokeStyle=C.ink;g.stroke();for(let i=0;i<12;i++){const a=i/12*Math.PI*2;g.lineWidth=i%3?4:8;g.beginPath();g.moveTo(cx+Math.cos(a)*100,cy+Math.sin(a)*100);g.lineTo(cx+Math.cos(a)*116,cy+Math.sin(a)*116);g.stroke()}
+ const a1=-Math.PI/2+l*1.6,a2=-Math.PI/2+l*19;g.lineCap='round';g.lineWidth=12;g.beginPath();g.moveTo(cx,cy);g.lineTo(cx+Math.cos(a1)*62,cy+Math.sin(a1)*62);g.stroke();g.strokeStyle=C.coral;g.lineWidth=7;g.beginPath();g.moveTo(cx,cy);g.lineTo(cx+Math.cos(a2)*96,cy+Math.sin(a2)*96);g.stroke();g.restore();
+ txt('どちらもベストを尽くしているのに、',W/2,900,52,{w:900,al:al*eo(lin(l,1.9,2.4))});
+ txt('時計の針だけが、進んでいく。',W/2,975,52,{w:900,c:C.coral,al:al*eo(lin(l,2.3,2.8))});
+}]);
+// 7 問い 34.2-37.0
+S.push([34.2,37.0,(t,al)=>{const l=t-34.2;
+ const n=Math.floor(1+eio(lin(l,.2,2.0))*420);
+ for(let i=0;i<n;i++){const x=200+hash(i)*1520,y=170+hash(i+500)*560;const p=i===0?1:eo(cl((l-.2-i*.004)*4));g.save();g.globalAlpha=al*p*(i===0?1:.8);g.fillStyle=[C.kaz,C.yu,C.sun,C.sky][i%4];g.beginPath();g.arc(i===0?W/2:x,i===0?450:y,i===0?16:7,0,7);g.fill();g.restore()}
+ txt('もし同じことが、',W/2,870,58,{w:900,al:al*eo(lin(l,.6,1.1))});
+ txt('日本中で同時に起きているなら？',W/2,955,58,{w:900,al:al*eo(lin(l,.9,1.4))});
+}]);
+// 8 転換 37.0-39.4
+S.push([37.0,39.4,(t,al)=>{const l=t-37;
+ const p=eo(lin(l,.1,.6));
+ [[560,'業界のためのAI',C.sky],[1360,'寄り添うだけのAI',C.yu]].forEach(([x,s,col])=>{g.save();g.globalAlpha=al*p*.9;rr(x-250,330,500,110,55);g.fillStyle='#fff';g.fill();g.lineWidth=5;g.strokeStyle=col;g.stroke();g.restore();txt(s,x,402,44,{w:900,c:col,al:al*p})});
+ txt('でもない',W/2,400,40,{w:700,c:C.sub,al:al*p});
+ const q=eo(lin(l,.8,1.5));g.save();g.globalAlpha=al*q;const gr=g.createLinearGradient(560,0,1360,0);gr.addColorStop(0,C.sky);gr.addColorStop(1,C.yu);g.strokeStyle=gr;g.lineWidth=14;g.lineCap='round';g.beginPath();g.moveTo(560,470);g.bezierCurveTo(760,470+180*q,1160,470+180*q,1360,470);g.stroke();g.restore();
+ txt('そのあいだを、やわらかく「つなぐ」AI。',W/2,780,64,{w:900,f:MARU,al:al*q});
+}]);
+// 9-10 掛け算 39.4-44
+S.push([39.4,44.01,(t,al)=>{const l=t-39.4;
+ const once=1-eo(lin(l,1.0,1.3));
+ txt('でも、ほとんどの家族にとって、家づくりは一生に1回。',W/2,180,46,{w:900,al:al*once*eo(lin(l,0,.3))});
+ // branching tree: x0 -> 4 splits
+ const X0=230,X=[230,560,880,1200,1520],labels=['だれと','なにを','いくらで','どう仕上げる'];
+ const yOf=(lev,idx)=>{const n=Math.pow(2,lev);const span=600;return 560+((idx+.5)/n-.5)*span};
+ g.save();g.lineCap='round';
+ for(let lev=0;lev<4;lev++){const sp=eo(lin(l,.9+lev*.45,1.35+lev*.45));if(sp<=0)continue;const n=Math.pow(2,lev);for(let i=0;i<n;i++)for(let k=0;k<2;k++){const y1=yOf(lev,i),y2=yOf(lev+1,i*2+k);const x1=X[lev],x2=X[lev+1];const col=k?C.yu:C.kaz;g.strokeStyle=col;g.globalAlpha=al*.9;g.lineWidth=10-lev*1.6;g.beginPath();const xe=x1+(x2-x1)*sp;const ye=y1+(y2-y1)*eio(sp);g.moveTo(x1,y1);g.bezierCurveTo(x1+(x2-x1)*.5*sp,y1,x1+(x2-x1)*.5*sp,ye,xe,ye);g.stroke()}
+  txt(labels[lev],(X[lev]+X[lev+1])/2,250,38,{w:900,c:C.ink,al:al*sp});
+  if(lev<3)txt('×',X[lev+1]+0,250,38,{w:900,c:C.sub,al:al*eo(lin(l,1.35+lev*.45,1.6+lev*.45))})}
+ g.globalAlpha=al;g.fillStyle=C.ink;g.beginPath();g.arc(X0,560,16,0,7);g.fill();g.restore();
+ // 16 ends + highlight 3
+ const ep=eo(lin(l,2.7,3.0));const hl=eo(lin(l,3.1,3.5));
+ for(let i=0;i<16;i++){const y=yOf(4,i);const isHL=(i===2||i===7||i===12);g.save();g.globalAlpha=al*ep*(hl>0&&!isHL?1-.55*hl:1);g.fillStyle=isHL&&hl>0?C.coral:'#fff';g.strokeStyle=C.ink;g.lineWidth=4;g.beginPath();g.arc(1530,y,14,0,7);g.fill();g.stroke();g.restore()}
+ const r=eo(lin(l,2.7,3.0));txt('＝ 16通り',1720,575,64,{w:900,c:C.coral,al:al*r*(1-eo(lin(l,3.9,4.2)))});
+ txt('3回建てても、見られるのは16のうち3つだけ。',W/2,960,44,{w:900,c:C.sub,al:al*hl*(1-eo(lin(l,3.9,4.2)))});
+ // finale
+ const f=eo(lin(l,4.0,4.4));if(f>0){g.save();g.globalAlpha=al*f*.92;g.fillStyle=C.bg;g.fillRect(0,820,W,260);g.restore();
+  txt('それなら、建てる前に、16回建ててみよう。',W/2,960,76,{w:900,f:MARU,al:al*f});}
+}]);
+function render(t){t=cl(t,0,DUR);g.setTransform(1,0,0,1,0,0);bg(t);for(const [a,b,fn] of S){const al=b>DUR?(t>=a?eo(lin(t,a,a+.5)):0):win(t,a,b);if(al>0){g.save();g.globalAlpha=al;fn(t,1);g.restore()}}}
+window.render=render;
+// ---------- controls ----------
+const sl=document.getElementById('sl'),tt=document.getElementById('tt'),pp=document.getElementById('pp');
+const qs=new URLSearchParams(location.search);let playing=!qs.has('t'),T=+(qs.get('t')||0),last=performance.now();
+function frame(now){if(playing){T+=(now-last)/1000;if(T>DUR)T=0}last=now;render(T);sl.value=T;tt.textContent=T.toFixed(1)+' / '+DUR.toFixed(1)+' 秒';requestAnimationFrame(frame)}
+pp.onclick=()=>{playing=!playing;pp.textContent=playing?'一時停止':'再生';last=performance.now()};
+sl.oninput=()=>{T=+sl.value;playing=false;pp.textContent='再生'};
+if(!playing)pp.textContent='再生';
+document.fonts?.ready.then(()=>{window.READY=true});
+requestAnimationFrame(frame);
+</script>

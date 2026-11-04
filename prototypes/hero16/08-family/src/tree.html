@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>わが家の木</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; background: #FFF4D9; overflow: hidden; }
+  #wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+  canvas { width: 1920px; height: 1080px; transform-origin: center; cursor: pointer; border-radius: 6px; box-shadow: 0 10px 40px rgba(120,90,30,.18); }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="1920" height="1080"></canvas></div>
+<script src="kid.js"></script>
+<script>
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+let S = 1;
+function fit() { S = Math.min(innerWidth / 1920, innerHeight / 1080); cv.style.transform = `scale(${S})`; }
+addEventListener('resize', fit); fit();
+
+// 木の形（分かれ道ごとに左＝かずの願い、右＝ゆうの願い）
+const ROOT = { x: 780, y: 1000 };
+const LEVEL_Y = [1000, 826, 650, 478, 300];
+const SLOT_X0 = 250, SLOT_DX = 70;
+const combos = [];
+for (let i = 0; i < 16; i++) combos.push([3, 2, 1, 0].map(b => (i >> b) & 1 ? 'R' : 'L').join(''));
+const slotX = p => SLOT_X0 + combos.indexOf(p) * SLOT_DX;
+function nodePos(prefix) {
+  if (prefix.length === 0) return { x: ROOT.x, y: ROOT.y };
+  const leaves = combos.filter(c => c.startsWith(prefix));
+  const x = leaves.reduce((s, c) => s + slotX(c), 0) / leaves.length;
+  const d = prefix.length;
+  const y = d === 4 ? LEVEL_Y[4] - (combos.indexOf(prefix) % 2) * 58 : LEVEL_Y[d];
+  return { x: d === 0 ? ROOT.x : x, y };
+}
+const byPath = {}; WORLDS.forEach(w => { if (!w.graft) byPath[w.path] = w; });
+const detailPaths = WORLDS.filter(w => w.detail).map(w => w.path);
+const onDetail = prefix => detailPaths.some(p => p.startsWith(prefix));
+const GRAFT_POS = { 7: { x: 1352, y: 540 }, 12: { x: 196, y: 930 } };
+
+function leafPos(w) {
+  if (w.graft) return GRAFT_POS[w.lot];
+  return nodePos(w.path);
+}
+const leafR = w => w.detail ? 50 : 25;
+
+function bez(a, b, bend = .55) {
+  const pts = [];
+  const c1 = { x: a.x, y: a.y - (a.y - b.y) * bend }, c2 = { x: b.x, y: b.y + (a.y - b.y) * .25 };
+  for (let i = 0; i <= 24; i++) {
+    const k = i / 24, m = 1 - k;
+    pts.push([m * m * m * a.x + 3 * m * m * k * c1.x + 3 * m * k * k * c2.x + k * k * k * b.x,
+              m * m * m * a.y + 3 * m * m * k * c1.y + 3 * m * k * k * c2.y + k * k * k * b.y]);
+  }
+  return pts;
+}
+
+let selected = null;
+const q = new URLSearchParams(location.search);
+if (q.has('sel')) selected = parseInt(q.get('sel'));
+
+function bg() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = '#FFF4D9'; ctx.fillRect(0, 0, 1920, 1080);
+  ctx.fillStyle = PAPER;
+  ctx.fillRect(24, 24, 1392, 1032);
+  ctx.strokeStyle = 'rgba(134,204,242,.35)'; ctx.lineWidth = 1.5;
+  for (let y = 80; y < 1056; y += 44) { ctx.beginPath(); ctx.moveTo(24, y); ctx.lineTo(1416, y); ctx.stroke(); }
+}
+
+function levelLabels(t, bs) {
+  const rows = [[LEVEL_Y[0], 'わかれみち1', '会社えらび'], [LEVEL_Y[1], 'わかれみち2', '間取りで残すもの'],
+                [LEVEL_Y[2], 'わかれみち3', '契約'], [LEVEL_Y[3], 'わかれみち4', '仕様'], [LEVEL_Y[4] - 30, '', '1年後']];
+  rows.forEach(([y, a1, a2], d) => {
+    const a = seg(t, .3 + d * .6, .8 + d * .6);
+    if (a <= 0) return;
+    ctx.save(); ctx.globalAlpha = .3 * a; ctx.setLineDash([4, 10]); ctx.strokeStyle = C.brown; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(210, y); ctx.lineTo(1400, y); ctx.stroke(); ctx.restore();
+    tape(ctx, 118, y - 6, 172, a1 ? 58 : 36, -.03, 'rgba(247,200,30,.5)');
+    if (a1) kidText(ctx, a1, 40, y - 14, 16, C.brown, { alpha: a });
+    kidText(ctx, a2, 40, y + (a1 ? 12 : 2), 20, C.ink, { alpha: a });
+  });
+}
+
+function drawEdges(t, bs) {
+  // 幹
+  crayon(ctx, [[ROOT.x - 6, 1052], [ROOT.x - 2, 1020], [ROOT.x, ROOT.y]], C.brown, 20, 11 + bs, seg(t, 0, .5));
+  const edges = [];
+  for (let d = 0; d < 4; d++) {
+    const prefixes = combos.map(c => c.slice(0, d)).filter((v, i, a) => a.indexOf(v) === i);
+    for (const pre of prefixes) for (const s of ['L', 'R']) edges.push({ pre, ch: pre + s, side: s, d });
+  }
+  for (const e of edges) {
+    const unseen = UNSEEN.some(u => u.startsWith(e.ch)) && !combos.filter(c => c.startsWith(e.ch)).some(c => byPath[c]);
+    const a = nodePos(e.pre), b = nodePos(e.ch);
+    const p = seg(t, .5 + e.d * .6, 1.2 + e.d * .6);
+    const strong = onDetail(e.ch);
+    const col = e.side === 'L' ? C.blue : C.orange;
+    const w = [13, 9, 6.5, 5][e.d];
+    const pts = bez(a, b);
+    if (unseen) {
+      ctx.save(); ctx.globalAlpha = .55;
+      const n = pts.length;
+      for (let i = 0; i < n - 1; i += 3) crayon(ctx, [pts[i], pts[Math.min(n - 1, i + 1)]], C.gray, 3.2, 700 + i + bs, p);
+      ctx.restore();
+    } else {
+      crayon(ctx, pts, col, w, 300 + e.d * 50 + combos.indexOf(e.ch.padEnd(4, 'L')) + bs, p, strong ? 1 : .55);
+    }
+  }
+  // 見ていない未来（はてな）
+  for (const u of UNSEEN) {
+    const pos = nodePos(u), k = seg(t, 3.4, 3.9);
+    if (k <= 0) continue;
+    crayon(ctx, ellipsePts(pos.x, pos.y, 18, 18, 0, 6.3, 20), C.gray, 2.4, 760 + bs, k, .8);
+    kidText(ctx, '？', pos.x, pos.y + 8, 22, C.gray, { align: 'center', alpha: k });
+  }
+  // 2択の外の答え（おりがみの接ぎ木）
+  WORLDS.filter(w => w.graft).forEach((w, i) => {
+    const from = nodePos(w.path), to = GRAFT_POS[w.lot];
+    const p = seg(t, 3.0 + i * .3, 3.8 + i * .3);
+    const pts = bez(from, to, .3);
+    crayon(ctx, pts, C.green, 7, 820 + i * 7 + bs, p);
+    if (p > .1) {
+      const m = pts[Math.floor(pts.length * .5)];
+      tape(ctx, m[0], m[1], 46, 18, .6, 'rgba(242,141,178,.55)');
+    }
+    if (p > .6) {
+      const lx = (from.x + to.x) / 2 + (w.lot === 7 ? -10 : 20), ly = (from.y + to.y) / 2 + (w.lot === 7 ? 52 : -34);
+      ctx.save(); ctx.globalAlpha = seg(p, .6, 1);
+      ctx.font = "600 17px 'Klee One', sans-serif";
+      const tw = ctx.measureText(w.graft.label).width;
+      ctx.fillStyle = 'rgba(255,255,255,.92)';
+      ctx.translate(lx, ly); ctx.rotate(-.04);
+      ctx.fillRect(-tw / 2 - 10, -20, tw + 20, 30);
+      ctx.fillStyle = '#2F7D45'; ctx.textAlign = 'center';
+      ctx.fillText(w.graft.label, 0, 1);
+      ctx.restore();
+    }
+  });
+}
+
+function origami(cx, cy, r, seed, p) {
+  // 折り紙の葉（三角を2枚）
+  const a = [[cx - r, cy], [cx, cy - r * 1.1], [cx, cy + r * .2]];
+  const b = [[cx, cy - r * 1.1], [cx + r, cy], [cx, cy + r * .2]];
+  ctx.save(); ctx.globalAlpha = p;
+  ctx.fillStyle = '#8ED39A'; ctx.beginPath(); a.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.fill();
+  ctx.fillStyle = '#6FBF7E'; ctx.beginPath(); b.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.fill();
+  ctx.restore();
+}
+
+function drawLeaves(t, bs) {
+  const order = WORLDS.slice().sort((a, b) => leafPos(a).x - leafPos(b).x);
+  order.forEach((w, i) => {
+    const pos = leafPos(w), r = leafR(w);
+    const k = w.graft ? seg(t, 3.7, 4.2) : seg(t, 3.2 + i * .04, 3.6 + i * .04);
+    if (k <= 0) return;
+    const sc = easeBack(k);
+    const sel = selected === w.lot;
+    ctx.save();
+    ctx.translate(pos.x, pos.y); ctx.scale(sc, sc); ctx.translate(-pos.x, -pos.y);
+    if (sel) {
+      const pr = r + 14 + Math.sin(t * 4) * 3;
+      crayon(ctx, ellipsePts(pos.x, pos.y, pr, pr, 0, 6.3, 34), C.red, 4, 1200 + bs);
+    }
+    if (w.detail) {
+      ctx.fillStyle = PAPER; ctx.beginPath(); ctx.arc(pos.x, pos.y, r, 0, 6.3); ctx.fill();
+      ctx.save(); ctx.beginPath(); ctx.arc(pos.x, pos.y, r - 2, 0, 6.3); ctx.clip();
+      kidHouse(ctx, w.spec, pos.x - 380 * .3 / 2 - 6, pos.y - 214 * .3 / 2 - 4, .3, w.lot * 50 + bs, 1, { w: 4.4, noSun: true });
+      ctx.restore();
+      crayon(ctx, ellipsePts(pos.x, pos.y, r, r, 0, 6.3, 36), w.mine ? C.red : C.ink, 4, 1300 + w.lot + bs);
+      kidText(ctx, String(w.lot).padStart(2, '0'), pos.x - r + 2, pos.y - r + 12, 22, w.mine ? C.red : C.ink, { weight: 600 });
+      if (w.mine) kidText(ctx, 'わがや', pos.x, pos.y + r + 26, 20, C.red, { align: 'center' });
+    } else if (w.graft) {
+      origami(pos.x, pos.y + 6, r * 1.2, w.lot, 1);
+      kidText(ctx, String(w.lot).padStart(2, '0'), pos.x, pos.y + 8, 18, '#1F5A30', { align: 'center' });
+    } else {
+      const col = w.spec.fate === 'vacant' ? '#B9BEC5' : (w.spec.fate === 'empty' ? '#D8C28A' : C.leaf);
+      scribble(ctx, ellipsePts(pos.x, pos.y, r, r * .78, 0, 6.3, 22), col, 1400 + w.lot + bs, 5, .85);
+      crayon(ctx, ellipsePts(pos.x, pos.y, r, r * .78, 0, 6.3, 22), '#2F7D45', 2.6, 1500 + w.lot + bs);
+      kidText(ctx, String(w.lot).padStart(2, '0'), pos.x, pos.y + 7, 18, C.ink, { align: 'center' });
+    }
+    ctx.restore();
+  });
+}
+
+function rootFamily(t, bs) {
+  const k = seg(t, 0, .6);
+  personBack(ctx, ROOT.x - 120, 1050, 58, C.blue, C.brown, 2000 + bs, k);
+  personBack(ctx, ROOT.x - 86, 1050, 54, C.orange, C.ink, 2020 + bs, k);
+  personBack(ctx, ROOT.x - 58, 1050, 34, C.yellow, C.brown, 2040 + bs, k);
+  personBack(ctx, ROOT.x - 40, 1050, 28, C.pink, C.ink, 2060 + bs, k);
+  rabbit(ctx, ROOT.x + 40, 1050, 14, 2080 + bs, Math.abs(Math.sin(t * 3)) * 6);
+  kidText(ctx, 'かず と ゆう', ROOT.x + 70, 1044, 22, C.ink, { alpha: k });
+}
+
+function wrapText(s, maxW, font) {
+  ctx.font = font;
+  const out = []; let line = '';
+  for (const ch of s) {
+    if (ctx.measureText(line + ch).width > maxW && line) { out.push(line); line = ch; } else line += ch;
+  }
+  if (line) out.push(line);
+  return out;
+}
+
+function panel(t, bs) {
+  const x0 = 1444, y0 = 24, pw = 452, ph = 1032;
+  ctx.save();
+  ctx.shadowColor = 'rgba(120,90,30,.18)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 4;
+  ctx.fillStyle = '#FFFDF6'; ctx.fillRect(x0, y0, pw, ph);
+  ctx.restore();
+  tape(ctx, x0 + pw / 2, y0 + 2, 150, 36, .03, 'rgba(134,204,242,.5)');
+  const w = WORLDS.find(v => v.lot === selected);
+  const L = x0 + 30;
+  if (!w) {
+    kidText(ctx, 'わが家の木', L, y0 + 84, 40, C.red);
+    const lines = ['同じふたりが、4つの分かれ道で', 'ちがう答えを出した、16の世界。', '', '葉っぱを タップすると、', 'その世界の1年後が 見られます。'];
+    lines.forEach((s, i) => kidText(ctx, s, L, y0 + 140 + i * 36, 24, C.ink));
+    let y = y0 + 380;
+    kidText(ctx, 'みかた', L, y, 24, C.brown);
+    const items = [
+      [C.blue, 'かずの願いが通った分かれ道'],
+      [C.orange, 'ゆうの願いが通った分かれ道'],
+      [C.green, '2択の外の答え（ふたりで考えた）'],
+      [C.gray, 'まだ見ていない未来']
+    ];
+    items.forEach(([col, s], i) => {
+      const yy = y + 46 + i * 44;
+      crayon(ctx, [[L, yy - 8], [L + 52, yy - 10]], col, 7, 3000 + i + bs);
+      kidText(ctx, s, L + 70, yy, 21, C.ink);
+    });
+    y += 46 + 4 * 44 + 20;
+    ctx.fillStyle = PAPER; ctx.beginPath(); ctx.arc(L + 24, y, 22, 0, 6.3); ctx.fill();
+    crayon(ctx, ellipsePts(L + 24, y, 22, 22, 0, 6.3, 24), C.ink, 3, 3100 + bs);
+    kidText(ctx, '大きな丸：くわしく見られる4つの世界', L + 60, y + 8, 21, C.ink);
+    y += 90;
+    numText(ctx, '16', L, y + 30, 64, C.red);
+    kidText(ctx, 'の世界のうち', L + 82, y + 26, 22, C.ink);
+    numText(ctx, '2択から 14', L, y + 84, 30, C.ink);
+    numText(ctx, '2択の外から 2', L + 190, y + 84, 30, '#2F7D45');
+    kidText(ctx, '思いがけない答えも、木に足していける。', L, y + 130, 20, '#6b5b35');
+    kidText(ctx, '金額・期間はゲーム内の簡易計算です。', L, y0 + ph - 24, 15, '#9a8a65');
+    return;
+  }
+  numText(ctx, String(w.lot).padStart(2, '0'), L, y0 + 82, 44, w.mine ? C.red : C.ink);
+  kidText(ctx, w.mine ? 'わがや' : (w.detail ? 'くわしく見られる世界' : 'もうひとつの世界'), L + 74, y0 + 78, 20, w.mine ? C.red : '#6b5b35');
+  const tl = wrapText(w.title, pw - 60, "600 30px 'Klee One', sans-serif");
+  tl.forEach((s, i) => kidText(ctx, s, L, y0 + 128 + i * 38, 30, C.ink));
+  let y = y0 + 128 + tl.length * 38 + 4;
+  // 絵
+  ctx.save();
+  ctx.fillStyle = PAPER; ctx.fillRect(L - 6, y, 400, 225);
+  ctx.beginPath(); ctx.rect(L - 6, y, 400, 225); ctx.clip();
+  kidHouse(ctx, w.spec, L - 6, y + 4, 400 / 380, w.lot * 70 + bs, 1, { w: 2.8, cold: w.spec.cold ? 1 : 0 });
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(0,0,0,.08)'; ctx.strokeRect(L - 6, y, 400, 225);
+  y += 250;
+  const ll = wrapText(w.line, pw - 60, "600 21px 'Klee One', sans-serif");
+  ll.forEach((s, i) => kidText(ctx, s, L, y + i * 30, 21, C.ink));
+  y += ll.length * 30 + 16;
+  // 数字
+  if (w.rows) {
+    let yy = y;
+    w.rows.forEach(([k, v]) => {
+      kidText(ctx, k, L, yy + 10, 18, '#6b5b35');
+      if (v.length > 11) { yy += 28; kidText(ctx, v, L + 12, yy + 12, 20, C.ink); }
+      else numText(ctx, v, L + pw - 64, yy + 12, 22, C.ink, { align: 'right' });
+      ctx.strokeStyle = 'rgba(134,204,242,.5)'; ctx.beginPath(); ctx.moveTo(L, yy + 22); ctx.lineTo(L + pw - 60, yy + 22); ctx.stroke();
+      yy += 40;
+    });
+    y = yy + 14;
+  } else {
+    numText(ctx, w.num, L, y + 34, 40, C.red);
+    if (w.sub) { ctx.font = "800 40px 'Zen Maru Gothic', sans-serif"; kidText(ctx, w.sub, L + ctx.measureText(w.num).width + 16, y + 30, 20, '#6b5b35'); }
+    y += 60;
+  }
+  // 分かれ道の答え
+  kidText(ctx, 'この世界の答え', L, y + 18, 20, C.brown);
+  y += 32;
+  let kz = 0, yz = 0;
+  for (let i = 0; i < 4; i++) {
+    let s, col;
+    if (w.graft && i === w.graft.at) { s = w.graft.label; col = '#2F7D45'; }
+    else if (w.graft && i > w.graft.at) { s = w.lot === 7 && i === 3 ? '箱型＋南だけ庇（2択の外）' : '—'; col = w.lot === 7 && i === 3 ? '#2F7D45' : C.gray; }
+    else { const side = w.path[i]; s = FORKS[i][side]; col = side === 'L' ? C.blue : C.orange; side === 'L' ? kz++ : yz++; }
+    crayon(ctx, ellipsePts(L + 8, y + i * 30 + 2, 6, 6, 0, 6.3, 12), col, 4, 3300 + i + bs);
+    kidText(ctx, `${i + 1} ${s}`, L + 24, y + i * 30 + 9, 18, C.ink);
+  }
+  y += 4 * 30 + 12;
+  kidText(ctx, `かずの願い ${'●'.repeat(kz) || '−'}　ゆうの願い ${'●'.repeat(yz) || '−'}`, L, y + 10, 18, '#6b5b35');
+  kidText(ctx, 'もういちど タップで、とじる', L, y0 + ph - 24, 15, '#9a8a65');
+}
+
+function render(t) {
+  const bs = Math.floor(t * 6) * 13;
+  bg();
+  kidText(ctx, 'わが家の木', 52, 76, 34, C.red);
+  kidText(ctx, '— 同じふたりの、16とおりの1年後', 236, 74, 20, '#6b5b35');
+  levelLabels(t, bs);
+  drawEdges(t, bs);
+  drawLeaves(t, bs);
+  rootFamily(t, bs);
+  panel(t, bs);
+  window.READY = true;
+}
+window.render = render;
+
+cv.addEventListener('click', ev => {
+  const r = cv.getBoundingClientRect();
+  const x = (ev.clientX - r.left) / r.width * 1920, y = (ev.clientY - r.top) / r.height * 1080;
+  let hit = null;
+  for (const w of WORLDS) { const p = leafPos(w); if (Math.hypot(p.x - x, p.y - y) < leafR(w) + 10) hit = w.lot; }
+  if (hit) selected = selected === hit ? null : hit;
+  else if (x < 1420) selected = null;
+});
+
+let start = performance.now();
+const fixed = q.has('t') ? parseFloat(q.get('t')) : null;
+function loop() { render(fixed != null ? fixed : (performance.now() - start) / 1000); requestAnimationFrame(loop); }
+document.fonts.ready.then(loop);
+</script>
+</body>
+</html>

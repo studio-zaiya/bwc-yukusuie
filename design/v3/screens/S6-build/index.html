@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>S6 早送り（着工〜施主検査）</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="../../../../app/engine.js"></script><script src="../../../../app/iso.js"></script><script src="../../play/common.js"></script><script src="../screens.js"></script>
+<link rel="stylesheet" href="../screens.css">
+<style id="css"></style>
+<style>
+/* 早送り：上＝進捗バーとお金の札／中＝自分の家（大）＋工程の帳面／下＝選ばれなかった世界線。時刻のつまみで決定論的に進む */
+.right{display:flex;flex-direction:column;gap:14px}
+.book{background:#fff;border:1.5px solid rgba(30,43,54,.2);border-radius:18px;box-shadow:0 10px 30px rgba(30,43,54,.10);padding:20px 24px;flex:1;display:flex;flex-direction:column}
+.book h3{font-family:var(--fr);font-weight:900;font-size:26px;margin-bottom:6px}
+.book .lead{font-size:17px;color:var(--ink2);margin-bottom:12px}
+.steps{list-style:none;display:flex;flex-direction:column;gap:8px}
+.steps li{display:grid;grid-template-columns:120px 1fr 92px;align-items:center;gap:12px;font-size:19px;padding:10px 14px;border-radius:12px;border:1.5px solid rgba(30,43,54,.12)}
+.steps li .d{font-variant-numeric:tabular-nums;color:var(--ink2);font-size:16px}
+.steps li .s{font-size:15px;text-align:right;color:var(--ink2)}
+.steps li.done{background:#F6F2EA}
+.steps li.done .s{color:var(--ink)}
+.steps li.now{border-color:var(--ink);background:#fff;box-shadow:inset 6px 0 0 var(--gold)}
+.steps li.now .s{color:var(--ink);font-weight:700}
+.diary{margin-top:auto;font-size:18px;line-height:1.6;background:var(--paper);border-radius:12px;padding:12px 16px}
+.diary b{font-size:14px;color:var(--ink2);display:block;font-weight:400}
+.scrub{position:absolute;left:36px;right:780px;top:762px;display:flex;align-items:center;gap:14px;z-index:5}
+.scrub input{flex:1;accent-color:#1E2B36}
+.scrub .tm{font-variant-numeric:tabular-nums;font-size:16px;color:var(--ink2);min-width:96px}
+.scrub button{font:700 15px var(--f);padding:6px 14px;border-radius:8px;border:1.5px solid var(--ink);background:var(--paper);cursor:pointer}
+body.rec .scrub{display:none}
+.hero .badge{position:absolute;left:28px;bottom:24px;font-size:18px;background:rgba(255,250,240,.92);border:1.5px solid rgba(30,43,54,.25);border-radius:999px;padding:6px 16px;font-variant-numeric:tabular-nums}
+</style></head>
+<body><div id="stage"><div id="view"></div>
+<div class="scrub"><button id="play">再生</button><input id="t" type="range" min="0" max="10" step="0.05" value="0"><span class="tm" id="tm"></span></div></div>
+<script>
+document.getElementById('css').textContent = S.L.CSS;
+const { L, Y, W, man } = S;
+window.DUR = 10;
+// 時刻 t（0〜10秒）→ プレイヤーの進捗 p（7.0 申請・着工 → 9.9 施主検査）
+const pOf = t => 7.0 + Math.min(1, t / 10) * 2.9;
+const STEPS = [
+  { k: '申請・着工', at: 7.0, day: '120日目', s: '地鎮祭・基礎', d: '確認の申請がおりて、地鎮祭。基礎の配筋を見に行った。' },
+  { k: '上棟', at: 8.0, day: '165日目', s: '骨組み・屋根', d: '上棟。骨組みだけの今が、いちばん家の形がわかる。' },
+  { k: '白い下地', at: 8.6, day: '200日目', s: '断熱・窓・外壁の下地', d: '窓が入った。南の大きな窓は、トリプルガラス。' },
+  { k: '施主検査', at: 9.6, day: '285日目', s: '気になる所に付箋', d: '施主検査。クロスの浮きに付箋を1枚。' },
+];
+function draw(t) {
+  const p = pOf(t), list = L.worldsAt(p), me = list[L.YOU - 1];
+  const cur = STEPS.filter(s => p >= s.at).pop() || STEPS[0];
+  // 日数は帳面の節目（120／165／200／285日目）のあいだを補間する
+  const A = [[7.0, 120], [8.0, 165], [8.6, 200], [9.6, 285], [9.9, 300]];
+  let day = 120; for (let i = 0; i < A.length - 1; i++) if (p >= A[i][0]) day = Math.round(A[i][1] + (Math.min(p, A[i + 1][0]) - A[i][0]) / (A[i + 1][0] - A[i][0]) * (A[i + 1][1] - A[i][1]));
+  document.getElementById('view').innerHTML = `
+  ${S.top(p)}${S.money('contract')}
+  <div class="clks"><span class="clk"><b>${day}</b>日目</span><span class="clk soft">早送り中</span></div>
+  <div class="hero">
+    <div class="lab"><span class="no">07</span>あなたの家　${L.coTag('C', 28)}Cデザイン</div>
+    <div class="ph">${cur.k}<br><span style="font-size:15px">34坪・総二階　箱型の屋根</span></div>
+    ${L.bigHouse(me.w, me.stage, { ghost: me.ghost })}
+    <div class="badge">着工から ${Math.max(0, day - 120)}日</div>
+  </div>
+  <div class="right"><div class="book">
+    <h3>工事の帳面</h3><div class="lead">打ち合わせはひと休み。現場が進みます。</div>
+    <ol class="steps">${STEPS.map(s => { const st = p >= s.at ? (s === cur ? 'now' : 'done') : ''; return `<li class="${st}"><span>${s.k}</span><span class="d">${s.day}</span><span class="s">${st ? (st === 'now' ? 'いま' : '済み') : ''}</span></li>`; }).join('')}</ol>
+    <div class="diary"><b>${cur.day}の記録</b>${cur.d}</div>
+  </div></div>
+  ${S.gallery(list, { sub: '同じ日の、ほかの世界の工事' })}`;
+  document.getElementById('tm').textContent = `${t.toFixed(1)} / 10 秒`;
+  document.getElementById('t').value = t;
+}
+window.render = draw;
+let T = parseFloat(new URLSearchParams(location.search).get('t') || '0'), run = null;
+document.getElementById('t').oninput = e => { T = +e.target.value; draw(T); };
+document.getElementById('play').onclick = () => {
+  if (run) { cancelAnimationFrame(run); run = null; return; }
+  const t0 = performance.now() - T * 1000;
+  const step = n => { T = Math.min(10, (n - t0) / 1000); draw(T); run = T < 10 ? requestAnimationFrame(step) : null; };
+  run = requestAnimationFrame(step);
+};
+S.fit(); draw(T); window.READY = true;
+</script></body></html>

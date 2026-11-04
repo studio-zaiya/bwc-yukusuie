@@ -1,0 +1,43 @@
+/* L1改訂：上＝ロゴ・詰めた進捗バー・お金の札／中＝自分の家（大）＋チャット／下＝選ばれなかった世界線（低く） */
+.top{position:absolute;left:36px;top:16px;width:1400px;display:flex;align-items:center;gap:22px}
+.logo{font-family:var(--fr);font-weight:900;font-size:28px;white-space:nowrap}
+.top .pbar{width:1180px;flex:none}
+.pbar.compact{font-size:12.5px}
+.money{position:absolute;right:30px;top:10px;width:480px;background:#fff;border:1.5px solid var(--ink);border-radius:14px;padding:6px 16px 7px;display:grid;grid-template-columns:1fr 1fr;column-gap:14px}
+.money .co{grid-column:1/-1;display:flex;align-items:center;font-size:13px;font-weight:700;color:var(--ink2)}
+.money .c{min-width:0}
+.money .c+.c{border-left:1px dashed rgba(30,43,54,.25);padding-left:14px}
+.money .k{font-size:13px;color:var(--ink2);white-space:nowrap}
+.money .v{font-family:var(--fr);font-weight:900;font-size:32px;line-height:1.15;font-variant-numeric:tabular-nums;white-space:nowrap}
+.money .v small{font-size:16px;font-weight:700;margin-left:2px}
+.money .sub{font-size:12.5px;color:var(--ink2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.clks{position:absolute;left:36px;top:76px}
+.clks .clk{font-size:17px;padding:3px 14px}.clks .clk b{font-size:19px}
+.hero{position:absolute;left:30px;top:124px;width:1124px;height:676px;background:linear-gradient(#DDF0FA,#F4FAFD 52%,#F3E7CF 52.1%);border-radius:22px;overflow:hidden}
+.hero svg{position:absolute;left:150px;top:22px;width:840px;height:600px}
+.hero .lab{position:absolute;left:28px;top:22px;display:flex;align-items:center;gap:10px;font-size:22px;font-weight:700}
+.hero .no{font-family:var(--fr);font-weight:900;font-size:44px}
+.hero .ph{position:absolute;right:26px;top:24px;font-size:18px;color:var(--ink2);text-align:right;line-height:1.5}
+.right{position:absolute;left:1180px;top:124px;width:710px;height:676px}
+.right .chat{height:100%}
+.navs{display:flex;gap:10px;padding:10px 16px 0;border-top:1px solid rgba(30,43,54,.1)}
+.nav{display:inline-flex;align-items:center;gap:8px;font:700 17px var(--f);padding:8px 14px;border-radius:999px;border:1.5px solid rgba(30,43,54,.45);background:var(--paper);color:var(--ink);cursor:pointer}
+.nav .n{font-weight:400;font-size:14px;color:var(--ink2)}
+.nav svg{width:18px;height:18px}
+.chat .in{border-top:none}
+.caster{left:44px;top:690px}
+.galT{position:absolute;left:34px;top:814px;font-size:16px;color:var(--ink2);display:flex;gap:14px;align-items:baseline}
+.galT b{font-size:17px;color:var(--ink)}
+.gal{position:absolute;left:30px;right:30px;top:842px;height:222px;display:grid;grid-template-columns:repeat(15,1fr);gap:8px}
+.th{background:#fff;border:1.5px solid rgba(30,43,54,.14);border-radius:12px;padding:5px 6px 7px;display:flex;flex-direction:column;align-items:center;font-size:12.5px;line-height:1.3;overflow:hidden}
+.th .hd{display:flex;align-items:center;justify-content:space-between;width:100%;font-weight:700;font-size:15px}
+.th svg{width:100%;height:104px}
+.th .st{font-weight:700;font-size:13px;white-space:nowrap}
+.th .nt{color:var(--ink2);text-align:center;min-height:32px}
+.th .bar{width:100%;height:5px;border-radius:3px;background:rgba(30,43,54,.1);margin-top:auto}.th .bar i{display:block;height:100%;background:var(--ink);border-radius:3px}
+.vsw{position:absolute;left:520px;top:80px;display:flex;gap:6px;z-index:40}
+.vsw button{font:700 13px var(--f);padding:4px 10px;border-radius:8px;border:1.5px solid rgba(30,43,54,.4);background:var(--paper);cursor:pointer}
+.vsw button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.ctrl{top:80px!important;right:auto!important;left:880px}
+.ctrl button{font-size:13px!important;padding:4px 10px!important}
+body.rec .vsw{display:none}

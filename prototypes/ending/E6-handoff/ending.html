@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>エンディング E6 手渡す</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Maru+Gothic:wght@500;700&display=swap">
+<style>
+:root{--paper:#FFFAF0;--ink:#1E2B36;color-scheme:light}
+html,body{margin:0;height:100%;background:#e9e2d3;font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic","Noto Sans JP",sans-serif;color:var(--ink)}
+#wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;padding:8px;box-sizing:border-box}
+canvas{width:min(100%,calc((100vh - 70px)*16/9));aspect-ratio:16/9;height:auto;background:var(--paper);box-shadow:0 2px 12px rgba(0,0,0,.12)}
+#ctl{display:flex;gap:10px;align-items:center;width:min(100%,calc((100vh - 70px)*16/9));font-size:13px}
+#ctl input{flex:1}
+#ctl button{font:inherit;padding:4px 12px;border-radius:6px;border:1px solid #b9ae98;background:#fff;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="wrap">
+<canvas id="c" width="1920" height="1080"></canvas>
+<div id="ctl"><button id="pp" type="button">一時停止</button><input id="sc" type="range" min="0" max="19" step="0.01" value="0" aria-label="時刻"><span id="tm">0.0秒</span></div>
+</div>
+<script>
+const DUR=19;
+const C={paper:"#FFFAF0",sky:"#CFEBFA",ground:"#F3E7CF",grass:"#9BD27A",ink:"#1E2B36",mute:"#6B7680",kazu:"#E8701F",yuu:"#1C8DCC",gold:"#F2C230",wood:"#C99A64",table:"#E9D2AE",tableEdge:"#D2B488",maker:"#6E8B74"};
+const FB='"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic","Noto Sans JP",sans-serif';
+const FD='"Hiragino Maru Gothic ProN","Zen Maru Gothic","Hiragino Sans",sans-serif';
+const cv=document.getElementById("c"),x=cv.getContext("2d");
+const cl=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const seg=(t,a,b)=>cl((t-a)/(b-a));
+const eo=p=>1-Math.pow(1-p,3);
+const eio=p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;
+const lerp=(a,b,p)=>a+(b-a)*p;
+// 決定的な乱数
+function rnd(i){const s=Math.sin(i*127.1+311.7)*43758.5453;return s-Math.floor(s)}
+
+function rr(X,Y,W,H,R){x.beginPath();x.moveTo(X+R,Y);x.arcTo(X+W,Y,X+W,Y+H,R);x.arcTo(X+W,Y+H,X,Y+H,R);x.arcTo(X,Y+H,X,Y,R);x.arcTo(X,Y,X+W,Y,R);x.closePath()}
+function txt(s,X,Y,size,col,opts={}){x.font=`${opts.w||500} ${size}px ${opts.f||FB}`;x.fillStyle=col;x.textAlign=opts.a||"left";x.textBaseline=opts.b||"alphabetic";x.globalAlpha*=1;x.fillText(s,X,Y)}
+// 文字を1字ずつ出す（読みやすく）
+function typed(s,p){const n=Math.floor(s.length*cl(p));return s.slice(0,n)}
+
+// アイソメの家（箱型＋南だけ庇）
+function iso(ox,oy,s,X,Y,Z){return[ox+(X-Y)*0.866*s,oy+(X+Y)*0.5*s-Z*s]}
+function poly(pts,fill){x.beginPath();pts.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));x.closePath();x.fillStyle=fill;x.fill()}
+function house(ox,oy,s,glow){
+  const W=8,D=6,H=5.4;
+  // 地面の区画
+  poly([iso(ox,oy,s,-3,-3,0),iso(ox,oy,s,W+3,-3,0),iso(ox,oy,s,W+3,D+4,0),iso(ox,oy,s,-3,D+4,0)],C.grass);
+  // 砂利の玄関前（外構はまだ途中）
+  poly([iso(ox,oy,s,W,1.2,0),iso(ox,oy,s,W+2.4,1.2,0),iso(ox,oy,s,W+2.4,3.4,0),iso(ox,oy,s,W,3.4,0)],"#D9D2C3");
+  // 小さな畑
+  poly([iso(ox,oy,s,1,D+1,0),iso(ox,oy,s,4.5,D+1,0),iso(ox,oy,s,4.5,D+3,0),iso(ox,oy,s,1,D+3,0)],"#B9875A");
+  for(let i=0;i<4;i++){const p=iso(ox,oy,s,1.6+i*0.85,D+2,0.35);x.fillStyle="#5FA548";x.beginPath();x.arc(p[0],p[1],s*0.28,0,7);x.fill()}
+  // 壁（右面＝東、左面＝南）
+  poly([iso(ox,oy,s,W,0,0),iso(ox,oy,s,W,D,0),iso(ox,oy,s,W,D,H),iso(ox,oy,s,W,0,H)],"#E6E0D6");
+  poly([iso(ox,oy,s,0,D,0),iso(ox,oy,s,W,D,0),iso(ox,oy,s,W,D,H),iso(ox,oy,s,0,D,H)],"#FBF8F2");
+  // 屋根（陸屋根の上面）
+  poly([iso(ox,oy,s,0,0,H),iso(ox,oy,s,W,0,H),iso(ox,oy,s,W,D,H),iso(ox,oy,s,0,D,H)],"#F3EFE8");
+  // パラペットの縁
+  x.strokeStyle="#D8D0C2";x.lineWidth=2;x.beginPath();[iso(ox,oy,s,0,D,H),iso(ox,oy,s,W,D,H),iso(ox,oy,s,W,0,H)].forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));x.stroke();
+  // 南の大きな窓（左面）と庇
+  const g=glow;
+  poly([iso(ox,oy,s,0.8,D,0.4),iso(ox,oy,s,5.6,D,0.4),iso(ox,oy,s,5.6,D,2.6),iso(ox,oy,s,0.8,D,2.6)],g>0?`rgba(255,${200+40*g|0},${120+60*g|0},${0.55+0.4*g})`:"#9FC4D8");
+  poly([iso(ox,oy,s,0.4,D,2.9),iso(ox,oy,s,6.0,D,2.9),iso(ox,oy,s,6.0,D+1.1,2.9),iso(ox,oy,s,0.4,D+1.1,2.9)],"#C99A64");
+  // 2階の窓
+  poly([iso(ox,oy,s,1.4,D,3.6),iso(ox,oy,s,3.2,D,3.6),iso(ox,oy,s,3.2,D,4.7),iso(ox,oy,s,1.4,D,4.7)],"#9FC4D8");
+  poly([iso(ox,oy,s,W,1.6,3.6),iso(ox,oy,s,W,3.0,3.6),iso(ox,oy,s,W,3.0,4.7),iso(ox,oy,s,W,1.6,4.7)],"#8DB3C7");
+  // 玄関
+  poly([iso(ox,oy,s,W,1.8,0),iso(ox,oy,s,W,2.8,0),iso(ox,oy,s,W,2.8,2.1),iso(ox,oy,s,W,1.8,2.1)],C.wood);
+  // 物置
+  poly([iso(ox,oy,s,W+0.6,D+1.2,0),iso(ox,oy,s,W+0.6,D+3,0),iso(ox,oy,s,W+0.6,D+3,1.6),iso(ox,oy,s,W+0.6,D+1.2,1.6)],"#A7B0B8");
+  poly([iso(ox,oy,s,W-1,D+1.2,1.6),iso(ox,oy,s,W+0.6,D+1.2,1.6),iso(ox,oy,s,W+0.6,D+3,1.6),iso(ox,oy,s,W-1,D+3,1.6)],"#C2C9CF");
+}
+
+// わが家のバランスのカード
+function card(cx,cy,w,h,rot,p){
+  x.save();x.translate(cx,cy);x.rotate(rot);
+  x.shadowColor="rgba(30,43,54,.18)";x.shadowBlur=30;x.shadowOffsetY=12;
+  rr(-w/2,-h/2,w,h,18);x.fillStyle="#FFFFFF";x.fill();x.shadowColor="transparent";
+  x.strokeStyle="#E7DCC8";x.lineWidth=2;x.stroke();
+  const k=w/760; // 文字の倍率
+  const L=-w/2+44*k;let Y=-h/2+70*k;
+  txt("わが家のバランス",L,Y,40*k,C.ink,{w:700,f:FD});
+  txt("かず と ゆう",w/2-44*k,Y,24*k,C.mute,{a:"right"});
+  Y+=22*k;x.fillStyle="#E7DCC8";x.fillRect(L,Y,w-88*k,2*k);
+  const rows=[
+    ["とったもの",C.ink,["造作のキッチン","南の大きな窓は、トリプルガラスに","3つの役をこなす畳の間"],[C.yuu,C.kazu,C.yuu]],
+    ["いまは、あとで",C.mute,["外構のライトアップとカーポート"],[C.kazu]],
+    ["本物の打ち合わせで聞くこと",C.ink,["1　見積に入っていない費用は、何がありますか","2　窓のガラスと枠は、どの性能ですか","3　テレビや棚の下地は、どこに入れますか"],[null,null,null]]
+  ];
+  let n=0;const total=7;
+  rows.forEach(([head,hc,items,cols],ri)=>{
+    Y+=56*k;
+    const hp=cl(p*total*1.15-n);
+    x.globalAlpha=cl(hp*2);txt(head,L,Y,24*k,C.mute,{w:700});x.globalAlpha=1;
+    items.forEach((it,ii)=>{
+      n++;Y+=46*k;
+      const ip=cl(p*total*1.15-n);
+      if(ip<=0)return;
+      if(cols[ii]){x.fillStyle=cols[ii];if(cols[ii]===C.kazu){x.fillRect(L,Y-20*k,16*k,16*k)}else{x.beginPath();x.arc(L+8*k,Y-12*k,8.5*k,0,7);x.fill()}}
+      txt(typed(it,ip*1.4),L+(cols[ii]?32*k:0),Y,30*k,ri===1?C.mute:C.ink,{w:ri===2?500:700});
+    });
+  });
+  x.restore();
+}
+
+// テーブルを上から見た打ち合わせの場面
+function table(p,line,t){
+  // 机
+  x.fillStyle=C.table;rr(160,120,1600,840,40);x.fill();
+  x.strokeStyle=C.tableEdge;x.lineWidth=6;x.stroke();
+  // 木目
+  x.strokeStyle="rgba(180,140,90,.18)";x.lineWidth=3;
+  for(let i=0;i<9;i++){x.beginPath();const y0=170+i*90;x.moveTo(200,y0);x.bezierCurveTo(700,y0+18*Math.sin(i),1200,y0-16*Math.cos(i*1.3),1720,y0+8);x.stroke()}
+  // 湯のみ2つ
+  [[330,250],[1590,250]].forEach(([cx,cy])=>{x.fillStyle="#FFFFFF";x.beginPath();x.arc(cx,cy,46,0,7);x.fill();x.fillStyle="#BFD8A8";x.beginPath();x.arc(cx,cy,34,0,7);x.fill()});
+  // 作り手側の図面（方眼の紙）
+  const px=1080,py=300,pw=560,ph=440;
+  x.save();x.translate(px+pw/2,py+ph/2);x.rotate(0.05);x.translate(-pw/2,-ph/2);
+  x.fillStyle="#FFFFFF";x.shadowColor="rgba(0,0,0,.12)";x.shadowBlur=16;x.fillRect(0,0,pw,ph);x.shadowColor="transparent";
+  x.strokeStyle="rgba(28,141,204,.15)";x.lineWidth=1;
+  for(let i=0;i<=pw;i+=28){x.beginPath();x.moveTo(i,0);x.lineTo(i,ph);x.stroke()}
+  for(let j=0;j<=ph;j+=28){x.beginPath();x.moveTo(0,j);x.lineTo(pw,j);x.stroke()}
+  // 作り手が描き足していくゾーニングの線
+  x.strokeStyle=C.ink;x.lineWidth=4;x.lineCap="round";x.lineJoin="round";
+  const L=[[84,84],[476,84],[476,356],[84,356],[84,84]];
+  drawPath(L,line);
+  if(line>0.55){x.globalAlpha=seg(line,.55,.75);x.strokeStyle=C.ink;x.lineWidth=3;
+    x.beginPath();x.moveTo(84,224);x.lineTo(300,224);x.moveTo(300,84);x.lineTo(300,356);x.stroke();x.globalAlpha=1}
+  if(line>0.75){x.globalAlpha=seg(line,.75,.95);
+    txt("LDK",170,300,30,C.ink,{w:700});txt("水まわり",318,160,24,C.ink,{w:500});txt("畳の間",318,300,24,C.ink,{w:500});
+    // 南の窓（太線）
+    x.strokeStyle=C.yuu;x.lineWidth=8;x.beginPath();x.moveTo(104,356);x.lineTo(280,356);x.stroke();
+    txt("南",268,404,22,C.mute,{w:700});x.globalAlpha=1}
+  x.restore();
+  // 作り手の手と鉛筆（右側から）
+  const tip=pathPoint(L,line);
+  const hx=px+tip[0]+10,hy=py+tip[1]+10;
+  x.save();x.translate(hx,hy);x.rotate(-0.6);
+  x.fillStyle=C.maker;rr(40,40,260,120,50);x.fill();          // 袖
+  x.fillStyle="#E9C7A6";x.beginPath();x.ellipse(40,50,56,44,0,0,7);x.fill(); // 手
+  x.fillStyle=C.gold;x.fillRect(-60,-6,110,14);x.fillStyle="#3A3A3A";x.beginPath();x.moveTo(-60,-6);x.lineTo(-78,1);x.lineTo(-60,8);x.fill();
+  x.restore();
+  return {px,py};
+}
+function drawPath(P,p){const segs=P.length-1;const tot=p*segs;x.beginPath();x.moveTo(P[0][0],P[0][1]);for(let i=0;i<segs;i++){const q=cl(tot-i);if(q<=0)break;x.lineTo(lerp(P[i][0],P[i+1][0],q),lerp(P[i][1],P[i+1][1],q))}x.stroke()}
+function pathPoint(P,p){const segs=P.length-1;const tot=cl(p)*segs;const i=Math.min(segs-1,Math.floor(tot));const q=tot-i;return[lerp(P[i][0],P[i+1][0],q),lerp(P[i][1],P[i+1][1],q)]}
+
+// 施主の手（左下から、カードを差し出す）
+function ownerHand(cx,cy,a){
+  x.save();x.translate(cx,cy);x.rotate(a);
+  x.fillStyle=C.kazu;rr(-330,-50,260,110,50);x.fill();
+  x.fillStyle="#EAC6A4";x.beginPath();x.ellipse(-70,5,54,44,0,0,7);x.fill();
+  x.restore();
+}
+
+function render(t){
+  t=cl(t,0,DUR);
+  x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;
+  // ---- 0〜4.2秒：自分の世界の家。16区画の線がほどけて1軒に ----
+  const toTable=seg(t,7.4,9.2); // 机の場面へ
+  if(toTable<1){
+    x.globalAlpha=1;
+    const g=x.createLinearGradient(0,0,0,1080);g.addColorStop(0,C.sky);g.addColorStop(.55,"#EAF6FC");g.addColorStop(.56,C.ground);g.addColorStop(1,C.ground);
+    x.fillStyle=g;x.fillRect(0,0,1920,1080);
+    // うっすら残る16区画のグリッド（ほどける）
+    const fade=1-seg(t,0.4,2.6);
+    for(let i=0;i<16;i++){
+      const c=i%4,r=(i/4)|0;if(c===1&&r===2)continue;
+      const ox=760+(c-r)*230,oy=360+(c+r)*132;
+      x.globalAlpha=0.55*fade;
+      poly([iso(ox,oy,18,-3,-3,0),iso(ox,oy,18,11,-3,0),iso(ox,oy,18,11,10,0),iso(ox,oy,18,-3,10,0)],i%3?"#CFE7B8":"#E3D9C4");
+    }
+    x.globalAlpha=1;
+    // 寄っていくカメラ
+    const z=lerp(1,1.08,eio(seg(t,0,7)));
+    x.save();x.translate(960,600);x.scale(z,z);x.translate(-960,-600);
+    house(880,440,34,0);
+    x.restore();
+    // 一言
+    const a1=seg(t,0.8,1.6)*(1-seg(t,4.6,5.2));
+    x.globalAlpha=a1;
+    txt("未来は、16通りより多かった。",960,170,64,C.ink,{w:700,f:FD,a:"center"});
+    x.globalAlpha=1;
+    // カードが家から立ち上がり、こちらへ
+    const up=eo(seg(t,3.6,6.2));
+    if(t>3.6&&toTable<=0){
+      const cx=lerp(1130,960,up),cy=lerp(540,560,up);
+      const w=lerp(120,820,up),h=w*0.86;
+      card(cx,cy,w,h,lerp(-0.35,-0.02,up),seg(t,4.2,7.0));
+    }
+    // 机の場面へは紙を引き寄せる形で切り替え（白い面が広がる）
+    if(toTable>0){x.globalAlpha=eio(toTable);x.fillStyle=C.table;x.fillRect(0,0,1920,1080);x.globalAlpha=1}
+  }
+  // ---- 7.4〜14秒：打ち合わせの机。カードを置き、作り手が描き始める ----
+  if(toTable>0&&t<14.6){
+    x.globalAlpha=eio(toTable);
+    x.fillStyle="#E4DCCB";x.fillRect(0,0,1920,1080);
+    const line=eio(seg(t,9.6,13.2));
+    table(toTable,line,t);
+    // カード（机の左寄りに置かれる）
+    const set=eo(seg(t,7.6,9.4));
+    const ccx=lerp(960,640,set),ccy=lerp(560,570,set),cw=lerp(820,660,set);
+    x.globalAlpha=1;
+    card(ccx,ccy,cw,cw*0.86,lerp(-0.02,-0.06,set),1);
+    // 施主の手：カードを差し出してから離れる
+    const handOut=seg(t,9.6,10.6);
+    ownerHand(lerp(330,250,handOut),lerp(840,940,handOut),-0.25);
+    // カードから図面へ伸びる1本の線（つなぐ）
+    const link=eio(seg(t,10.4,12.6));
+    if(link>0){
+      x.strokeStyle=C.gold;x.lineWidth=6;x.lineCap="round";x.setLineDash([2,16]);
+      const a=[ccx+cw/2-20,ccy-40],b=[1090,470];
+      x.beginPath();x.moveTo(a[0],a[1]);
+      const m=[(a[0]+b[0])/2,a[1]-90];
+      for(let i=1;i<=40*link;i++){const u=i/40;const X=(1-u)*(1-u)*a[0]+2*(1-u)*u*m[0]+u*u*b[0],Y=(1-u)*(1-u)*a[1]+2*(1-u)*u*m[1]+u*u*b[1];x.lineTo(X,Y)}
+      x.stroke();x.setLineDash([]);
+    }
+    // 一言（作り手と施主を対立させない）
+    const a2=seg(t,11.0,11.8)*(1-seg(t,13.8,14.4));
+    x.globalAlpha=a2*eio(toTable);
+    rr(560,64,800,96,48);x.fillStyle="rgba(255,250,240,.94)";x.fill();
+    txt("正解の家ではなく、",960,110,38,C.ink,{w:700,f:FD,a:"center",b:"middle"});
+    x.globalAlpha=a2*eio(toTable);
+    rr(470,172,980,96,48);x.fillStyle="rgba(255,250,240,.94)";x.fill();
+    txt("大切にしたいことを持って、作り手と話そう。",960,218,38,C.ink,{w:700,f:FD,a:"center",b:"middle"});
+    x.globalAlpha=1;
+  }
+  // ---- 14〜19秒：題名と注記 ----
+  const tt=seg(t,14.0,15.0);
+  if(tt>0){
+    x.globalAlpha=eio(tt);x.fillStyle=C.paper;x.fillRect(0,0,1920,1080);
+    // 1本の線が4回分かれて16本、その先の1つが家になる小さな印
+    const br=eio(seg(t,14.3,15.8));
+    x.lineWidth=3;x.lineCap="round";
+    const x0=760,y0=410;
+    function branch(X,Y,level,dir,len){
+      if(level>4)return;
+      const p=cl(br*5-level);if(p<=0)return;
+      const ang=[0,-0.62,-0.38,-0.22,-0.12][level];
+      [-1,1].forEach((sg,k)=>{
+        const nx=X+len*p, ny=Y+sg*len*Math.tan(ang)*-1*p*0.9;
+        x.strokeStyle=k?C.yuu:C.kazu;x.globalAlpha=eio(tt)*(level===0?1:0.75);
+        x.beginPath();x.moveTo(X,Y);x.lineTo(nx,ny);x.stroke();
+        if(p>=1)branch(nx,ny,level+1,sg,len*0.7);
+      });
+    }
+    x.strokeStyle=C.ink;x.globalAlpha=eio(tt);x.beginPath();x.moveTo(x0-120,y0);x.lineTo(x0,y0);x.stroke();
+    branch(x0,y0,1,1,120);
+    // 題名
+    const ta=seg(t,15.2,16.0);
+    x.globalAlpha=ta;
+    txt("ゆくすいえ",960,640,104,C.ink,{w:700,f:FD,a:"center"});
+    x.globalAlpha=1;
+    // 注記
+    const na=seg(t,16.4,17.0);
+    x.globalAlpha=na;
+    const N1="本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。";
+    const N2="実際の家づくりでは、地域・金融機関・住宅会社によって異なります。";
+    const N3="登場する住宅会社・人物・団体はすべて架空です。";
+    [N1,N2,N3].forEach((s,i)=>txt(s,960,840+i*40,26,C.mute,{a:"center"}));
+    x.globalAlpha=1;
+  }
+}
+
+// 再生の操作
+const sc=document.getElementById("sc"),tm=document.getElementById("tm"),pp=document.getElementById("pp");
+const q=new URLSearchParams(location.search);let playing=!q.has("t"),t0=performance.now(),cur=q.has("t")?parseFloat(q.get("t")):0;
+function draw(){render(cur);sc.value=cur;tm.textContent=cur.toFixed(1)+"秒"}
+function loop(now){if(playing){cur=((now-t0)/1000)%DUR}draw();requestAnimationFrame(loop)}
+pp.onclick=()=>{playing=!playing;pp.textContent=playing?"一時停止":"再生";t0=performance.now()-cur*1000};
+sc.oninput=()=>{cur=parseFloat(sc.value);playing=false;pp.textContent="再生"};
+if(!playing)pp.textContent="再生";
+window.render=render;window.DUR=DUR;
+(document.fonts?document.fonts.ready:Promise.resolve()).then(()=>{window.READY=true;requestAnimationFrame(loop)});
+</script>
+</body>
+</html>

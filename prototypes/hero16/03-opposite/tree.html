@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>世界樹すごろく</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@800&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;background:#1a0b2e;overflow:hidden;font-family:"M PLUS Rounded 1c","Hiragino Sans",sans-serif}
+  #stage{position:fixed;left:50%;top:50%;width:1920px;height:1080px;transform-origin:0 0}
+  canvas{position:absolute;inset:0;cursor:pointer}
+  #card{position:absolute;display:none;width:520px;background:#fff;border:7px solid #1a0b2e;border-radius:28px;
+    box-shadow:10px 12px 0 #ff2d55;padding:26px 30px 24px;font-size:30px;line-height:1.5;color:#1a0b2e}
+  #card h2{margin:0 0 6px;font:44px "Dela Gothic One","Hiragino Sans",sans-serif}
+  #card .tag{display:inline-block;padding:2px 16px;border-radius:999px;border:4px solid #1a0b2e;font-size:24px;margin:0 8px 10px 0}
+  #card .row{font-size:26px;margin:4px 0}
+  #card button{margin-top:14px;font:28px "Dela Gothic One",sans-serif;background:#ffe600;border:5px solid #1a0b2e;border-radius:999px;padding:6px 26px;cursor:pointer}
+  #hint{position:absolute;right:40px;top:52px;font:26px "Dela Gothic One",sans-serif;color:#1a0b2e}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" width="1920" height="1080"></canvas>
+  <div id="card"></div>
+  <div id="hint">家をタップ → その世界のあらすじ</div>
+</div>
+<script>
+const W=1920,H=1080;
+const stage=document.getElementById('stage'),cv=document.getElementById('c'),g=cv.getContext('2d');
+const FP='"Dela Gothic One","M PLUS Rounded 1c","Hiragino Sans",sans-serif';
+const FR='"M PLUS Rounded 1c","Hiragino Sans",sans-serif';
+function fit(){const s=Math.min(innerWidth/W,innerHeight/H);stage.style.transform=`translate(${-W*s/2}px,${-H*s/2}px) scale(${s})`;}
+addEventListener('resize',fit);fit();
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const prog=(t,a,b)=>clamp((t-a)/(b-a));
+const backOut=u=>{const c=2.2;return 1+(c+1)*Math.pow(u-1,3)+c*Math.pow(u-1,2);};
+const easeOut=u=>1-Math.pow(1-u,3);
+function hash(n){let x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x);}
+
+// ---- 分かれ道と選択肢（a / b / 3=第3の答え）----
+const FORKS=[
+ {name:'会社選び',a:'全部入りの家（B工務店）',b:'絞り込んだ家（Cデザイン）',x:'Aハウスで仮契約'},
+ {name:'間取り',a:'造作キッチンを残す',b:'外構を残す',x:'面積を削って両方'},
+ {name:'契約',a:'借入を増やして外構を戻す',b:'予算のまま進む',x:'+60万で窓をトリプルに'},
+ {name:'仕様',a:'箱型の屋根',b:'勾配屋根',x:'箱型＋南だけ庇'},
+];
+// 16の世界（経路）。3 は第3の答え。
+const PATHS=['aaaa','aaab','aaba','abaa','abab','ab3a','baaa','baab','ba33','baba','babb','bbaa','bbab','3aaa','3aab','3aba'];
+const DETAIL={
+ 2:{title:'工務店が止まった世界',sum:'値引きのかわりに着工金を半分入れた。上棟の2か月後、職人が来なくなる。',tags:['更地','約800万が戻らない'],color:'#b14dff'},
+ 8:{title:'あなたの世界',sum:'キッチンを残し、外構は削った。2択の外で「窓だけトリプル」「南だけ庇」を選んだ。',tags:['冬もぽかぽか','玄関は砂利'],color:'#ff2d55'},
+ 9:{title:'2月が寒い世界',sum:'ほとんど同じ道。違ったのは南の窓のガラスだけ。暖房をつけても足元が冷たい。',tags:['標準の窓','SNSに投稿'],color:'#00b8ff'},
+ 14:{title:'打ち合わせ19回の世界',sum:'月末に仮契約。150万円分のグレードアップは契約の金額にだけ効いた。',tags:['+380万','車の中で涙'],color:'#ff8a00'},
+};
+function summary(i){
+  const p=PATHS[i];const r=[];
+  p.split('').forEach((c,k)=>{const f=FORKS[k];r.push(c==='a'?f.a:c==='b'?f.b:f.x);});
+  const moods=['のびのび','ちょっと後悔','予算ぴったり','夫が満足','妻が満足','引き分け','砂利のまま','庭が自慢'];
+  return {steps:r,mood:moods[Math.floor(hash(i+7)*moods.length)]};
+}
+// ---- レイアウト（葉の y を等間隔、節点は子の平均）----
+const XS=[210,500,790,1080,1370],XL=1545;
+const TOPY=170,gap=(H-TOPY-70)/15;
+const leaves=PATHS.map((p,i)=>({i,p,y:TOPY+i*gap}));
+const nodes={}; // key=prefix
+function node(prefix){
+  if(nodes[prefix])return nodes[prefix];
+  const kids=leaves.filter(l=>l.p.startsWith(prefix));
+  const y=kids.reduce((s,l)=>s+l.y,0)/kids.length;
+  return nodes[prefix]={prefix,depth:prefix.length,x:XS[prefix.length],y,kids};
+}
+leaves.forEach(l=>{for(let d=0;d<=4;d++)node(l.p.slice(0,d));});
+const BRANCH_COL={a:'#ff8a00',b:'#ff2d55','3':'#00c2ff'};
+// 枝
+const edges=[];
+Object.values(nodes).forEach(n=>{if(n.depth===0)return;const par=nodes[n.prefix.slice(0,-1)];
+  const c=n.prefix[n.prefix.length-1];
+  const detail=n.kids.some(l=>DETAIL[l.i]);
+  edges.push({from:par,to:n,c,third:c==='3',detail,root:n.prefix[0]});});
+
+let hover=-1, selected=-1;
+function curve(a,b,u){ // 2点間のS字。u までを描く
+  const steps=40;g.beginPath();
+  for(let s=0;s<=steps*u;s++){const k=s/steps;const x=a.x+(b.x-a.x)*k;const e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;const y=a.y+(b.y-a.y)*e;s?g.lineTo(x,y):g.moveTo(x,y);}
+  g.stroke();
+}
+function telop(text,x,y,size,fill,rot=0,scale=1,shadow='#ff2d55'){
+  g.save();g.translate(x,y);g.rotate(rot);g.scale(scale,scale);g.font=`${size}px ${FP}`;g.textAlign='center';g.textBaseline='middle';g.lineJoin='round';
+  g.lineWidth=size*.32;g.strokeStyle=shadow;g.strokeText(text,size*.06,size*.08);
+  g.lineWidth=size*.2;g.strokeStyle='#1a0b2e';g.strokeText(text,0,0);
+  g.lineWidth=size*.09;g.strokeStyle='#fff';g.strokeText(text,0,0);g.fillStyle=fill;g.fillText(text,0,0);g.restore();
+}
+function house(x,y,s,wall,roof,lit){
+  g.save();g.translate(x,y);g.scale(s,s);g.lineJoin='round';g.strokeStyle='#1a0b2e';g.lineWidth=4;
+  g.fillStyle=wall;g.beginPath();g.rect(-22,-6,44,32);g.fill();g.stroke();
+  g.fillStyle=roof;g.beginPath();g.moveTo(-30,-4);g.lineTo(0,-30);g.lineTo(30,-4);g.closePath();g.fill();g.stroke();
+  g.fillStyle=lit?'#ffd24a':'#5ad1ff';g.fillRect(-14,2,12,12);g.strokeRect(-14,2,12,12);g.fillRect(4,2,12,12);g.strokeRect(4,2,12,12);
+  g.restore();
+}
+
+function render(t){
+  const T=t%14; // 0〜9秒で伸び、以降は揺れながら待機
+  g.setTransform(1,0,0,1,0,0);
+  // 背景：水玉＋斜めストライプ
+  g.fillStyle='#fff1a8';g.fillRect(0,0,W,H);
+  g.save();g.translate(-((t*40)%80),0);
+  for(let x=0;x<W+160;x+=80)for(let y=0;y<H;y+=80){g.fillStyle=((x/80+y/80)%2)?'#ffe45c':'#fff1a8';g.beginPath();g.arc(x+40,y+40,14,0,7);g.fill();}
+  g.restore();
+  // ヘッダー
+  g.fillStyle='#ff2d55';g.strokeStyle='#1a0b2e';g.lineWidth=7;g.beginPath();g.roundRect(30,22,560,100,24);g.fill();g.stroke();
+  g.fillStyle='#ffe600';g.font=`56px ${FP}`;g.textAlign='left';g.textBaseline='middle';g.fillText('世界樹すごろく',62,74);
+  const badges=[['16の世界','#7cff4f'],['くわしく 4','#ffffff'],['第3の答え '+edges.filter(e=>e.third).length+'本','#00c2ff']];
+  let bx=630;badges.forEach(([s,c])=>{g.font=`34px ${FP}`;const w=g.measureText(s).width+50;g.fillStyle=c;g.beginPath();g.roundRect(bx,40,w,66,33);g.fill();g.stroke();g.fillStyle='#1a0b2e';g.textAlign='center';g.fillText(s,bx+w/2,75);bx+=w+16;});
+  // 分かれ道の看板（列の上）
+  FORKS.forEach((f,k)=>{
+    const u=backOut(prog(T,.3+k*1.4,.8+k*1.4));if(u<=0)return;
+    const x=XS[k];g.save();g.translate(x,150);g.scale(u,u);g.rotate(Math.sin(t*2+k)*.04);
+    g.fillStyle='#1a0b2e';g.fillRect(-6,0,12,40);
+    g.fillStyle=['#ffe600','#7cff4f','#ff8fc0','#a6f3ff'][k];g.strokeStyle='#1a0b2e';g.lineWidth=5;g.beginPath();g.roundRect(-110,-40,220,56,14);g.fill();g.stroke();
+    g.fillStyle='#1a0b2e';g.font=`28px ${FP}`;g.textAlign='center';g.fillText(`${k+1}. ${f.name}`,0,-11);g.restore();
+  });
+  // 枝（深さごとに伸びる）
+  const sorted=[...edges].sort((a,b)=>(a.detail-b.detail));
+  for(const e of sorted){
+    const d=e.to.depth;const u=easeOut(prog(T,.6+(d-1)*1.4,1.7+(d-1)*1.4));if(u<=0)continue;
+    const leafIdx=e.to.kids.map(l=>l.i);
+    const sel=selected>=0&&leafIdx.includes(selected), hv=hover>=0&&leafIdx.includes(hover);
+    const base=e.third?BRANCH_COL['3']:BRANCH_COL[e.root];
+    g.lineCap='round';g.lineJoin='round';
+    // 縁取り
+    g.strokeStyle='#1a0b2e';g.lineWidth=(e.detail?26:14)+(sel?10:0);g.setLineDash(e.third?[2,26]:[]);curve(e.from,e.to,u);
+    g.strokeStyle=e.third?`hsl(${(t*120+e.to.y)%360},95%,60%)`:base;
+    g.lineWidth=(e.detail?16:7)+(sel||hv?8:0);g.setLineDash(e.third?[22,10]:[]);g.lineDashOffset=-t*60;curve(e.from,e.to,u);
+    g.setLineDash([]);
+  }
+  // 節点（分かれ道のマス）と、第3の答えの受け皿（空きソケット）
+  Object.values(nodes).forEach(n=>{
+    if(n.depth===0||n.depth>=4)return;
+    const u=backOut(prog(T,.6+n.depth*1.4,1.0+n.depth*1.4));if(u<=0)return;
+    g.save();g.translate(n.x,n.y);g.scale(u,u);
+    g.fillStyle='#fff';g.strokeStyle='#1a0b2e';g.lineWidth=5;g.beginPath();g.arc(0,0,17,0,7);g.fill();g.stroke();
+    g.fillStyle='#ff2d55';g.beginPath();g.arc(0,0,7,0,7);g.fill();g.restore();
+    // 受け皿：まだ誰も出していない第3の答え
+    if(n.depth<4&&!nodes[n.prefix+'3']){
+      const v=backOut(prog(T,1.2+n.depth*1.4,1.6+n.depth*1.4));if(v<=0)return;
+      const px=n.x+70,py=n.y-28+Math.sin(t*3+n.y)*4;
+      g.save();g.translate(px,py);g.scale(v*(1+Math.sin(t*5+n.x)*.06),v*(1+Math.sin(t*5+n.x)*.06));
+      g.setLineDash([6,6]);g.strokeStyle='#1a0b2e';g.lineWidth=3;g.fillStyle='rgba(255,255,255,.85)';g.beginPath();g.arc(0,0,19,0,7);g.fill();g.stroke();g.setLineDash([]);
+      g.fillStyle='#00a4e0';g.font=`28px ${FP}`;g.textAlign='center';g.textBaseline='middle';g.fillText('+',0,1);g.restore();
+    }
+  });
+  // 根（ふたり）
+  {const n=nodes[''];const u=backOut(prog(T,0,.5));g.save();g.translate(n.x-40,n.y);g.scale(u,u);
+   g.fillStyle='#ffe600';g.strokeStyle='#1a0b2e';g.lineWidth=7;g.beginPath();
+   for(let k=0;k<10;k++){const r=k%2?44:92;const a=-Math.PI/2+k*Math.PI/5+t*.4;g.lineTo(Math.cos(a)*r,Math.sin(a)*r);}g.closePath();g.fill();g.stroke();
+   g.fillStyle='#1a0b2e';g.font=`28px ${FP}`;g.textAlign='center';g.textBaseline='middle';g.fillText('かずと',0,-14);g.fillText('ゆう',0,20);g.restore();
+   telop('START!',n.x-40,n.y+130,46,'#ff2d55',-.08,u,'#00c2ff');}
+  // 第3の答えのステッカー
+  edges.filter(e=>e.third).forEach((e,k)=>{
+    const u=backOut(prog(T,1.3+(e.to.depth-1)*1.4,1.7+(e.to.depth-1)*1.4));if(u<=0)return;
+    const mx=(e.from.x+e.to.x)/2,my=(e.from.y+e.to.y)/2-6;
+    telop('!?',mx,my,48,'#ffe600',Math.sin(t*4+k)*.2,u,'#00c2ff');
+  });
+  // 葉（16の世界）
+  leaves.forEach(l=>{
+    const u=backOut(prog(T,6.1+l.i*.12,6.5+l.i*.12));if(u<=0)return;
+    const d=DETAIL[l.i];const isHover=hover===l.i,isSel=selected===l.i;
+    const x=XL,y=l.y;const bob=Math.sin(t*3+l.i)*3;
+    const wallCols=['#e2603b','#d99a4e','#fff6e8','#6fb7ff','#6ee7c8','#ffe14d','#3a3346','#ff9ac8'];
+    const wall=wallCols[Math.floor(hash(l.i+3)*8)];
+    const fail=l.i===2;
+    if(d){
+      g.save();g.translate(x+60,y+bob);g.scale(u*(isHover?1.08:1),u*(isHover?1.08:1));
+      g.fillStyle=d.color;g.strokeStyle='#1a0b2e';g.lineWidth=5;g.beginPath();g.roundRect(-150,-26,380,52,26);g.fill();g.stroke();
+      g.fillStyle='#fff';g.font=`26px ${FP}`;g.textAlign='left';g.textBaseline='middle';g.fillText(d.title,-80,1);
+      g.restore();
+      if(!fail)house(x-126,y+bob,u*1.05,wall,'#1a0b2e',l.i===8);else{g.save();g.translate(x-126,y+bob);g.scale(u,u);g.fillStyle='#c8b38a';g.strokeStyle='#1a0b2e';g.lineWidth=4;g.beginPath();g.roundRect(-28,4,56,20,6);g.fill();g.stroke();g.restore();}
+      // 「くわしく」スター
+      telop('★',x-170,y-20+bob,34,'#ffe600',t*1.5,u,'#ff2d55');
+    }else{
+      g.save();g.translate(x+60,y+bob);g.scale(u*(isHover?1.08:1),u*(isHover?1.08:1));
+      g.fillStyle='#fff';g.strokeStyle='#1a0b2e';g.lineWidth=4;g.beginPath();g.roundRect(-140,-20,320,40,20);g.fill();g.stroke();
+      g.fillStyle='#1a0b2e';g.font=`22px ${FR}`;g.textAlign='left';g.textBaseline='middle';g.fillText(`世界${String(l.i+1).padStart(2,'0')}　${summary(l.i).mood}`,-50,1);
+      g.restore();
+      house(x-36,y+bob,u*.78,wall,'#5b3fd6',false);
+    }
+  });
+  // 吹き出し（ナビ）
+  const nu=backOut(prog(T,8.2,8.6));
+  if(nu>0){g.save();g.translate(780,1035);g.scale(nu,nu);g.fillStyle='#1a0b2e';g.beginPath();g.roundRect(-560,-40,1120,70,35);g.fill();
+    g.fillStyle='#fff';g.font=`28px ${FP}`;g.textAlign='center';g.textBaseline='middle';g.fillText('点線の枝は「第3の答え」。＋のマスは、まだ誰も出していない答え',0,-4);g.restore();}
+}
+window.render=render;
+
+// ---- 操作：葉をタップ ----
+function pick(ev){
+  const r=cv.getBoundingClientRect();const s=r.width/W;const x=(ev.clientX-r.left)/s,y=(ev.clientY-r.top)/s;
+  let hit=-1;leaves.forEach(l=>{if(x>XL-170&&x<XL+300&&Math.abs(y-l.y)<gap/2)hit=l.i;});return {hit,x,y};
+}
+cv.addEventListener('mousemove',e=>{hover=pick(e).hit;});
+const card=document.getElementById('card');
+cv.addEventListener('click',e=>{
+  const {hit}=pick(e);selected=hit;
+  if(hit<0){card.style.display='none';return;}
+  const l=leaves[hit],d=DETAIL[hit],s=summary(hit);
+  card.innerHTML=`<h2>${d?d.title:'世界'+String(hit+1).padStart(2,'0')}</h2>`+
+    (d?d.tags.map(t=>`<span class="tag" style="background:${d.color};color:#fff">${t}</span>`).join(''):`<span class="tag" style="background:#ffe600">${s.mood}</span>`)+
+    (d?`<div>${d.sum}</div>`:'')+
+    s.steps.map((st,k)=>`<div class="row">${k+1}. ${FORKS[k].name}：<b>${st}</b>${PATHS[hit][k]==='3'?' <span style="color:#00a4e0">← 第3の答え</span>':''}</div>`).join('')+
+    (d?`<button>この世界をくわしく見る</button>`:'');
+  card.style.display='block';card.style.left='880px';card.style.top=Math.min(560,Math.max(150,l.y-160))+'px';
+});
+// ---- 再生 ----
+let t0=performance.now();
+function loop(now){if(!window.__manual)render((now-t0)/1000);requestAnimationFrame(loop);}
+requestAnimationFrame(loop);
+document.fonts&&document.fonts.ready.then(()=>{window.READY=true;});
+</script>
+</body>
+</html>

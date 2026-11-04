@@ -1,0 +1,26 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>P3-c 通知だけが小さく割り込む</title><link rel="stylesheet" href="../_shared/common.css">
+<style>
+.lot{position:absolute;left:0;top:70px;width:1180px;height:1010px;background:linear-gradient(#DDEFF8,#F4FAFD 44%,var(--ground) 44.1%)}
+.lot .svgw{position:absolute;left:100px;top:150px;width:980px;height:720px}
+.right{position:absolute;left:1180px;top:70px;width:740px;height:1010px;padding:40px 54px;border-left:1.5px solid var(--line)}
+.notif{position:absolute;width:520px;background:rgba(255,255,255,.97);border:1.5px solid rgba(30,43,54,.25);border-radius:20px;padding:14px 18px;box-shadow:0 12px 30px rgba(30,43,54,.16);font-size:18px;line-height:1.5}
+.notif .h{display:flex;justify-content:space-between;font-size:14px;color:var(--ink2);margin-bottom:4px}
+.choice{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+.choice .card{padding:20px 22px;min-height:190px}.choice h4{font-size:24px;margin-bottom:8px}.choice li{font-size:19px;line-height:1.6;margin-left:1.1em}
+</style></head><body><div id="stage"></div>
+<script src="../../../../app/engine.js"></script><script src="../../../../app/iso.js"></script><script src="../_shared/parts.js"></script>
+<script>
+const Y = YKS, sp = { ...Y.baseSpec(Y.HOUSEHOLDS.t2), kitchen: true, exterior: 'min' };
+const d = Y.quote({ ...sp, window: 'triple' }, 'C', true).real - Y.quote(sp, 'C', true).real;
+document.getElementById('stage').innerHTML = UI.progress(3) + `
+<div class="lot"><div class="abs" style="left:40px;top:26px"><span class="chip">78日目</span>　<span class="chip soft">Cデザインで詳細の打ち合わせ</span></div>
+  <div class="svgw">${UI.myLot(0, { ghost: { w: 62, d: 50, h: 46 } })}</div>
+  <div class="notif" style="left:600px;top:40px"><div class="h"><span>タイムライン</span><span>いま</span></div><b>ふたりの家づくり記録</b>：新居の初めての冬。南の大きな窓、2月の朝は足元がひんやり。</div>
+  <div class="notif" style="left:600px;top:150px;opacity:.9"><div class="h"><span>くらしのAI</span><span>2分前</span></div>トリプルガラスは断熱性が高く、冬に快適です。費用は会社によって違うので、担当の方に聞いてみましょう。</div></div>
+<div class="right"><div class="label">窓の打ち合わせ（Cデザイン・佐々木さん）</div>
+  <div class="msg" style="margin-top:16px;max-width:100%"><small>佐々木（Cデザイン）</small>南の大きな窓は、標準のペアガラスで見積もっています。トリプルにすると、+${d}万円です。</div>
+  <div class="choice"><div class="card"><h4>標準のガラスで進める</h4><ul><li>予算のまま</li><li>窓の大きさは同じ</li></ul></div><div class="card"><h4>トリプルガラスにする</h4><ul><li>+${d}万円</li><li>冬の窓辺が変わる</li></ul></div></div>
+  <div class="input" style="margin-top:20px"><div class="box ph">ほかの考えを伝える…</div><div class="btn">伝える</div></div></div>
+${UI.cast(['sasaki', 'yuu'], { left: 1220 })}`;
+</script></body></html>

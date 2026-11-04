@@ -1,0 +1,49 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>P1-a 紙の来場者アンケート</title><link rel="stylesheet" href="../_shared/common.css">
+<style>
+.lotbg{position:absolute;left:0;top:70px;width:1180px;height:1010px;background:linear-gradient(#DDEFF8,#F4FAFD 40%,var(--ground) 40.1%)}
+.lotbg .svgw{position:absolute;left:560px;top:170px;width:620px;height:520px}
+.sheet{position:absolute;left:70px;top:120px;width:620px;height:860px;background:#fff;border:1px solid #D9D2C5;box-shadow:0 18px 40px rgba(30,43,54,.18);transform:rotate(-2.2deg);padding:38px 44px;font-size:19px}
+.sheet h1{font-size:30px;font-weight:700;letter-spacing:.1em;text-align:center;margin-bottom:6px}
+.sheet .sub{text-align:center;font-size:15px;color:var(--ink2);margin-bottom:22px}
+.row{border-bottom:1px solid #E4DED3;padding:11px 0;display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:start}
+.row b{font-weight:700;font-size:17px;color:#4E463D}
+.hand{font-family:"Klee One","Hiragino Maru Gothic ProN","Zen Maru Gothic",cursive;color:#2C3E66;font-size:22px}
+.cb{display:inline-flex;align-items:center;gap:5px;margin-right:14px;font-size:17px}
+.cb i{width:17px;height:17px;border:1.6px solid #6B6358;display:inline-block;position:relative}
+.cb i.on::after{content:"";position:absolute;left:3px;top:-5px;width:7px;height:15px;border-right:3px solid #2C3E66;border-bottom:3px solid #2C3E66;transform:rotate(40deg)}
+.pen{position:absolute;right:30px;bottom:-60px;width:16px;height:220px;background:#1E2B36;border-radius:8px;transform:rotate(28deg)}
+.right{position:absolute;left:1180px;top:70px;width:740px;height:1010px;padding:40px 54px;border-left:1.5px solid var(--line);background:var(--paper)}
+</style></head><body><div id="stage"></div>
+<script src="../../../../app/engine.js"></script><script src="../../../../app/iso.js"></script><script src="../_shared/parts.js"></script>
+<script>
+const Y = YKS, H = Y.HOUSEHOLDS.t2;
+document.getElementById('stage').innerHTML = UI.progress(1) + `
+<div class="lotbg"><div class="abs" style="left:760px;top:24px"><span class="chip">12日目</span>　<span class="chip soft">Aハウスのモデルハウス</span></div>
+  <div class="svgw">${UI.myLot(0, { ghost: { w: 70, d: 56, h: 40 } })}</div></div>
+<div class="sheet">
+  <h1>ご来場アンケート</h1><div class="sub">Aハウス 展示場　ご記入ありがとうございます</div>
+  <div class="row"><b>お名前</b><div><span class="hand">かず</span>　様／<span class="hand">ゆう</span>　様</div></div>
+  <div class="row"><b>ご家族</b><div><span class="hand">4人（子ども 5歳・2歳）</span></div></div>
+  <div class="row"><b>土地</b><div><span class="cb"><i></i>あり</span><span class="cb"><i></i>探している</span><span class="cb"><i class="on"></i>分譲地に申込み中</span></div></div>
+  <div class="row"><b>ご予算（総額）</b><div><span class="cb"><i></i>4,000万未満</span><span class="cb"><i class="on"></i>4,000〜5,000万</span><span class="cb"><i></i>5,000万〜</span></div></div>
+  <div class="row"><b>世帯年収</b><div><span class="hand">${H.income}万円くらい</span></div></div>
+  <div class="row"><b>重視すること</b><div><span class="cb"><i class="on"></i>デザイン</span><span class="cb"><i class="on"></i>性能</span><span class="cb"><i></i>価格</span><span class="cb"><i class="on"></i>間取り</span><span class="cb"><i></i>アフター</span></div></div>
+  <div class="row"><b>ご希望の間取り</b><div><span class="hand">4LDK？ 1階に寝室</span></div></div>
+  <div class="row"><b>ご入居の時期</b><div><span class="hand">来年の秋までに</span></div></div>
+  <div class="row" style="border:0"><b>その他ご要望</b><div><span class="hand" style="color:#9A9186">（空欄）</span></div></div>
+  <div class="pen"></div>
+</div>
+<div class="right">
+  <div class="label">Aハウス・高橋さんとの打ち合わせ</div>
+  <div class="chat" style="margin-top:20px">
+    <div class="msg"><small>高橋（Aハウス）</small>ご記入ありがとうございます。4,000万円台、1階に寝室ですね。</div>
+    <div class="msg"><small>高橋（Aハウス）</small>では、ご主人から。新しいお家で、いちばん叶えたいことは何ですか？</div>
+    <div class="msg me kz"><small>かず</small>外観は、かっこよくしたいです。ミニマルな感じで。</div>
+    <div class="msg"><small>高橋（Aハウス）</small>いいですね、うちの得意分野です。奥様はいかがですか？</div>
+  </div>
+  <div class="input" style="position:absolute;left:54px;right:54px;bottom:200px"><div class="box ph">ゆうとして答える…</div><div class="btn">伝える</div></div>
+  <div style="position:absolute;left:54px;bottom:140px;display:flex;gap:10px"><span class="chip soft">木を使った家</span><span class="chip soft">庭と畑</span><span class="chip soft">明るいリビング</span></div>
+</div>
+${UI.cast(['takahashi'], { left: 760, bubble: '奥様は、いかがですか？', bubbleLeft: 20 })}`;
+</script></body></html>

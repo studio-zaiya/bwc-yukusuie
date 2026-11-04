@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hero案02 レビュー丸呑み</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#2b2a28;--sub:#77736b;--bg:#f4f2ec;--card:#ffffff;--line:#dcd8ce;--you:#e8553a;--warm:#f2a63a;--cold:#5b8fd6;--bad:#9aa0a6;--kazu:#cfe3ff;--yuu:#fff1b8;--ok:#2f9e6a;}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:#1d1c1a;overflow:hidden}
+body{display:flex;align-items:center;justify-content:center;font-family:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans CJK JP",sans-serif;color:var(--ink)}
+#stage{width:1920px;height:1080px;position:relative;background:var(--bg);transform-origin:0 0;overflow:hidden;flex:none}
+.abs{position:absolute}
+#hdr{left:0;top:0;width:1920px;height:96px;display:flex;align-items:center;padding:0 40px;border-bottom:1px solid var(--line);background:#fbfaf6}
+#hdr .t{font-weight:900;font-size:30px;letter-spacing:.04em}
+#hdr .s{font-size:18px;color:var(--sub);margin-left:18px}
+#cd{right:40px;top:14px;text-align:right}
+#cd .l{font-size:16px;color:var(--sub)}
+#cd .n{font-size:52px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+#cd .n small{font-size:22px;font-weight:700;margin-left:4px}
+#gridlab{left:44px;top:112px;font-size:17px;color:var(--sub)}
+#cv{left:20px;top:100px}
+#side{left:1230px;top:112px;width:650px;height:740px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 22px}
+.h{font-size:16px;color:var(--sub);margin-bottom:10px;letter-spacing:.06em}
+#stick{display:flex;flex-wrap:wrap;gap:10px}
+.st{font-size:19px;padding:8px 12px;border-radius:6px;box-shadow:0 2px 0 rgba(0,0,0,.06);position:relative;white-space:nowrap}
+.st.k{background:var(--kazu)}.st.y{background:var(--yuu)}
+.st .m{font-weight:900;margin-right:6px}
+.st.off{color:#9b968c;background:#eceae4}
+.st .x{position:absolute;left:8px;right:8px;top:50%;height:2px;background:#8a857c;transform-origin:left center}
+.st .note{font-size:13px;color:var(--sub);margin-left:6px}
+#chat{margin-top:16px;height:350px;position:relative;overflow:hidden}
+#sns{left:22px;top:52px;width:604px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+#sns .who{font-size:16px;font-weight:700}#sns .who span{color:var(--sub);font-weight:400;margin-left:8px}
+#sns .tx{font-size:21px;margin-top:8px;line-height:1.6}
+#sns .tag{font-size:13px;color:var(--sub);margin-top:8px}
+#inp{left:22px;top:208px;width:604px;height:64px;border:2px solid var(--ink);border-radius:12px;background:#fff;padding:16px 16px;font-size:19px;font-weight:500;white-space:nowrap;overflow:hidden}
+#inp .cur{display:inline-block;width:2px;height:26px;background:var(--ink);vertical-align:-5px;margin-left:2px}
+#judge{left:22px;top:284px;width:604px;display:flex;gap:8px}
+.jd{flex:1;font-size:13px;white-space:nowrap;text-align:center;padding:8px 4px;border-radius:8px;border:1px solid var(--line);color:#a8a39a;background:#faf9f6}
+.jd.on{background:var(--ok);color:#fff;border-color:var(--ok);font-weight:700}
+#ledger{left:1230px;top:870px;width:650px;height:118px;display:flex;align-items:center;justify-content:space-between;background:#2b2a28;color:#fff;border-radius:14px;padding:0 26px}
+#ledger .c .l{font-size:14px;color:#bdb8ae}
+#ledger .c .v{font-size:32px;font-weight:900;font-variant-numeric:tabular-nums}
+#ledger .c .v small{font-size:16px;margin-left:2px;font-weight:700}
+#ledger .d{font-size:15px;color:var(--warm);font-weight:700}
+#ledger .fn{position:absolute;left:26px;bottom:6px;font-size:11px;color:#8e897f}
+#tick{left:0;top:1004px;width:1920px;height:76px;background:#2b2a28;color:#f4f2ec;overflow:hidden;white-space:nowrap}
+#tickin{position:absolute;top:22px;left:0;font-size:22px;letter-spacing:.02em}
+#tickin b{color:var(--warm);font-weight:700;margin-right:6px}
+#tickin i{font-style:normal;color:#6f6a62;margin:0 26px}
+#flip{width:520px;height:190px;perspective:1200px}
+#flipin{width:100%;height:100%;position:relative}
+.fc{position:absolute;inset:0;border-radius:14px;padding:22px 24px;box-shadow:0 12px 30px rgba(0,0,0,.18)}
+.fc .who{font-size:16px;color:var(--sub);margin-bottom:10px}
+.fc .tx{font-size:26px;font-weight:700;line-height:1.5}
+#front{background:#fff;border:1px solid var(--line)}
+#back{background:#2b2a28;color:#fff}
+#back .who{color:var(--warm)}
+#tog{position:absolute;right:16px;top:14px;font-size:14px;border:1px solid var(--line);border-radius:999px;display:flex;overflow:hidden}
+#tog span{padding:4px 12px}
+#yr{left:0;top:96px;width:1210px;height:900px;display:flex;align-items:center;justify-content:center;font-size:96px;font-weight:900;color:var(--ink);pointer-events:none}
+#cap{left:44px;top:930px;font-size:26px;font-weight:700}
+#cap small{font-size:17px;color:var(--sub);font-weight:500;margin-left:10px}
+#ifbtn{left:420px;top:880px;background:var(--you);color:#fff;font-size:26px;font-weight:900;padding:16px 30px;border-radius:999px;box-shadow:0 10px 30px rgba(232,85,58,.35)}
+#tagline{left:0;top:96px;width:1920px;height:908px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(244,242,236,.94)}
+#tagline .a{font-size:30px;color:var(--sub);margin-bottom:18px}
+#tagline .b{font-size:84px;font-weight:900;letter-spacing:.04em}
+#tagline .c{font-size:20px;color:var(--sub);margin-top:26px}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="hdr" class="abs"><span class="t">16軒目の、わが家</span><span class="s">かず と ゆう ／ 世界07（あなた）</span></div>
+  <div id="cd" class="abs"><div class="l" id="cdl">ローン特約の期限まで</div><div class="n" id="cdn">25<small>日</small></div></div>
+  <canvas id="cv" class="abs" width="1190" height="900"></canvas>
+  <div id="gridlab" class="abs">16の世界（常時表示）　白：変わっていない部分　色：選択で変わった部分</div>
+  <div id="side" class="abs">
+    <div class="panel"><div class="h">ふたりの要望（付箋）</div><div id="stick"></div></div>
+    <div id="chat" class="panel"><div class="h">打ち合わせ</div>
+      <div id="sns" class="abs"><div class="who">新築1年目の冬<span>のタイムライン</span></div><div class="tx">朝7時。子どもたちはまだ布団の中。結局、今年もソファの位置を変えた。</div><div class="tag">タイムラインに流れてきた投稿</div></div>
+      <div id="inp" class="abs"><span id="inpt"></span><span class="cur" id="cur"></span></div>
+      <div id="judge" class="abs"><div class="jd">実現可能</div><div class="jd" id="j2">条件付きで可能</div><div class="jd">確認が足りない</div><div class="jd">いまは難しい</div></div>
+    </div>
+  </div>
+  <div id="ledger" class="abs">
+    <div class="c"><div class="l">建物の総額</div><div class="v" id="lg1">4,070<small>万円</small></div></div>
+    <div class="c"><div class="l">借入</div><div class="v" id="lg2">4,700<small>万円</small></div><div class="d" id="lg2d"></div></div>
+    <div class="c"><div class="l">月々の返済</div><div class="v" id="lg3">13.27<small>万円</small></div><div class="d" id="lg3d"></div></div>
+    <div class="fn">金利1.0%・35年で試算（体験のための簡略化）</div>
+  </div>
+  <div id="yr" class="abs">1年後</div>
+  <div id="cap" class="abs"></div>
+  <div id="flipw" class="abs" style="left:0;top:0"><div id="flip"><div id="flipin">
+    <div class="fc" id="front"><div class="who">世界15　Cデザイン 設計・佐々木（表の言葉）</div><div class="tx">お考えは承知しました。ご家族でお決めいただければ、どちらでも設計できます。</div></div>
+    <div class="fc" id="back"><div class="who">このときの本音</div><div class="tx">本当は、窓だけは性能を上げてほしかった。でも、決めるのはご家族だから。</div></div>
+  </div></div></div>
+  <div id="ifbtn" class="abs">もし、あのとき ▸</div>
+  <div id="tagline" class="abs"><div class="a">同じ家族の、16の未来</div><div class="b">選ばなかった未来まで、建ててみる。</div><div class="c">本作の設定は体験のために簡略化しています。登場する住宅会社・人物はすべて架空です。</div></div>
+  <div id="tick" class="abs"><div id="tickin"></div></div>
+</div>
+<script>
+// ---------- 基本 ----------
+const DUR=18;window.DUR=DUR;
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const lin=(t,a,b)=>clamp((t-a)/(b-a));
+const ease=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+const back=x=>{const c=1.6;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)};
+const $=id=>document.getElementById(id);
+const fmt=n=>Math.round(n).toLocaleString('ja-JP');
+function fit(){const s=Math.min(innerWidth/1920,innerHeight/1080);const st=$('stage');st.style.transform=`scale(${s})`;st.style.marginRight=(1920*s-1920)+'px';st.style.marginBottom=(1080*s-1080)+'px';}
+addEventListener('resize',fit);fit();
+
+// ---------- 付箋 ----------
+const STK=[
+ {w:'y',t:'造作キッチン',st:'ok'},{w:'k',t:'LDK20畳',st:'ok'},{w:'y',t:'うさぎの庭と畑',st:'ok'},
+ {w:'k',t:'南の明るいリビング',st:'pend',at:9.0,note:'トリプルガラスで'},{w:'y',t:'白い壁の明るい家',st:'ok'},
+ {w:'k',t:'外構のライトアップ',st:'off',note:'今は'},{w:'k',t:'カーポート2台',st:'off',note:'今は'},
+ {w:'y',t:'本格的な和室（父）',st:'off'},{w:'k',t:'壁掛けの大きいテレビ',st:'late',at:11.6,note:'下地の伝え忘れ'},
+];
+$('stick').innerHTML=STK.map((s,i)=>`<div class="st ${s.w}" id="s${i}"><span class="m" id="sm${i}"></span>${s.t}<span class="note" id="sn${i}"></span><div class="x" id="sx${i}"></div></div>`).join('');
+
+// ---------- ティッカー ----------
+const TK=['[世界04] B工務店と議事録を交わす','[世界11] 契約後の打ち合わせ14回目、+210万','[世界03] 上棟から2か月、職人が来ない','[世界12] Aハウス、グレードアップを窓に回す','[世界08] 勾配屋根で上棟','[世界15] 標準の窓のまま、南を幅いっぱいに','[世界01] Dホームで着工、太陽光つき','[世界06] 借入を増やし、外構を入居日にそろえる','[世界09] 外構を残し、キッチンはシステムに','[世界13] 父に和室を断れず、+180万','[世界05] 着工金を出来高払いに','[世界10] プランを白紙から、家賃が3か月重なる'];
+$('tickin').innerHTML=TK.map(s=>{const m=s.match(/^\[(.+?)\]\s(.*)$/);return `<b>${m[1]}</b>${m[2]}<i>／</i>`}).join('').repeat(3);
+let tickW=0;
+
+// ---------- 16の世界 ----------
+// kind: g=勾配 f=箱型。ch=変わった部分の色
+const W=[];
+for(let i=0;i<16;i++)W.push({id:String(i+1).padStart(2,'0'),kind:(i*7%3===0)?'f':'g',st:(i%3===1)?2:1.6,ch:[]});
+const SUM={ // 1年後に色が入る部分（変化箇所だけ）
+ '01':[['roof','#7fb3a0']], '02':[['wall','#d9c3a5']], '04':[['door','#c98b5a']], '05':[['car','#8fa3b8']],
+ '06':[['car','#8fa3b8'],['light','#f2c14e']], '08':[['roof','#b5736b']], '09':[['car','#8fa3b8']], '10':[['wall','#cdb8d9']],
+ '12':[['win','#9fc3e8']], '13':[['wa','#a7b98a']], '14':[['side','#f2a63a']], '16':[['roof','#9bb0c9']],
+};
+W[6].kind='f';W[6].st=2;W[14].kind='f';W[14].st=2;W[2].kind='g';W[10].kind='g';
+
+const cv=$('cv'),cx=cv.getContext('2d');
+const S=12.4,OX=595,OY=170;
+const P=(x,y,z)=>[OX+(x-y)*0.866*S,OY+(x+y)*0.5*S-z*S];
+function poly(pts,fill,stroke){cx.beginPath();pts.forEach((p,i)=>{const q=P(...p);i?cx.lineTo(q[0],q[1]):cx.moveTo(q[0],q[1])});cx.closePath();if(fill){cx.fillStyle=fill;cx.fill()}if(stroke){cx.strokeStyle=stroke;cx.lineWidth=1;cx.stroke()}}
+const WH=['#fdfcf9','#ebe9e3','#d7d4cc'],OUT='#bdb8ae';
+function shade(hex,k){const n=parseInt(hex.slice(1),16);let r=n>>16,g=n>>8&255,b=n&255;const f=v=>Math.round(k<0?v*(1+k):v+(255-v)*k);return `rgb(${f(r)},${f(g)},${f(b)})`}
+function box(x0,y0,x1,y1,z0,z1,c){ // c: base color or null(white)
+  const top=c?shade(c,.25):WH[0],lf=c?c:WH[1],rt=c?shade(c,-.18):WH[2];
+  poly([[x0,y1,z0],[x1,y1,z0],[x1,y1,z1],[x0,y1,z1]],lf,OUT);
+  poly([[x1,y0,z0],[x1,y1,z0],[x1,y1,z1],[x1,y0,z1]],rt,OUT);
+  poly([[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]],top,OUT);
+}
+function house(w,ox,oy,chMap,grow,empty){
+  // 区画
+  const L=10;
+  poly([[ox,oy,0],[ox+L,oy,0],[ox+L,oy+L,0],[ox,oy+L,0]],empty?'#e2ded4':'#efece4','#d2cdc2');
+  if(empty){ // 工事停止：更地と看板
+    poly([[ox+2,oy+2,0],[ox+8,oy+2,0],[ox+8,oy+8,0],[ox+2,oy+8,0]],'#d5cfc2',null);
+    box(ox+6.5,oy+6.6,ox+7,oy+7,0,2.4,'#8e877b');box(ox+4.6,oy+6.7,ox+7.2,oy+6.9,1.6,2.8,'#ffffff');
+    return;
+  }
+  const g=grow;if(g<=0)return;
+  const x0=ox+2.2,y0=oy+2.6,x1=ox+7.4,y1=oy+6.8,h=w.st*2.2*Math.min(1,g);
+  const wall=chMap.wall||null;
+  // カーポート
+  if(chMap.car){box(ox+0.4,oy+7.3,ox+4.6,oy+9.6,2.4,2.7,chMap.car);box(ox+0.5,oy+9.3,ox+0.8,oy+9.6,0,2.4,shade(chMap.car,-.2));box(ox+4.2,oy+9.3,ox+4.5,oy+9.6,0,2.4,shade(chMap.car,-.2));}
+  if(chMap.side){box(ox+7.8,oy+7.6,ox+9.4,oy+9.2,0,1.6,chMap.side);} // 物置
+  if(chMap.wa){box(ox+7.6,oy+2.6,ox+9.6,oy+5.6,0,2.0,chMap.wa);}  // 和室の増築
+  box(x0,y0,x1,y1,0,h,wall);
+  if(g>=1){
+    // 窓（右面＝南の大きな窓）
+    const wc=chMap.win;
+    const wpts=[[x1+.01,y0+0.7,0.5],[x1+.01,y1-0.7,0.5],[x1+.01,y1-0.7,2.3],[x1+.01,y0+0.7,2.3]];
+    poly(wpts,wc||'#e4e8ec','#9aa3ad');
+    if(chMap.light){poly([[x0+1,y1+.01,0.6],[x0+2.2,y1+.01,0.6],[x0+2.2,y1+.01,1.9],[x0+1,y1+.01,1.9]],chMap.light,null)}
+    if(chMap.door){poly([[x0+3,y1+.01,0],[x0+3.9,y1+.01,0],[x0+3.9,y1+.01,1.9],[x0+3,y1+.01,1.9]],chMap.door,null)}
+    // 屋根
+    const rc=chMap.roof;
+    if(w.kind==='g'){const ym=(y0+y1)/2,r=1.8;
+      poly([[x0-.3,y1+.3,h],[x1+.3,y1+.3,h],[x1+.3,ym,h+r],[x0-.3,ym,h+r]],rc?rc:WH[1],OUT);
+      poly([[x1+.3,y0-.3,h],[x1+.3,y1+.3,h],[x1+.3,ym,h+r]],rc?shade(rc,-.15):WH[2],OUT);
+    }else{
+      box(x0,y0,x1,y1,h,h+0.35,rc||null);
+      if(chMap.eave){box(x1,y0+0.4,x1+1.0,y1-0.4,h-0.1,h+0.05,chMap.eave)} // 南だけ庇
+    }
+  }
+}
+function lotOrigin(i){const r=Math.floor(i/4),c=i%4;return [c*12,r*12]}
+function drawGrid(t){
+  cx.clearRect(0,0,cv.width,cv.height);
+  const yr=lin(t,10.2,11.2); // 1年後への切り替え
+  const ORD=[...Array(16).keys()].sort((a,b)=>((a%4)+Math.floor(a/4))-((b%4)+Math.floor(b/4))||(a%4)-(b%4));
+  for(const i of ORD){
+    const w=W[i],[ox,oy]=lotOrigin(i);
+    const grow=1;
+    const ch={};
+    // 世界07（あなた）：窓の変化はt=9で入る
+    if(w.id==='07'){ if(t>=8.6){ch.win=mix('#7aa6dc','#f2a63a',lin(t,8.6,9.8));} ch.eave=t>=8.6?'#c98b5a':null; if(yr>0)ch.side='#f2a63a';}
+    if(yr>0){
+      if(SUM[w.id])SUM[w.id].forEach(([k,c])=>ch[k]=c);
+      if(w.id==='15')ch.win='#5b8fd6';
+      if(w.id==='11'){ch.car='#f2a63a';ch.wall='#f6dcc0';}
+    }
+    const empty=(w.id==='03'&&yr>=.5);
+    house(w,ox,oy,ch,grow,empty);
+  }
+  // 区画番号・ラベル
+  cx.textAlign='center';
+  for(let i=0;i<16;i++){const [ox,oy]=lotOrigin(i);const p=P(ox+7.5,oy+10,0);cx.font='700 15px "Zen Kaku Gothic New","Noto Sans CJK JP",sans-serif';cx.fillStyle='#a19c92';cx.fillText(W[i].id,p[0],p[1]+18);}
+  // 1年後の札
+  if(yr>0){
+    cx.globalAlpha=lin(t,10.8,11.6);
+    tag(2,'工事停止　約800万円が戻らない','#6d6a65',3.5);
+    tag(10,'契約後に +380万円','#e07b22',6.4);
+    tag(14,'2月の朝　室温14℃','#4a7fc8',6.4);
+    tag(6,'2月の朝　室温19℃','#d9822b',9.6);
+    cx.globalAlpha=1;
+  }
+  // あなたの印
+  const [ax,ay]=lotOrigin(6);const pa=P(ax+5,ay+5,7.2);
+  cx.fillStyle='#e8553a';roundRect(pa[0]-44,pa[1]-34,88,32,16);cx.fill();
+  cx.fillStyle='#fff';cx.font='900 17px "Zen Kaku Gothic New","Noto Sans CJK JP",sans-serif';cx.fillText('あなた',pa[0],pa[1]-12);
+}
+function tag(i,txt,col,z){const [ox,oy]=lotOrigin(i);const p=P(ox+5,oy+5,z);cx.font='700 17px "Zen Kaku Gothic New","Noto Sans CJK JP",sans-serif';const w=cx.measureText(txt).width+26;cx.fillStyle='#fff';cx.strokeStyle=col;cx.lineWidth=2;roundRect(p[0]-w/2,p[1]-44,w,34,8);cx.fill();cx.stroke();cx.fillStyle=col;cx.fillText(txt,p[0],p[1]-21);cx.beginPath();cx.moveTo(p[0],p[1]-10);cx.lineTo(p[0],p[1]+6);cx.stroke();}
+function roundRect(x,y,w,h,r){cx.beginPath();cx.moveTo(x+r,y);cx.arcTo(x+w,y,x+w,y+h,r);cx.arcTo(x+w,y+h,x,y+h,r);cx.arcTo(x,y+h,x,y,r);cx.arcTo(x,y,x+w,y,r);cx.closePath();}
+function mix(a,b,k){const A=parseInt(a.slice(1),16),B=parseInt(b.slice(1),16);const f=(s)=>Math.round(((A>>s)&255)*(1-k)+((B>>s)&255)*k);return `rgb(${f(16)},${f(8)},${f(0)})`}
+
+// ---------- render(t) ----------
+const INPUT='借入を少し増やして、大きい窓はトリプルガラスにしたい';
+function render(t){
+  t=((t%DUR)+DUR)%DUR;
+  drawGrid(t);
+  // 付箋
+  STK.forEach((s,i)=>{
+    const el=$('s'+i),m=$('sm'+i),n=$('sn'+i),x=$('sx'+i);
+    let done=s.st==='ok'||(s.st==='pend'&&t>=s.at);
+    let off=s.st==='off'||(s.st==='late'&&t>=s.at);
+    m.textContent=done?'✓':(off?'':'□');m.style.color=done?'#2f9e6a':'#8a857c';
+    el.classList.toggle('off',off);
+    const xk=s.st==='late'?ease(lin(t,s.at,s.at+.5)):(s.st==='off'?1:0);
+    x.style.transform=`scaleX(${off?xk:0})`;
+    n.textContent=(s.st==='pend'&&t>=s.at)||(s.st==='late'&&t>=s.at)||s.st==='off'?(s.note||''):'';
+    const pop=s.st==='pend'?back(lin(t,s.at,s.at+.4)):1;
+    el.style.transform=(s.st==='pend'&&t>=s.at&&t<s.at+.4)?`scale(${0.9+0.1*pop})`:'none';
+  });
+  // SNS投稿
+  const sIn=ease(lin(t,1.0,1.7)),sOut=lin(t,10.0,10.4);
+  $('sns').style.opacity=sIn*(1-sOut);$('sns').style.transform=`translateY(${(1-sIn)*-30}px)`;
+  // 入力
+  const k=Math.floor(lin(t,3.5,6.2)*INPUT.length);
+  $('inpt').textContent=INPUT.slice(0,k);
+  $('inp').style.opacity=(t<3.2?0:1)*(1-sOut);
+  $('cur').style.opacity=(Math.floor(t*2.4)%2&&t<6.6)?1:0;
+  // 判定
+  const j=lin(t,6.5,6.9);$('judge').style.opacity=j*(1-sOut);
+  $('j2').classList.toggle('on',t>=7.0);
+  $('j2').textContent=t>=7.0?'条件付きで可能：+60万円／再審査 約7日':'条件付きで可能';
+  $('j2').style.flex=t>=7.0?'2.6':'1';
+  // 台帳
+  const r=ease(lin(t,8.0,9.4));
+  $('lg1').innerHTML=fmt(4070+60*r)+'<small>万円</small>';
+  $('lg2').innerHTML=fmt(4700+60*r)+'<small>万円</small>';
+  $('lg3').innerHTML=(13.27+0.17*r).toFixed(2)+'<small>万円</small>';
+  $('lg2d').textContent=r>0?'+60万円':'';$('lg3d').textContent=r>0?'+約1,700円／月':'';
+  // カウントダウン
+  if(t<10.2){$('cdl').textContent='ローン特約の期限まで';const d=t<8.4?25:Math.round(25-7*ease(lin(t,8.4,9.6)));$('cdn').innerHTML=d+'<small>日</small>';$('cdn').style.color=(t>8.4&&t<10)?'#d23c2a':'#2b2a28';}
+  else{$('cdl').textContent='入居から';$('cdn').innerHTML='1<small>年</small>';$('cdn').style.color='#2b2a28';}
+  // 1年後
+  const yi=lin(t,10.0,10.5),yo=lin(t,11.0,11.5);$('yr').style.opacity=yi*(1-yo);$('yr').style.transform=`scale(${0.9+0.1*yi})`;
+  $('cap').innerHTML=t>=11.0?'1年後、同じ家族の16の世界<small>色がついたところだけが、選択で変わった部分</small>':(t<10?'世界07：南の窓だけ、性能を上げる<small>白い模型のうち、変わった部分に色が入る</small>':'');
+  $('cap').style.opacity=t>=11?lin(t,11,11.6):(t<10?lin(t,8.8,9.4):0);
+  // 表と本音
+  const fw=$('flipw');const fIn=ease(lin(t,12.3,12.9)),fOut=lin(t,15.6,16.0);
+  fw.style.left='1296px';fw.style.top='470px';
+  fw.style.opacity=fIn*(1-fOut);
+  const fl=ease(lin(t,13.9,14.6));$('front').style.transform=`scaleX(${Math.max(0,1-2*fl)})`;$('back').style.transform=`scaleX(${Math.max(0,2*fl-1)})`;
+  // もし、あのとき
+  const b=lin(t,15.8,16.3);$('ifbtn').style.opacity=b*(1-lin(t,16.6,16.9));$('ifbtn').style.transform=`scale(${1+0.05*Math.sin(t*9)})`;
+  // タグライン
+  $('tagline').style.opacity=ease(lin(t,16.6,17.1))*(1-lin(t,17.7,18));
+  // ティッカー
+  if(!tickW)tickW=$('tickin').scrollWidth/3;
+  $('tickin').style.transform=`translateX(${-(t*110)%tickW}px)`;
+}
+window.render=render;window.seek=t=>render(t);
+const st0=performance.now();
+function loop(){if(!window.PAUSE)render((performance.now()-st0)/1000);requestAnimationFrame(loop)}
+document.fonts.ready.then(()=>{window.READY=true;});
+loop();
+</script>
+</body>
+</html>

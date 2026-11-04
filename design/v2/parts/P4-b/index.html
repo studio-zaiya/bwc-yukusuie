@@ -1,0 +1,45 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>P4-b 電気の打ち合わせ（図面と要望の照合）</title><link rel="stylesheet" href="../_shared/common.css">
+<style>
+.plan{position:absolute;left:40px;top:96px;width:1120px;height:860px;background:#fff;border:1.5px solid var(--line);border-radius:20px;padding:20px}
+.right{position:absolute;left:1200px;top:96px;width:680px}
+.req{font-size:20px;line-height:1.5;padding:12px 14px;border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr 150px;gap:10px;align-items:center}
+.req .st{font-size:16px;color:var(--ink2);text-align:right}
+.req.miss{border:2.4px dashed var(--goldT);border-radius:12px;background:#FFF9E6;margin:6px 0}
+.cnt{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
+.cnt div{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;font-size:16px;color:var(--ink2)}
+.cnt b{display:block;font-size:30px;color:var(--ink)}
+</style></head><body><div id="stage"></div>
+<script src="../../../../app/engine.js"></script><script src="../../../../app/iso.js"></script><script src="../_shared/parts.js"></script>
+<script>
+const C = UI.COORD, add = 6, cost = Math.round(add * C.outlet.add * 10) / 10 + C.lan;
+const o = (x, y) => `<g transform="translate(${x},${y})"><circle r="9" fill="#fff" stroke="#1E2B36" stroke-width="2"/><line x1="-4" y1="-3" x2="-4" y2="3" stroke="#1E2B36" stroke-width="2"/><line x1="4" y1="-3" x2="4" y2="3" stroke="#1E2B36" stroke-width="2"/></g>`;
+const sw = (x, y) => `<g transform="translate(${x},${y})"><rect x="-7" y="-9" width="14" height="18" fill="#1E2B36"/></g>`;
+const lt = (x, y) => `<g transform="translate(${x},${y})"><circle r="11" fill="#FFF3CF" stroke="#1E2B36" stroke-width="1.6"/><path d="M-8,-8 L8,8 M8,-8 L-8,8" stroke="#1E2B36" stroke-width="1.4"/></g>`;
+const ac = (x, y) => `<g transform="translate(${x},${y})"><rect x="-34" y="-11" width="68" height="22" rx="4" fill="#E9EEF2" stroke="#1E2B36" stroke-width="1.6"/><text x="0" y="6" text-anchor="middle" font-size="14">AC</text></g>`;
+document.getElementById('stage').innerHTML = UI.progress(6) + `
+<div class="plan"><div class="label">電気の図面（1階）</div>
+  <svg viewBox="0 0 1080 780" style="width:100%;height:96%" font-family="inherit">
+    <rect x="40" y="40" width="1000" height="700" fill="#FFFAF0" stroke="#1E2B36" stroke-width="7"/>
+    <g stroke="#1E2B36" stroke-width="3.5"><line x1="620" y1="40" x2="620" y2="740"/><line x1="40" y1="420" x2="620" y2="420"/><line x1="620" y1="330" x2="1040" y2="330"/><line x1="820" y1="330" x2="820" y2="740"/></g>
+    <line x1="80" y1="740" x2="560" y2="740" stroke="#7FB3D1" stroke-width="10"/>
+    <g font-size="22" fill="#1E2B36"><text x="250" y="600">LDK</text><text x="250" y="230">キッチン</text><text x="770" y="190">寝室</text><text x="680" y="540">洗面</text><text x="890" y="540">玄関</text></g>
+    ${o(70, 500)}${o(70, 650)}${o(300, 712)}${o(590, 600)}${o(120, 380)}${o(420, 380)}${o(590, 200)}${o(650, 100)}${o(1010, 200)}${o(650, 380)}${o(800, 700)}
+    ${sw(640, 450)}${sw(840, 360)}${sw(600, 700)}
+    ${lt(200, 560)}${lt(420, 560)}${lt(420, 230)}${lt(830, 190)}${lt(720, 540)}${lt(930, 560)}
+    ${ac(330, 70)}${ac(830, 70)}
+    <g stroke="#1E2B36" stroke-width="1.4" fill="none" stroke-dasharray="5 4"><path d="M640,450 Q520,520 420,560"/><path d="M640,450 Q420,480 200,560"/></g>
+    <rect x="44" y="460" width="20" height="200" fill="none" stroke="#C99A00" stroke-width="3" stroke-dasharray="7 5"/>
+  </svg></div>
+<div class="right">
+  <div class="cnt"><div><b>${C.outlet.std}</b>標準のコンセント</div><div><b>+${add}</b>追加したい</div><div><b>+${cost}万</b>月々 約+${UI.monthly(cost).toLocaleString()}円</div></div>
+  <div class="label" style="margin-bottom:6px">最初に伝えた要望</div>
+  <div class="req"><span class="sq">寝室にコンセントを両側</span><span class="st">図面にあり</span></div>
+  <div class="req"><span class="ci">キッチンに家電用を4口</span><span class="st">図面にあり</span></div>
+  <div class="req miss"><span class="ci">リビングのテレビは壁掛け（下地と配線）</span><span class="st">図面に見当たらない</span></div>
+  <div class="req"><span class="sq">書斎にLAN</span><span class="st">+${C.lan}万円で追加</span></div>
+  <div class="req"><span class="sq">エアコンは見えない位置に</span><span class="st">室外機は北側</span></div>
+  <div class="input" style="margin-top:22px"><div class="box ph">担当の方に聞く…</div><div class="btn">聞く</div></div>
+</div>
+${UI.cast(['denki', 'sasaki'], { left: 820, bubble: 'コンセントは標準で' + C.outlet.std + 'か所です。追加は1か所' + C.outlet.add + '万円です。', bubbleLeft: -260 })}`;
+</script></body></html>

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="../../../../app/engine.js"></script><script src="../../../../app/iso.js"></script><script src="../../play/common.js"></script><script src="../_s.js"></script>
+<title>S4 分かれ道</title>
+<style>
+.fk{padding:14px 22px 6px}
+.fk .q{font-size:15px;color:var(--ink2)}.fk .qq{font-family:var(--fr);font-weight:900;font-size:30px;margin:2px 0 10px}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cd{border:1.5px solid rgba(30,43,54,.3);border-radius:14px;padding:12px 16px;background:var(--paper);cursor:pointer}
+.cd h4{font-family:var(--fr);font-weight:900;font-size:21px;margin-bottom:6px}
+.cd li{font-size:16.5px;line-height:1.55;margin-left:1.1em;color:var(--ink)}
+.band{position:absolute;left:24px;right:24px;bottom:22px;background:rgba(255,255,255,.96);border:1.5px solid var(--ink);border-radius:16px;padding:12px 16px;z-index:3}
+.band .bt{font-size:15px;font-weight:700;color:var(--ink2);margin-bottom:8px}
+.steps{display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr 1fr;gap:8px;align-items:stretch}
+.sp{position:relative;border-radius:10px;border:1.5px solid rgba(30,43,54,.25);padding:8px 10px;background:var(--paper)}
+.sp .who{font-size:12.5px;color:var(--ink2);display:flex;align-items:center;gap:6px}
+.sp .who i{font-style:normal;font-weight:700;font-size:11px;border:1.2px solid var(--ink2);border-radius:4px;padding:0 4px}
+.sp .wh{font-size:16px;font-weight:700;margin-top:2px}
+.sp .val{font-family:var(--fr);font-weight:900;font-size:24px;font-variant-numeric:tabular-nums;line-height:1.2}
+.sp.fin{border:2px solid var(--ink);background:#fff}
+.sp + .sp::before{content:"";position:absolute;left:-9px;top:50%;width:8px;height:2px;background:var(--ink)}
+.cond{margin:6px 0 2px 0;font-size:17.5px;line-height:1.6}
+</style></head>
+<body><div id="stage"><div id="view"></div></div>
+<script>
+const V = new URLSearchParams(location.search).get('v') || 'ask';
+S.mountStatic(() => {
+  const L = S.L, Y = S.Y, man = S.man, sim = S.SIM, p = S.DAY_S4;
+  const me = L.worldsAt(p)[L.YOU - 1];
+  const ask = `<div class="chat" style="height:100%">
+    <div class="log" style="justify-content:flex-start">
+      <div class="msg"><div class="who">${L.coTag('C', 18)}Cデザイン・設計・佐々木</div>詳細の見積がまとまりました。ご予算を少し超えています。外構をどうするか、決めていただく段階です。</div>
+      <div class="msg me"><div class="who"><i class="ci"></i>ゆう</div>キッチンは残したいんだよね。</div>
+    </div>
+    <div class="fk"><div class="q">分かれ道 3</div><div class="qq">いくらまでかける？</div>
+      <div class="cards">
+        <div class="cd"><h4>予算内で進める</h4><ul><li>月々の返済は、いまのまま</li><li>外構は、暮らしながら少しずつ</li></ul></div>
+        <div class="cd"><h4>借入を増やして外構を戻す</h4><ul><li>入居の日から、庭と駐車場が整う</li><li>銀行の枠には、まだ余裕がある</li></ul></div>
+      </div></div>
+    ${S.navs(1)}
+    <div class="in"><input value="借入を少し増やして、南の大きな窓だけトリプルガラスにしたい"><button class="btn">送る</button></div></div>`;
+  const done = `<div class="chat" style="height:100%">
+    <div class="log" style="justify-content:flex-start">
+      <div class="msg me"><div class="who"><i class="sq"></i>かず</div>借入を少し増やして、南の大きな窓だけトリプルガラスにしたい</div>
+      <div class="msg"><div class="who">${L.coTag('C', 18)}Cデザイン・設計・佐々木</div>確認しました。${sim.verdict}で、できます。
+        <div class="cond">${sim.conditions.map(c => '・' + c).join('<br>')}</div></div>
+    </div>
+    <div class="opts"><button class="opt" style="background:var(--ink);color:var(--paper)">この条件で進める</button><button class="opt">やめておく</button></div>
+    ${S.navs(1)}
+    <div class="in"><input placeholder="担当者に、自由に伝える・聞く"><button class="btn">送る</button></div></div>`;
+  const band = `<div class="band"><div class="bt">いま起きたこと</div><div class="steps">
+    <div class="sp"><div class="who"><i>Claude</i>読み替え</div><div class="wh">借入 +60万円／南の大開口をトリプルガラスに</div></div>
+    <div class="sp"><div class="who"><i>エンジン</i>見積</div><div class="wh">差額</div><div class="val">+${man(sim.diff)}万円</div></div>
+    <div class="sp"><div class="who"><i>エンジン</i>審査</div><div class="wh">返済負担率</div><div class="val">${sim.loan.ratio}%</div></div>
+    <div class="sp"><div class="who"><i>エンジン</i>工程</div><div class="wh">本審査のやり直し</div><div class="val">+${sim.days}日</div></div>
+    <div class="sp fin"><div class="who"><i>判定</i></div><div class="wh">&nbsp;</div><div class="val">${sim.verdict}</div></div>
+  </div></div>`;
+  document.getElementById('view').innerHTML = `
+  ${S.chrome(p, 'estimate')}
+  <div class="hero">
+    <div class="lab"><span class="no">07</span>あなたの家　${L.coTag('C', 28)}Cデザイン</div>
+    <div class="ph">${L.STEPS[Math.floor(p)]}<br><span style="font-size:15px">34坪・総二階　箱型の屋根</span></div>
+    ${L.bigHouse(me.w, me.stage, { ghost: me.ghost })}
+    ${V === 'done' ? band : ''}
+  </div>
+  <div class="right">${V === 'done' ? done : ask}</div>
+  ${V === 'done' ? '' : L.caster([{ who: 'C', text: 'どちらでも、進められます。' }, { who: 'yuu', text: 'どっちも、ちょっと違う気がする。' }])}
+  ${S.gallery(p)}`;
+});
+</script></body></html>

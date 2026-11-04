@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>世界樹ビュー 16の星座</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;background:#1d1b22;overflow:hidden}
+  #wrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+  canvas{display:block;cursor:pointer;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="1920" height="1080"></canvas></div>
+<script>
+/* 立場1：添付の意図を素直に汲む ― 世界樹ビュー「16の星座」
+   左：夫婦の色で塗り分けた世界線（4つの分かれ道＋2択の外側の答え）
+   右：16枚の星座カード（4つは詳しく、12は概略）。タップで概略を読む。
+   描画は render(t, 選択中の世界) だけで決まる。外部コード・素材は不使用。 */
+const W=1920,H=1080;
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+let SCALE=1;
+function fit(){SCALE=Math.min(innerWidth/W,innerHeight/H);cv.style.width=W*SCALE+'px';cv.style.height=H*SCALE+'px';}
+addEventListener('resize',fit);fit();
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),lerp=(a,b,t)=>a+(b-a)*t,seg=(t,a,b)=>clamp((t-a)/(b-a));
+const eio=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2, eout=t=>1-Math.pow(1-t,3);
+const back=t=>{const c1=1.7,c3=c1+1;return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2);};
+function hex(h){h=h.replace('#','');return[0,2,4].map(i=>parseInt(h.slice(i,i+2),16));}
+function mix(a,b,t){const A=hex(a),B=hex(b);return'#'+A.map((v,i)=>Math.round(lerp(v,B[i],t)).toString(16).padStart(2,'0')).join('');}
+function rnd(i){const x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x);}
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function txt(s,x,y,size,color,weight=700,align='left',font='Zen Maru Gothic'){ctx.font=`${weight} ${size}px "${font}"`;ctx.fillStyle=color;ctx.textAlign=align;ctx.fillText(s,x,y);ctx.textAlign='left';}
+function wrapTxt(s,x,y,maxW,lh,size,color,weight=500){ctx.font=`${weight} ${size}px "Zen Kaku Gothic New"`;ctx.fillStyle=color;let line='',yy=y;for(const ch of s){if(ctx.measureText(line+ch).width>maxW){ctx.fillText(line,x,yy);line='';yy+=lh;}line+=ch;}ctx.fillText(line,x,yy);}
+
+const KAZU='#F08A3C', YUU='#22B3A6', INK='#2A2433', THIRD='#7A5CD6';
+/* 分かれ道：選択肢ごとに「どちらの希望が通ったか」 */
+const FORKS=[
+  {name:'会社選び',opt:['全部入る家（B工務店）','絞り込んだ家（Cデザイン）'],who:[KAZU,YUU]},
+  {name:'間取り',opt:['造作キッチンを残す','外構を残す'],who:[YUU,KAZU]},
+  {name:'契約',opt:['借入を増やして外構を戻す','予算のまま進む'],who:[KAZU,YUU]},
+  {name:'仕様',opt:['箱型の屋根','軒のある勾配屋根'],who:[KAZU,YUU]},
+];
+const FIN=['#F3EEE4','#C98F5C','#C8613E','#7F8C99','#3F5F93','#8CCBB2','#E9B949','#E9A7A0'];
+/* 16の世界（4つは詳しく、12は概略） */
+const WORLDS=[
+  {lot:'07',path:[1,0,'T','T'],detail:true,player:true,fate:'暮らしている',fin:0,roof:'flat',
+   third:{2:'借入を+60万して、窓をトリプルガラスに',3:'箱型＋南側だけ庇'},short:'窓をトリプル／南だけ庇',
+   sum:'外構は削ったまま、窓に投資した。2月の朝も足元が冷えない。テレビの下地は伝え忘れて、壁寄せのスタンドに。'},
+  {lot:'11',path:['T',0,0,0],detail:true,fate:'暮らしている',fin:6,roof:'gable',third:{0:'Aハウスで月末に仮契約'},short:'Aハウスで仮契約',
+   sum:'150万円分のグレードアップは契約の金額にだけ効いた。打ち合わせ19回、契約後に+380万円。'},
+  {lot:'15',path:[1,0,1,0],detail:true,fate:'暮らしている',fin:0,roof:'flat',
+   sum:'あなたとほとんど同じ。違うのは南の窓のガラスだけ。2月の朝、室温は14℃。'},
+  {lot:'03',path:[0,1,0,1],detail:true,fate:'売地',fin:2,roof:'gable',
+   sum:'値引きのかわりに着工金を多めに払った。上棟の2か月後、B工務店が事業を停止。約800万円が戻らない。'},
+  {lot:'01',path:[0,0,0,0],fate:'暮らしている',fin:6,roof:'gable',sum:'全部入った家。ただ収納は図面ほど入らず、廊下に棚を足した。'},
+  {lot:'02',path:[0,0,0,1],fate:'暮らしている',fin:1,roof:'gable',sum:'勾配屋根に木の外壁。外構も入居の日にそろった。月々は少し重い。'},
+  {lot:'04',path:[0,0,1,0],fate:'暮らしている',fin:3,roof:'flat',sum:'予算どおり。口約束だった食洗機は、引き渡しの日に入っていなかった。'},
+  {lot:'05',path:[0,0,1,1],fate:'暮らしている',fin:5,roof:'gable',sum:'先輩の家と同じ間取り。2年目の点検は来なかった。'},
+  {lot:'06',path:[0,1,0,0],fate:'暮らしている',fin:4,roof:'flat',sum:'外構のライトアップがきれい。キッチンは既製品になった。'},
+  {lot:'08',path:[0,1,1,1],fate:'空き家',fin:7,roof:'gable',sum:'引き渡しの3か月後に転勤が決まった。家はカーテンのないまま。'},
+  {lot:'09',path:[1,0,0,0],fate:'暮らしている',fin:0,roof:'flat',sum:'借入を増やして外構も戻した。家の顔も暮らしもそろったが、月々は14.9万円。'},
+  {lot:'10',path:[1,0,0,1],fate:'暮らしている',fin:1,roof:'gable',sum:'軒のある木の家。夏の日差しは庇がきれいに切る。'},
+  {lot:'12',path:[1,0,1,1],fate:'暮らしている',fin:1,roof:'gable',sum:'予算どおり、勾配屋根。南の窓は標準のまま。冬は厚手のカーテンを足した。'},
+  {lot:'13',path:[1,1,0,0],fate:'暮らしている',fin:3,roof:'flat',sum:'外構を優先。キッチンは既製品に、浮いた分でカーポート2台。'},
+  {lot:'14',path:[1,1,1,0],fate:'暮らしている',fin:5,roof:'flat',sum:'予算のまま箱型。外構は少しずつ、ふたりで整えている。'},
+  {lot:'16',path:[1,1,1,1],fate:'暮らしている',fin:7,roof:'gable',sum:'勾配屋根に淡い外壁。打ち合わせは毎回ふたりで行った。'},
+];
+// 第3の答えに席をゆずった（上書きされた）2つの葉
+const GHOSTS=[[0,1,1,0],[1,1,0,1]];
+
+/* ---------- 樹の配置 ---------- */
+const ROOT=[110,560], FX=[300,480,660,840], LEAFX=1000;
+// 行を作る：上から 第3の答え(会社)→ 2進の葉（ゴースト含む）→ 第3の答え(契約)はその親の間
+const rows=[];
+rows.push({kind:'T1',w:WORLDS[1]});
+for(let b=0;b<16;b++){
+  const bits=[(b>>3)&1,(b>>2)&1,(b>>1)&1,b&1];
+  if(bits.join('')==='1010'){rows.push({kind:'T2',w:WORLDS[0]});}
+  const w=WORLDS.find(w=>w.path.join('')===bits.join(''));
+  const g=GHOSTS.find(g=>g.join('')===bits.join(''));
+  rows.push(w?{kind:'leaf',w,bits}:{kind:'ghost',bits});
+}
+const Y0=96, DY=(1040-Y0)/(rows.length-1);
+rows.forEach((r,i)=>r.y=Y0+i*DY);
+// 内部節点のy：子の平均
+function nodeY(prefix){const ys=rows.filter(r=>r.bits&&r.bits.slice(0,prefix.length).join('')===prefix.join('')).map(r=>r.y);return ys.reduce((a,b)=>a+b,0)/ys.length;}
+function bez(a,b,n=30){const pts=[],mx=(a[0]+b[0])/2;for(let s=0;s<=n;s++){const u=s/n;
+  pts.push([Math.pow(1-u,3)*a[0]+3*Math.pow(1-u,2)*u*mx+3*(1-u)*u*u*mx+u*u*u*b[0],Math.pow(1-u,3)*a[1]+3*Math.pow(1-u,2)*u*a[1]+3*(1-u)*u*u*b[1]+u*u*u*b[1]]);}return pts;}
+const SEGS=[]; // {pts,color,level,leafRows:[...],dash,ghost}
+(function(){
+  const done={};
+  rows.forEach(r=>{
+    if(r.kind==='leaf'||r.kind==='ghost'){
+      let prev=ROOT;
+      for(let L=0;L<4;L++){const pre=r.bits.slice(0,L+1),key=pre.join('');const pt=L<3?[FX[L],nodeY(pre)]:[FX[3],r.y];
+        if(!done[key]){done[key]={pts:bez(prev,pt),color:FORKS[L].who[r.bits[L]],level:L,keys:key,ghost:false};SEGS.push(done[key]);}
+        prev=pt;}
+      SEGS.push({pts:bez(prev,[LEAFX,r.y]),color:FORKS[3].who[r.bits[3]],level:4,keys:'leaf'+r.bits.join(''),ghost:r.kind==='ghost',row:r});
+      if(r.kind==='ghost')SEGS.filter(s=>s.keys==='leaf'+r.bits.join('')).forEach(s=>s.ghost=true);
+    }
+  });
+  // 第3の答え(会社)：根から斜めに出て、そのまま一本道
+  const t1=rows.find(r=>r.kind==='T1'); let p=ROOT;
+  [[FX[0],t1.y+40],[FX[1],t1.y],[FX[2],t1.y],[FX[3],t1.y],[LEAFX,t1.y]].forEach((q,L)=>{SEGS.push({pts:bez(p,q),color:L===0?THIRD:FORKS[Math.min(L,3)].who[0],level:L,third:L===0,row:t1});p=q;});
+  // 第3の答え(契約・仕様)：(1,0)の節から菱形で出る
+  const t2=rows.find(r=>r.kind==='T2'); p=[FX[1],nodeY([1,0])];
+  [[FX[2],t2.y],[FX[3],t2.y],[LEAFX,t2.y]].forEach((q,k)=>{SEGS.push({pts:bez(p,q),color:THIRD,level:2+k,third:true,row:t2});p=q;});
+})();
+// 選択中の世界が通る線か
+function onPath(s,w){
+  if(!w)return false;
+  if(s.row)return s.row.w===w;
+  if(w.path.includes('T')){ // 第3の答えの世界は、出る前の幹だけ共有
+    const pre=[];for(const b of w.path){if(b==='T')break;pre.push(b);}
+    return pre.length>0 && s.keys && pre.join('').startsWith(s.keys) ;}
+  return s.keys && w.path.join('').startsWith(s.keys);
+}
+function stroke(pts,f,color,width,alpha,glow,dash){
+  if(f<=0)return null;const n=Math.max(1,Math.floor((pts.length-1)*f));
+  ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';if(dash)ctx.setLineDash(dash);
+  if(glow){ctx.shadowColor=color;ctx.shadowBlur=glow;}
+  ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<=n;i++)ctx.lineTo(pts[i][0],pts[i][1]);ctx.stroke();ctx.restore();return pts[n];
+}
+
+/* ---------- カード（星座で描く家） ---------- */
+const CX0=1300, CY0=96, CW=138, CH=184, GAP=12;
+const order=['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16'];
+function cardRect(lot){const k=order.indexOf(lot),i=k%4,j=Math.floor(k/4);return[CX0+i*(CW+GAP),CY0+j*(CH+GAP),CW,CH];}
+function housePts(w){ // 屋根の形で星座が変わる
+  const s=[[.22,.82],[.78,.82],[.78,.5],[.22,.5]];
+  if(w.roof==='gable')return[...s,[.5,.24],[.78,.5]];
+  return[...s,[.22,.38],[.78,.38],[.78,.5]];
+}
+function card(w,t,sel){
+  const [x,y,cw,ch]=cardRect(w.lot), k=order.indexOf(w.lot), g=back(seg(t,1.6+k*.08,2.1+k*.08)); if(g<=0)return;
+  ctx.save();ctx.translate(x+cw/2,y+ch/2);ctx.scale(g,g);ctx.translate(-cw/2,-ch/2);
+  const base=FIN[w.fin], bg=mix(base,'#FFFFFF',.45);
+  ctx.shadowColor='rgba(40,30,60,.18)';ctx.shadowBlur=sel?26:12;ctx.shadowOffsetY=6;
+  rr(0,0,cw,ch,18);const gr=ctx.createLinearGradient(0,0,0,ch);gr.addColorStop(0,mix(bg,'#FFFFFF',.3));gr.addColorStop(1,bg);ctx.fillStyle=gr;ctx.fill();ctx.shadowColor='transparent';
+  if(sel){ctx.lineWidth=5;ctx.strokeStyle=INK;ctx.stroke();}
+  else if(w.detail){ctx.lineWidth=3;ctx.strokeStyle=w.player?'#2F6B3A':mix(base,INK,.4);ctx.stroke();}
+  txt(w.lot,14,34,26,INK,900);
+  if(w.detail){rr(cw-66,14,56,24,12);ctx.fillStyle=w.player?'#2F6B3A':INK;ctx.fill();txt(w.player?'あなた':'くわしく',cw-38,31,12,'#FFF',900,'center');}
+  // 星座：どの分かれ道で誰の希望が通ったかで星の色
+  const pts=housePts(w), sx=cw*.16, sy=26, sw=cw*.68, sh=ch*.62;
+  const prog=seg(t,2.2+k*.08,3.2+k*.08);
+  ctx.save();ctx.strokeStyle='rgba(255,255,255,.95)';ctx.lineWidth=2.4;ctx.beginPath();
+  const lim=Math.floor(prog*(pts.length-1));
+  pts.forEach((p,i)=>{if(i>lim)return;const X=sx+p[0]*sw,Y=sy+p[1]*sh;i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);});ctx.stroke();ctx.restore();
+  pts.forEach((p,i)=>{if(i>lim)return;const X=sx+p[0]*sw,Y=sy+p[1]*sh;const f=i%4, b=w.path[f];
+    const col=b==='T'?THIRD:FORKS[f].who[b];
+    ctx.beginPath();ctx.arc(X,Y,i<4?6.5:5,0,7);ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=10;ctx.fill();ctx.shadowBlur=0;ctx.lineWidth=2;ctx.strokeStyle='#FFF';ctx.stroke();});
+  if(w.fate!=='暮らしている'){rr(12,ch-62,cw-24,24,12);ctx.fillStyle=w.fate==='売地'?'#C4513B':'#3F5F93';ctx.fill();txt(w.fate,cw/2,ch-44,14,'#FFF',900,'center');}
+  // 分かれ道の進み具合
+  txt('4/4',cw-14,ch-14,14,mix(INK,'#FFFFFF',.25),700,'right');
+  w.path.forEach((b,i)=>{ctx.beginPath();ctx.arc(20+i*15,ch-19,5.5,0,7);ctx.fillStyle=b==='T'?THIRD:FORKS[i].who[b];ctx.fill();});
+  ctx.restore();
+}
+
+/* ---------- 1フレームを描く ---------- */
+let SEL=WORLDS[0];
+function render(t,sel=SEL){
+  ctx.fillStyle='#FFF8EC';ctx.fillRect(0,0,W,H);
+  // 方眼（家づくりの図面の紙）
+  ctx.strokeStyle='rgba(42,36,51,.05)';ctx.lineWidth=1;for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  // 見出し
+  txt('16の世界',60,58,34,INK,900);txt('線の色は、その分かれ道で通った希望',230,56,18,'#8A8199',700,'left','Zen Kaku Gothic New');
+  [[KAZU,'かず'],[YUU,'ゆう'],[THIRD,'2択の外側の答え']].forEach(([c,s],i)=>{const x=560+i*110+(i===2?0:0);ctx.beginPath();ctx.arc(x,50,8,0,7);ctx.fillStyle=c;ctx.fill();txt(s,x+14,57,18,INK,700);});
+  // 分かれ道の柱
+  FORKS.forEach((f,L)=>{const g=seg(t,.2+L*.4,.6+L*.4);ctx.save();ctx.globalAlpha=g;ctx.setLineDash([4,8]);ctx.strokeStyle='rgba(42,36,51,.18)';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(FX[L],86);ctx.lineTo(FX[L],1050);ctx.stroke();ctx.restore();});
+  // 線
+  const selAny=!!sel;
+  SEGS.forEach(s=>{
+    const a=.3+s.level*.45, f=eio(seg(t,a,a+.6));
+    const hit=onPath(s,sel);
+    let alpha=s.ghost?.35:(selAny?(hit?1:.32):.9);
+    const width=hit?7:(s.level===4?3:4);
+    stroke(s.pts,f,s.ghost?'#B9B2C4':s.color,width,alpha,hit?16:0,s.ghost?[3,9]:(s.third&&!hit?[10,8]:null));
+  });
+  // 節点（第3の答えは菱形）
+  const t1=rows.find(r=>r.kind==='T1'),t2=rows.find(r=>r.kind==='T2');
+  function diamond(x,y,r,c,g){ctx.save();ctx.translate(x,y);ctx.rotate(Math.PI/4);ctx.scale(g,g);ctx.fillStyle='#FFF';ctx.strokeStyle=c;ctx.lineWidth=4;ctx.fillRect(-r,-r,2*r,2*r);ctx.strokeRect(-r,-r,2*r,2*r);ctx.restore();}
+  diamond(ROOT[0]+40,ROOT[1]-18,9,THIRD,back(seg(t,.6,1.0)));
+  diamond(FX[1],nodeY([1,0]),9,THIRD,back(seg(t,1.2,1.6)));
+  // 根
+  {const g=back(seg(t,0,.4));ctx.save();ctx.translate(ROOT[0],ROOT[1]);ctx.scale(g,g);ctx.beginPath();ctx.arc(0,0,22,0,7);ctx.fillStyle='#FFF';ctx.fill();ctx.lineWidth=5;ctx.strokeStyle=INK;ctx.stroke();ctx.restore();
+    txt('かず と ゆう',ROOT[0],ROOT[1]+52,22,INK,900,'center');}
+  // 分かれ道の名前
+  FORKS.forEach((f,L)=>{const g=seg(t,.2+L*.4,.6+L*.4);ctx.save();ctx.globalAlpha=g;rr(FX[L]-62,1040-34,124,34,17);ctx.fillStyle=INK;ctx.fill();txt(f.name,FX[L],1040-10,18,'#FFF',900,'center');ctx.restore();});
+  // 葉：区画番号・ゴースト
+  rows.forEach(r=>{const g=seg(t,2.0,2.5);if(g<=0)return;ctx.save();ctx.globalAlpha=g;
+    if(r.kind==='ghost'){txt('×',LEAFX+12,r.y+7,20,'#B9B2C4',900);txt('席をゆずった',LEAFX+36,r.y+6,13,'#B9B2C4',700,'left','Zen Kaku Gothic New');}
+    else{const w=r.w,hit=sel===w;ctx.beginPath();ctx.arc(LEAFX+8,r.y,hit?12:8,0,7);ctx.fillStyle=w.fate==='売地'?'#C4513B':w.fate==='空き家'?'#3F5F93':(w.player?'#2F6B3A':'#FFF');ctx.fill();ctx.lineWidth=3;ctx.strokeStyle=INK;ctx.stroke();
+      txt(w.lot,LEAFX+28,r.y+7,hit?22:18,INK,900);
+      if(w.third){txt('第3の答え：'+w.short,LEAFX+60,r.y+6,14,THIRD,900,'left','Zen Kaku Gothic New');}}
+    ctx.restore();});
+  // カード
+  WORLDS.forEach(w=>card(w,t,sel===w));
+  // 概略パネル
+  if(sel){const g=eout(seg(t,3.0,3.5));ctx.save();ctx.globalAlpha=g;const x=1100,y=CY0+4*(CH+GAP)+2,w=1880-1100,h=1072-(CY0+4*(CH+GAP)+2);
+    rr(x,y,w,h,20);ctx.fillStyle=INK;ctx.fill();
+    txt(`${sel.lot}  ${sel.player?'あなたの世界':(sel.detail?'くわしく見られる世界':'概略の世界')}`,x+24,y+38,22,'#FFF',900);
+    rr(x+w-132,y+16,110,30,15);ctx.fillStyle=sel.fate==='売地'?'#C4513B':sel.fate==='空き家'?'#3F5F93':'#2F6B3A';ctx.fill();txt(sel.fate,x+w-77,y+38,16,'#FFF',900,'center');
+    // 選んだ道
+    let px=x+24,py=y+54;sel.path.forEach((b,i)=>{const s=b==='T'?sel.third[i]:FORKS[i].opt[b];const c=b==='T'?THIRD:FORKS[i].who[b];
+      ctx.font='700 14px "Zen Kaku Gothic New"';const tw=ctx.measureText(s).width+20;if(px+tw>x+w-20){px=x+24;py+=30;}rr(px,py,tw,26,13);ctx.fillStyle=c;ctx.fill();txt(s,px+10,py+18,14,'#FFF',700,'left','Zen Kaku Gothic New');px+=tw+8;});
+    wrapTxt(sel.sum,x+24,py+52,w-48,24,17,'#F3EEE4');
+    ctx.restore();}
+  if(!sel){txt('カードか、線の先をタップすると、その世界の1年をたどれます',CX0,CY0+4*(CH+GAP)+40,18,'#8A8199',700,'left','Zen Kaku Gothic New');}
+}
+window.render=render;window.DUR=4;window.READY=true;
+
+/* ---------- 操作（選択だけが状態。描画は render の純関数） ---------- */
+cv.addEventListener('click',e=>{const r=cv.getBoundingClientRect(),x=(e.clientX-r.left)/SCALE,y=(e.clientY-r.top)/SCALE;
+  let hit=WORLDS.find(w=>{const [cx,cy,cw,ch]=cardRect(w.lot);return x>=cx&&x<=cx+cw&&y>=cy&&y<=cy+ch;});
+  if(!hit){const row=rows.find(rw=>rw.w&&Math.abs(rw.y-y)<DY/2&&x>LEAFX-30&&x<LEAFX+420);if(row)hit=row.w;}
+  if(hit){SEL=hit;start=performance.now()-3.0*1000;}});
+const q=new URLSearchParams(location.search);let start=performance.now();
+if(q.has('sel')){SEL=WORLDS.find(w=>w.lot===q.get('sel'))||null;}
+if(q.get('sel')==='none')SEL=null;
+function loop(now){const t=q.has('t')?+q.get('t'):(now-start)/1000;render(t,SEL);requestAnimationFrame(loop);}requestAnimationFrame(loop);
+</script>
+</body>
+</html>

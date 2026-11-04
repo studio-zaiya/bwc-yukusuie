@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>締め E5 言葉の締め</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap">
+<style>
+:root{--paper:#FFFAF0;--ink:#1E2B36;--muted:#5F6B74;--ui:#ffffff;color-scheme:light}
+html,body{height:100%;margin:0;background:#e9e3d6;font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Zen Kaku Gothic New",sans-serif}
+#wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px}
+#stage{width:1920px;height:1080px;transform-origin:top left;position:relative}
+#holder{position:relative;overflow:hidden;box-shadow:0 4px 24px rgba(30,43,54,.18)}
+canvas{display:block}
+#bar{display:flex;align-items:center;gap:12px;width:min(960px,92vw);color:var(--ink);font-size:13px}
+#bar button{font:inherit;font-weight:700;border:1px solid #cfc6b5;background:var(--ui);color:var(--ink);border-radius:999px;padding:4px 14px;cursor:pointer}
+#bar input{flex:1}
+#tc{font-variant-numeric:tabular-nums;min-width:64px;text-align:right}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="holder"><div id="stage"><canvas id="c" width="1920" height="1080"></canvas></div></div>
+  <div id="bar"><button id="pp" type="button">一時停止</button><input id="sl" type="range" min="0" max="20" step="0.01" value="0" aria-label="時刻"><span id="tc">0.00s</span></div>
+</div>
+<script>
+/* 締め E5：冒頭と呼応する、言葉の締め。描画は render(t) だけで決まる。 */
+window.DUR = 20.0;
+const C = { paper:"#FFFAF0", sky:"#CFEBFA", ink:"#1E2B36", muted:"#5F6B74", kazu:"#E8701F", yuu:"#1C8DCC", third:"#F2C230", stake:"#8A5A3C", fill:"#F6DDBF" };
+const FD = '"Hiragino Maru Gothic ProN","Zen Maru Gothic","Hiragino Sans",sans-serif';
+const FB = '"Hiragino Sans","Hiragino Kaku Gothic ProN","Zen Kaku Gothic New",sans-serif';
+const cv = document.getElementById("c"), g = cv.getContext("2d");
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,k)=>a+(b-a)*k;
+const eio=k=>k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;      // 移動用
+const eout=k=>1-Math.pow(1-k,3);                          // 登場用
+const seg=(t,a,b)=>clamp((t-a)/(b-a));
+
+/* ---- 世界線（2分木、4回分かれて16本）---- */
+const ROOT={x:160,y:540}, LX=[160,520,880,1240,1600], ENDX=1760;
+const LEAFY=i=>120+i*42;
+function nodeY(L,i){ const span=16>>L; let s=0; for(let k=0;k<span;k++) s+=LEAFY(i*span+k); return s/span; }
+const edges=[];
+for(let L=0;L<4;L++){ const n=1<<L; for(let i=0;i<n;i++){ for(const c of [0,1]){ edges.push({L, x0:LX[L], y0:nodeY(L,i), x1:LX[L+1], y1:nodeY(L+1,i*2+c), col:c?C.yuu:C.kazu, w:6-L*0.9}); } } }
+for(let i=0;i<16;i++){ edges.push({L:4, x0:LX[4], y0:LEAFY(i), x1:ENDX, y1:LEAFY(i), col:(i%2)?C.yuu:C.kazu, w:2.2, leaf:i}); }
+const third={x0:LX[3], y0:nodeY(3,0), x1:ENDX, y1:66}; // 17本目：2択の外の答え
+
+function bez(e,s,k){ // 世界線の上の点。k=収束の度合い（1で y=435 に集まる）
+  const y0=lerp(e.y0,435,k), y1=lerp(e.y1,435,k), dx=e.x1-e.x0;
+  const p0=[e.x0,y0], p1=[e.x0+dx*.5,y0], p2=[e.x1-dx*.5,y1], p3=[e.x1,y1], u=1-s;
+  return [u*u*u*p0[0]+3*u*u*s*p1[0]+3*u*s*s*p2[0]+s*s*s*p3[0], u*u*u*p0[1]+3*u*u*s*p1[1]+3*u*s*s*p2[1]+s*s*s*p3[1]];
+}
+function strokeEdge(e,p,k,col,w,alpha,dash){
+  if(p<=0||alpha<=0) return;
+  g.save(); g.globalAlpha=alpha; g.strokeStyle=col; g.lineWidth=w; g.lineCap="round"; g.lineJoin="round";
+  if(dash) g.setLineDash(dash);
+  g.beginPath(); const N=48;
+  for(let j=0;j<=N*p;j++){ const q=bez(e,j/N,k); j?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]); }
+  const q=bez(e,p,k); g.lineTo(q[0],q[1]); g.stroke(); g.restore();
+}
+function marker(x,y,type,col,a){
+  if(a<=0) return; g.save(); g.globalAlpha=a; g.fillStyle=col;
+  if(type==="sq"){ g.fillRect(x-6,y-6,12,12); }
+  else if(type==="ci"){ g.beginPath(); g.arc(x,y,6.5,0,Math.PI*2); g.fill(); }
+  else { g.beginPath(); g.moveTo(x,y-9); g.lineTo(x+9,y); g.lineTo(x,y+9); g.lineTo(x-9,y); g.closePath(); g.fill(); }
+  g.restore();
+}
+
+/* ---- 地縄（アイソメの配置）。扉の切れ目は910の1モジュール ---- */
+const IS=40, IC={x:960,y:410};
+const P=(x,y)=>[IC.x+(x-y)*0.866*IS, IC.y+(x+y)*0.5*IS];
+const RECT=[P(-6,4),P(-6,-4),P(6,-4),P(6,4)];
+const RLEN=[0,1,2,3].map(i=>{const a=RECT[i],b=RECT[(i+1)%4];return Math.hypot(b[0]-a[0],b[1]-a[1]);});
+const RTOT=RLEN.reduce((a,b)=>a+b,0);
+function rectPt(s){ let d=s*RTOT; for(let i=0;i<4;i++){ if(d<=RLEN[i]||i===3){ const a=RECT[i],b=RECT[(i+1)%4],u=clamp(d/RLEN[i]); return [lerp(a[0],b[0],u),lerp(a[1],b[1],u)]; } d-=RLEN[i]; } }
+// 扉の切れ目：手前の長い辺（(6,4)→(-6,4)）の 0.30〜0.38（12マスのうち約1マス＝910）
+const GAP0=(RLEN[0]+RLEN[1]+RLEN[2]+RLEN[3]*0.30)/RTOT, GAP1=(RLEN[0]+RLEN[1]+RLEN[2]+RLEN[3]*0.38)/RTOT;
+const M=480;
+function centerPt(s,k2){ const a=[160+s*1600,435]; const b=rectPt(s); return [lerp(a[0],b[0],k2),lerp(a[1],b[1],k2)]; }
+function drawStrands(k2,gap,alpha,fade){
+  if(alpha<=0) return;
+  const pts=[]; for(let j=0;j<=M;j++) pts.push(centerPt(j/M,k2));
+  const nor=pts.map((p,j)=>{ const a=pts[Math.max(0,j-1)], b=pts[Math.min(M,j+1)]; const dx=b[0]-a[0], dy=b[1]-a[1], l=Math.hypot(dx,dy)||1; return [-dy/l,dx/l]; });
+  for(const [col,off] of [[C.kazu,-3.2],[C.yuu,3.2]]){
+    g.save(); g.strokeStyle=col; g.lineWidth=3.2; g.lineCap="round"; g.lineJoin="round";
+    let open=false;
+    for(let j=0;j<=M;j++){
+      const s=j/M, inGap=s>GAP0&&s<GAP1;
+      const a = inGap ? alpha*(1-gap) : alpha;
+      const x=pts[j][0]+nor[j][0]*off, y=pts[j][1]+nor[j][1]*off;
+      if(j>0){ g.globalAlpha=a*fade; g.beginPath(); g.moveTo(px,py); g.lineTo(x,y); g.stroke(); }
+      var px=x, py=y;
+    }
+    g.restore();
+  }
+}
+function stakes(a){
+  if(a<=0) return;
+  for(const p of RECT){ const h=22*eout(a); g.save(); g.strokeStyle=C.stake; g.lineWidth=4; g.lineCap="round"; g.beginPath(); g.moveTo(p[0],p[1]); g.lineTo(p[0],p[1]-h); g.stroke();
+    g.fillStyle=C.stake; g.globalAlpha=a; g.fillRect(p[0]-3,p[1]-h-3,6,4); g.restore(); }
+}
+
+/* ---- 文字 ---- */
+function caption(txt,t,a,b,y=920,size=44,font=FB,col=C.ink){
+  const fi=seg(t,a,a+.35), fo=1-seg(t,b-.35,b), al=Math.min(fi,fo); if(al<=0) return;
+  g.save(); g.globalAlpha=al; g.fillStyle=col; g.font=`700 ${size}px ${font}`; g.textAlign="center"; g.textBaseline="middle";
+  g.fillText(txt,960,y+(1-eout(fi))*14); g.restore();
+}
+function note(t,a,b){
+  const fi=seg(t,a,a+.5), fo=1-seg(t,b-.3,b), al=Math.min(fi,fo); if(al<=0) return;
+  g.save(); g.globalAlpha=al; g.fillStyle=C.muted; g.font=`500 24px ${FB}`; g.textAlign="center"; g.textBaseline="middle";
+  g.fillText("本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。",960,968);
+  g.fillText("実際の家づくりでは、地域・金融機関・住宅会社によって異なります。登場する住宅会社・人物・団体はすべて架空です。",960,1008);
+  g.restore();
+}
+
+/* ---- 1コマ ---- */
+function render(t){
+  // 地：紙。上だけ、うすい空色
+  g.fillStyle=C.paper; g.fillRect(0,0,1920,1080);
+  const sk=g.createLinearGradient(0,0,0,520); sk.addColorStop(0,"rgba(207,235,250,.75)"); sk.addColorStop(1,"rgba(207,235,250,0)");
+  g.fillStyle=sk; g.fillRect(0,0,1920,520);
+
+  const k = eio(seg(t,7.0,8.8));            // 16本が1本に戻る
+  const treeA = 1-seg(k,0.55,1);
+  const strandA = seg(k,0.45,1);
+  const k2 = eio(seg(t,9.4,11.0));          // 1本の線が地縄になる
+  const gap = eout(seg(t,11.0,11.6));       // 扉の切れ目（910）
+  const fill = eout(seg(t,12.0,12.9));
+  const endFade = 1-0.35*seg(t,16.4,17.2);  // 注記の間は少しだけ引く
+
+  // 地縄の中（線が面になる、1回だけ）
+  if(fill>0){ g.save(); g.globalAlpha=0.6*fill*endFade; g.fillStyle=C.fill; g.beginPath(); RECT.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1])); g.closePath(); g.fill(); g.restore(); }
+
+  // 世界線
+  if(treeA>0){
+    for(const e of edges){
+      const st=0.3+e.L*0.42, p=eio(seg(t,st,st+0.55));
+      strokeEdge(e,p,k,e.col,e.w,treeA,null);
+      if(e.leaf!==undefined && p>=1){ const q=bez(e,1,k); marker(q[0],q[1],(e.leaf%2)?"ci":"sq",e.col,treeA*seg(t,st+0.5,st+0.8)); }
+    }
+    // 17本目（2択の外の答え）
+    const p3=eio(seg(t,5.3,6.3));
+    if(p3>0){
+      strokeEdge(third,p3,k,C.third,3.2,treeA,[10,9]);
+      if(p3>=1){ const q=bez(third,1,k); marker(q[0],q[1],"di",C.third,treeA*seg(t,6.2,6.5)); }
+    }
+  }
+  // ふたりの2本の線（1本に戻ったあと）
+  drawStrands(k2,gap,strandA,endFade);
+  stakes(seg(t,11.0,11.5)*endFade);
+
+  // 言葉
+  caption("家は、3回建てないと満足できない。",t,0.6,5.0);
+  caption("未来は、16通りより多かった。",t,5.4,9.1);
+  caption("暮らすのは、この1軒。",t,9.5,12.4);
+  caption("16軒目の、わが家",t,12.6,16.5,760,96,FD);
+  caption("建てる前に、何度でも。",t,13.3,16.5,850,44,FB,C.muted);
+  note(t,16.6,20.0);
+}
+
+/* ---- 再生と操作 ---- */
+const sl=document.getElementById("sl"), tc=document.getElementById("tc"), pp=document.getElementById("pp");
+const q=new URLSearchParams(location.search); const fixed=q.has("t")?parseFloat(q.get("t")):null;
+let playing=fixed===null, t0=performance.now(), cur=fixed??0;
+function fit(){ const s=Math.min((innerWidth-24)/1920,(innerHeight-70)/1080); const st=document.getElementById("stage"); st.style.transform=`scale(${s})`; const h=document.getElementById("holder"); h.style.width=1920*s+"px"; h.style.height=1080*s+"px"; }
+addEventListener("resize",fit); fit();
+function frame(now){ if(playing){ cur=((now-t0)/1000)%window.DUR; } render(cur); sl.value=cur; tc.textContent=cur.toFixed(2)+"s"; requestAnimationFrame(frame); }
+pp.onclick=()=>{ playing=!playing; pp.textContent=playing?"一時停止":"再生"; if(playing) t0=performance.now()-cur*1000; };
+sl.oninput=()=>{ playing=false; pp.textContent="再生"; cur=parseFloat(sl.value); };
+if(!playing) pp.textContent="再生";
+window.render=render;
+(document.fonts?document.fonts.ready:Promise.resolve()).then(()=>{ window.READY=true; t0=performance.now()-cur*1000; requestAnimationFrame(frame); });
+</script>
+</body>
+</html>
