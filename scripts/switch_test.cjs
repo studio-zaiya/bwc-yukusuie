@@ -10,9 +10,9 @@ const BASE = process.argv[2] || 'http://localhost:8787';
   const click = async sel => { await p.click(sel, { timeout: 8000 }); await p.waitForTimeout(250); };
   await p.goto(BASE + '/'); await click('[data-act=continueStart]');
   await p.waitForSelector('[data-act=toFork1]:not([disabled])', { timeout: 150000 }); await click('[data-act=toFork1]'); await p.waitForTimeout(1800);
-  await click('[data-act=pickSide][data-side=a]'); await p.waitForTimeout(4800);
-  await click('[data-act=pickSide][data-side=b]'); await p.waitForTimeout(4800);
-  await click('[data-act=pickSide][data-side=a]'); await p.waitForTimeout(2900);
+  await click('[data-act=pickSide][data-side=a]'); await click('[data-act=goSide]'); await p.waitForTimeout(4800);
+  await click('[data-act=pickSide][data-side=b]'); await click('[data-act=goSide]'); await p.waitForTimeout(4800);
+  await click('[data-act=pickSide][data-side=a]'); await click('[data-act=goSide]'); await p.waitForTimeout(2900);
   await click('[data-act=toCoord]'); await click('[data-act=decideCoord]'); await p.waitForTimeout(4200);
   // ここから、担当者の返事の分類を「値下げの要求」に差し替える
   await p.route('**/api/ai/rep', async route => { const r = await route.fetch(); const j = await r.json(); j.data.pressure = 'discount'; route.fulfill({ response: r, json: j }); });
@@ -31,7 +31,7 @@ const BASE = process.argv[2] || 'http://localhost:8787';
   console.log('前:', JSON.stringify(before), '後:', JSON.stringify(after));
   // そのまま最後まで（レポートまで遊べるか）
   await p.unroute('**/api/ai/rep');
-  await click('[data-act=toBuild]'); await click('[data-act=startBuild]');
+  await click('[data-act=elecOk]'); await click('[data-act=toBuild]'); await click('[data-act=startBuild]');
   await p.waitForFunction(() => YUKU.state.scene === 'handover', null, { timeout: 20000 }); await p.waitForTimeout(4200);
   await click('[data-act=toSeasons]'); await p.waitForFunction(() => YUKU.state.scene === 'result', null, { timeout: 8000 });
   await click('[data-act=toYear]'); await p.waitForTimeout(1200); await p.screenshot({ path: 'out/acceptance/WS-year.png' });

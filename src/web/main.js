@@ -2,7 +2,7 @@
  * 出来事の記録（イベント）を基本にする：操作もClaudeの応答も1件のイベントとして積み、状態はイベントから組み立てる。
  * 再生（?replay=記録ID）は、同じイベントを順に当て直すだけ。Claudeは呼ばない。 */
 import * as Y from './engine/engine.js';
-import { SCENES, snsHTML, myaiHTML, worldHTML, flyersHTML, phoneHTML, showHTML, setWho, setNames, MODE, SWITCH } from './scenes.js';
+import { SCENES, snsHTML, myaiHTML, worldHTML, flyersHTML, phoneHTML, showHTML, setWho, setNames, MODE, SWITCH, navOf } from './scenes.js';
 import { ACTIONS } from './actions.js';
 import { addNotes, syncHeard, wishesOf } from './memory.js';
 
@@ -92,6 +92,7 @@ export function apply(s, e) {
       break;
     }
     case 'world': s.player = Y.newWorld({ household: Y.HOUSEHOLDS[s.household], seed: s.seed, company: s.pair[0] }); s.others = []; break;
+    case 'elecOk': s.elecOk = true; break;
     case 'pendingSide': s.pendingSide = e.side; s.pendingLabel = e.label || null; break;
     case 'fork': {
       const d = D(s).find(x => x.id === e.decisionId);
@@ -206,7 +207,24 @@ export function render() {
   // 会話の欄は最新が見えるよう下へ。フォームや書類の欄（data-top）は上から（人間の指摘11/5：入力画面が一番下から始まっていた）
   view.querySelectorAll('.chat .log:not([data-top]), .el-right .log').forEach(log => { log.scrollTop = log.scrollHeight; });
   countUp(view);
+  navBand();
   if (SCENES[S.scene + '_after']) SCENES[S.scene + '_after'](S);
+}
+// 進行の帯（UI_NAV_SYSTEM）：右下に固定。「進む」は1つだけ。押せるようになった瞬間に一度だけ脈打つ
+const NAVPREV = { key: '', off: true };
+const escN = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+function navBand() {
+  let el = document.getElementById('nav');
+  if (!el) { el = document.createElement('div'); el.id = 'nav'; stage.appendChild(el); }
+  const n = navOf(S);
+  stage.classList.toggle('hasnav', !!n);
+  if (!n) { el.innerHTML = ''; return; }
+  const g = n.go, key = `${S.scene}-${S.forkNo}-${S.cur}`;
+  const pulse = g && !g.off && NAVPREV.key === key && NAVPREV.off;
+  NAVPREV.key = key; NAVPREV.off = !g || !!g.off;
+  const todo = g && g.ready && !g.off ? '準備ができました。次へ進みましょう' : n.todo;
+  el.innerHTML = `${n.back ? `<button class="nav-back" data-act="${n.back.act}">${escN(n.back.label)}</button>` : ''}<div class="nav-todo">${escN(todo)}</div>
+    ${g ? `<div class="nav-go">${g.off && g.why ? `<span class="nav-why">${escN(g.why)}</span>` : ''}<button class="go ${pulse ? 'pulse' : ''}" data-act="${g.act}" ${g.off ? 'disabled' : ''}>${escN(g.label)}</button></div>` : ''}`;
 }
 // お金の札：前の表示から新しい値まで、数え上がる（動画の書き出しと再生では動かさない）
 const MONEY_PREV = [];

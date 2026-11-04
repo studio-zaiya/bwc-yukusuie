@@ -2,7 +2,7 @@
  * Claudeが応答できなかったときは、代わりの文で成功したように見せず、「応答できませんでした（もう一度）」を出す */
 import * as Y from './engine/engine.js';
 import { S, emit, api, render } from './main.js';
-import { busy, setWho, getWho, persona, DATA, PHONE, SHOW, NAMES, unkept, FORK_DONE, dataReady, SV, SWITCH } from './scenes.js';
+import { busy, setWho, getWho, persona, DATA, PHONE, SHOW, NAMES, unkept, FORK_DONE, dataReady, SV, SWITCH, PICK, pickKey } from './scenes.js';
 import { buildMemory, deliver, addItem, memoryText, conflictsOf, slotValuesOf } from './memory.js';
 import { setFace } from './parts.js';
 
@@ -218,8 +218,11 @@ export const ACTIONS = {
   toFork1() { if (!S.player) { emit('pair', { pair: S.visit }); emit('world', {}); } goto('fork', 2); },
   // 札を押したら、パートナーが理由を聞く（任意）。理由は決断の記憶になり、レポートで使う
   // 札を押したら、そのまま決まる（理由は聞かない。FLOW_v3 の6）。選んだ札が残り、もう一方が下の列へ飛ぶ
-  async pickSide(d) {
-    if (S.pendingSide) return;
+  // 札を押すと選んだ状態になり、右下の「この道で進む ▶」で決まる（UI_NAV_SYSTEM の3）。選び直してよい
+  pickSide(d) { if (S.pendingSide || S.autoFork) return; PICK.key = pickKey(S); PICK.side = PICK.side === d.side ? null : d.side; render(); },
+  async goSide() {
+    if (S.pendingSide || PICK.key !== pickKey(S) || !PICK.side) return;
+    const d = { side: PICK.side }; PICK.side = null;
     const dec = Y.decisions(S.pair)[S.forkNo]; const o = dec[d.side];
     emit('pendingSide', { side: d.side, label: typeof o.label === 'function' ? o.label(S.player) : o.label });
     await new Promise(r => setTimeout(r, 900));
@@ -294,7 +297,8 @@ export const ACTIONS = {
     if (ev.length) emit('say', { who: 'sys', ch: 'elec', text: `根拠：${ev.map(x => `「${x.text}」は${{ survey: 'アンケートに書いていた', message: '帰り道にメッセージで送っていた', followUp: '打ち合わせで話していた', partner: '打ち合わせで話していた', summary: '打ち合わせで話していた', show: '写真で見せていた' }[x.source] || '伝えていた'}`).join('／')}` });
     faceTalk();
   },
-  toBuild() { goto('build', 7); },
+  elecOk() { emit('elecOk', {}); },
+  toBuild() { if (!S.elecOk) return; goto('build', 7); },
   // S6：着工すると、上棟・施主検査・引渡しまで自動で進み、白いフェードで引渡し式へ
   async startBuild() {
     emit('buildAuto', {});

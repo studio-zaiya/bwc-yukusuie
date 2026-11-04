@@ -31,7 +31,7 @@ const OUT = process.env.OUT || 'out/shots';
     // 来場者アンケート：1画面1問。複数選べる問いは最初の札と「つぎへ」、ほかは最初の札
     for (let k = 0; k < 30 && await p.evaluate(() => YUKU.state.scene === 'survey'); k++) {
       if (k === 5) await shot('survey-mid');
-      if (await p.$('[data-act=svNext]')) { await p.click('.sv-o:not(.nopref)'); await p.click('[data-act=svNext]'); } else { await p.click('.sv-o:not(.nopref)'); await p.waitForTimeout(260); }
+      if (await p.$('[data-act=svNext]:not([disabled])')) { await p.click('.sv-o:not(.nopref)'); await p.click('[data-act=svNext]'); } else { await p.click('.sv-o:not(.nopref)'); await p.waitForTimeout(260); }
       await p.waitForTimeout(120);
     }
     await idle(); await p.waitForTimeout(300); await shot('summary');
@@ -49,15 +49,15 @@ const OUT = process.env.OUT || 'out/shots';
     await click('[data-act=toCompare]'); await p.waitForTimeout(500); await shot('proposal-wait');
     await p.waitForSelector('[data-act=toFork1]:not([disabled])', { timeout: 150000 }); await p.waitForTimeout(400); await shot('proposal');
     await click('[data-act=toFork1]'); await p.waitForTimeout(300); await shot('fork1-intro'); await p.waitForTimeout(1500); await shot('fork1');
-    await click('[data-act=pickSide][data-side=a]'); await p.waitForTimeout(300); await shot('fork1-picked'); await p.waitForTimeout(1200); await shot('fork1-done'); await p.waitForTimeout(3300); await shot('fork2');
+    await click('[data-act=pickSide][data-side=a]'); await click('[data-act=goSide]'); await p.waitForTimeout(300); await shot('fork1-picked'); await p.waitForTimeout(1200); await shot('fork1-done'); await p.waitForTimeout(3300); await shot('fork2');
     await click('[data-act=openPop][data-pop=ai]'); await p.fill('#aiq', '階段はリビングの中と廊下、どっちがいい？'); await click('[data-act=askAI]'); await p.waitForTimeout(1500); await shot('myai'); await click('.close');
-    await click('[data-act=pickSide][data-side=b]'); await p.waitForTimeout(4800); await shot('fork3');
+    await click('[data-act=pickSide][data-side=b]'); await click('[data-act=goSide]'); await p.waitForTimeout(4800); await shot('fork3');
     await say('借入を少し増やして、南の大きな窓だけトリプルガラスにしたい', 'freeAnswer'); await shot('fork3-trade');
     await click('[data-act=approve]'); await p.waitForTimeout(1900); await shot('contract');
     await click('[data-act=toCoord]'); await click('[data-act=finish][data-k=wall][data-v=galva]'); await click('[data-act=finish][data-k=color][data-v="1"]'); await shot('coord');
     await click('[data-act=decideCoord]'); await p.waitForTimeout(800); await shot('fork4-auto'); await p.waitForTimeout(3200);
     await say('リビングのエアコンは見えないようにしたいと伝えていたはずです', 'sendElectric'); await shot('electric');
-    await click('[data-act=toBuild]'); await shot('build'); await click('[data-act=startBuild]'); await p.waitForTimeout(2000); await shot('build2');
+    await click('[data-act=elecOk]'); await click('[data-act=toBuild]'); await shot('build'); await click('[data-act=startBuild]'); await p.waitForTimeout(2000); await shot('build2');
     await p.waitForFunction(() => YUKU.state.scene === 'handover', null, { timeout: 15000 }); await p.waitForTimeout(400); await shot('handover-fade'); await p.waitForTimeout(3800); await shot('handover');
     await click('[data-act=toSeasons]'); await p.waitForTimeout(2200); await shot('seasons'); await p.waitForFunction(() => YUKU.state.scene === 'result', null, { timeout: 8000 }); await shot('result');
     await click('[data-act=toYear]'); await p.waitForTimeout(1200); await shot('year');
