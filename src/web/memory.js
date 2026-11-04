@@ -103,3 +103,20 @@ export function syncHeard(s) {
 }
 export const itemsForBoard = m => (m?.items || []);
 export { WHO_IN };
+
+// 担当者の差し込み枠の値（docs/REP_TRAINING_NEXT.md の1）：その場面のエンジンの状態から、文字列で。値がないものは入れない（枠を使えば作り直し）
+const man = n => Math.round(Number(n)).toLocaleString('ja-JP');
+export function slotValuesOf(s, co) {
+  const w = s.player && (!co || s.player.company === co) ? s.player : Y.newWorld({ household: Y.HOUSEHOLDS[s.household] || Y.HOUSEHOLDS.t2, company: co || s.cur || 'C' });
+  const m = Y.money(w), pay = Y.payment(m.loan, Y.RATE.variable), v = {};
+  v.総額 = `${man(m.total)}万円`;
+  if (m.building) v.本体 = `${man(m.building)}万円`;
+  const tw = (s.wishes || []).find(x => x.kind === 'totalMax'), mw = (s.wishes || []).find(x => x.kind === 'monthlyMax');
+  if (tw && m.total - tw.value > 0) v.希望との差 = `${man(m.total - tw.value)}万円`;
+  v.月々 = `約${pay.toFixed(1)}万円`;
+  if (mw && pay - mw.value > 0.05) v.月々の希望との差 = `約${(pay - mw.value).toFixed(1)}万円`;
+  v.延床 = `${w.spec.tsubo}坪`;
+  const sc = Y.scheduleOf(w); if (sc && sc[10] != null) { const now = sc[Math.min(s.step || 0, 10)] || 0; if (sc[10] - now > 0) v.引渡しまでの日数 = `約${sc[10] - now}日`; }
+  if (m.add > 0) v.追加の額 = `${man(m.add)}万円`;
+  return v;
+}

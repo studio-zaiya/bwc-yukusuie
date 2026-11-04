@@ -421,33 +421,37 @@ export const eventDelay = w => incidents(w).reduce((s, e) => s + (e.delay || 0),
 export function outcome(w, opts = {}) {
   const h = householdOf(w), no = worldNo(w.bits);
   const skill = rng((w.seed ?? 7) * 31 + no)();
-  const inc = incidents(w);
+  const inc = w.unbuilt ? [] : incidents(w);
   const increase = inc.reduce((s, e) => s + (e.amount || 0), 0);
   const events = inc.map(e => e.text + (e.amount ? `（+${e.amount}万円）` : ''));
-  if (w.spec.exterior !== 'full') events.push('玄関前は砂利のまま。冬の朝、霜取りに5分');
+  if (w.unbuilt) events.push('この世界では、家は建ちませんでした');
+  else if (w.spec.exterior !== 'full') events.push('玄関前は砂利のまま。冬の朝、霜取りに5分');
   const wm = warmth(w.spec, w.company);
   if (wm.level <= 1) events.push('2月の朝、足元が冷たい');
   if (wm.level >= 3 && w.spec.window === 'triple') events.push('南の窓辺が、冬でもいちばんの居場所');
   const m = money({ ...w, adds: [...w.adds, ...(increase ? [{ label: '契約後の増額', v: increase }] : [])] });
   const sl = slack(h, m.loan);
   const days = scheduleOf(w)[10];
-  return { no, bits: w.bits, labels: w.labels, company: w.company, spec: w.spec, finish: w.finish, money: m, total: m.total, principal: m.loan, increase, choiceTotal: round(m.total - increase, 1), causes: inc, warmth: wm, slack: sl, days, events, third: w.third, skill: round(skill, 2) };
+  return { no, bits: w.bits, labels: w.labels, company: w.company, spec: w.spec, finish: w.finish, money: m, total: m.total, principal: m.loan, increase, choiceTotal: round(m.total - increase, 1), causes: inc, warmth: wm, slack: sl, days, events, unbuilt: w.unbuilt || null, third: w.third, skill: round(skill, 2) };
 }
 
 // 世界線の呼び名と教訓：4つの選択（会社・外形・外構・仕上げ）から、決まりで組み立てる（16の名前は必ず別になる）
 const CO_PRE = { A: '大手の', B: '規格の', C: '設計者の', D: '地元の' };
 const ROOF_NOUN = { hip: '寄棟', gable: '切妻', mane: '招き屋根', cube: 'キューブ', flat: '箱の家' };
 export function worldName(o) {
+  if (o.unbuilt) return 'この世界では、家は建ちませんでした。';
   const full = o.spec.exterior === 'full', up = finishCost(o.finish) > 0;
   const adj = full && up ? '庭も仕上げも整えた' : full ? '庭から先に整えた' : up ? '庭より仕上げを選んだ' : '身軽に建てた';
   return `${adj}、${CO_PRE[o.company] || ''}${ROOF_NOUN[o.spec.roof] || '家'}。`;
 }
 // 世界線のカードのひとこと（8字前後）：詳しい経路は、押したときの世界樹で
 export function worldShort(o) {
+  if (o.unbuilt) return '建たなかった';
   const full = o.spec.exterior === 'full', up = finishCost(o.finish) > 0;
   return full && up ? '庭も仕上げも' : full ? '庭から整えた' : up ? '仕上げを選んだ' : '身軽に建てた';
 }
 export function worldLesson(o, me) {
+  if (o.unbuilt) return 'どこまでなら、お互いに気持ちよく進められたか';
   if (!me || o.no === me.no) return 'あなたが選んだ世界';
   if ((o.causes || []).length && o.causes[0].lesson) return o.causes[0].lesson;
   const i = o.bits.findIndex((b, k) => b !== me.bits[k]);
@@ -499,3 +503,17 @@ export function createLog(seed = []) {
 
 export const YKS = { worldName, worldLesson, ROOM_SIZES, JO, PLAN_FORMS, planMetrics, applyPlan, measurePlan, incidents, eventDelay, checkWishes, ROOF_JA, pitched, UA, ELECTRIC_WORDS, electricOf, missedPolicy, fitBudget, VERSION, TSUBO, HOUSEHOLDS, monthlyTakeHome, RATE, payment, loanLimit, loanCheck, SITE, landCost, coverageCheck, COMPANIES, COMMON, FINISH, ELECTRIC, finishCost, electricCost, baseSpec, SPEC_SCHEMA, quote, warmth, slack, DEADLINE, STEPS, scheduleOf, schedule, newWorld, forkWorld, money, FORKS, decisions, DECISIONS, choose, contract, branchAll, worldNo, normalizeProposal, TOOLS, simulate, outcome, allWorlds, createLog, rng, round, hashStr };
 export default YKS;
+
+// 断られたら、別の世界線へ（docs/WORLD_SWITCH.md の4）：移る先は、すでにある世界から（新しい世界は作らない）
+// discount → 同じ工程まで進んでいて、いちばん総額の安い世界。overSpec → こだわりの会社（C）の世界、なければいちばん高い世界。同じなら、もとの世界にいちばん近い世界
+export function switchTarget(player, others, kind = 'discount') {
+  const all = others.filter(w => !w.unbuilt && w.bits.length === player.bits.length);
+  if (!all.length) return null;
+  // 断った会社とは別の会社の世界を優先する（同じ会社の、仕上げだけ違う世界へ移っても、話が続かない）
+  const other = all.filter(w => w.company !== player.company), cands = other.length ? other : all;
+  const diff = w => w.bits.reduce((a, b, i) => a + (b !== player.bits[i] ? 1 : 0), 0);
+  const tot = w => money(w).total;
+  let pool = cands;
+  if (kind === 'overSpec') { const c = cands.filter(w => w.company === 'C' && w.company !== player.company); pool = c.length ? c : cands; return pool.sort((a, b) => tot(b) - tot(a) || diff(a) - diff(b))[0]; }
+  return pool.sort((a, b) => tot(a) - tot(b) || diff(a) - diff(b))[0];
+}

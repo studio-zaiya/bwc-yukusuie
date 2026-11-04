@@ -2,8 +2,8 @@
  * Claudeが応答できなかったときは、代わりの文で成功したように見せず、「応答できませんでした（もう一度）」を出す */
 import * as Y from './engine/engine.js';
 import { S, emit, api, render } from './main.js';
-import { busy, setWho, getWho, persona, DATA, PHONE, SHOW, NAMES, unkept, FORK_DONE, dataReady, SV } from './scenes.js';
-import { buildMemory, deliver, addItem, memoryText, conflictsOf } from './memory.js';
+import { busy, setWho, getWho, persona, DATA, PHONE, SHOW, NAMES, unkept, FORK_DONE, dataReady, SV, SWITCH } from './scenes.js';
+import { buildMemory, deliver, addItem, memoryText, conflictsOf, slotValuesOf } from './memory.js';
 import { setFace } from './parts.js';
 import { tourNext, tourSkip, tourHelp } from './tour.js';
 
@@ -31,12 +31,51 @@ async function askStaff({ co, ch, scene, text, flag, history = true, phase }) {
   await withBusy(async () => {
     const hist = history ? S.chat.filter(m => m.ch === ch && m.who !== 'sys').map(m => ({ who: m.who === 'staff' ? '担当者' : nameOf(m.who === 'partner' ? 'yuu' : m.who), text: m.text })) : [];
     const memory = S.memory && DATA.survey ? memoryText(DATA.survey, S.memory, co, S.names) : requests();
-    let r = await api('/api/ai/rep', { company: co, phase: ph, history: hist, text, names: S.names, memory, extra: scene || '' });
+    const body = { company: co, phase: ph, history: hist, text, names: S.names, memory, extra: scene || '', slotValues: slotValuesOf(S, co) };
+    let r = await api('/api/ai/rep', body);
     // 応答できなかったときは、自動で1回だけ送り直す（受け入れ基準0-5）。それでもだめなら、決まり文句で続ける（Worker側）
-    if (isRealFail(r.call)) r = await api('/api/ai/rep', { company: co, phase: ph, history: hist, text, names: S.names, memory, extra: scene || '' });
-    emit('ai', { role: 'rep', co, ch, phase: ph, data: r.data, call: r.call, flag });
+    if (isRealFail(r.call)) r = await api('/api/ai/rep', body);
+    // 信頼の残り：値下げ・予算に合わないこだわり・実現できない要求は、会社の性格（patience）の重みで数える。段階はコードが決める
+    const pr = r.data.pressure || 'none', t = S.trust[co] || { strikes: 0, stage: 0, offTopic: 0 };
+    const weight = ['discount', 'overSpec', 'unreasonable'].includes(pr) ? (DATA.harness?.companies?.[co]?.patience?.[pr] ?? 1) : 0;
+    const strikes = t.strikes + weight, stage = strikes >= 4 ? 3 : strikes >= 3 ? 2 : strikes >= 2 ? 1 : 0;
+    const data = { ...r.data };
+    if (weight && stage > t.stage) { data.line = STAGE_LINE[stage](pr); data.say = data.line; data.ask = null; data.notes = []; }
+    emit('ai', { role: 'rep', co, ch, phase: ph, data, call: r.call, flag, weight, stage });
     faceTalk();
+    pendingRefuse = weight && stage === 3 && t.stage < 3 ? { co, kind: pr } : null;
+    // 役を壊そうとする入力が3回続いたら、打ち合わせを区切る（世界は移さない。信頼は減らさない）
+    if (pr === 'offTopic' && (S.trust[co]?.offTopic || 0) >= 3 && S.scene === 'hearing') closeMeeting(co);
   });
+  if (pendingRefuse) { const p = pendingRefuse; pendingRefuse = null; await refuseAndSwitch(p.co, p.kind); }
+}
+// 3段階の言葉（決まった文。WORLD_SWITCH.md の3）
+const STAGE_LINE = {
+  1: k => ({ discount: 'お気持ちはわかりますが、これ以上の値引きは難しいんです。', overSpec: 'そのご要望をすべて入れると、ご予算の中では難しいんです。', unreasonable: '申し訳ありませんが、それは私どもでは実現が難しいんです。' }[k] || 'お気持ちはわかりますが、そこは難しいんです。'),
+  2: () => 'このままですと、ご期待に沿えないかもしれません。',
+  3: () => '申し訳ありませんが、弊社ではご対応いたしかねます。',
+};
+let pendingRefuse = null;
+// 断られた：ナレーションの帯 → すでにある別の世界線へ移る。第一の分岐点の前なら、もう1社と進む
+async function refuseAndSwitch(co, kind) {
+  await new Promise(r => setTimeout(r, 1400));
+  SWITCH.on = true; SWITCH.lines = ['この世界では、話はここで終わりました。', 'そのころ、別の世界では——']; SWITCH.i = 0; render();
+  await new Promise(r => setTimeout(r, 1900)); SWITCH.i = 1; render();
+  await new Promise(r => setTimeout(r, 1900)); SWITCH.on = false;
+  if (!S.player || !S.others.length) {
+    // まだ世界が1つ：この会社とは話が終わり、第一の分岐点では、訪ねたもう1社と進む
+    emit('refused', { co, kind });
+    emit('say', { who: 'sys', ch: co, text: `${Y.COMPANIES[co].name}とは、ここで話が終わった` });
+    if (S.scene === 'hearing' && S.visit[0] === co) await ACTIONS.toSecond();
+    else if (S.scene === 'hearing') ACTIONS.toCompare();
+    else render();
+    return;
+  }
+  const to = Y.switchTarget(S.player, S.others, kind);
+  if (!to) { emit('refused', { co, kind }); render(); return; }
+  emit('jump', { to: to.bits.join(''), kind });
+  emit('say', { who: 'sys', ch: S.player.company, text: `${Y.COMPANIES[S.player.company].name}と建てている世界で、続きから` });
+  if (S.scene === 'plan') { emit('planReset', {}); await planCall(''); } else render();
 }
 const requests = () => [S.survey ? `アンケート：${JSON.stringify(S.survey)}` : '', S.entry.text ? `最初に書いた思い：${S.entry.text}` : '', S.entryRead?.summary ? `入口で読み取った要望：${S.entryRead.summary}` : ''].filter(Boolean).join('。');
 

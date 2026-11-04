@@ -2,7 +2,7 @@
  * 出来事の記録（イベント）を基本にする：操作もClaudeの応答も1件のイベントとして積み、状態はイベントから組み立てる。
  * 再生（?replay=記録ID）は、同じイベントを順に当て直すだけ。Claudeは呼ばない。 */
 import * as Y from './engine/engine.js';
-import { SCENES, snsHTML, myaiHTML, worldHTML, flyersHTML, phoneHTML, showHTML, setWho, setNames, MODE } from './scenes.js';
+import { SCENES, snsHTML, myaiHTML, worldHTML, flyersHTML, phoneHTML, showHTML, setWho, setNames, MODE, SWITCH } from './scenes.js';
 import { ACTIONS } from './actions.js';
 import { tourAfterRender, tourHTML } from './tour.js';
 import { addNotes, syncHeard, wishesOf } from './memory.js';
@@ -25,6 +25,7 @@ export function initialState() {
     aiLeft: {}, pop: null, myai: null, report: null, staff16: null, tab: null,
     lot: null, savedId: null, toast: null, buildAuto: false, rtab: 'home', plan: null, planRound: 0,
     memory: null, sv: { i: 0, who: 'p1', p1: {}, p2: {}, last: null }, partnerAns: null, meet: {},
+    trust: {}, refused: null, switched: null,
   };
 }
 export let S = initialState();
@@ -74,6 +75,9 @@ export function apply(s, e) {
         s.chat.push({ who: 'staff', co: e.co, ch: e.ch || e.co, text: e.data.line, mock, flag: e.flag, stock: !!e.data.stock });
         if (s.memory && e.phase !== 'confirm') { addNotes(s.memory, e.co, e.data.notes || [], e.phase === 'summary' ? 'summary' : 'followUp'); for (const d of e.data.deferred || []) if (!s.memory.deferred.some(x => x.text === d)) s.memory.deferred.push({ text: d, by: e.co, line: 'メモしておきます' }); if (e.phase === 'summary') s.memory.summaryByCompany[e.co] = e.data.say; syncHeard(s); }
         s.turns[e.ch || e.co] = (s.turns[e.ch || e.co] || 0) + 1;
+        // 信頼の残り（WORLD_SWITCH.md の3）：重みと段階は、操作の側で会社の性格から決めて、出来事に載せる
+        const t = s.trust[e.co] || { strikes: 0, stage: 0, offTopic: 0 };
+        s.trust[e.co] = { strikes: t.strikes + (e.weight || 0), stage: Math.max(t.stage, e.stage || 0), offTopic: e.data.pressure === 'offTopic' ? t.offTopic + 1 : 0 };
       }
       if (e.role === 'partnerSurvey') s.partnerAns = Object.fromEntries((e.data.answers || []).map(a => [a.q, a.choices]));
       if (e.role === 'myai') { s.myai = { q: e.q, scene: e.scene, mock, ...e.data }; s.aiLeft[s.scene] = 0; }
@@ -108,6 +112,15 @@ export function apply(s, e) {
     case 'svAns': s.sv[e.who][e.q] = e.ids; s.sv.last = { q: e.q, who: e.who }; break;
     case 'svGo': s.sv.i = e.i; s.sv.who = e.who || 'p1'; break;
     case 'mem': s.memory = structuredClone(e.memory); syncHeard(s); for (const w of wishesOf(s.memory)) { const i = s.wishes.findIndex(x => x.kind === w.kind); if (i >= 0) s.wishes[i] = w; else s.wishes.push(w); } break;
+    // 断られたら、別の世界線へ：もとの世界に印を付けて残し、すでにある世界に操作を移す（新しい世界は作らない）
+    case 'planReset': s.plan = null; s.planRound = 0; break;
+    case 'refused': s.refused = { co: e.co, kind: e.kind, step: s.step }; break;
+    case 'jump': {
+      const i = s.others.findIndex(w => w.bits.join('') === e.to); if (i < 0) break;
+      const old = s.player; old.unbuilt = { kind: e.kind, co: old.company, step: s.step };
+      s.player = s.others[i]; s.others[i] = old; s.switched = { from: old.bits.join(''), to: e.to, kind: e.kind, co: old.company, step: s.step };
+      break;
+    }
     case 'meet': s.meet[e.co] = { ...(s.meet[e.co] || {}), ...e.data }; break;
     case 'electric': s.elecFresh = e.contract ? [] : e.ids; s.player.electric = [...new Set([...s.player.electric, ...e.ids])]; s.player.adds.push(...(e.adj || [])); if (e.contract) s.player.contractOpts = [...new Set([...(s.player.contractOpts || []), ...e.ids])]; break;
     case 'pop': s.pop = e.pop; break;
@@ -183,7 +196,7 @@ export function render() {
   const fn = SCENES[S.scene] || SCENES.start;
   const view = document.getElementById('view');
   const keep = [...view.querySelectorAll('[data-keep]')].map(el => ({ id: el.id, v: el.value }));
-  view.innerHTML = fn(S) + popHTML() + (S.toast ? `<div class="toast">${S.toast}</div>` : '') + (RT.replaying ? `<div class="replaybar">実際のプレイの記録を再生しています</div>` : '') + (REC || RT.replaying || S.scene === 'start' ? '' : `<button class="help" data-act="help" title="操作の案内">？</button>`) + tourHTML(S);
+  view.innerHTML = fn(S) + (SWITCH.on ? `<div class="wswitch"><p>${SWITCH.lines[SWITCH.i] || ''}</p></div>` : '') + popHTML() + (S.toast ? `<div class="toast">${S.toast}</div>` : '') + (RT.replaying ? `<div class="replaybar">実際のプレイの記録を再生しています</div>` : '') + (REC || RT.replaying || S.scene === 'start' ? '' : `<button class="help" data-act="help" title="操作の案内">？</button>`) + tourHTML(S);
   for (const k of keep) { const el = document.getElementById(k.id); if (el && !el.value) el.value = k.v; }
   view.querySelectorAll('.chat .log, .el-right .log').forEach(log => { log.scrollTop = log.scrollHeight; });
   countUp(view);

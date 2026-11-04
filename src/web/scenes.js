@@ -18,6 +18,8 @@ const chOf = s => s.player ? s.player.company : s.cur;
 // ---- データ（情報収集、SNS）----
 // アンケートの、確定前の選択（複数選べる問い）と、押した札の沈み（0.2秒）
 export const SV = { sel: [], pressed: null };
+// 断られたあとのナレーションの帯（WORLD_SWITCH.md の5）
+export const SWITCH = { on: false, lines: [], i: 0 };
 export const DATA = { sources: null, sns: null, personas: null, electrical: null, ai: null, brochures: null, survey: null, harness: null };
 // 中身の素材集（data/content。期間中に claude.ai で作成）
 for (const [k, f] of [['sources', 'info_sources'], ['sns', 'sns_posts'], ['personas', 'personas'], ['electrical', 'electrical'], ['ai', 'ai_assistant'], ['brochures', 'brochures'], ['survey', 'survey'], ['harness', 'rep_harness']]) fetch(`/data/content/${f}.json`).then(r => r.json()).then(j => { DATA[k] = j; }).catch(() => {});
@@ -112,12 +114,12 @@ function gallery(s) {
   const list = [...s.others].sort((a, b) => full ? dno(s, a) - dno(s, b) : a.bits.join('').localeCompare(b.bits.join('')));
   const cols = Math.max(list.length, 5);
   return `<div class="galT"><b>選ばれなかった世界線</b><span>${list.length}</span></div><div class="gal" style="grid-template-columns:repeat(${cols},1fr)">${list.map(w => {
-    const st = stepOf(w, s.step), stage = stageOf(st);
-    const x = { w: { ...w, no: hb(w) % 8 }, stage, ghost: st >= 2 && st < 7 ? +(0.35 + (st - 2) / 5 * 0.45).toFixed(2) : 0 };
+    const st = stepOf(w, s.step), stage = w.unbuilt ? 0 : stageOf(st);
+    const x = { w: { ...w, no: hb(w) % 8 }, stage, ghost: w.unbuilt ? 0 : st >= 2 && st < 7 ? +(0.35 + (st - 2) / 5 * 0.45).toFixed(2) : 0 };
     const short = full ? Y.worldShort(Y.outcome(w)) : esc(shortName(w));
     // 15枚がそろったら：番号・会社の印・家の絵・ひとことだけ。押すと世界樹で、その世界の経路をたどる
-    if (full) return `<button class="th th15 ${s.newest.includes(w.bits.join('')) ? 'new' : ''}" data-act="toTree" data-no="${dno(s, w)}" title="押すと、この世界の経路を世界樹でたどる"><div class="thd"><span>${pad(dno(s, w))}</span>${P.coTag(w.company, 18)}</div>${P.thumb(x)}<div class="tnm big">${short}</div><div class="bar"><i style="width:${Math.round(st / 11 * 100)}%"></i></div></button>`;
-    return `<div class="th ${s.newest.includes(w.bits.join('')) ? 'new' : ''}"><div class="thd"><span></span>${P.coTag(w.company, 18)}</div>${P.thumb(x)}<div class="tnm big">${short}</div><div class="tnt">${noteOf(w, st)}</div><div class="bar"><i style="width:${Math.round(st / 11 * 100)}%"></i></div></div>`;
+    if (full) return `<button class="th th15 ${w.unbuilt ? 'unbuilt' : ''} ${s.newest.includes(w.bits.join('')) ? 'new' : ''}" data-act="toTree" data-no="${dno(s, w)}" title="押すと、この世界の経路を世界樹でたどる"><div class="thd"><span>${pad(dno(s, w))}</span>${P.coTag(w.company, 18)}</div>${P.thumb(x)}<div class="tnm big">${short}</div><div class="bar"><i style="width:${Math.round(st / 11 * 100)}%"></i></div></button>`;
+    return `<div class="th ${w.unbuilt ? 'unbuilt' : ''} ${s.newest.includes(w.bits.join('')) ? 'new' : ''}"><div class="thd"><span></span>${P.coTag(w.company, 18)}</div>${P.thumb(x)}<div class="tnm big">${short}</div><div class="tnt">${noteOf(w, st)}</div><div class="bar"><i style="width:${Math.round(st / 11 * 100)}%"></i></div></div>`;
   }).join('')}</div>`;
 }
 const tall = s => s.others.length ? '' : 'tall';
@@ -358,7 +360,7 @@ export const SCENES = {
     const quick = !busy.on && !mt.ended ? ['おまかせします', 'あとで考えます'].map(t => `<button class="opt ch" data-act="choose" data-t="${t}">${t}</button>`).join('') + `<button class="opt" data-act="openShow">写真やURLを見せる</button>` : '';
     const end = mt.ended ? `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="${second ? 'toCompare' : 'toForgot'}" ${busy.on ? 'disabled' : ''}>${second ? '打ち合わせを終えて、提案を待つ' : '打ち合わせを終えて、帰宅する'}</button>`
       : canEnd ? `<button class="opt" data-act="endMeeting">今日はこのあたりで</button>` : `<span class="note" style="align-self:center">${busy.on ? '担当者の返事を待っています' : `あと${Math.max(0, 2 - mt.rounds)}往復で、区切れます`}</span>`;
-    return `${chrome(s)}${hero(s, boardHTML(s), 'withboard')}<div class="right ${tall(s)}">${chat(s, { ch: co, head: staffHead(co, busy.on ? 'think' : 'idle', second ? '2社目' : '1社目') + clock, opts: quick + end, thinking: busy.on, placeholder: mt.ended ? '今日の打ち合わせは終わりました' : '担当者に答える・補足する' })}</div>${gallery(s)}`;
+    return `${chrome(s)}${hero(s, boardHTML(s), 'withboard')}<div class="right ${tall(s)}">${chat(s, { ch: co, head: staffHead(co, busy.on || (s.trust[co]?.stage || 0) >= 2 ? 'think' : 'idle', second ? '2社目' : '1社目') + clock, opts: quick + end, thinking: busy.on, placeholder: mt.ended ? '今日の打ち合わせは終わりました' : '担当者に答える・補足する' })}</div>${gallery(s)}`;
   },
   forgot(s) {
     const co = s.visit[0];
@@ -416,7 +418,9 @@ export const SCENES = {
         <div class="rt-in"><textarea id="say" rows="2" data-keep data-enter="decideWhy" placeholder="理由を書く（書かなくても進めます）"></textarea><button class="big-btn" data-act="decideWhy">理由を伝える</button><button class="big-btn ghost" data-act="decideNoWhy">言わずに進む</button></div>
         <button class="linkbtn" data-act="unpick">札を選びなおす</button></div>`;
     } else {
-      body = `<div class="rt-cards"><button class="rt-card" data-act="pickSide" data-side="a">${card('a')}</button><button class="rt-card" data-act="pickSide" data-side="b">${card('b')}</button></div>
+      const refusedSide = side0 => { if (!s.refused || d.id !== 'D1') return false; const t = Y.forkWorld(w); Y.choose(t, d, side0); return t.company === s.refused.co; };
+      const btn = side0 => refusedSide(side0) ? `<div class="rt-card off">${card(side0)}<div class="rt-off">この会社とは、話が終わりました</div></div>` : `<button class="rt-card" data-act="pickSide" data-side="${side0}">${card(side0)}</button>`;
+      body = `<div class="rt-cards">${btn('a')}${btn('b')}</div>
         <div class="rt-in free">${whoSw()}<textarea id="say" rows="2" data-keep data-enter="freeAnswer" placeholder="${d.id === 'D3' ? '札を押すか、自分の言葉で答える（例：借入を少し増やして、南の大きな窓だけトリプルガラスにしたい）' : '札を押すか、自分の言葉で答える'}"></textarea><button class="btn" data-act="freeAnswer">送る</button></div>
         <div class="rt-navs">${navs(s)}</div>${busy.on ? '<div class="msg typing" style="margin:8px auto 0;max-width:600px">考えています……</div>' : ''}`;
     }
@@ -528,7 +532,7 @@ export const SCENES = {
   year(s) {
     const all = [s.player, ...s.others].map(w => ({ w, o: Y.outcome(w), n: dno(s, w) })).sort((a, b) => a.n - b.n);
     P.setYou(YOU);
-    const list = all.map(({ w, n }) => ({ w: { ...w, no: n }, stage: 4, ghost: 0, note: '' }));
+    const list = all.map(({ w, n }) => ({ w: { ...w, no: n }, stage: w.unbuilt ? 0 : 4, ghost: 0, note: '' }));
     const cur = s.lot || YOU;
     const sel = all.find(x => x.n === cur) || all.find(x => x.n === YOU);
     const o = sel.o, mine = sel.n === YOU;
@@ -577,7 +581,7 @@ export const SCENES = {
     }
     if (tab === 'worlds') { const ws = [s.player, ...s.others].map(w => ({ w, o: Y.outcome(w), n: dno(s, w) })).sort((a, b) => a.n - b.n);
       const meO = Y.outcome(s.player);
-      body = `<div class="rep1"><div class="treehint"><button class="btn" data-act="toTree">世界樹で見る</button><span class="note">分岐点ごとの選択をたどって、16の家を見られます</span></div><table class="wtab">${ws.map(({ o: oo, n }) => `<tr class="${n === YOU ? 'me' : ''}"><td>${pad(n)}</td><td>${P.coTag(oo.company, 20)}</td><td><b>${esc(Y.worldName(oo))}</b><span>${n === YOU ? 'あなたが選んだ世界' : '教訓：' + esc(Y.worldLesson(oo, meO))}</span></td><td>${oo.warmth.label}</td><td>${oo.slack.label}</td><td>${man(oo.total)}万円</td></tr>`).join('')}</table></div>`; }
+      body = `<div class="rep1"><div class="treehint"><button class="btn" data-act="toTree">世界樹で見る</button><span class="note">分岐点ごとの選択をたどって、16の家を見られます</span></div><table class="wtab">${ws.map(({ o: oo, n }) => `<tr class="${n === YOU ? 'me' : ''}"><td>${pad(n)}</td><td>${P.coTag(oo.company, 20)}</td><td><b>${esc(Y.worldName(oo))}</b><span>${n === YOU ? 'あなたが選んだ世界' : '教訓：' + esc(Y.worldLesson(oo, meO))}</span></td><td>${oo.unbuilt ? '—' : oo.warmth.label}</td><td>${oo.unbuilt ? '—' : oo.slack.label}</td><td>${oo.unbuilt ? '—' : man(oo.total) + '万円'}</td></tr>`).join('')}</table></div>`; }
     if (tab === 'honne') body = honneBody(s);
     return `${top(s)}<div class="rtabs">${tabs}</div><div class="racts"><button class="btn ghost" data-act="toTree">世界樹で見る</button><button class="btn ghost" data-act="print">印刷用（PDF）</button><button class="btn" data-act="toEnd">おわりへ</button></div>${body}`;
   },

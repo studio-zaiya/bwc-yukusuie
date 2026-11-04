@@ -7,7 +7,7 @@ import PHRASES from '../data/content/report_phrases.json';
 import HARNESS from '../data/content/rep_harness.json';
 import SURVEY from '../data/content/survey.json';
 import BROCHURES from '../data/content/brochures.json';
-import { REP_SCHEMA, buildRepSystem, checkRep, repairRep, numsIn, stockReply, fillSlots, PHASES } from './rep.js';
+import { REP_SCHEMA, buildRepSystem, checkRep, repairRep, numsIn, stockReply, fillSlots, PHASES, SLOTS, PRESSURES } from './rep.js';
 import { PhoneLink, linkOpen, newCode } from './link.js';
 import { Meter } from './meter.js';
 export { PhoneLink, Meter };
@@ -213,19 +213,22 @@ async function rep(env, body, HARNESS_ = HARNESS) {
   const co = ['A', 'B', 'C', 'D'].includes(body.company) ? body.company : 'C';
   const phase = PHASES.includes(body.phase) ? body.phase : 'followUp';
   const specs = (BROCHURES.brochures[co]?.standard || []).map(t => t.replace('（エンジンの値）', `${Y.COMPANIES[co].insul}`));
-  const system = buildRepSystem(HARNESS, { company: co, phase, staff: STAFF_OF[co], specs, memory: String(body.memory || '').slice(0, 2400), names: body.names || {}, extra: String(body.extra || '').slice(0, 600) });
+  // 差し込み枠の値は、画面側がその場面のエンジンの状態から計算して渡す（文字列。数字を作るのはコードだけ）
+  const slotValues = Object.fromEntries(Object.entries(body.slotValues || {}).filter(([k, v]) => SLOTS[k] && typeof v === 'string' && v.length <= 20));
+  const system = buildRepSystem(HARNESS, { company: co, phase, staff: STAFF_OF[co], specs, memory: String(body.memory || '').slice(0, 2400), names: body.names || {}, extra: String(body.extra || '').slice(0, 600), slotValues });
   const hist = (body.history || []).slice(-8).map(h => `${h.who}：${h.text}`).join('\n');
   const user = `${hist ? `# これまでの会話\n${hist}\n` : ''}# ${phase === 'summary' ? 'アンケートを書き終えたところ' : 'お客様の言葉'}\n${String(body.text || '').slice(0, 400)}`;
   const staffTurns = (body.history || []).filter(h => h.who === '担当者').length;
   const allowNums = [...new Set([body.text, ...(body.history || []).filter(h => h.who !== '担当者').map(h => h.text), ...specs].flatMap(numsIn))];
-  const r = await callJSON(env, { role: 'rep', system, user, schema: REP_SCHEMA, fallback: stockReply(HARNESS, co, phase, staffTurns), maxTokens: 900, tries: 3, validate: x => checkRep(repairRep(x, phase), { phase, company: co, allowNums }) });
+  const r = await callJSON(env, { role: 'rep', system, user, schema: REP_SCHEMA, fallback: stockReply(HARNESS, co, phase, staffTurns), maxTokens: 900, tries: 3, validate: x => checkRep(repairRep(x, phase), { phase, company: co, allowNums, slotValues }) });
   if (r.call.fallback && !r.data.stock) r.data = stockReply(HARNESS, co, phase, staffTurns);
   // 提案の場面：担当者からの新しい質問は、場面全体で1回まで（2回目からは「ほかに気になるところはありますか？」）
   const asked = (body.history || []).some(h => h.who === '担当者' && /[？?]/.test(h.text) && !/ほかに気になるところ/.test(h.text));
   if (phase === 'proposal' && asked && r.data.ask && !/ほかに気になるところ/.test(r.data.ask)) r.data.ask = 'ほかに気になるところはありますか？';
-  const vals = body.slotValues || {};
-  r.data.say = fillSlots(r.data.say, vals); r.data.ask = r.data.ask ? fillSlots(r.data.ask, vals) : null;
+  if (body.markSlots) r.data.lineMarked = [fillSlots(r.data.say, slotValues, true), r.data.ask ? fillSlots(r.data.ask, slotValues, true) : ''].join('');
+  r.data.say = fillSlots(r.data.say, slotValues); r.data.ask = r.data.ask ? fillSlots(r.data.ask, slotValues) : null;
   r.data.line = [r.data.say, r.data.ask].filter(Boolean).join('');
+  r.data.pressure = PRESSURES.includes(r.data.pressure) ? r.data.pressure : 'none';
   r.data.notes = (r.data.notes || []).slice(0, 4).map(t => String(t).slice(0, 30));
   r.data.deferred = (r.data.deferred || []).slice(0, 3).map(t => String(t).replace(/[（(][^）)]*[A-Za-z][^）)]*[）)]/g, '').slice(0, 30));
   return r;

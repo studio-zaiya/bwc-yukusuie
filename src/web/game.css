@@ -525,3 +525,11 @@ button.th.th15{font:inherit;color:inherit;text-align:center;cursor:pointer;borde
 .sp .wh{font-size:16px}.tp-tl li em{font-size:15px}.bcol h4{font-size:16px}
 .msg .who,.chat .hd .sub,.pbar,.th .thd,.moneyc .hd,.moneyc .k,.famc .rec,.vbtn small,.fl-top small,.fl-b,.fl-std b,.chips2 small,.sticky small,.sketch figcaption,.nearest .nk,.tour-n,.cst .nm{font-size:14px}
 .moneyc .sub{font-size:14px}.th .tnt{font-size:14px}.tnm,.tnm.big{font-size:15px}.th .tst{font-size:14px}.treesvg .elab{font-size:15px}.fl-small{font-size:14px}.mk{font-size:12px}
+
+/* 断られたら、別の世界線へ（WORLD_SWITCH.md） */
+.wswitch{position:absolute;inset:0;z-index:70;background:rgba(30,43,54,.55);display:flex;align-items:center;justify-content:center;animation:wsin .5s ease-out}
+.wswitch p{font-family:var(--fr);font-weight:900;font-size:44px;color:#FFFAF0;background:rgba(30,43,54,.6);padding:22px 48px;border-radius:999px;animation:rtin .5s ease-out}
+@keyframes wsin{from{opacity:0}}
+.th.unbuilt{border:1.5px dashed #1E2B36;background:#F7F3EA}.th.unbuilt .tnm{color:var(--ink2)}
+.rt-card.off{opacity:.55;cursor:not-allowed;position:relative}.rt-off{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--fr);font-weight:900;font-size:26px;background:#fff;border:2px solid var(--ink);border-radius:999px;padding:10px 26px;white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.wswitch,.wswitch p{animation:none}}
