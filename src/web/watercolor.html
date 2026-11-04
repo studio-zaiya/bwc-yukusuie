@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>わが家の水彩パース</title>
+<!-- 試作 W1（prototypes/completion/W1-watercolor）の描き方を、レポート用に静止画にしたもの -->
+<style>
+html,body{margin:0;height:100%;background:#e9e4da;font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Zen Maru Gothic",sans-serif;color:#2a2a2a}
+#wrap{position:fixed;inset:0;overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform-origin:center;}
+canvas{display:block;width:1920px;height:1080px}
+#bar{position:fixed;left:0;right:0;bottom:0;height:56px;display:flex;align-items:center;gap:10px;padding:0 14px;background:#fbf8f1;border-top:1px solid #ddd3c2;font-size:14px}
+#bar button{font:inherit;font-weight:700;border:1px solid #d6cbb8;background:#fff;border-radius:999px;padding:6px 14px;cursor:pointer}
+#bar button[aria-pressed="true"]{background:#2a2a2a;color:#fff;border-color:#2a2a2a}
+#bar input[type=range]{flex:1;min-width:60px}
+#time{font-variant-numeric:tabular-nums;min-width:84px;text-align:right}
+</style>
+</head>
+<body>
+<!-- 世界の状態（エンジンの記録から渡される想定）。絵は毎回この状態から描く -->
+
+<div id="wrap"><div id="stage"><canvas id="c" width="1920" height="1080"></canvas></div></div>
+<script>
+const W=1920,H=1080,DUR=9;
+const cv=document.getElementById('c'),X=cv.getContext('2d');
+const qs=new URLSearchParams(location.search);
+// 家の状態（レポートから渡される）。項目名は試作W1にそろえる
+const STATES={X:{label:'わが家',form:qs.get('form')||'総二階',roof:qs.get('roof')||'陸屋根',finish:qs.get('finish')||'塗り壁',accent:qs.get('accent')||'木の縦張り',eave:qs.get('eave')||'南だけ',carport:+(qs.get('carport')||2),tree:qs.get('tree')||'落葉樹',season:qs.get('season')||'春',timeOfDay:qs.get('time')||'昼',seed:+(qs.get('seed')||7)}};
+let stateKey='X';
+
+// ---------- 乱数・補助 ----------
+function rng(seed){let s=seed>>>0;return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+let R=rng(1);
+const gauss=()=>{let u=0,v=0;while(!u)u=R();while(!v)v=R();return Math.sqrt(-2*Math.log(u))*Math.cos(6.283*v)};
+const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
+const ease=x=>{x=clamp(x);return x*x*(3-2*x)};
+function mk(w=W,h=H){const c=document.createElement('canvas');c.width=w;c.height=h;return c}
+function hex(h,a=1){const n=parseInt(h.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`}
+
+// ---------- 透明水彩の筆致 ----------
+function deform(pts,depth,v){
+  if(depth<=0)return pts;const out=[];
+  for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];out.push(a);
+    const dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1;const g=gauss()*v*L;
+    out.push([(a[0]+b[0])/2-dy/L*g*0.5+gauss()*0.6,(a[1]+b[1])/2+dx/L*g*0.5+gauss()*0.6])}
+  return deform(out,depth-1,v*0.62)
+}
+function bbox(p){let a=1e9,b=1e9,c=-1e9,d=-1e9;for(const q of p){a=Math.min(a,q[0]);b=Math.min(b,q[1]);c=Math.max(c,q[0]);d=Math.max(d,q[1])}return[a,b,c,d]}
+function path(ctx,p){ctx.beginPath();ctx.moveTo(p[0][0],p[0][1]);for(let i=1;i<p.length;i++)ctx.lineTo(p[i][0],p[i][1]);ctx.closePath()}
+// 1つのウォッシュ（にじみ＋たまり＋粒状感）をオフスクリーンに描く
+function wash(polys,col,o={}){
+  const c=mk(),g=c.getContext('2d');
+  const layers=o.layers||22,alpha=o.alpha||0.055,v=o.v==null?0.06:o.v,v2=o.v2==null?0.035:o.v2;
+  for(const poly of polys){
+    const base=deform(poly,o.depth||3,v);
+    const n0=parseInt(col.slice(1),16),cr=n0>>16&255,cg=n0>>8&255,cb=n0&255;
+    for(let k=0;k<layers;k++){
+      const p=deform(base,2,v2),j=o.jit==null?10:o.jit;
+      const a=alpha*(0.45+R()*1.1)*(o.fade?(1-k/layers*0.5):1);
+      g.fillStyle=`rgba(${cr+gauss()*j|0},${cg+gauss()*j|0},${cb+gauss()*j|0},${a})`;path(g,p);g.fill()}
+    // 水のたまりの濃淡（ブルーム）：所々を淡く抜く
+    if(o.bloom){const bb=bbox(base);g.save();path(g,base);g.clip();g.globalCompositeOperation='destination-out';
+      for(let i=0;i<o.bloom;i++){const cx=bb[0]+R()*(bb[2]-bb[0]),cy=bb[1]+R()*(bb[3]-bb[1]),r=(bb[2]-bb[0])*(0.05+R()*0.12);
+        const gr=g.createRadialGradient(cx,cy,r*0.2,cx,cy,r);gr.addColorStop(0,'rgba(0,0,0,0.2)');gr.addColorStop(0.8,'rgba(0,0,0,0.07)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(cx-r,cy-r,2*r,2*r)}
+      g.restore()}
+    // たまり：縁の濃いにじみ
+    if(o.edge!==0){g.save();g.filter='blur(1.6px)';g.strokeStyle=hex(o.edgeCol||col,o.edge||0.22);g.lineWidth=o.edgeW||2.2;path(g,deform(base,1,0.01));g.stroke();g.restore()}
+  }
+  // 顔料の粒状感
+  if(o.gran!==0){g.save();g.globalCompositeOperation='source-atop';const n=o.granN||5200;
+    for(let i=0;i<n;i++){const x=R()*W,y=R()*H;g.fillStyle=hex(o.granCol||col,(o.gran||0.18)*R());g.fillRect(x,y,1+R()*1.6,1+R()*1.6)}g.restore()}
+  return c;
+}
+// 筆のタッチ（細い線・点）
+function strokesLayer(list,col,w,a){const c=mk(),g=c.getContext('2d');g.lineCap='round';g.strokeStyle=hex(col,a);
+  for(const s of list){g.lineWidth=w*(0.7+R()*0.6);g.beginPath();g.moveTo(s[0][0],s[0][1]);for(let i=1;i<s.length;i++)g.lineTo(s[i][0]+gauss()*0.5,s[i][1]+gauss()*0.5);g.stroke()}return c}
+function dabs(pts,cols,r,a){const c=mk(),g=c.getContext('2d');for(const p of pts){const col=cols[(R()*cols.length)|0];
+  const rr=r*(0.5+R());const poly=[];for(let k=0;k<7;k++){const an=k/7*6.283;poly.push([p[0]+Math.cos(an)*rr,p[1]+Math.sin(an)*rr*0.85])}
+  const b=deform(poly,2,0.12);for(let j=0;j<5;j++){g.fillStyle=hex(col,a);path(g,deform(b,1,0.06));g.fill()}}return c}
+
+// ---------- 透視 ----------
+const CAM={pos:[11.5,1.45,16.5],tgt:[-0.9,2.7,-2.4],f:1900};
+function camBasis(){const f=CAM.tgt.map((v,i)=>v-CAM.pos[i]);const fl=Math.hypot(...f);const fw=f.map(v=>v/fl);
+  let r=[fw[2],0,-fw[0]];const rl=Math.hypot(...r);r=r.map(v=>-v/rl);const u=[r[1]*fw[2]-r[2]*fw[1],r[2]*fw[0]-r[0]*fw[2],r[0]*fw[1]-r[1]*fw[0]];return{fw,r,u}}
+let BAS=camBasis();
+function P(x,y,z){const d=[x-CAM.pos[0],y-CAM.pos[1],z-CAM.pos[2]];const cx=d[0]*BAS.r[0]+d[1]*BAS.r[1]+d[2]*BAS.r[2];
+  const cy=d[0]*BAS.u[0]+d[1]*BAS.u[1]+d[2]*BAS.u[2];const cz=d[0]*BAS.fw[0]+d[1]*BAS.fw[1]+d[2]*BAS.fw[2];
+  return[W*0.5+cx/cz*CAM.f,H*0.56-cy/cz*CAM.f]}
+const quad=(...p)=>p.map(q=>P(...q));
+
+// ---------- 色 ----------
+const PAL={
+ paper:'#fbf8f1',plaster:'#e9dcc8',plasterSh:'#8f8aa8',wood:'#b8743c',woodDk:'#7a4a26',galva:'#8a97a3',galvaDk:'#5d6a78',brick:'#c0623f',brickDk:'#8b4030',
+ glass:'#5f7f9a',glassWarm:'#f0b45a',roof:'#6f6a73',concrete:'#b3ada4',lawn:'#8fb85a',lawnDk:'#5d8a3a',gravel:'#a8998a',trunk:'#6b4a33',pencil:'#4a4a52'};
+const SKY={'昼':['#7fb3df','#bcd9ef'],'朝':['#9cc7e6','#f6d9b8'],'夕方':['#7f9fd0','#f2b98a']};
+const SEASON={'春':{leaf:['#9bc46a','#bcd88a','#7fae55'],accent:['#f3a7bd','#f7c6d3','#ee8fae']},'夏':{leaf:['#5f9e45','#79b357','#477f35'],accent:['#f3d36b']},'秋':{leaf:['#e0943f','#c9622f','#e8b84d','#a8a04a'],accent:['#d8572e','#efb440']},'冬':{leaf:['#a9a7a0'],accent:['#ffffff']}};
+
+// ---------- 場面を組み立てる（状態から） ----------
+let L=null; // 描画レイヤーの一覧
+function build(st){
+  R=rng(st.seed||1);
+  const out=[],pencil=[];const HOUSE=[],BG=[];
+  const add=(c,t0,dur,cx,cy)=>out.push({c,t0,dur,cx,cy});
+  const sea=SEASON[st.season]||SEASON['春'];
+  // 家の寸法（m）
+  let boxes;
+  if(st.form==='1階が大きい')boxes=[{x0:-4.55,x1:4.55,z0:-7.3,h0:0,h1:3.0},{x0:-4.55,x1:1.85,z0:-6.4,h0:3.0,h1:5.9,top:true}];
+  else if(st.form==='平屋寄り')boxes=[{x0:-5.9,x1:5.0,z0:-7.3,h0:0,h1:3.3,top:true}];
+  else boxes=[{x0:-3.64,x1:3.64,z0:-6.4,h0:0,h1:5.9,top:true}];
+  const fin={'塗り壁':[PAL.plaster,PAL.plasterSh],'ガルバリウム':[PAL.galva,PAL.galvaDk],'レンガ調':[PAL.brick,PAL.brickDk],'木の縦張り':[PAL.wood,PAL.woodDk]}[st.finish]||[PAL.plaster,PAL.plasterSh];
+  const sky=SKY[st.timeOfDay]||SKY['昼'];
+  // 空：大胆なウォッシュ（雲の白を残す）
+  const skyC=mk(),sg=skyC.getContext('2d');
+  {const top=wash([[[-300,-400],[W+300,-400],[W+300,560],[-300,640]]],sky[0],{layers:18,alpha:0.055,v:0.06,v2:0.09,edge:0,gran:0.1,granN:4000,jit:14,bloom:10});
+   const low=wash([[[-60,380],[W+60,330],[W+60,700],[-60,700]]],sky[1],{layers:14,alpha:0.05,v:0.05,v2:0.06,edge:0,gran:0});
+   sg.drawImage(low,0,0);sg.drawImage(top,0,0);
+   // 雲の白を抜く
+   sg.globalCompositeOperation='destination-out';
+   for(let i=0;i<5;i++){const cx=200+R()*1500,cy=120+R()*260,w=180+R()*260,h=40+R()*60;const poly=[];for(let k=0;k<10;k++){const a=k/10*6.283;poly.push([cx+Math.cos(a)*w,cy+Math.sin(a)*h*(a>3.14?1.25:0.6)])}
+     const b=deform(poly,4,0.14);sg.save();sg.filter='blur(6px)';for(let j=0;j<10;j++){sg.fillStyle='rgba(0,0,0,0.085)';path(sg,deform(b,2,0.09));sg.fill()}sg.restore()}
+   sg.globalCompositeOperation='source-over'}
+  add(skyC,1.1,1.8,W*0.25,120);BG.push(skyC);
+  // 遠景（隣家の気配）
+  const hz=P(0,0,-40)[1];const far=wash([[[-40,hz-34],[W*0.3,hz-52],[W*0.62,hz-30],[W+40,hz-46],[W+40,hz+18],[-40,hz+22]]],'#9fb0a6',{layers:12,alpha:0.05,v:0.05,v2:0.06,edge:0.06,gran:0.1,jit:12});
+  add(far,1.6,1.4,W*0.5,hz);BG.push(far);
+  // 地面
+  const g0=P(-30,0,6),g1=P(30,0,6);
+  const lc=sea===SEASON['冬']?'#c9cbb6':(st.season==='秋'?'#a8b25e':PAL.lawn);
+  const lawn=wash([[[-40,hz-2],[W+40,hz-6],[W+40,H+40],[-40,H+40]]],lc,{layers:16,alpha:0.05,v:0.03,v2:0.07,edge:0,gran:0.18,jit:16,bloom:14});
+  const lawn2=wash([[[-40,hz+160],[W*0.55,hz+120],[W+40,hz+190],[W+40,H+40],[-40,H+40]]],st.season==='秋'?'#9a8a3c':PAL.lawnDk,{layers:12,alpha:0.04,v:0.08,v2:0.1,edge:0,gran:0.2,jit:14,bloom:10});
+  add(lawn,2.6,1.6,W*0.5,900);add(lawn2,3.2,1.4,W*0.3,1000);BG.push(lawn,lawn2);
+  // カーポートと土間
+  const cpw=st.carport===2?5.8:(st.carport===1?3.2:0);const bx0=boxes[0].x0;
+  if(cpw>0){const x1=bx0-0.3,x0=x1-cpw;
+    const drive=wash([quad([x0,0,-5.5],[x1,0,-5.5],[x1+0.4,0,6.5],[x0-0.6,0,6.5])],PAL.concrete,{layers:14,alpha:0.06,edge:0.15,gran:0.2});
+    add(drive,3.0,1.2,P(x0,0,3)[0],P(0,0,3)[1]);
+    const roofP=quad([x0-0.2,2.55,0.6],[x1+0.2,2.55,0.6],[x1+0.2,2.55,-5.6],[x0-0.2,2.55,-5.6]);
+    const cpRoof=wash([roofP],PAL.galvaDk,{layers:10,alpha:0.07,v:0.01,v2:0.012,edge:0.3,gran:0.1});
+    add(cpRoof,4.2,0.9,roofP[0][0],roofP[0][1]);
+    const posts=[];for(const px of [x0,x1])for(const pz of [0.4,-5.4]){posts.push([P(px,0,pz),P(px,2.55,pz)])}
+    add(strokesLayer(posts,'#3f4248',4,0.75),4.6,0.5,0,0);
+    pencil.push(...roofP.map((p,i)=>[p,roofP[(i+1)%4]]),...posts);
+  }
+  // 家（後ろの箱から）
+  boxes.forEach((b,bi)=>{
+    const F=quad([b.x0,b.h0,0],[b.x1,b.h0,0],[b.x1,b.h1,0],[b.x0,b.h1,0]);
+    const S=quad([b.x1,b.h0,0],[b.x1,b.h0,b.z0],[b.x1,b.h1,b.z0],[b.x1,b.h1,0]);
+    let roofPolys=[],frontTop=F,sideTop=S;
+    if(b.top&&st.roof==='片流れ'){const hi=b.h1+1.1;
+      frontTop=quad([b.x0,b.h0,0],[b.x1,b.h0,0],[b.x1,b.h1,0],[b.x0,hi,0]);
+      sideTop=quad([b.x1,b.h0,0],[b.x1,b.h0,b.z0],[b.x1,b.h1,b.z0],[b.x1,b.h1,0]);
+      roofPolys=[quad([b.x0-0.35,hi+0.12,0.45],[b.x1+0.45,b.h1+0.1,0.45],[b.x1+0.45,b.h1+0.1,b.z0-0.3],[b.x0-0.35,hi+0.12,b.z0-0.3])];
+    }else if(b.top&&st.roof==='切妻'){const zr=b.z0/2,hr=b.h1+1.9;
+      sideTop=quad([b.x1,b.h0,0],[b.x1,b.h0,b.z0],[b.x1,b.h1,b.z0],[b.x1,hr,zr],[b.x1,b.h1,0]);
+      roofPolys=[quad([b.x0-0.4,b.h1-0.05,0.55],[b.x1+0.4,b.h1-0.05,0.55],[b.x1+0.4,hr+0.1,zr],[b.x0-0.4,hr+0.1,zr])];
+    }else if(b.top){// 陸屋根：薄い立ち上がりだけ（中央には何も置かない）
+      roofPolys=[quad([b.x0-0.05,b.h1,0.05],[b.x1+0.05,b.h1,0.05],[b.x1+0.05,b.h1+0.22,0.05],[b.x0-0.05,b.h1+0.22,0.05]),
+                 quad([b.x1+0.05,b.h1,0.05],[b.x1+0.05,b.h1,b.z0],[b.x1+0.05,b.h1+0.22,b.z0],[b.x1+0.05,b.h1+0.22,0.05])];
+    }
+    const t0=3.0+bi*0.25;
+    add(wash([frontTop],fin[0],{layers:20,alpha:0.05,v:0.012,v2:0.014,edge:0.32,edgeCol:fin[1],gran:0.16,jit:8,bloom:5}),t0,1.3,frontTop[0][0],frontTop[0][1]);
+    add(wash([sideTop],fin[1],{layers:18,alpha:0.055,v:0.012,v2:0.016,edge:0.34,gran:0.24,fade:true,jit:10,bloom:4}),t0+0.4,1.2,sideTop[1][0],sideTop[1][1]);
+    if(roofPolys.length){const rc=st.roof==='陸屋根'?fin[1]:PAL.roof;add(wash(roofPolys,rc,{layers:14,alpha:0.07,v:0.008,v2:0.008,edge:0.35,gran:0.15}),t0+1.0,0.9,roofPolys[0][0][0],roofPolys[0][0][1])}
+    HOUSE.push(frontTop,sideTop,...roofPolys);
+    pencil.push(...[frontTop,sideTop,...roofPolys].flatMap(p=>p.map((q,i)=>[q,p[(i+1)%p.length]])));
+    // 仕上げの筆致
+    const fs=[];
+    if(st.finish==='ガルバリウム'){for(let x=b.x0+0.15;x<b.x1;x+=0.32)fs.push([P(x,b.h0+0.1,0.02),P(x,Math.min(b.h1,b.h1)-0.08,0.02)])}
+    if(st.finish==='レンガ調'){for(let y=b.h0+0.25;y<b.h1-0.1;y+=0.26)for(let x=b.x0+((y*4|0)%2)*0.2;x<b.x1-0.3;x+=0.42)if(R()<0.55)fs.push([P(x,y,0.02),P(x+0.3,y,0.02)])}
+    if(st.finish==='塗り壁'){for(let i=0;i<9;i++){const y=b.h0+R()*(b.h1-b.h0),x=b.x0+R()*(b.x1-b.x0-1);fs.push([P(x,y,0.02),P(x+0.8+R(),y-0.1,0.02)])}}
+    if(fs.length)add(strokesLayer(fs,fin[1],st.finish==='塗り壁'?3:2,st.finish==='塗り壁'?0.12:0.35),5.2,0.8,0,0);
+    // アクセントの木の縦張り（上の箱の右側）
+    if(st.accent==='木の縦張り'&&b.top){const ax0=b.x1-Math.min(2.4,(b.x1-b.x0)*0.36),ay0=Math.max(b.h0,b.h1-2.9);
+      const ac=quad([ax0,ay0,0.03],[b.x1,ay0,0.03],[b.x1,b.h1,0.03],[ax0,b.h1,0.03]);
+      add(wash([ac],PAL.wood,{layers:16,alpha:0.07,v:0.01,v2:0.008,edge:0.3,edgeCol:PAL.woodDk,gran:0.2}),4.3,1.0,ac[0][0],ac[0][1]);
+      const ws=[];for(let x=ax0+0.08;x<b.x1;x+=0.11)ws.push([P(x,ay0+0.05,0.04),P(x,b.h1-0.05,0.04)]);add(strokesLayer(ws,PAL.woodDk,1.6,0.45),5.4,0.6,0,0)}
+  });
+  // 窓（1階の大きな窓・2階の横長窓・玄関）
+  const b0=boxes[0],bt=boxes[boxes.length-1];
+  const winW=Math.min(4.2,(b0.x1-b0.x0)*0.5),wx0=b0.x0+0.9,wx1=wx0+winW;
+  const win1=quad([wx0,0.75,0.02],[wx1,0.75,0.02],[wx1,2.6,0.02],[wx0,2.6,0.02]);
+  const warm=st.timeOfDay==='夕方';
+  add(wash([win1],PAL.glass,{layers:16,alpha:0.075,v:0.01,v2:0.01,edge:0.35,gran:0.1}),4.6,0.9,win1[0][0],win1[0][1]);
+  if(warm){const inner=quad([wx0+0.3,0.9,0],[wx1-0.3,0.9,0],[wx1-0.3,2.2,0],[wx0+0.3,2.2,0]);add(wash([inner],PAL.glassWarm,{layers:12,alpha:0.07,v:0.05,v2:0.04,edge:0,gran:0}),5.4,0.8,inner[0][0],inner[0][1])}
+  // 映り込みの白（紙の白を残す）
+  const refl=[];for(let i=0;i<3;i++){const x=wx0+0.4+i*0.5;refl.push([P(x,2.45,0.03),P(x+0.7,1.0,0.03)])}
+  const reflC=strokesLayer(refl,PAL.paper,7,0.75);add(reflC,5.8,0.6,0,0);
+  const mul=[];for(let k=1;k<3;k++){const x=wx0+winW*k/3;mul.push([P(x,0.75,0.03),P(x,2.6,0.03)])}add(strokesLayer(mul,'#3d4652',2.2,0.6),5.6,0.5,0,0);
+  if(bt.h1>4){const w2=quad([bt.x0+0.6,bt.h1-1.9,0.02],[bt.x0+3.0,bt.h1-1.9,0.02],[bt.x0+3.0,bt.h1-1.0,0.02],[bt.x0+0.6,bt.h1-1.0,0.02]);
+    add(wash([w2],PAL.glass,{layers:14,alpha:0.075,v:0.01,v2:0.01,edge:0.3,gran:0.1}),4.9,0.8,w2[0][0],w2[0][1]);pencil.push(...w2.map((p,i)=>[p,w2[(i+1)%4]]))}
+  const dx0=b0.x1-1.3;const door=quad([dx0,0.6,0.02],[dx0+0.85,0.6,0.02],[dx0+0.85,2.7,0.02],[dx0,2.7,0.02]);
+  add(wash([door],PAL.woodDk,{layers:14,alpha:0.08,v:0.01,v2:0.01,edge:0.3,gran:0.2}),5.0,0.7,door[0][0],door[0][1]);
+  pencil.push(...win1.map((p,i)=>[p,win1[(i+1)%4]]),...door.map((p,i)=>[p,door[(i+1)%4]]));
+  // 南だけの庇と、その影
+  if(st.eave==='南だけ'){const ey=Math.min(2.95,b0.h1-0.1);
+    const eave=quad([wx0-0.5,ey,1.0],[wx1+0.5,ey,1.0],[wx1+0.5,ey+0.09,1.0],[wx0-0.5,ey+0.09,1.0]);
+    const under=quad([wx0-0.5,ey,0],[wx1+0.5,ey,0],[wx1+0.5,ey,1.0],[wx0-0.5,ey,1.0]);
+    const shadow=quad([wx0-0.3,ey-0.05,0.01],[wx1+0.5,ey-0.05,0.01],[wx1+0.7,ey-0.75,0.01],[wx0-0.1,ey-0.75,0.01]);
+    add(wash([shadow],PAL.plasterSh,{layers:12,alpha:0.032,v:0.04,v2:0.05,edge:0.05,gran:0.08}),5.0,0.8,shadow[0][0],shadow[0][1]);
+    add(wash([under,eave],'#5e6670',{layers:10,alpha:0.08,v:0.006,v2:0.006,edge:0.35,gran:0.1}),5.2,0.6,eave[0][0],eave[0][1]);
+    pencil.push(...eave.map((p,i)=>[p,eave[(i+1)%4]]));}
+  // 家の足元の影
+  const foot=quad([b0.x0,0,0.05],[b0.x1,0,0.05],[b0.x1+1.6,0,-1.0],[b0.x0+0.6,0,0.8]);
+  add(wash([foot],'#5f7a4a',{layers:10,alpha:0.05,v:0.05,v2:0.05,edge:0,gran:0.1}),4.0,0.8,foot[0][0],foot[0][1]);
+  // 砂利とアプローチ
+  const grav=[];for(let i=0;i<260;i++){const x=b0.x0+R()*(b0.x1-b0.x0+1),z=0.5+R()*2.4;grav.push(P(x,0.02,z))}
+  add(dabs(grav,['#a08f7d','#c2b4a2','#8e8172'],2.2,0.35),5.6,0.6,0,0);
+  // 木（にじみの重ね）
+  const tx=Math.max(b0.x1,bt.x1)+3.2,tz=2.6,th=st.form==='平屋寄り'?4.6:5.4;
+  const trunkL=[[P(tx,0,tz),P(tx+0.05,th*0.55,tz)],[P(tx+0.02,th*0.45,tz),P(tx-0.7,th*0.72,tz)],[P(tx+0.03,th*0.5,tz),P(tx+0.8,th*0.78,tz)]];
+  add(strokesLayer(trunkL,PAL.trunk,7,0.8),4.4,0.5,0,0);
+  if(st.season!=='冬'){const c0=P(tx,th*0.74,tz),rad=Math.abs(P(tx+1.5,th*0.74,tz)[0]-c0[0]);const blobs=[];
+    for(let i=0;i<9;i++){const a=R()*6.283,rr=rad*R()*0.65;const cx=c0[0]+Math.cos(a)*rr,cy=c0[1]+Math.sin(a)*rr*0.75;const poly=[];const s=rad*(0.35+R()*0.3);for(let k=0;k<9;k++){const an=k/9*6.283;poly.push([cx+Math.cos(an)*s,cy+Math.sin(an)*s*0.8])}blobs.push({poly,col:sea.leaf[i%sea.leaf.length]})}
+    blobs.forEach((bb,i)=>add(wash([bb.poly],bb.col,{layers:12,alpha:0.07,v:0.12,v2:0.08,edge:0.22,gran:0.25,granN:2200}),4.6+i*0.08,0.9,bb.poly[0][0],bb.poly[0][1]));
+    // 季節のアクセント（春の花・秋の葉）
+    const acc=[];for(let i=0;i<(st.season==='春'?70:50);i++){const a=R()*6.283,rr=rad*Math.sqrt(R())*0.95;acc.push([c0[0]+Math.cos(a)*rr,c0[1]+Math.sin(a)*rr*0.75])}
+    for(let i=0;i<24;i++)acc.push([c0[0]-rad*1.2+R()*rad*3,c0[1]+rad*0.9+R()*300]); // 舞う・落ちる
+    add(dabs(acc,sea.accent,5,0.32),6.0,0.7,0,0);
+  }
+  // 手前の草のタッチ
+  const grass=[];for(let i=0;i<140;i++){const x=R()*W,y=880+R()*200;grass.push([[x,y],[x+gauss()*6,y-12-R()*22]])}
+  add(strokesLayer(grass,st.season==='秋'?'#8c8a3e':PAL.lawnDk,2.2,0.35),5.8,0.6,0,0);
+  // 家の形を、背景のウォッシュから抜く（紙の白を残して周りを塗る）
+  const sil=mk(),sl=sil.getContext('2d');sl.fillStyle='#000';
+  for(const pl of HOUSE){path(sl,deform(pl,2,0.004));sl.fill()}
+  for(const l of BG){const g=l.getContext('2d');g.save();g.globalCompositeOperation='destination-out';g.filter='blur(1.5px)';g.drawImage(sil,0,0);g.restore()}
+  // 鉛筆の下描き（地面の線も）
+  pencil.push([g0,g1]);
+  return {layers:out,pencil:pencil.map(s=>{const p=[];const n=8;for(let i=0;i<=n;i++){const u=i/n;p.push([s[0][0]+(s[1][0]-s[0][0])*u+gauss()*0.8,s[0][1]+(s[1][1]-s[0][1])*u+gauss()*0.8])}return p})};
+}
+
+// 紙の地と凹凸（1回だけ）
+const paper=mk(),pg=paper.getContext('2d');
+(function(){R=rng(99);pg.fillStyle=PAL.paper;pg.fillRect(0,0,W,H);const img=pg.getImageData(0,0,W,H),d=img.data;
+  for(let i=0;i<d.length;i+=4){const n=(R()-0.5)*10;d[i]+=n;d[i+1]+=n;d[i+2]+=n*1.1}pg.putImageData(img,0,0);
+  pg.globalAlpha=0.05;for(let i=0;i<1400;i++){pg.strokeStyle=R()<0.5?'#c8bda8':'#ffffff';pg.lineWidth=1;const x=R()*W,y=R()*H,a=R()*6.28,l=6+R()*18;pg.beginPath();pg.moveTo(x,y);pg.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);pg.stroke()}pg.globalAlpha=1})();
+const tex=mk(),tg=tex.getContext('2d');
+(function(){R=rng(5);const img=tg.createImageData(W,H),d=img.data;for(let i=0;i<d.length;i+=4){const v=128+(R()-0.5)*40;d[i]=d[i+1]=d[i+2]=v;d[i+3]=255}tg.putImageData(img,0,0)})();
+
+const tmp=mk(),mg=tmp.getContext('2d');
+const paint=mk(),pt=paint.getContext('2d');
+const vig=mk(),vg=vig.getContext('2d');
+(function(){R=rng(77);vg.filter='blur(14px)';const poly=[[150,110],[W-140,90],[W-90,H-120],[110,H-90]];
+  const b=deform(poly,5,0.05);for(let i=0;i<8;i++){vg.fillStyle='rgba(0,0,0,0.38)';path(vg,deform(b,2,0.03));vg.fill()}
+  vg.filter='blur(40px)';vg.fillStyle='#000';path(vg,poly.map(q=>[q[0]+(q[0]<W/2?90:-90),q[1]+(q[1]<H/2?80:-80)]));vg.fill();vg.filter='none'})();
+function render(t){
+  X.globalCompositeOperation='source-over';X.drawImage(paper,0,0);
+  const MAIN=X;{const X=pt;X.globalCompositeOperation='source-over';X.clearRect(0,0,W,H);
+  // 鉛筆
+  const pp=clamp(t/1.8);X.save();X.strokeStyle=hex(PAL.pencil,0.45-0.2*ease((t-5)/2));X.lineWidth=1.1;X.lineCap='round';
+  L.pencil.forEach((s,i)=>{const st=i/L.pencil.length*0.6,u=clamp((pp-st)/0.4);if(u<=0)return;const n=Math.max(1,Math.round(u*(s.length-1)));X.beginPath();X.moveTo(s[0][0],s[0][1]);for(let k=1;k<=n;k++)X.lineTo(s[k][0],s[k][1]);X.stroke()});X.restore();
+  // ウォッシュ：中心からにじむように広がる
+  for(const l of L.layers){const p=ease((t-l.t0)/l.dur);if(p<=0)continue;
+    if(p>=1){X.drawImage(l.c,0,0);continue}
+    mg.globalCompositeOperation='source-over';mg.clearRect(0,0,W,H);
+    const r=60+p*1500;const g=mg.createRadialGradient(l.cx||W/2,l.cy||H/2,r*0.55,l.cx||W/2,l.cy||H/2,r);g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(1,'rgba(0,0,0,0)');
+    mg.fillStyle=g;mg.fillRect(0,0,W,H);mg.globalCompositeOperation='source-in';mg.globalAlpha=Math.min(1,p*1.4);mg.drawImage(l.c,0,0);mg.globalAlpha=1;X.drawImage(tmp,0,0)}
+  X.globalCompositeOperation='destination-in';X.drawImage(vig,0,0);X.globalCompositeOperation='source-over';}
+  X.drawImage(paint,0,0);
+  // 紙の凹凸
+  X.globalCompositeOperation='multiply';X.globalAlpha=0.12;X.drawImage(tex,0,0);X.globalAlpha=1;X.globalCompositeOperation='source-over';
+}
+window.render=render;window.DUR=DUR;
+
+// ---------- 静止画（最後のコマ）----------
+L=build(STATES.X);
+function fit(){const s=Math.min(innerWidth/W,innerHeight/H);document.getElementById('stage').style.transform=`translate(-50%,-50%) scale(${s})`}
+addEventListener('resize',fit);fit();
+let started=false;function start(){if(started)return;started=true;render(DUR);window.READY=true}
+(document.fonts?document.fonts.ready:Promise.resolve()).then(start,start);setTimeout(start,1500);
+</script>
+</body>
+</html>

@@ -62,11 +62,30 @@ th{font-weight:700}
 .bal div{display:grid;place-items:center;font-size:2.6mm;font-weight:700;color:var(--ink)}
 .replay{display:flex;gap:3mm;align-items:center;margin-top:3mm}
 .replay .code{font-family:Menlo,monospace;font-weight:700;font-size:4.2mm;letter-spacing:.1em;border:.35mm solid var(--ink);border-radius:1.2mm;padding:1mm 2.6mm}
+.cover{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:16mm}
+.cv-logo{height:92mm}
+.cv-main{text-align:center;margin-top:6mm;width:100%}
+.cv-k{font-size:4mm;color:var(--ink2);letter-spacing:.2em}
+.cv-title{font-family:var(--fr);font-weight:900;font-size:10mm;margin:3mm 0 5mm}
+.cv-wc{width:178mm;height:100mm;border:none;display:block;margin:0 auto}
+.cv-meta{font-size:3.4mm;color:var(--ink2);margin-top:4mm}
 </style>
 </head>
 <body>
 
 <!-- 1ページ目 -->
+<!-- 表紙：遠目にも何の紙かわかるように、マークとロゴを中央に大きく。タイトルと、わが家の水彩パース -->
+<div class="page cover">
+  <img class="cv-logo" src="/brand/lockup-vertical.svg" alt="ゆくすいえ">
+  <div class="cv-main">
+    <div class="cv-k">わが家の、ちょうどいいバランス</div>
+    <div class="cv-title" id="cvTitle"></div>
+    <iframe class="cv-wc" id="wc" title="わが家の水彩パース"></iframe>
+    <div class="cv-meta">かず と ゆう の家づくり　入居から1年後のレポート</div>
+  </div>
+  <div class="foot">本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。実際の家づくりでは、地域・金融機関・住宅会社によって異なります。登場する住宅会社・人物・団体はすべて架空です。</div>
+</div>
+
 <div class="page">
   <div class="top"><div class="logo">ゆくすいえ<small>YUKUSUIE: 16 unbuilt futures</small></div><div class="meta">かず と ゆう の家づくり<br>入居から1年後のレポート</div></div>
   <h1>わが家の、ちょうどいいバランス<small id="title" style="display:block;font-size:4mm;margin-top:1mm"></small></h1>
@@ -100,7 +119,7 @@ th{font-weight:700}
   </div>
 
   <div class="foot">本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。実際の家づくりでは、地域・金融機関・住宅会社によって異なります。登場する住宅会社・人物・団体はすべて架空です。</div>
-  <div class="pno">1 / 3</div>
+  <div class="pno">2 / 4</div>
 </div>
 
 <!-- 2ページ目 -->
@@ -131,7 +150,7 @@ th{font-weight:700}
   </div>
 
   <div class="foot">本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。実際の家づくりでは、地域・金融機関・住宅会社によって異なります。登場する住宅会社・人物・団体はすべて架空です。</div>
-  <div class="pno">2 / 3</div>
+  <div class="pno">3 / 4</div>
 </div>
 
 <!-- 3ページ目 -->
@@ -144,12 +163,9 @@ th{font-weight:700}
     <h2 style="font-size:3.4mm">16の世界の1年後（ひとこと）</h2>
     <table class="mini" id="mini"></table>
   </div>
-  <div class="replay">
-    <span class="code" id="code">—</span>
-    <p style="font-size:2.9mm;color:var(--ink2)">このコードで、どの世界の1年も、もう一度再生できます。</p>
-  </div>
+
   <div class="foot">本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。実際の家づくりでは、地域・金融機関・住宅会社によって異なります。登場する住宅会社・人物・団体はすべて架空です。金額・日数はゲーム内の計算エンジンによる目安です。</div>
-  <div class="pno">3 / 3</div>
+  <div class="pno">4 / 4</div>
 </div>
 
 <script type="module">
@@ -160,11 +176,15 @@ const $ = id => document.getElementById(id);
 let D = null; try { D = JSON.parse(localStorage.getItem('yuku-report') || 'null'); } catch {}
 if (!D || !D.player) { document.body.innerHTML = '<p style="padding:20mm;font-size:5mm">プレイ画面の「印刷用を開く」から開いてください。</p>'; throw new Error('no data'); }
 const me = Y.outcome(D.player), WS = [D.player, ...D.others].map(w => Y.outcome(w)).sort((a, b) => a.no - b.no);
+const PN = me.no, DN = w => w.no === PN ? 7 : w.no === 7 ? PN : w.no;
 const R = D.report || { title: '', balance: [], memories: [], tellFirst: [], closing: '' };
 const man = n => Number(n).toLocaleString('ja-JP', { maximumFractionDigits: 1 });
 const mo = p => Y.payment(p, Y.RATE.variable).toFixed(1) + '万円';
 $('title').textContent = R.title || '';
-$('myno').textContent = String(me.no).padStart(2, '0');
+$('myno').textContent = '07';
+$('cvTitle').textContent = R.title || '';
+const wcq = new URLSearchParams({ roof: D.player.spec.roof === 'gable' ? '切妻' : '陸屋根', finish: D.player.finish.wall === 'galva' ? 'ガルバリウム' : '塗り壁', time: me.warmth.level >= 3 ? '夕方' : '昼', season: '春', carport: '2', seed: String(me.no) });
+$('wc').src = '/watercolor.html?' + wcq;
 // 1 理想：ヒアリングで聞き取れた付箋（かず＝橙、ゆう＝空色）と、選んだ仕上げの色
 const heard = (D.heard || []).slice(0, 10);
 $('chips').innerHTML = heard.length ? heard.map(h => `<span class="chip ${h.who === 'ゆう' ? 'y' : 'k'}">${esc(h.text.slice(0, 16))}</span>`).join('') : '<span class="chip k">（聞き取りの記録なし）</span>';
@@ -180,7 +200,7 @@ const cnt = { k: 0, y: 0, g: 0 }; who.slice(0, 4).forEach(w => cnt[w]++);
 $('bal').innerHTML = [['k', '#FDE3CC', 'かず'], ['y', '#D6ECF8', 'ゆう'], ['g', '#FBEBB0', 'ふたり']].map(([k, c, l]) => cnt[k] ? `<div style="width:${cnt[k] / 4 * 100}%;background:${c}">${l} ${cnt[k]}</div>` : '').join('');
 // 3 選んだこと（エンジン）
 $('decs').innerHTML = D.player.labels.map((l, i) => `<div class="dec"><span class="q">${Y.DECISIONS[i].q}</span><b class="${{ k: 'sq', y: 'ci', g: 'di' }[who[i]]}">${esc(l)}</b></div>`).join('');
-$('nums').innerHTML = `<tr><th></th><th>${String(me.no).padStart(2, '0')}　わが家</th></tr><tr><td>土地と建物の総額</td><td>${man(me.total)}万円</td></tr><tr><td>借入</td><td>${man(me.principal)}万円</td></tr><tr><td>月々の返済（変動・35年）</td><td>${mo(me.principal)}</td></tr><tr><td>冬の朝の暖かさ</td><td>${me.warmth.label}</td></tr><tr><td>家計のゆとり</td><td>${me.slack.label}</td></tr>`;
+$('nums').innerHTML = `<tr><th></th><th>07　わが家</th></tr><tr><td>土地と建物の総額</td><td>${man(me.total)}万円</td></tr><tr><td>借入</td><td>${man(me.principal)}万円</td></tr><tr><td>月々の返済（変動・35年）</td><td>${mo(me.principal)}</td></tr><tr><td>冬の朝の暖かさ</td><td>${me.warmth.label}</td></tr><tr><td>家計のゆとり</td><td>${me.slack.label}</td></tr>`;
 // 4 悩んだら（Claude）
 $('rank').innerHTML = (R.balance || []).map((b, i) => `<div class="rank"><span class="no">${i + 1}</span><div><b>${esc(b)}</b><span>${esc(R.memories?.[i] || '')}</span></div></div>`).join('');
 // 5 先に伝えておきたいこと（Claude）＋聞き漏れ
@@ -191,10 +211,10 @@ $('tr').innerHTML = [...me.events.map(e => `<li><span class="tag">踏んだ</spa
 // 7 選ばなかった世界線：各分岐点で、もう一方を選んだ世界（ほかは同じ）
 const sib = i => WS.find(w => w.bits.every((b, k) => k === i ? b !== me.bits[k] : b === me.bits[k]));
 const line = no => D.staff16?.lines?.find(l => l.no === no)?.line;
-$('cards').innerHTML = [0, 1, 2, 3].map(i => sib(i)).filter(Boolean).map((w, j) => `<div class="wcard"><div><div class="no">${String(w.no).padStart(2, '0')}</div><div class="co">${Y.COMPANIES[w.company].name}<br>総額 ${man(w.total)}万円<br>冬の朝 ${w.warmth.label}</div></div><div><b>${Y.FORKS[j]}で「${esc(w.labels[j])}」を選んだ世界</b><p>${esc((w.events[0] || '大きな出来事はなかった'))}。家計のゆとりは「${w.slack.label}」。</p>${line(w.no) ? `<div class="lesson">担当者のひとこと：${esc(line(w.no))}</div>` : ''}</div></div>`).join('');
-$('mini').innerHTML = WS.map(w => `<tr><td>${String(w.no).padStart(2, '0')}${w.no === me.no ? '　わが家' : ''}</td><td>${Y.COMPANIES[w.company].name}・${esc((w.events[0] || '大きな出来事はなかった').slice(0, 26))}</td><td style="white-space:nowrap">${w.warmth.label}</td><td style="white-space:nowrap">${man(w.total)}万円</td></tr>`).join('');
-$('code').textContent = D.savedId || '—';
-window.READY = true;
+$('cards').innerHTML = [0, 1, 2, 3].map(i => sib(i)).filter(Boolean).map((w, j) => `<div class="wcard"><div><div class="no">${String(DN(w)).padStart(2, '0')}</div><div class="co">${Y.COMPANIES[w.company].name}<br>総額 ${man(w.total)}万円<br>冬の朝 ${w.warmth.label}</div></div><div><b>${esc((R.worlds || []).find(x => x.no === w.no)?.name || '')}</b><span style="display:block;font-size:2.7mm;color:var(--ink2)">${Y.FORKS[j]}で「${esc(w.labels[j])}」を選んだ世界</span><p>${esc((w.events[0] || '大きな出来事はなかった'))}。家計のゆとりは「${w.slack.label}」。</p>${line(w.no) ? `<div class="lesson">担当者のひとこと：${esc(line(w.no))}</div>` : ''}</div></div>`).join('');
+const NM = no => (R.worlds || []).find(x => x.no === no);
+$('mini').innerHTML = WS.map(w => `<tr><td>${String(DN(w)).padStart(2, '0')}${w.no === me.no ? '　わが家' : ''}</td><td><b>${esc(NM(w.no)?.name || Y.COMPANIES[w.company].name)}</b>${NM(w.no)?.lesson ? `　教訓：${esc(NM(w.no).lesson)}` : ''}</td><td style="white-space:nowrap">${w.warmth.label}</td><td style="white-space:nowrap">${man(w.total)}万円</td></tr>`).join('');
+$('wc').addEventListener('load', () => { const t0 = Date.now(); const iv = setInterval(() => { try { if ($('wc').contentWindow.READY || Date.now() - t0 > 8000) { clearInterval(iv); window.READY = true; } } catch { clearInterval(iv); window.READY = true; } }, 200); });
 </script>
 </body>
 </html>
