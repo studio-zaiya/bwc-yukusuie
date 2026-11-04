@@ -11,7 +11,7 @@ const STAFFN = co => `${Y.COMPANIES[co].staffRole}・${Y.COMPANIES[co].staff}`;
 const myNo = s => (s.player && s.player.bits.length === 4 ? Y.worldNo(s.player.bits) : 7);
 
 // ---- 上の帯・お金の札・時計 ----
-function top(s) { return `<div class="top"><div class="logo">ゆくすいえ</div>${P.progress(s.step)}</div>`; }
+function top(s) { return `<div class="top"><div class="logo"><img src="/brand/mark.svg" alt="" style="width:40px;height:40px;vertical-align:-10px;margin-right:4px">ゆくすいえ</div>${P.progress(s.step)}</div>`; }
 function moneyBox(s) {
   const h = H(s);
   if (!s.player) {
@@ -122,7 +122,7 @@ export const busy = { on: false };
 export const SCENES = {
   start(s) {
     return `<div class="center" style="text-align:center;width:1500px">
-      <div class="title">ゆくすいえ</div><div class="subt">YUKUSUIE: 16 unbuilt futures</div>
+      <h1 style="margin:0"><img src="/brand/lockup-horizontal.svg" alt="ゆくすいえ　YUKUSUIE 16 unbuilt futures" style="width:880px"></h1>
       <div class="catch">16回目の、マイホームへ。</div>
       <p class="lead" style="margin-top:22px">初めて家を建てる共働きの夫婦になって、4つの分かれ道を選びます。<br>選ばなかった道も、16の世界で同時に進みます。</p>
       <button class="big-btn" data-act="start">はじめる</button>

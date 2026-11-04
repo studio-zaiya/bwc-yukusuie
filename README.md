@@ -2,7 +2,7 @@
 
 **16回目の、マイホームへ。**
 
-> 遊べるURL：（公開後に記入）
+> 遊べるURL：https://yukusuie.zaiya.workers.dev
 > デモ動画（3分）：（アップ後に記入）
 
 このプロジェクトは、初めて家を建てる共働きの夫婦の「一度しか試せない家づくり」を、建てる前に16回試せる体験に変える、ブラウザのシミュレーションゲームです。
@@ -34,7 +34,7 @@ Built with Claude: Japan 2026 の提出作品です。
 - 決断の理由を記憶し、1年後のレポートで「あのとき守ろうとしたもの」として言葉にします。「失敗でした」とは判定しません
 
 ## 技術構成
-- Cloudflare Workers（画面の配信とAPI）、KV（プレイの記録）
+- Cloudflare Workers（画面の配信とAPI）、KV（プレイの記録、回数と費用の上限）
 - Anthropic API（APIキーはWorkers側に置き、ブラウザには出しません）
 - 画面は素のJavaScript。家と分譲地は画像生成を使わず、座標からコードで描いています（SVG／Canvas、動画素材の一部は three.js）
 
@@ -42,6 +42,13 @@ Built with Claude: Japan 2026 の提出作品です。
 - 開発期間（2026-11-02〜）に、Claude（claude.ai）とClaude Codeだけで作りました。実装と作業はすべてClaudeが行い、外部のコードや素材は取り込んでいません
 - 企画・予行演習・見せ方の試作（`prototypes/`、`design/`）は claude.ai で、実装は Claude Code で行いました。作業の記録は `docs/devlog.md` と `docs/devlog/` にあります
 - トラブル目録・住宅会社の類型・対立軸の辞書は、事前に作成した調査メモをもとに、期間中に新しくデータ化しました（`data/`）。調査メモそのものは含めていません
+
+## 動かし方（開発）
+- `npm install` → `npm test`（計算エンジンの検算）
+- `npm run dev`（ローカル。`.dev.vars` に `AI_MODE=mock` を置くと、Claudeを呼ばずに代わりの処理で動く）
+- `node scripts/playthrough.cjs [URL]`：通しの自動プレイ（スクショを `out/shots/` に保存）
+- `node scripts/api_smoke.mjs URL`：Claude APIの疎通確認（役割ごとに1回だけ呼ぶ）
+- `?replay=再生コード`：実際のプレイの記録を再生（Claudeは呼ばない）。`?rec=1` で撮影用に操作の表示を消す
 
 ## フォルダ
 - `src/`：ゲーム本体（Worker、画面、エンジン）
