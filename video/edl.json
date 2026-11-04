@@ -1,24 +1,186 @@
 {
- "note": "通しの場面表。at は通しでの開始秒（構成 v0.3 と字幕の時刻にそろえる）。kind：part＝out/video_parts のかけら／rec＝out/ の下の実機の録画（in＝使い始めの秒、speed＝速さ）／plate＝仮の板。sub=true は実写の代用",
- "fps": 24, "xfade": 0.3, "end": 180, "subs": "subs_v2.srt",
+ "note": "通しの場面表。at は通しでの開始秒（構成 v0.3 と字幕の時刻にそろえる）。kind：part＝out/video_parts のかけら／rec＝out/ の下の実機の録画（in＝使い始めの秒、speed＝速さ）／plate＝仮の板。sub=true は実写の代用。rec の in は録画の秒、speed は速さ（0.33＝1/3、8＝8倍）",
+ "fps": 24,
+ "xfade": 0.3,
+ "end": 180,
+ "subs": "subs_v3.srt",
  "segments": [
-  { "id": "hero", "at": 0, "kind": "part", "file": "hero-title.mp4", "in": 0, "label": "Hero（コピーまで、ロゴはまだ）" },
-  { "id": "intro", "at": 8, "kind": "part", "file": "intro-c.mp4", "label": "前振りC（7場面）。声だけ、字幕は名乗りから" },
-  { "id": "logo", "at": 43, "kind": "part", "file": "title-card.mp4", "label": "ロゴ" },
-  { "id": "r01-survey", "at": 48, "kind": "plate", "label": "実機 1：来場者アンケート", "note": "3〜4問をテンポよく選ぶ。「あと〇問」が減る" },
-  { "id": "r02-summary", "at": 54, "kind": "plate", "label": "実機 2：担当者の総括", "note": "「ご記入ありがとうございます。〇〇なお家がご希望なのですね」" },
-  { "id": "r03-proposal", "at": 59, "kind": "plate", "label": "実機 3：提案の日", "note": "2社の案が左右に並ぶ（間取りの骨組み・形・屋根・色・概算見積）" },
-  { "id": "r04-fork1", "at": 66, "kind": "plate", "label": "実機 4：第一の分岐点の儀式", "note": "暗転 → 札 → 選ぶ → もう一方が世界線の列へ飛ぶ → 1" },
-  { "id": "r05-fork3", "at": 77, "kind": "plate", "label": "実機 5：第二 → 第三の分岐点（自分の言葉）", "note": "家の絵と◆の変化 → 担当者の条件 →「いま起きたこと」→ 世界線が7へ" },
-  { "id": "r06-coord", "at": 93, "kind": "plate", "label": "実機 6：色決め → 第四の分岐点（自動）", "note": "この仕上げで確定 → 第四の札が自動で → 15へ" },
-  { "id": "r07-electric", "at": 100, "kind": "plate", "label": "実機 7：電気の伝え漏れ", "note": "左の一覧に、伝えたはずのテレビの壁掛けがない → 指摘 → 追加になる" },
-  { "id": "r08-build", "at": 113, "kind": "plate", "label": "実機 8：早送り → 引渡し（切り絵）", "note": "職人と重機が動く → 鍵の受け渡し" },
-  { "id": "r09-year", "at": 124, "kind": "plate", "label": "実機 9：1年後 → 16区画", "note": "暮らしの跡のあるわが家 → 07の強調 → 区画を押して比べる" },
-  { "id": "arch", "at": 138, "kind": "part", "file": "arch.mp4", "label": "仕組み「言葉はClaude、数字はコード。」" },
-  { "id": "training", "at": 150, "kind": "part", "file": "training.mp4", "shotAt": 4.6, "label": "担当者の研修の前後（実際の記録の値）" },
-  { "id": "report", "at": 156, "kind": "plate", "label": "実機 10：レポート", "note": "表紙の水彩 → 希望と結果 → 担当者に渡す1枚 → 16区画の地図" },
-  { "id": "handover", "at": 164, "kind": "part", "file": "handover.mp4", "sub": true, "shotAt": 3.6, "label": "1枚を持っていく（実写の手渡しの代用）" },
-  { "id": "ending", "at": 172, "kind": "part", "file": "ending-EA.mp4", "in": 9.6, "crop": [1880, 1058, 36, 11], "cropNote": "元のかけらの左端32pxが暗色。書き出し直しで直す", "label": "締め（題名とキャッチが出るところ）" },
-  { "id": "credits", "at": 175, "kind": "part", "file": "credits.mp4", "label": "黒画面（スタッフ・注記）" }
+  {
+   "id": "hero",
+   "at": 0,
+   "kind": "part",
+   "file": "hero-title.mp4",
+   "in": 0,
+   "label": "Hero（コピーまで、ロゴはまだ）"
+  },
+  {
+   "id": "intro",
+   "at": 8,
+   "kind": "part",
+   "file": "intro-c.mp4",
+   "label": "前振りC（7場面）。声だけ、字幕は名乗りから"
+  },
+  {
+   "id": "logo",
+   "at": 43,
+   "kind": "part",
+   "file": "title-card.mp4",
+   "label": "ロゴ"
+  },
+  {
+   "id": "r01-survey",
+   "at": 48,
+   "file": "rec/demo_full.mp4",
+   "in": 14.0,
+   "label": "実機 1：来場者アンケート（1画面1問、あと〇問が減る）",
+   "kind": "rec"
+  },
+  {
+   "id": "r02-summary",
+   "at": 54,
+   "file": "rec/demo_slow.mp4",
+   "in": 121.6,
+   "label": "実機 2：担当者の総括（Cデザイン）",
+   "kind": "rec"
+  },
+  {
+   "id": "r03-proposal",
+   "at": 59,
+   "file": "rec/demo_slow.mp4",
+   "in": 314.2,
+   "label": "実機 3：提案の日（2社の案）→ 第一の分岐点へ",
+   "kind": "rec"
+  },
+  {
+   "id": "r04-fork1",
+   "at": 66,
+   "file": "rec/demo_slow.mp4",
+   "in": 327.5,
+   "label": "実機 4：第一の分岐点「だれと建てる？」→ 選ばなかった道が世界線の列へ",
+   "kind": "rec"
+  },
+  {
+   "id": "r05-fork3",
+   "at": 77,
+   "file": "rec/demo_slow.mp4",
+   "in": 393.0,
+   "label": "実機 5：第三の分岐点「いくらまでかける？」（札と自分の言葉の欄）",
+   "kind": "rec"
+  },
+  {
+   "id": "r05-trade",
+   "at": 84,
+   "file": "rec/demo_slow.mp4",
+   "in": 412.3,
+   "speed": 0.33,
+   "label": "実機 5：自分の言葉 → 家の絵と◆・担当者の条件・いま起きたこと",
+   "note": "実際の画面は約2.8秒。1/3の速さで伸ばした",
+   "kind": "rec"
+  },
+  {
+   "id": "r06-coord",
+   "at": 93,
+   "file": "rec/demo_slow.mp4",
+   "in": 437.0,
+   "speed": 1.25,
+   "label": "実機 6：色決め → 第四の分岐点（自動）→ 15へ",
+   "kind": "rec"
+  },
+  {
+   "id": "r07-electric",
+   "at": 100,
+   "file": "rec/demo_slow.mp4",
+   "in": 451.5,
+   "label": "実機 7：電気の打ち合わせ（左の一覧で確かめる）",
+   "kind": "rec"
+  },
+  {
+   "id": "r08-build",
+   "at": 113,
+   "file": "rec/demo_slow.mp4",
+   "in": 466.0,
+   "speed": 8,
+   "label": "実機 8：着工から引渡しまでの早送り（8倍）",
+   "kind": "rec"
+  },
+  {
+   "id": "r08-handover",
+   "at": 118.5,
+   "file": "rec/demo_slow.mp4",
+   "in": 510.5,
+   "label": "実機 8：引渡し（切り絵）",
+   "kind": "rec"
+  },
+  {
+   "id": "r09-seasons",
+   "at": 124,
+   "file": "rec/demo_slow.mp4",
+   "in": 524.0,
+   "speed": 2,
+   "label": "実機 9：1年のうつろい（2倍）→ 1年後",
+   "kind": "rec"
+  },
+  {
+   "id": "r09-year",
+   "at": 127,
+   "file": "rec/demo_slow.mp4",
+   "in": 537.5,
+   "label": "実機 9：16区画 → 区画を押して比べる → 世界樹",
+   "kind": "rec"
+  },
+  {
+   "id": "arch",
+   "at": 138,
+   "kind": "part",
+   "file": "arch.mp4",
+   "label": "仕組み「言葉はClaude、数字はコード。」"
+  },
+  {
+   "id": "training",
+   "at": 150,
+   "kind": "part",
+   "file": "training.mp4",
+   "shotAt": 4.6,
+   "label": "担当者の研修の前後（実際の記録の値）"
+  },
+  {
+   "id": "report",
+   "at": 156,
+   "kind": "part",
+   "file": "report-pages.mp4",
+   "shotAt": 6.5,
+   "label": "実機 10：印刷用レポートの4ページ → 担当者に渡す1枚（3ページ目）"
+  },
+  {
+   "id": "handover",
+   "at": 164,
+   "kind": "part",
+   "file": "handover.mp4",
+   "sub": true,
+   "shotAt": 3.6,
+   "label": "1枚を持っていく（実写の手渡しの代用）"
+  },
+  {
+   "id": "ending",
+   "at": 172,
+   "kind": "part",
+   "file": "ending-EA.mp4",
+   "in": 9.6,
+   "crop": [
+    1880,
+    1058,
+    36,
+    11
+   ],
+   "cropNote": "元のかけらの左端32pxが暗色。書き出し直しで直す",
+   "label": "締め（題名とキャッチが出るところ）"
+  },
+  {
+   "id": "credits",
+   "at": 175,
+   "kind": "part",
+   "file": "credits.mp4",
+   "label": "黒画面（スタッフ・注記）"
+  }
  ]
 }

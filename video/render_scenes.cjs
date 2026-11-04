@@ -27,6 +27,8 @@ const SCENES = [
   // 手渡しの場面（前振り⑧と同じ絵柄）と、担当者の研修の前後（実際の記録の値）
   { id: 'handover', url: P('handover.html?t=0'), dur: 8 },
   { id: 'training', url: P('training.html?t=0'), dur: 6 },
+  // 実機の印刷用レポートの4ページ（out/rec/report-p1〜4.png）をめくる
+  { id: 'report-pages', url: P('report-pages.html?t=0'), dur: 8 },
 ];
 
 (async () => {
