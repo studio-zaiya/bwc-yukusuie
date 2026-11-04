@@ -120,11 +120,12 @@ export const ACTIONS = {
     if (S.report) return;
     const o = Y.outcome(S.player);
     try {
-      const r = await api('/api/ai/report', { memory: S.player.memory, labels: S.player.labels, events: o.events, warmth: o.warmth.label, slack: o.slack.label });
+      const words = S.chat.filter(m => m.who === 'kazu' || m.who === 'yuu').map(m => ({ who: m.who === 'yuu' ? 'ゆう' : 'かず', text: m.text }));
+      const r = await api('/api/ai/report', { memory: S.player.memory, labels: S.player.labels, words, entry: S.entry.text, events: o.events, warmth: o.warmth.label, slack: o.slack.label });
       emit('ai', { role: 'report', data: r.data, call: r.call });
     } catch (e) { toast(String(e.message)); }
   },
-  print() { try { localStorage.setItem('yuku-report', JSON.stringify({ report: S.report, outcome: Y.outcome(S.player), labels: S.player.labels, savedId: S.savedId })); } catch { } open('/report.html', '_blank'); },
+  print() { try { localStorage.setItem('yuku-report', JSON.stringify({ report: S.report, player: S.player, others: S.others, heard: S.heard, missed: S.missed, chat: S.chat, staff16: S.staff16, savedId: S.savedId })); } catch { } open('/report.html', '_blank'); },
   restart() { location.href = location.pathname; },
   openPop(d) { emit('pop', { pop: d.pop }); },
   closePop() { emit('pop', { pop: null }); },

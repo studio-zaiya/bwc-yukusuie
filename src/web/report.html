@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>ゆくすいえ　1年後のレポート（印刷用）</title>
+<style>
+@page{size:A4;margin:0}
+:root{--paper:#FFFAF0;--sheet:#FFFFFF;--ink:#1E2B36;--ink2:#6B6358;--line:rgba(30,43,54,.16);
+  --kazu:#E8701F;--kazuBg:#FDE3CC;--yuu:#1C8DCC;--yuuBg:#D6ECF8;--gold:#F2C230;--goldT:#8C6A00;--grass:#9BD27A;--ground:#F3E7CF;--sky:#CFEBFA;
+  --f:"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic",sans-serif;--fr:"Hiragino Maru Gothic ProN","Zen Maru Gothic","Hiragino Sans",sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:#DDD5C6}
+body{font-family:var(--f);color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.page{width:210mm;height:297mm;margin:8mm auto;background:var(--paper);padding:14mm 15mm 12mm;position:relative;overflow:hidden}
+@media print{html{background:none}.page{margin:0;break-after:page}.page:last-of-type{break-after:auto}}
+.top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:.6mm solid var(--ink);padding-bottom:2.5mm}
+.logo{font-family:var(--fr);font-weight:900;font-size:6.2mm;letter-spacing:.05em}.logo small{display:block;font-family:var(--f);font-weight:400;font-size:2.4mm;letter-spacing:.12em;margin-top:.6mm}
+.meta{font-size:2.7mm;color:var(--ink2);text-align:right;line-height:1.6}
+.pno{position:absolute;right:15mm;bottom:6mm;font-size:2.5mm;color:var(--ink2)}
+h1{font-family:var(--fr);font-weight:900;font-size:9.2mm;line-height:1.25;margin:5mm 0 1.5mm}
+h2{font-size:4mm;font-weight:700;margin:0 0 2.2mm;display:flex;align-items:center;gap:2mm}
+h2 .n{display:inline-grid;place-items:center;width:5.2mm;height:5.2mm;border-radius:50%;background:var(--ink);color:var(--paper);font-size:2.8mm}
+.lead{font-size:3.2mm;color:var(--ink2);line-height:1.75}
+.box{background:var(--sheet);border:.3mm solid var(--line);border-radius:2.4mm;padding:3.6mm 4.2mm}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
+.mt{margin-top:4.2mm}
+p,li{font-size:3.15mm;line-height:1.65}
+ul{list-style:none}
+.sq::before{content:"■";color:var(--kazu);margin-right:1.3mm}.ci::before{content:"●";color:var(--yuu);margin-right:1.3mm}.di::before{content:"◆";color:var(--gold);margin-right:1.3mm;-webkit-text-stroke:.15mm var(--goldT)}
+.chips{display:flex;flex-wrap:wrap;gap:1.6mm;margin-top:1.5mm}
+.chip{font-size:2.9mm;padding:.6mm 2.4mm;border-radius:99mm;border:.3mm solid var(--line);background:var(--sheet)}
+.chip.k{background:var(--kazuBg);border-color:transparent}.chip.y{background:var(--yuuBg);border-color:transparent}
+.sw{display:flex;gap:1.6mm;margin-top:2mm}.sw i{display:block;width:10mm;height:7mm;border-radius:1mm;border:.25mm solid var(--line)}
+.sw span{font-size:2.5mm;color:var(--ink2);display:block;text-align:center;margin-top:.6mm}
+table{width:100%;border-collapse:collapse;font-size:3.05mm}
+td,th{padding:1.3mm 1.2mm;border-bottom:.25mm solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+td:first-child,th:first-child{text-align:left;color:var(--ink2);font-weight:400}
+th{font-weight:700}
+.dec{display:grid;grid-template-columns:24mm 1fr;gap:3mm;padding:2mm 0;border-bottom:.25mm dashed var(--line)}
+.dec:last-child{border-bottom:none}
+.dec .q{font-size:2.9mm;color:var(--ink2)}
+.dec b{font-size:3.2mm}
+.rank{display:grid;grid-template-columns:9mm 1fr;gap:2.5mm;align-items:start;padding:2.2mm 0;border-bottom:.25mm dashed var(--line)}
+.rank:last-child{border-bottom:none}
+.rank .no{font-family:var(--fr);font-weight:900;font-size:7mm;line-height:1}
+.rank b{font-size:3.4mm;display:block}
+.rank span{font-size:2.9mm;color:var(--ink2);line-height:1.6;display:block}
+.ask li{display:grid;grid-template-columns:5mm 1fr;gap:1mm;margin:.9mm 0}
+.ask li::before{content:"";width:3.3mm;height:3.3mm;border:.35mm solid var(--ink);border-radius:.6mm;margin-top:.9mm}
+.tr li{padding-left:0;margin:.8mm 0}
+.tag{display:inline-block;font-size:2.5mm;font-weight:700;border:.3mm solid var(--ink);border-radius:.8mm;padding:0 1.2mm;margin-right:1.4mm}
+.wcard{background:var(--sheet);border:.3mm solid var(--line);border-radius:2.4mm;padding:3mm 3.4mm;display:grid;grid-template-columns:22mm 1fr;gap:3mm}
+.wcard .no{font-family:var(--fr);font-weight:900;font-size:8mm;line-height:1}
+.wcard .co{font-size:2.5mm;color:var(--ink2);margin-top:1mm}
+.wcard b{font-size:3.2mm;display:block;margin-bottom:.6mm}
+.wcard p{font-size:2.95mm;color:var(--ink)}
+.wcard .lesson{font-size:2.9mm;color:var(--ink2);margin-top:1mm}
+.mini td{font-size:2.75mm;padding:1mm 1.1mm}
+.mini td:nth-child(2){text-align:left;color:var(--ink)}
+.foot{position:absolute;left:15mm;right:15mm;bottom:10mm;font-size:2.35mm;color:var(--ink2);line-height:1.6;border-top:.25mm solid var(--line);padding-top:2mm}
+.bal{display:flex;height:6mm;border-radius:1mm;overflow:hidden;border:.3mm solid var(--ink);margin:2mm 0 1.4mm}
+.bal div{display:grid;place-items:center;font-size:2.6mm;font-weight:700;color:var(--ink)}
+.replay{display:flex;gap:3mm;align-items:center;margin-top:3mm}
+.replay .code{font-family:Menlo,monospace;font-weight:700;font-size:4.2mm;letter-spacing:.1em;border:.35mm solid var(--ink);border-radius:1.2mm;padding:1mm 2.6mm}
+</style>
+</head>
+<body>
+
+<!-- 1ページ目 -->
+<div class="page">
+  <div class="top"><div class="logo">ゆくすいえ<small>YUKUSUIE: 16 unbuilt futures</small></div><div class="meta">かず と ゆう の家づくり<br>入居から1年後のレポート</div></div>
+  <h1>わが家の、ちょうどいいバランス<small id="title" style="display:block;font-size:4mm;margin-top:1mm"></small></h1>
+  <p class="lead">16の世界で同時に家を建て、1年が過ぎました。正解の家ではなく、ふたりが大切にしたいことを書き留めます。<br>このレポートは、本物の打ち合わせに持っていけるように作っています。</p>
+
+  <div class="g2 mt">
+    <div class="box">
+      <h2><span class="n">1</span>わが家の理想</h2>
+      <p>ふたりが最初に伝えたことば、写真、URLから読み取った要素です。</p>
+      <div class="chips" id="chips"></div>
+      <div class="sw" id="sw"></div>
+    </div>
+    <div class="box">
+      <h2><span class="n">2</span>ふたりのバランス</h2>
+      <p>4つの決断を、だれの思いに寄せて決めたか。</p>
+      <div class="bal" id="bal"></div>
+      <p style="font-size:2.8mm;color:var(--ink2)"><span class="sq">かず</span>　<span class="ci">ゆう</span>　<span class="di">ふたりで考えて出した答え</span></p>
+      <p style="margin-top:2mm" id="tags"></p>
+    </div>
+  </div>
+
+  <div class="box mt">
+    <h2><span class="n">3</span>わが家が選んだこと（<span id="myno"></span>の世界）</h2>
+    <div class="g2" style="gap:5mm">
+      <div id="decs"></div>
+      <div>
+        <table id="nums"></table>
+        <p style="font-size:2.7mm;color:var(--ink2);margin-top:2mm">金額・日数はゲーム内の計算エンジンの目安です。暖かさは「外気0℃の朝」の簡易な判定です。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。実際の家づくりでは、地域・金融機関・住宅会社によって異なります。登場する住宅会社・人物・団体はすべて架空です。</div>
+  <div class="pno">1 / 3</div>
+</div>
+
+<!-- 2ページ目 -->
+<div class="page">
+  <div class="top"><div class="logo">ゆくすいえ<small>YUKUSUIE: 16 unbuilt futures</small></div><div class="meta">かず と ゆう の家づくり<br>入居から1年後のレポート</div></div>
+
+  <div class="box" style="margin-top:5mm">
+    <h2><span class="n">4</span>悩んだら、何を優先するか</h2>
+    <p style="color:var(--ink2)">4つの決断の理由から、ふたりが守ろうとしたものを順に並べました。</p><div id="rank"></div>
+  </div>
+
+  <div class="g2 mt">
+    <div class="box">
+      <h2><span class="n">5</span>先に伝えておきたいこと</h2>
+      <p style="color:var(--ink2);margin-bottom:1.5mm">担当者に、最初の打ち合わせで渡す要望の要点です。</p>
+      <ul class="ask" id="ask"></ul>
+    </div>
+    <div class="box">
+      <h2><span class="n">6</span>気をつけたいこと</h2>
+      <ul class="tr" id="tr"></ul>
+      <h2 style="margin-top:3mm;font-size:3.4mm">本物の打ち合わせで、聞くこと</h2>
+      <ul class="ask">
+        <li>地盤の調査は、契約の前ですか、後ですか</li>
+        <li>見積の「別途」の項目を、全部教えてください</li>
+        <li>契約のあと、担当の方は替わりますか</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="foot">本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。実際の家づくりでは、地域・金融機関・住宅会社によって異なります。登場する住宅会社・人物・団体はすべて架空です。</div>
+  <div class="pno">2 / 3</div>
+</div>
+
+<!-- 3ページ目 -->
+<div class="page">
+  <div class="top"><div class="logo">ゆくすいえ<small>YUKUSUIE: 16 unbuilt futures</small></div><div class="meta">かず と ゆう の家づくり<br>入居から1年後のレポート</div></div>
+  <h2 style="margin-top:5mm;font-size:4.6mm"><span class="n">7</span>選ばなかった世界線から</h2>
+  <p class="lead" style="margin-bottom:3mm">同じ家族、同じ土地で、決断が違った世界です。どちらが正解かは決めません。</p>
+  <div id="cards" style="display:grid;grid-template-columns:1fr 1fr;gap:3.4mm"></div>
+  <div class="box mt">
+    <h2 style="font-size:3.4mm">16の世界の1年後（ひとこと）</h2>
+    <table class="mini" id="mini"></table>
+  </div>
+  <div class="replay">
+    <span class="code" id="code">—</span>
+    <p style="font-size:2.9mm;color:var(--ink2)">このコードで、どの世界の1年も、もう一度再生できます。</p>
+  </div>
+  <div class="foot">本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。実際の家づくりでは、地域・金融機関・住宅会社によって異なります。登場する住宅会社・人物・団体はすべて架空です。金額・日数はゲーム内の計算エンジンによる目安です。</div>
+  <div class="pno">3 / 3</div>
+</div>
+
+<script type="module">
+// 印刷用のレポート（A4・3ページ）。数字はエンジン、言葉はClaude（決断の記憶から）。データはプレイ画面から localStorage で受け取る
+import * as Y from '/engine/engine.js';
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const $ = id => document.getElementById(id);
+let D = null; try { D = JSON.parse(localStorage.getItem('yuku-report') || 'null'); } catch {}
+if (!D || !D.player) { document.body.innerHTML = '<p style="padding:20mm;font-size:5mm">プレイ画面の「印刷用を開く」から開いてください。</p>'; throw new Error('no data'); }
+const me = Y.outcome(D.player), WS = [D.player, ...D.others].map(w => Y.outcome(w)).sort((a, b) => a.no - b.no);
+const R = D.report || { title: '', balance: [], memories: [], tellFirst: [], closing: '' };
+const man = n => Number(n).toLocaleString('ja-JP', { maximumFractionDigits: 1 });
+const mo = p => Y.payment(p, Y.RATE.variable).toFixed(1) + '万円';
+$('title').textContent = R.title || '';
+$('myno').textContent = String(me.no).padStart(2, '0');
+// 1 理想：ヒアリングで聞き取れた付箋（かず＝橙、ゆう＝空色）と、選んだ仕上げの色
+const heard = (D.heard || []).slice(0, 10);
+$('chips').innerHTML = heard.length ? heard.map(h => `<span class="chip ${h.who === 'ゆう' ? 'y' : 'k'}">${esc(h.text.slice(0, 16))}</span>`).join('') : '<span class="chip k">（聞き取りの記録なし）</span>';
+const f = D.player.finish, wall = Y.FINISH.wall.find(x => x.id === f.wall) || Y.FINISH.wall[0], fl = Y.FINISH.floor.find(x => x.id === f.floor) || Y.FINISH.floor[0];
+$('sw').innerHTML = [[wall.colors[f.color || 0][1], wall.label.replace('（標準）', '')], [fl.sw, fl.label.replace('（標準）', '')], ['#9BD27A', '庭の緑'], ['#CFEBFA', '南の光']].map(([c, l]) => `<div><i style="background:${c}"></i><span>${esc(l)}</span></div>`).join('');
+const nk = heard.filter(h => h.who === 'かず').length, ny = heard.filter(h => h.who === 'ゆう').length;
+$('tags').textContent = `要望の付箋は、かず${nk}枚・ゆう${ny}枚。`;
+// 2 バランス：分岐点の直前に話していた人。自分の言葉で答えた分岐点は「ふたり」
+const who = []; let last = 'g';
+for (const m of D.chat || []) { if (m.who === 'kazu') last = 'k'; if (m.who === 'yuu') last = 'y'; if (m.who === 'sys' && /分岐点：/.test(m.text)) who.push(last); }
+D.player.labels.forEach((_, i) => { if (D.player.third === `D${i + 1}`) who[i] = 'g'; if (!who[i]) who[i] = 'g'; });
+const cnt = { k: 0, y: 0, g: 0 }; who.slice(0, 4).forEach(w => cnt[w]++);
+$('bal').innerHTML = [['k', '#FDE3CC', 'かず'], ['y', '#D6ECF8', 'ゆう'], ['g', '#FBEBB0', 'ふたり']].map(([k, c, l]) => cnt[k] ? `<div style="width:${cnt[k] / 4 * 100}%;background:${c}">${l} ${cnt[k]}</div>` : '').join('');
+// 3 選んだこと（エンジン）
+$('decs').innerHTML = D.player.labels.map((l, i) => `<div class="dec"><span class="q">${Y.DECISIONS[i].q}</span><b class="${{ k: 'sq', y: 'ci', g: 'di' }[who[i]]}">${esc(l)}</b></div>`).join('');
+$('nums').innerHTML = `<tr><th></th><th>${String(me.no).padStart(2, '0')}　わが家</th></tr><tr><td>土地と建物の総額</td><td>${man(me.total)}万円</td></tr><tr><td>借入</td><td>${man(me.principal)}万円</td></tr><tr><td>月々の返済（変動・35年）</td><td>${mo(me.principal)}</td></tr><tr><td>冬の朝の暖かさ</td><td>${me.warmth.label}</td></tr><tr><td>家計のゆとり</td><td>${me.slack.label}</td></tr>`;
+// 4 悩んだら（Claude）
+$('rank').innerHTML = (R.balance || []).map((b, i) => `<div class="rank"><span class="no">${i + 1}</span><div><b>${esc(b)}</b><span>${esc(R.memories?.[i] || '')}</span></div></div>`).join('');
+// 5 先に伝えておきたいこと（Claude）＋聞き漏れ
+$('ask').innerHTML = [...(R.tellFirst || []), ...(D.missed || []).map(m => m.said)].slice(0, 7).map(t => `<li>${esc(t)}</li>`).join('');
+// 6 気をつけたいこと：自分の世界で起きたこと／ほかの世界で起きて、自分の世界では避けたこと（エンジン）
+const mine = new Set(me.events), other = [...new Set(WS.filter(w => w.no !== me.no).flatMap(w => w.events))].filter(e => !mine.has(e));
+$('tr').innerHTML = [...me.events.map(e => `<li><span class="tag">踏んだ</span>${esc(e)}</li>`), ...other.slice(0, 4).map(e => `<li><span class="tag">避けた</span>${esc(e)}</li>`)].join('') || '<li>大きな出来事はなかった</li>';
+// 7 選ばなかった世界線：各分岐点で、もう一方を選んだ世界（ほかは同じ）
+const sib = i => WS.find(w => w.bits.every((b, k) => k === i ? b !== me.bits[k] : b === me.bits[k]));
+const line = no => D.staff16?.lines?.find(l => l.no === no)?.line;
+$('cards').innerHTML = [0, 1, 2, 3].map(i => sib(i)).filter(Boolean).map((w, j) => `<div class="wcard"><div><div class="no">${String(w.no).padStart(2, '0')}</div><div class="co">${Y.COMPANIES[w.company].name}<br>総額 ${man(w.total)}万円<br>冬の朝 ${w.warmth.label}</div></div><div><b>${Y.FORKS[j]}で「${esc(w.labels[j])}」を選んだ世界</b><p>${esc((w.events[0] || '大きな出来事はなかった'))}。家計のゆとりは「${w.slack.label}」。</p>${line(w.no) ? `<div class="lesson">担当者のひとこと：${esc(line(w.no))}</div>` : ''}</div></div>`).join('');
+$('mini').innerHTML = WS.map(w => `<tr><td>${String(w.no).padStart(2, '0')}${w.no === me.no ? '　わが家' : ''}</td><td>${Y.COMPANIES[w.company].name}・${esc((w.events[0] || '大きな出来事はなかった').slice(0, 26))}</td><td style="white-space:nowrap">${w.warmth.label}</td><td style="white-space:nowrap">${man(w.total)}万円</td></tr>`).join('');
+$('code').textContent = D.savedId || '—';
+window.READY = true;
+</script>
+</body>
+</html>

@@ -176,9 +176,13 @@ const REPORT_SCHEMA = {
   properties: { title: { type: 'string' }, balance: { type: 'array', items: { type: 'string' } }, memories: { type: 'array', items: { type: 'string' } }, tellFirst: { type: 'array', items: { type: 'string' } }, closing: { type: 'string' } },
 };
 async function report(env, body) {
-  const user = `# 決断の記憶\n${JSON.stringify(body.memory || []).slice(0, 3000)}\n# 選んだ道\n${(body.labels || []).join(' → ')}\n# 1年後の出来事（エンジン）\n${(body.events || []).join('\n')}\n# 暖かさ・家計のゆとり（エンジン）\n${body.warmth || ''}／${body.slack || ''}`;
-  const fb = { title: 'あのとき守ろうとしたもの', balance: ['毎日の暮らしやすさ', '家計の安心', '家族の時間'], memories: (body.labels || []).map(l => `「${l}」を選びました。`), tellFirst: ['いちばん大切にしたいこと', '予算の上限と、その理由', '後から変えにくいところ（下地・配線・窓）'], closing: 'この紙を、本物の打ち合わせに持っていってください。' };
-  return callJSON(env, { role: 'report', user, schema: REPORT_SCHEMA, fallback: fb, effort: 'low', maxTokens: 3000, validate: x => digitsIn(x, ['title', 'balance', 'memories', 'tellFirst', 'closing']).length ? '数字' : null });
+  const labels = (body.labels || []).slice(0, 4);
+  const mem = body.memory || [];
+  const forks = labels.map((l, i) => { const m = mem.find(x => x.decisionId === `D${i + 1}`); return `${i + 1}. ${Y.FORKS[i]}「${Y.DECISIONS[i].q}」→ 選んだ道：${l}${m?.reason ? `（本人の理由：${m.reason}）` : ''}${m?.priority ? `（優先：${m.priority}）` : ''}`; }).join('\n');
+  const words = (body.words || []).slice(-16).map(w => `- ${w.who}：${String(w.text).slice(0, 120)}`).join('\n');
+  const user = `# 4つの分かれ道（memories は、この順に${labels.length}つ書く）\n${forks}\n# 施主が打ち合わせで話した言葉\n${words || 'なし'}\n# 施主が最初に書いた思い\n${String(body.entry || 'なし').slice(0, 400)}\n# 1年後の出来事（エンジン）\n${(body.events || []).join('\n') || 'とくになし'}\n# 暖かさ・家計のゆとり（エンジン）\n${body.warmth || ''}／${body.slack || ''}`;
+  const fb = { title: 'あのとき守ろうとしたもの', balance: ['毎日の暮らしやすさ', '家計の安心', '家族の時間'], memories: labels.map(l => `「${l}」を選びました。`), tellFirst: ['いちばん大切にしたいこと', '予算の上限と、その理由', '後から変えにくいところ（下地・配線・窓）'], closing: 'この紙を、本物の打ち合わせに持っていってください。' };
+  return callJSON(env, { role: 'report', user, schema: REPORT_SCHEMA, fallback: fb, effort: 'low', maxTokens: 3000, validate: x => digitsIn(x, ['title', 'balance', 'memories', 'tellFirst', 'closing']).length ? '数字' : (x.memories.length !== labels.length ? `memories は${labels.length}つ` : null) });
 }
 
 // ---- 選ばれなかった世界の担当者のひとこと（並列で呼ぶ）----

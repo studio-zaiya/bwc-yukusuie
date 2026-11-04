@@ -45,6 +45,9 @@ const OUT = process.env.OUT || 'out/shots';
   await p.mouse.click(222, 560); await p.waitForTimeout(300); console.log('区画を押した →', await p.evaluate(() => YUKU.state.lot)); await shot('year-lot');
   await click('[data-act=toHonne]'); await shot('honne');
   await click('[data-act=toReport]'); await p.waitForSelector('.rep', { timeout: 60000 }); await p.waitForTimeout(1200); await shot('report');
+  const [pr] = await Promise.all([p.context().waitForEvent('page'), p.click('[data-act=print]')]);
+  await pr.waitForFunction(() => window.READY, null, { timeout: 10000 }); await pr.pdf({ path: `${OUT}/report.pdf`, format: 'A4', printBackground: true });
+  await pr.setViewportSize({ width: 900, height: 1300 }); await pr.screenshot({ path: `${OUT}/report-print.png`, fullPage: true });
   const st = await p.evaluate(() => ({ others: YUKU.state.others.length, labels: YUKU.state.player.labels, saved: YUKU.state.savedId, events: YUKU.LOG.length }));
   console.log(JSON.stringify(st));
   } catch (e) { console.log('止まった：', e.message.split('\n')[0]); }
