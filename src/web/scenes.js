@@ -421,9 +421,12 @@ export const SCENES = {
     const intro = INTRO.has(`${s.playId}-${d.no}`) ? '' : 'intro';
     let body;
     if (pend) {
-      body = `<div class="rt-trade"><div class="msg"><div class="who">${P.coTag(w.company, 18)}${Y.COMPANIES[w.company].name}・${STAFFN(w.company)}${pend.call?.fallback ? '<span class="mk">代わりの処理</span>' : ''}</div>${esc(pend.message)}<div class="cond">${pend.result.conditions.map(c => '・' + esc(c)).join('<br>')}</div></div>
+      // 自由回答：承認する前に、その答えを当てたときの家と、変わるところを見せる（答えが家を変えることを、画面で）
+      let pv = '';
+      if (pend.proposal) { const t = Y.forkWorld(w); try { Y.choose(t, d, pend.proposal); } catch { } const ch = diffWords(w, t).slice(0, 3); pv = `<div class="rt-pv">${P.bigHouse(t, 4, { fin: P.finOf(t) })}<ul>${(ch.length ? ch : ['見た目は変わらない']).map(x => `<li>◆ ${esc(x)}</li>`).join('')}</ul></div>`; }
+      body = `<div class="rt-tw">${pv}<div class="rt-trade"><div class="msg"><div class="who">${P.coTag(w.company, 18)}${Y.COMPANIES[w.company].name}・${STAFFN(w.company)}${pend.call?.fallback ? '<span class="mk">代わりの処理</span>' : ''}</div>${esc(pend.message)}<div class="cond">${pend.result.conditions.map(c => '・' + esc(c)).join('<br>')}</div></div>
         ${pend.result.wishCheck?.length ? `<ul class="wbox">${wishLine(pend.result.wishCheck)}</ul>` : ''}${band(s)}
-        <div class="rt-acts">${pend.result.verdict === 'いまは難しい' ? '<span class="note">この条件では進められません。</span><button class="opt" data-act="cancelTrade">ほかの答えを考える</button>' : '<button class="big-btn" data-act="approve">この条件で進める</button><button class="big-btn ghost" data-act="cancelTrade">やめておく</button>'}</div></div>`;
+        <div class="rt-acts">${pend.result.verdict === 'いまは難しい' ? '<span class="note">この条件では進められません。</span><button class="opt" data-act="cancelTrade">ほかの答えを考える</button>' : '<button class="big-btn" data-act="approve">この条件で進める</button><button class="big-btn ghost" data-act="cancelTrade">やめておく</button>'}</div></div></div>`;
     } else if (side) {
       const asker = MODE.solo || WHO === 'kazu' ? 'yuu' : 'kazu', other = side === 'a' ? 'b' : 'a';
       body = `<div class="rt-cards picked"><div class="rt-card on">${card(side)}</div><div class="rt-card fly">${card(other)}</div></div>

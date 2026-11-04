@@ -4,7 +4,6 @@
 import * as Y from './engine/engine.js';
 import { SCENES, snsHTML, myaiHTML, worldHTML, flyersHTML, phoneHTML, showHTML, setWho, setNames, MODE, SWITCH } from './scenes.js';
 import { ACTIONS } from './actions.js';
-import { tourAfterRender, tourHTML } from './tour.js';
 import { addNotes, syncHeard, wishesOf } from './memory.js';
 
 const Q = new URLSearchParams(location.search);
@@ -197,13 +196,12 @@ export function render() {
   const fn = SCENES[S.scene] || SCENES.start;
   const view = document.getElementById('view');
   const keep = [...view.querySelectorAll('[data-keep]')].map(el => ({ id: el.id, v: el.value }));
-  view.innerHTML = fn(S) + (S.notice && S.notice.step === S.step && S.notice.scene === S.scene ? `<div class="notice" role="status"><b>お知らせ</b>${S.notice.text}</div>` : '') + (SWITCH.on ? `<div class="wswitch"><p>${SWITCH.lines[SWITCH.i] || ''}</p></div>` : '') + popHTML() + (S.toast ? `<div class="toast">${S.toast}</div>` : '') + (RT.replaying ? `<div class="replaybar">実際のプレイの記録を再生しています</div>` : '') + (REC || RT.replaying || S.scene === 'start' ? '' : `<button class="help" data-act="help" title="操作の案内">？</button>`) + tourHTML(S);
+  view.innerHTML = fn(S) + (S.notice && S.notice.step === S.step && S.notice.scene === S.scene ? `<div class="notice" role="status"><b>お知らせ</b>${S.notice.text}</div>` : '') + (SWITCH.on ? `<div class="wswitch"><p>${SWITCH.lines[SWITCH.i] || ''}</p></div>` : '') + popHTML() + (S.toast ? `<div class="toast">${S.toast}</div>` : '') + (RT.replaying ? `<div class="replaybar">実際のプレイの記録を再生しています</div>` : '');
   for (const k of keep) { const el = document.getElementById(k.id); if (el && !el.value) el.value = k.v; }
   // 会話の欄は最新が見えるよう下へ。フォームや書類の欄（data-top）は上から（人間の指摘11/5：入力画面が一番下から始まっていた）
   view.querySelectorAll('.chat .log:not([data-top]), .el-right .log').forEach(log => { log.scrollTop = log.scrollHeight; });
   countUp(view);
   if (SCENES[S.scene + '_after']) SCENES[S.scene + '_after'](S);
-  if (!REC && !RT.replaying) tourAfterRender(S);
 }
 // お金の札：前の表示から新しい値まで、数え上がる（動画の書き出しと再生では動かさない）
 const MONEY_PREV = [];

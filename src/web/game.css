@@ -538,3 +538,5 @@ button.th.th15{font:inherit;color:inherit;text-align:center;cursor:pointer;borde
 .notice{position:absolute;right:30px;top:116px;width:500px;z-index:40;background:#fff;border:2px solid var(--ink);border-radius:14px;padding:12px 18px;font-size:17px;line-height:1.6;box-shadow:0 10px 24px rgba(30,43,54,.15);animation:rtin .4s ease-out,ntout .6s 6s forwards}@keyframes ntout{to{opacity:0;visibility:hidden}}.notice b{display:block;font-size:14px;color:var(--ink2)}
 .colors.big{margin-bottom:34px}
 .rt-common{font-size:18px;margin:-8px 0 12px;padding:6px 16px;border-radius:999px;background:#F4F1EA}.rt-catch{font-size:17px;color:var(--ink2)}
+.rt-pv{float:right;width:420px;margin:0 0 10px 20px;background:#fff;border:2px dashed #C99A00;border-radius:18px;padding:8px 14px}.rt-pv svg{width:100%;max-height:220px}.rt-pv ul{list-style:none;margin:0;padding:0;font-size:18px}.rt-pv li{color:#8C6A00;font-weight:700}
+.rt-tw{display:grid;grid-template-columns:400px 1fr;gap:22px;width:100%;flex:1;min-height:0;align-items:start}.rt-tw .rt-pv{float:none;width:auto;margin:0}.rt-tw .rt-trade{overflow:auto;max-height:100%}

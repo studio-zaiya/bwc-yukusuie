@@ -423,6 +423,8 @@ export function incidents(w) {
   if (w.company === 'C' && w.bits[1] === 1 && skill < 0.4) out.push({ text: '詳細の打ち合わせが長引き、入居がひと月遅れた', delay: 30, cause: '設計の途中で間取りの案を切り替え、図面を描き直した', lesson: '案を切り替えるなら、早いうちに決める' });
   // 地盤：調査が契約の後になる会社では、契約のあとで地盤改良が追加になることがある（会社の過失ではないので施主の負担）
   if (COMPANIES[w.company].groundTiming !== '契約前' && rng((w.seed ?? 7) * 17 + no)() < (COMPANIES[w.company].groundTiming === '曖昧' ? 0.4 : 0.3)) out.push({ text: '契約のあとの地盤調査で、地盤改良の追加が必要になった', amount: 80, cause: '地盤の調査が、建物の契約の後だった', lesson: '地盤の調査を、契約の前にするか確かめる' });
+  // 大きな出来事の世界（13番。CLAUDE.md の詳しく描く4世界）：会社の過失ではない天候の出来事で、上棟が延びる
+  if (no === 13 && !out.length) out.push({ text: '台風が続いて、上棟が2週間延びた', delay: 14, cause: '工程に、天候の余裕を見ていなかった', lesson: '工程には、天候の余裕を見ておく' });
   if (w.company === 'D' && skill < 0.35 && !w.electric.includes('tag_tv_wall')) out.push({ text: '壁掛けテレビの下地が入っていなかった', cause: '打ち合わせの記録を残していなかった', lesson: '打ち合わせの記録は、自分たちでも残す' });
   return out;
 }

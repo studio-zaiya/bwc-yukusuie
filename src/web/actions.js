@@ -5,7 +5,6 @@ import { S, emit, api, render } from './main.js';
 import { busy, setWho, getWho, persona, DATA, PHONE, SHOW, NAMES, unkept, FORK_DONE, dataReady, SV, SWITCH } from './scenes.js';
 import { buildMemory, deliver, addItem, memoryText, conflictsOf, slotValuesOf } from './memory.js';
 import { setFace } from './parts.js';
-import { tourNext, tourSkip, tourHelp } from './tour.js';
 
 const val = id => (document.getElementById(id)?.value || '').trim();
 const clear = id => { const el = document.getElementById(id); if (el) el.value = ''; };
@@ -353,9 +352,6 @@ export const ACTIONS = {
     if ((S.planRound || 0) >= 3) emit('say', { who: 'staff', co: S.player.company, ch: 'plan', text: 'いったん持ち帰って整理しましょう。いまの案で、設計を進めさせてください。' });
   },
   planConfirm() { if (!S.plan || busy.on) return; emit('planConfirm', {}); goto('fork', 3); },
-  tourNext() { tourNext(); render(); },
-  tourSkip() { tourSkip(); render(); },
-  help() { tourHelp(S); render(); },
 };
 
 function decide(side, reason) {
