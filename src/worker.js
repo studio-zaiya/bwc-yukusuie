@@ -264,7 +264,10 @@ async function planner(env, body) {
   // 続きから遊ぶ道（毎回同じ打ち合わせ済みの家族）の提案は、一度作ったものを取っておき、2回目からはすぐ返す（審査員を待たせない）
   const ck = /^preset-[a-z0-9-]{1,20}-[ABCD]$/.test(body.cache || '') ? `plancache:${body.cache}` : null;
   if (ck && env.STORE) { const hit = await env.STORE.get(ck); if (hit) { const j = JSON.parse(hit); return { ...j, call: { role: 'planner', cached: true, ms: 0 } }; } }
-  const out = await plannerRun(env, body);
+  // 設計担当が時間内に返せないとき（502・時間切れ・例外）は、決まった型の案で必ず返す（提案の日で止まらない）
+  let out;
+  try { out = await Promise.race([body.fallbackOnly ? plannerRun(env, body) : plannerRun(env, body), new Promise((_, rej) => setTimeout(() => rej(new Error('planner timeout')), 60000))]); }
+  catch (e) { out = await plannerRun(env, { ...body, fallbackOnly: true }); out.call = { ...(out.call || {}), role: 'planner', fallback: true, error: String(e.message || e).slice(0, 80) }; }
   if (ck && env.STORE && out.ok && !out.fallback) await env.STORE.put(ck, JSON.stringify({ ...out, call: undefined }), { expirationTtl: 60 * 60 * 24 * 30 });
   return out;
 }
@@ -286,7 +289,7 @@ async function plannerRun(env, body) {
     body.current ? `# いまの骨組み\n${JSON.stringify(body.current)}` : '',
     body.text ? `# 施主の指示（これを反映して組み直す。調整の回数：${body.round || 1}回目）\n${String(body.text).slice(0, 300)}` : '',
   ].filter(Boolean).join('\n');
-  const { submit, call } = await callTools(env, {
+  const { submit, call } = body.fallbackOnly ? { submit: null, call: { role: 'planner', fallback: true } } : await callTools(env, {
     role: 'planner', user, tools, submitName: 'submit_plan', effort: 'low', maxTurns: 4,
     validateSubmit: x => (!x.main || !Array.isArray(x.options) ? 'main と options（二つか三つ）を入れてください' : null) || planErr(x.main) || x.options.map(o => planErr(o?.plan)).find(Boolean) || (digitsIn(x, ['intro']).length || x.options.some(o => hasDigits(o.effect)) ? '文に算用数字' : null),
   });
@@ -511,10 +514,15 @@ export default {
       let limited = n > +(env.CALLS_PER_PLAY || 90) ? 'このプレイの呼び出しの上限に達しました。代わりの文でお返しします。' : await guard(env, req, 'call');
       if (!limited && cost > 1) for (let i = 1; i < cost; i++) await bump(env, `c:${ipOf(req)}:${today()}`);
       if (limited) env = { ...env, ANTHROPIC_API_KEY: '' }; // 上限を超えたら、Claudeを呼ばずに代わりの文で返す
-      const out = await fn(env, body);
-      const usd = (out.call?.costUsd || 0) + (out.calls || []).reduce((a, c) => a + (c.costUsd || 0), 0);
-      ctx.waitUntil(addUsd(env, usd));
-      return json({ ...out, limited: limited || undefined, costUsd: usd ? Math.round(usd * 1e5) / 1e5 : undefined });
+      const finish = out => { const usd = (out.call?.costUsd || 0) + (out.calls || []).reduce((a, c) => a + (c.costUsd || 0), 0); ctx.waitUntil(addUsd(env, usd)); return JSON.stringify({ ...out, limited: limited || undefined, costUsd: usd ? Math.round(usd * 1e5) / 1e5 : undefined }); };
+      // 時間のかかる役割（設計担当・レポート）は、待つ間も空白を少しずつ送り、途中の中継に接続を切られないようにする（JSONの前の空白は読むときに無視される）
+      if (path === '/api/ai/planner' || path === '/api/ai/report' || path === '/api/ai/staff16') {
+        const { readable, writable } = new TransformStream(); const w = writable.getWriter(), enc = new TextEncoder();
+        const beat = setInterval(() => { w.write(enc.encode(' ')).catch(() => {}); }, 8000);
+        ctx.waitUntil((async () => { let txt; try { txt = finish(await fn(env, body)); } catch (e) { txt = JSON.stringify({ ok: false, error: String(e.message || e) }); } clearInterval(beat); try { await w.write(enc.encode(txt)); await w.close(); } catch { } })());
+        return new Response(readable, { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
+      }
+      return new Response(finish(await fn(env, body)), { headers: { 'content-type': 'application/json; charset=utf-8' } });
     } catch (e) {
       return json({ error: String(e.message || e) }, 500);
     }

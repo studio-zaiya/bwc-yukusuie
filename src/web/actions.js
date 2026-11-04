@@ -414,7 +414,8 @@ async function startProposals(cos, cache) {
   await dataReady();
   await Promise.all(cos.filter(co => !S.proposals[co]).map(async co => {
     const w = Y.newWorld({ household: Y.HOUSEHOLDS[S.household] || Y.HOUSEHOLDS.t2, company: co });
-    try { const r = await api('/api/ai/planner', { ...planBody(w, '', null), cache: cache ? `${cache}-${co}` : undefined }); if (r.ok) emit('proposal', { co, data: { intro: r.intro, main: r.main, mainM: r.mainM, options: r.options, altIndex: r.altIndex, fallback: !!r.fallback }, call: r.call }); } catch (e) { toast(String(e.message || e)); }
+    // 失敗したら、決まった型の案で必ず続ける（提案の日で止まらない）
+    try { const body = { ...planBody(w, '', null), cache: cache ? `${cache}-${co}` : undefined }; let r; try { r = await api('/api/ai/planner', body); } catch { r = null; } if (!r || !r.ok) r = await api('/api/ai/planner', { ...body, fallbackOnly: true }); if (r.ok) emit('proposal', { co, data: { intro: r.intro, main: r.main, mainM: r.mainM, options: r.options, altIndex: r.altIndex, fallback: !!r.fallback }, call: r.call }); } catch (e) { toast(String(e.message || e)); }
   }));
 }
 function closeFork(dec, then) {
