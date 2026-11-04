@@ -104,6 +104,8 @@ export function apply(s, e) {
     case 'planView': if (s.plan) s.plan.view = e.i < 0 ? null : e.i; break;
     case 'planConfirm': { const P0 = s.plan; const chosen = P0.view != null ? P0.options[P0.view].plan : P0.main; const altO = P0.view != null ? { plan: P0.main } : P0.options[P0.altIndex]; Y.applyPlan(s.player, { ...chosen, alt: altO ? altO.plan : null }); s.player.spec.kitchen = !!chosen.kitchen; s.chat.push({ who: 'sys', ch: s.player.company, text: `間取りの骨組みを確定した：${chosen.title}` }); break; }
     case 'rtab': s.rtab = e.k; break;
+    case 'tree': s.treeFrom = s.scene; s.treeFrom2 = s.step; s.treeSel = e.no || s.treeSel || 7; s.scene = 'tree'; s.pop = null; break;
+    case 'treeSel': s.treeSel = e.no; break;
     case 'saved': s.savedId = e.id; break;
   }
   return s;

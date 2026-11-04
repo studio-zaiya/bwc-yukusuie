@@ -60,7 +60,7 @@ const OUT = process.env.OUT || 'out/shots';
     await click('[data-act=toSeasons]'); await p.waitForTimeout(2200); await shot('seasons'); await p.waitForFunction(() => YUKU.state.scene === 'result', null, { timeout: 8000 }); await shot('result');
     await click('[data-act=toYear]'); await p.waitForTimeout(1200); await shot('year');
     await p.mouse.click(222, 560); await p.waitForTimeout(300); console.log('区画を押した →', await p.evaluate(() => YUKU.state.lot)); await shot('year-lot');
-    await click('[data-act=openPop][data-pop=world]'); await p.waitForTimeout(4500); await shot('moshi'); await click('.close');
+    await click('[data-act=toTree]'); await p.waitForTimeout(2500); await shot('tree'); await click('[data-act=treeSel][data-no="13"]'); await p.waitForTimeout(1500); await shot('tree-13'); await click('[data-act=treeBack]');
     await click('[data-act=toReport]'); await p.waitForSelector('.rep', { timeout: 90000 }); await p.waitForTimeout(800); await shot('report');
     await click('[data-act=rtab][data-k=worlds]'); await shot('report-worlds'); await click('[data-act=rtab][data-k=honne]'); await shot('report-honne'); await click('[data-act=rtab][data-k=home]');
     const [pr] = await Promise.all([ctx.waitForEvent('page'), p.click('[data-act=print]')]);

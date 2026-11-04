@@ -199,15 +199,18 @@ const PLAN = { type: 'object', additionalProperties: false, required: ['title', 
 const OPTION = { type: 'object', additionalProperties: false, required: ['plan', 'effect'], properties: { plan: PLAN, effect: { type: 'string', description: '暮らしで何が変わるか（一行、算用数字なし）' } } };
 function planErr(p) {
   if (!p || !Array.isArray(p.rooms) || p.rooms.length < 3 || p.rooms.length > 16) return '部屋は三つ以上、十六まで';
-  if (hasDigits(p.title) || p.rooms.some(r => hasDigits(r.name))) return '名前に算用数字';
+  // 部屋の名前の番号（「子ども部屋1」など）は数量ではないので、消して受け付ける
+  p.rooms.forEach(r => { r.name = String(r.name).replace(/[0-9０-９]+/g, '').trim() || '部屋'; });
+  if (hasDigits(p.title)) return '案の名前に算用数字';
   return null;
 }
 async function planner(env, body) {
   const world = body.world;
   const co = Y.COMPANIES[world.company];
   const wishes = body.wishes || [];
+  let measured = 0;
   const tools = [
-    { name: 'measure_plan', description: '骨組みを仮に当てたときの、延床・1階と2階の床面積・建蔽率・総額・借入・月々の返済・希望との違いを返す（計算エンジン）', input_schema: { type: 'object', additionalProperties: false, required: ['plan'], properties: { plan: PLAN } }, run: i => Y.measurePlan(world, i.plan, wishes) },
+    { name: 'measure_plan', description: '骨組みを仮に当てたときの、延床・1階と2階の床面積・建蔽率・総額・借入・月々の返済・希望との違いを返す（計算エンジン）。main について二回まで', input_schema: { type: 'object', additionalProperties: false, required: ['plan'], properties: { plan: PLAN } }, run: i => (++measured > 2 ? { note: 'これ以上は測らずに、submit_plan を呼んでください。調整の案の数字は、エンジンがあとで出します。' } : Y.measurePlan(world, i.plan, wishes)) },
     { name: 'submit_plan', description: '骨組みと調整の案を確定して、施主に見せる。最後に一回だけ呼ぶ', input_schema: { type: 'object', additionalProperties: false, required: ['intro', 'main', 'options', 'altIndex'], properties: {
       intro: { type: 'string', description: '担当者から施主へのひとこと（二〜三文、算用数字なし）' }, main: PLAN, options: { type: 'array', items: OPTION }, altIndex: { type: 'integer', description: '第二の分岐点で「もう一つの案」として残す option の番号（0から）' } } } },
   ];
@@ -220,7 +223,7 @@ async function planner(env, body) {
     body.text ? `# 施主の指示（これを反映して組み直す。調整の回数：${body.round || 1}回目）\n${String(body.text).slice(0, 300)}` : '',
   ].filter(Boolean).join('\n');
   const { submit, call } = await callTools(env, {
-    role: 'planner', user, tools, effort: 'low', maxTurns: 5,
+    role: 'planner', user, tools, effort: 'low', maxTurns: 4,
     validateSubmit: x => planErr(x.main) || x.options.map(o => planErr(o.plan)).find(Boolean) || (digitsIn(x, ['intro']).length || x.options.some(o => hasDigits(o.effect)) ? '文に算用数字' : null),
   });
   if (!submit) {
@@ -269,11 +272,10 @@ async function myai(env, body) {
 
 // ---- 1年後のレポート ----
 const REPORT_SCHEMA = {
-  type: 'object', additionalProperties: false, required: ['title', 'balance', 'memories', 'tellFirst', 'couple', 'worlds', 'closing'],
+  type: 'object', additionalProperties: false, required: ['title', 'balance', 'memories', 'tellFirst', 'couple', 'closing'],
   properties: {
     title: { type: 'string' }, balance: { type: 'array', items: { type: 'string' } }, memories: { type: 'array', items: { type: 'string' } },
     tellFirst: { type: 'array', items: { type: 'string' } }, couple: { type: 'string' }, closing: { type: 'string' },
-    worlds: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['no', 'name', 'lesson'], properties: { no: { type: 'integer' }, name: { type: 'string' }, lesson: { type: 'string' } } } },
   },
 };
 // 呼び名・タイトル・教訓の候補（Claudeの生成が確認に通らないときの代わり。data/content/report_phrases.json）
@@ -289,7 +291,7 @@ async function report(env, body) {
   const words = (body.words || []).slice(-16).map(w => `- ${w.who}：${String(w.text).slice(0, 120)}`).join('\n');
   const worlds = (body.worlds || []).slice(0, 16);
   const wlist = worlds.map(w => `- no ${w.no}${w.mine ? '（施主の世界）' : ''}：${(w.labels || []).join(' → ')}／冬の朝 ${w.warmth}／ゆとり ${w.slack}／出来事：${(w.events || []).join('、') || 'なし'}`).join('\n');
-  const user = `# 4つの分かれ道（memories は、この順に${labels.length}つ書く）\n${forks}\n# 施主が打ち合わせで話した言葉\n${words || 'なし'}\n# 施主が最初に書いた思い\n${String(body.entry || 'なし').slice(0, 400)}\n# ふたりの要望の付箋の数（コードで数えた）\n${body.couple || 'なし'}\n# 守れなかった希望（エンジンで確かめた。memories や tellFirst で、責めずに触れてよい）\n${(body.unkept || []).join('\n') || 'なし'}\n# 1年後の出来事\n${(body.events || []).join('\n') || 'とくになし'}\n# 暖かさ・家計のゆとり\n${body.warmth || ''}／${body.slack || ''}\n# 16の世界（worlds は、この no ごとに1つずつ）\n${wlist}`;
+  const user = `# 4つの分かれ道（memories は、この順に${labels.length}つ書く）\n${forks}\n# 施主が打ち合わせで話した言葉\n${words || 'なし'}\n# 施主が最初に書いた思い\n${String(body.entry || 'なし').slice(0, 400)}\n# ふたりの要望の付箋の数（コードで数えた）\n${body.couple || 'なし'}\n# 守れなかった希望（エンジンで確かめた。memories や tellFirst で、責めずに触れてよい）\n${(body.unkept || []).join('\n') || 'なし'}\n# 1年後の出来事\n${(body.events || []).join('\n') || 'とくになし'}\n# 暖かさ・家計のゆとり\n${body.warmth || ''}／${body.slack || ''}`;
   const fb = { title: '', balance: ['毎日の暮らしやすさ', '家計の安心', '家族の時間'], memories: labels.map(l => `「${l}」を選びました。`), tellFirst: ['いちばん大切にしたいこと', '予算の上限と、その理由', '後から変えにくいところ（下地・配線・窓）'], couple: '', closing: 'この紙を、本物の打ち合わせに持っていってください。', worlds: [] };
   const check = x => {
     const bad = digitsIn(x, ['title', 'balance', 'memories', 'tellFirst', 'couple', 'closing']);
@@ -297,14 +299,10 @@ async function report(env, body) {
     if (x.memories.length !== labels.length) return `memories は${labels.length}つ`;
     if (!lenOK(x.title, PHRASES.checks.titleMaxChars)) return 'title は16字以内';
     if (hasBanned(JSON.stringify(x))) return '使わない言葉が入っている（正解・失敗など）';
-    if (worlds.length && x.worlds.length < worlds.length - 2) return 'worlds が足りない';
-    if (x.worlds.some(w => !lenOK(w.name, 16) || !lenOK(w.lesson, 26) || hasDigits(w.name + w.lesson))) return '呼び名は16字以内、教訓は26字以内、数字なし';
     return null;
   };
   const r = await callJSON(env, { role: 'report', user, schema: REPORT_SCHEMA, fallback: fb, effort: 'low', maxTokens: 5000, validate: check });
   // 足りない世界には、候補から呼び名を当てる（コード）
-  const have = new Set((r.data.worlds || []).map(w => w.no));
-  r.data.worlds = [...(r.data.worlds || []), ...worlds.filter(w => !have.has(w.no)).map((w, i) => ({ no: w.no, name: pickPhrase(PHRASES.worldNames, tagsOf(w), w.no + i), lesson: pickPhrase(PHRASES.lessons, tagsOf(w), w.no) }))];
   if (r.call.fallback) { const me = worlds.find(w => w.mine); if (me) r.data.title = pickPhrase(PHRASES.titles, tagsOf(me), me.no); }
   return r;
 }

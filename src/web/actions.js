@@ -40,6 +40,19 @@ export const ACTIONS = {
     try { const r = await api('/api/play/start', {}); playId = r.playId; } catch (e) { toast(String(e.message)); return; }
     emit('start', { seed: 7, playId });
   },
+  // 審査員向けの短い入口：ヒアリングを終えた状態から、第一の分岐点の直前で始める（ひとりで遊ぶ）
+  async continueStart() {
+    let playId = null;
+    try { const r = await api('/api/play/start', {}); playId = r.playId; } catch (e) { toast(String(e.message)); return; }
+    emit('start', { seed: 7, playId }); emit('mode', { mode: 'solo' }); emit('names', { a: 'かず', b: 'ゆう' });
+    emit('visit', { cos: ['C', 'A'] });
+    const said = [['C', 'kazu', '外観はシンプルで、箱っぽい家が好きです。'], ['C', 'yuu', '台所と洗面を近くして、朝の家事を楽にしたい。'], ['C', 'kazu', '冬でも暖かい家にしたい。予算は総額5100万円まで、月々は13万円くらいまでにしたいです。'], ['C', 'yuu', 'テレビは壁掛けにしたいな。'], ['A', 'kazu', '性能はどのくらいですか？']];
+    for (const [co, who, text] of said) emit('say', { who, ch: co, text });
+    const heard = [['C', 'かず', '外観はシンプルな箱型'], ['C', 'ゆう', '台所と洗面を近く'], ['C', 'かず', '冬でも暖かい家'], ['C', 'ゆう', 'テレビは壁掛け'], ['A', 'かず', '性能の確かさ']];
+    emit('ai', { role: 'hearing', co: 'C', ch: 'C', data: { line: 'ありがとうございます。いただいたご要望で、プランと総額の見積をお出しします。', honne: '', heard: heard.map(([co, who, text]) => ({ tag: text, who, text, co })), missed: [], choices: [], wishes: [{ kind: 'totalMax', value: 5100, text: '総額5100万円まで' }, { kind: 'monthlyMax', value: 13, text: '月々13万円くらいまで' }, { kind: 'priority', value: null, text: '冬の暖かさ' }] }, call: { role: 'preset', reason: 'preset（続きから遊ぶ）' } });
+    emit('say', { who: 'sys', ch: 'C', text: '（ここまでの打ち合わせは、済ませてあります）' });
+    emit('pair', { pair: ['C', 'A'] }); emit('world', {}); goto('fork', 2);
+  },
   howtoNext() { saveNames(); if (S.howto < 3) emit('howto', { page: S.howto + 1 }); else goto('family', 0); },
   howtoSkip() { saveNames(); goto('family', 0); },
   mode(d) { saveNames(); emit('mode', { mode: d.m }); },
@@ -205,6 +218,9 @@ export const ACTIONS = {
   // そして1年後……：季節が移り変わってから、1年後のわが家へ
   async toSeasons() { goto('seasons', 11); await new Promise(r => setTimeout(r, 4600)); goto('result', 11); },
   rtab(d) { emit('rtab', { k: d.k }); },
+  toTree(d) { emit('tree', { no: d.no ? +d.no : null }); },
+  treeSel(d) { emit('treeSel', { no: +d.no }); },
+  treeBack() { goto(S.treeFrom || 'year', S.treeFrom2 ?? 11); },
   toEnd() { goto('end', 11); },
   async toYear() {
     goto('year', 11);

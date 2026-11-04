@@ -97,7 +97,8 @@ function gallery(s) {
   return `<div class="galT"><b>選ばれなかった世界線</b><span>${list.length}</span></div><div class="gal" style="grid-template-columns:repeat(${cols},1fr)">${list.map(w => {
     const st = stepOf(w, s.step), stage = stageOf(st);
     const x = { w: { ...w, no: hb(w) % 8 }, stage, ghost: st >= 2 && st < 7 ? +(0.35 + (st - 2) / 5 * 0.45).toFixed(2) : 0 };
-    return `<div class="th ${s.newest.includes(w.bits.join('')) ? 'new' : ''}"><div class="thd"><span>${full ? pad(dno(s, w)) : ''}</span>${P.coTag(w.company, 18)}</div>${P.thumb(x)}<div class="tnm">${esc(shortName(w))}</div><div class="tst">${P.STEPS_S[Math.floor(st)]}</div><div class="tnt">${noteOf(w, st)}</div><div class="bar"><i style="width:${Math.round(st / 11 * 100)}%"></i></div></div>`;
+    const short = full ? Y.worldName(Y.outcome(w)).split('、')[0] : esc(shortName(w));
+    return `<div class="th ${s.newest.includes(w.bits.join('')) ? 'new' : ''}"><div class="thd"><span>${full ? pad(dno(s, w)) : ''}</span>${P.coTag(w.company, 18)}</div>${P.thumb(x)}<div class="tnm big">${short}</div><div class="tnt">${noteOf(w, st)}</div><div class="bar"><i style="width:${Math.round(st / 11 * 100)}%"></i></div></div>`;
   }).join('')}</div>`;
 }
 const tall = s => s.others.length ? '' : 'tall';
@@ -227,7 +228,7 @@ export const SCENES = {
     return `<div class="startbg">${P.estate2(list, {})}</div><div class="center" style="text-align:center;width:1500px">
       <h1 style="margin:0"><img src="/brand/lockup-horizontal.svg" alt="ゆくすいえ　YUKUSUIE 16 unbuilt futures" style="width:820px"></h1>
       <div class="catch">16回目の、マイホームへ。</div>
-      <div style="display:flex;gap:18px;justify-content:center;margin-top:30px"><button class="big-btn" data-act="start">はじめる</button>
+      <div style="display:flex;gap:18px;justify-content:center;margin-top:30px"><button class="big-btn" data-act="continueStart">打ち合わせを終えた家族で、続きから遊ぶ</button><button class="big-btn ghost" data-act="start">最初から遊ぶ</button>
       ${last ? `<a class="big-btn ghost" href="/?replay=${last}" style="text-decoration:none">前回のプレイを再生する</a>` : ''}</div>
     </div><div class="disc">${NOTICE}</div>`;
   },
@@ -453,12 +454,12 @@ export const SCENES = {
     const o = sel.o, mine = sel.n === YOU;
     const line = s.staff16?.lines?.find(l => l.no === o.no)?.line;
     return `${top(s)}${moneyBox(s)}<div class="estate" title="区画を押すと、その世界が右に出ます">${P.estate2(list, { hi: [cur] })}</div>
-      <div class="card"><h3>${pad(sel.n)}　${P.coTag(o.company, 30)}${Y.COMPANIES[o.company].name}${mine ? '　あなたの世界' : ''}</h3>
+      <div class="card"><h3>${pad(sel.n)}　${P.coTag(o.company, 30)}${Y.COMPANIES[o.company].name}${mine ? '　あなたの世界' : ''}</h3><div class="wname">${esc(Y.worldName(o))}</div>
       <ol>${o.labels.map(esc).map((l, i) => `<li>${Y.FORKS[i]}：${l}</li>`).join('')}</ol>
       <dl><dt>総額</dt><dd>${man(o.total)}万円</dd><dt>借入</dt><dd>${man(o.principal)}万円</dd><dt>冬の朝</dt><dd>${o.warmth.label}</dd><dt>家計のゆとり</dt><dd>${o.slack.label}</dd><dt>引渡し</dt><dd>${o.days}日目</dd></dl>
       <div style="font-size:16px;color:var(--ink2);font-weight:700">この1年の出来事</div><ul class="ev">${(o.events.length ? o.events : ['大きな出来事はなかった']).map(e => `<li>${esc(e)}</li>`).join('')}</ul>
       ${line ? `<div class="ln">${P.coTag(o.company, 18)} ${STAFFN(o.company)}：${esc(line)}</div>` : ''}
-      <div class="acts">${mine ? '' : `<button class="btn ghost" data-act="openPop" data-pop="world">決断の履歴を見る</button>`}<button class="btn" data-act="toReport">レポートを受け取る</button></div></div>`;
+      <div class="acts"><button class="btn ghost" data-act="toTree" data-no="${sel.n}">世界樹で、この世界をたどる</button><button class="btn" data-act="toReport">レポートを受け取る</button></div></div>`;
   },
   // 区画を押す：押した位置をアイソメの逆算で区画に直す（16区画は表示の番号順に並ぶ）
   year_after() {
@@ -489,10 +490,46 @@ export const SCENES = {
       <h3>1年後のあなたの家</h3><dl class="facts" style="font-size:19px"><dt>総額</dt><dd>${man(o.total)}万円</dd><dt>借入</dt><dd>${man(o.principal)}万円</dd><dt>冬の朝</dt><dd>${o.warmth.label}</dd><dt>家計のゆとり</dt><dd>${o.slack.label}</dd></dl>
       <p class="lead" style="margin-top:16px">${esc(r.closing)}</p></div></div>`;
     if (tab === 'worlds') { const ws = [s.player, ...s.others].map(w => ({ w, o: Y.outcome(w), n: dno(s, w) })).sort((a, b) => a.n - b.n);
-      body = `<div class="rep1"><table class="wtab">${ws.map(({ o: oo, n }) => { const nm = r.worlds?.find(x => x.no === oo.no); return `<tr class="${n === YOU ? 'me' : ''}"><td>${pad(n)}</td><td>${P.coTag(oo.company, 20)}</td><td><b>${esc(nm?.name || oo.labels.slice(1).join('・'))}</b>${nm?.lesson ? `<span>教訓：${esc(nm.lesson)}</span>` : ''}</td><td>${oo.warmth.label}</td><td>${oo.slack.label}</td><td>${man(oo.total)}万円</td></tr>`; }).join('')}</table></div>`; }
+      const meO = Y.outcome(s.player);
+      body = `<div class="rep1"><div class="treehint"><button class="btn" data-act="toTree">世界樹で見る</button><span class="note">分岐点ごとの選択をたどって、16の家を見られます</span></div><table class="wtab">${ws.map(({ o: oo, n }) => `<tr class="${n === YOU ? 'me' : ''}"><td>${pad(n)}</td><td>${P.coTag(oo.company, 20)}</td><td><b>${esc(Y.worldName(oo))}</b><span>${n === YOU ? 'あなたが選んだ世界' : '教訓：' + esc(Y.worldLesson(oo, meO))}</span></td><td>${oo.warmth.label}</td><td>${oo.slack.label}</td><td>${man(oo.total)}万円</td></tr>`).join('')}</table></div>`; }
     if (tab === 'honne') body = honneBody(s);
-    return `${top(s)}<div class="rtabs">${tabs}</div><div class="racts">${s.savedId ? `<a class="btn ghost" href="/?replay=${s.savedId}" target="_blank" style="text-decoration:none">再生</a>` : ''}<button class="btn ghost" data-act="print">印刷用（PDF）</button><button class="btn" data-act="toEnd">おわりへ</button></div>${body}`;
+    return `${top(s)}<div class="rtabs">${tabs}</div><div class="racts"><button class="btn ghost" data-act="toTree">世界樹で見る</button><button class="btn ghost" data-act="print">印刷用（PDF）</button><button class="btn" data-act="toEnd">おわりへ</button></div>${body}`;
   },
+  // 世界樹：根から4つの分岐点を経て、16の枝先に家が並ぶ。枝先を押すと、その道が根から描かれる
+  tree(s) {
+    const all = [s.player, ...s.others].map(w => ({ w, o: Y.outcome(w), n: dno(s, w) }));
+    const byNo = Object.fromEntries(all.map(x => [Y.worldNo(x.w.bits), x]));
+    const meO = Y.outcome(s.player), mine = Y.worldNo(s.player.bits);
+    const selN = s.treeSel || YOU, sel = all.find(x => x.n === selN) || all.find(x => x.n === YOU);
+    const X = k => 120 + k * 235, LY = i => 110 + i * 58, nodeY = (k, j) => { const span = 16 >> k; let a = 0; for (let i = j * span; i < (j + 1) * span; i++) a += LY(i); return a / span; };
+    const onPath = (bits, k, j) => (j === parseInt(bits.slice(0, k).join('') || '0', 2));
+    const lab = (k, x) => { const w = x.w; return k === 1 ? Y.COMPANIES[w.company].name : k === 2 ? Y.ROOF_JA[w.spec.roof] : k === 3 ? (w.spec.exterior === 'full' ? '外構まで' : '外構は最小限') : (Y.finishCost(w.finish) ? 'アップグレード' : '標準の仕上げ'); };
+    let edges = '', labels = '', hi = '';
+    for (let k = 1; k <= 4; k++) for (let j = 0; j < (1 << k); j++) {
+      const pj = j >> 1, x0 = X(k - 1), y0 = nodeY(k - 1, pj), x1 = X(k), y1 = nodeY(k, j);
+      const leaf = byNo[(j << (4 - k)) + 1];
+      const d = `M${x0},${y0} C${(x0 + x1) / 2},${y0} ${(x0 + x1) / 2},${y1} ${x1},${y1}`;
+      const me = onPath(s.player.bits, k, j), sl = onPath(sel.w.bits, k, j);
+      edges += `<path d="${d}" pathLength="1" class="edge l${k} ${me ? 'me' : ''}" style="--d:${(k - 1) * 0.35}s"/>`;
+      if (sl) hi += `<path d="${d}" pathLength="1" class="edge sel" style="--d:${(k - 1) * 0.3}s"/>`;
+      if (k <= 3 || sl || me) labels += `<text x="${x1 - 8}" y="${y1 - 7}" text-anchor="end" class="elab ${sl ? 'on' : ''}">${esc(lab(k, leaf))}</text>`;
+      labels += `<circle cx="${x1}" cy="${y1}" r="${k === 4 ? 4 : 6}" class="node ${me ? 'me' : ''} ${sl ? 'on' : ''}"/>`;
+    }
+    const leaves = Array.from({ length: 16 }, (_, i) => { const x = byNo[i + 1]; const th = P.thumb({ w: { ...x.w, no: x.n }, stage: 4, ghost: 0 }, { style: 'width:62px;height:46px' });
+      return `<button class="leaf ${x.n === selN ? 'on' : ''} ${x.n === YOU ? 'me' : ''}" data-act="treeSel" data-no="${x.n}" style="top:${LY(i) - 26}px;left:${X(4) + 14}px"><span class="ln">${pad(x.n)}</span>${th}<span class="lt">${esc(Y.worldName(x.o).split('、')[0])}</span></button>`; }).join('');
+    const o = sel.o, days = Y.scheduleOf(sel.w), at = [days[2], days[3], days[5], days[6]];
+    const div = o.bits.findIndex((b, i) => b !== meO.bits[i]);
+    const tl = o.labels.map((l, i) => `<li class="${i === div ? 'dv' : ''}"><b>${Y.FORKS[i]}</b><span>${esc(l)}</span><em>${at[i]}日目${i === div ? '　ここであなたと分かれた' : ''}</em></li>`).join('');
+    const d = Math.round(o.total - meO.total);
+    return `<div class="treebg"></div><div class="treetop"><div class="h2" style="margin:0">世界樹</div><span class="note">枝先の家を押すと、その世界線を根からたどります。金色の道が選んでいる世界、橙の道があなたの世界です。</span><button class="btn ghost" data-act="treeBack">戻る</button></div>
+      <svg class="treesvg ${s.treeSeen ? 'seen' : ''}" viewBox="0 0 1920 1080"><circle cx="${X(0)}" cy="540" r="10" class="node root"/><text x="${X(0)}" y="575" text-anchor="middle" class="elab">区画が当たった日</text>${edges}${hi}${labels}</svg>${leaves}
+      <div class="tpanel"><div class="tp-h"><span class="no2">${pad(sel.n)}</span>${P.coTag(o.company, 24)}${sel.n === YOU ? '<span class="mk">あなたの世界</span>' : ''}</div><div class="h2" style="font-size:28px;margin:4px 0 6px">${esc(Y.worldName(o))}</div>
+        <div class="tp-house">${P.bigHouse({ ...sel.w, no: sel.n }, 4, {})}</div>
+        <ol class="tp-tl">${tl}<li><b>1年後</b><span>${esc((o.events[0] || '大きな出来事はなかった'))}</span></li></ol>
+        <dl class="facts tp-f"><dt>総額</dt><dd>${man(o.total)}万円${sel.n === YOU ? '' : `（あなたと ${d > 0 ? '+' : ''}${man(d)}）`}</dd><dt>冬の朝</dt><dd>${o.warmth.label}</dd><dt>家計のゆとり</dt><dd>${o.slack.label}</dd></dl>
+        <div class="tp-k"><b>この世界線での気づき</b><p>${esc(Y.worldLesson(o, meO))}</p>${o.causes.length ? `<p class="note">なぜ起きたか：${esc(o.causes[0].cause)}</p>` : ''}</div></div>`;
+  },
+  tree_after(s) { if (!s.treeSeen) setTimeout(() => { s.treeSeen = true; }, 2200); },
   // 終わりの画面
   end(s) {
     return `<div class="center" style="text-align:center;width:1400px"><img src="/brand/lockup-horizontal.svg" alt="ゆくすいえ" style="width:620px">
