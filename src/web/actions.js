@@ -2,7 +2,7 @@
  * Claudeが応答できなかったときは、代わりの文で成功したように見せず、「応答できませんでした（もう一度）」を出す */
 import * as Y from './engine/engine.js';
 import { S, emit, api, render } from './main.js';
-import { busy, setWho, getWho, persona, DATA, PHONE, SHOW, NAMES } from './scenes.js';
+import { busy, setWho, getWho, persona, DATA, PHONE, SHOW, NAMES, unkept } from './scenes.js';
 import { setFace } from './parts.js';
 import { tourNext, tourSkip, tourHelp } from './tour.js';
 
@@ -266,7 +266,7 @@ async function reportCall() {
   try {
     const worlds = [S.player, ...S.others].map(w => { const x = Y.outcome(w); return { no: x.no, mine: w === S.player, labels: x.labels, warmth: x.warmth.label, slack: x.slack.label, events: x.events }; });
     const hk = S.heard.filter(h => h.who === 'かず').length, hy = S.heard.filter(h => h.who === 'ゆう').length, hf = S.heard.filter(h => h.who === 'ふたり').length;
-    const r = await api('/api/ai/report', { memory: S.player.memory, labels: S.player.labels, words: words().map(m => ({ who: nameOf(m.who), text: m.text })), entry: S.entry.text, events: o.events, warmth: o.warmth.label, slack: o.slack.label, worlds, couple: `かず ${hk}枚、ゆう ${hy}枚、ふたり ${hf}枚。かずの付箋：${S.heard.filter(h => h.who === 'かず').map(h => h.text).join('、') || 'なし'}。ゆうの付箋：${S.heard.filter(h => h.who === 'ゆう').map(h => h.text).join('、') || 'なし'}` });
+    const r = await api('/api/ai/report', { memory: S.player.memory, labels: S.player.labels, words: words().map(m => ({ who: nameOf(m.who), text: m.text })), entry: S.entry.text, events: o.events, warmth: o.warmth.label, slack: o.slack.label, worlds, unkept: unkept(S).map(c => `${c.label}（${c.fix}）`), couple: `${NAMES.kazu} ${hk}枚、${NAMES.yuu} ${hy}枚、ふたり ${hf}枚。${NAMES.kazu}の付箋：${S.heard.filter(h => h.who === 'かず').map(h => h.text).join('、') || 'なし'}。${NAMES.yuu}の付箋：${S.heard.filter(h => h.who === 'ゆう').map(h => h.text).join('、') || 'なし'}` });
     if (isRealFail(r.call)) { S.report = { failed: true }; emit('fail', { role: 'report', ch: 'report', call: r.call }); return; }
     emit('ai', { role: 'report', data: r.data, call: r.call });
   } catch (e) { S.report = { failed: true }; toast(String(e.message)); }

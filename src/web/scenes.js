@@ -125,6 +125,34 @@ function hero(s, extra = '', cls = '') {
     <div class="ph">${Y.STEPS[s.step]}<br><span style="font-size:15px">${area}${w.fitted ? `（予算に合わせて${w.fitted}坪小さく）` : ''}</span></div>${heroHouse(s)}${extra}</div>`;
 }
 
+// いちばん近い世界：直前の分岐点だけ逆を選んだ世界を、1枚だけ大きく出す（数字はエンジン）
+export function nearest(s, k) {
+  const me = s.player; if (!me || me.bits.length < 1) return null;
+  const i = k ?? me.bits.length - 1;
+  return s.others.find(w => w.bits.length === me.bits.length && w.bits.every((b, j) => j === i ? b !== me.bits[j] : b === me.bits[j]));
+}
+function diffWords(me, w) {
+  const out = [];
+  if (me.company !== w.company) out.push(`${Y.COMPANIES[w.company].name}と建てている`);
+  if (me.spec.roof !== w.spec.roof) out.push(`${Y.ROOF_JA[w.spec.roof]}の家`);
+  if (me.spec.kitchen !== w.spec.kitchen) out.push(w.spec.kitchen ? '造作キッチンがある' : '造作キッチンはない');
+  if (me.spec.exterior !== w.spec.exterior) out.push(w.spec.exterior === 'full' ? '入居の日から玄関前と庭が整う' : '玄関前は砂利のまま、外構はあとから');
+  if (me.spec.window !== w.spec.window) out.push(w.spec.window === 'triple' ? '南の窓がトリプルガラス' : '南の窓は標準のガラス');
+  if (me.spec.tsubo !== w.spec.tsubo) out.push(`${w.spec.tsubo}坪`);
+  if (Y.finishCost(me.finish) !== Y.finishCost(w.finish)) out.push(Y.finishCost(w.finish) ? '外壁や床をアップグレード' : '標準の仕上げ');
+  const wa = Y.warmth(me.spec, me.company), wb = Y.warmth(w.spec, w.company);
+  if (wa.level !== wb.level) out.push(`冬の朝は「${wb.label}」`);
+  return out;
+}
+export function nearestCard(s) {
+  const w = nearest(s); if (!w) return '';
+  const i = s.player.bits.length - 1;
+  const a = Y.money(s.player), b = Y.money(w);
+  const d = Math.round(b.total - a.total), mo = Y.payment(b.loan, Y.RATE.variable) - Y.payment(a.loan, Y.RATE.variable);
+  return `<div class="nearest"><div class="nk">いちばん近い世界：${Y.FORKS[i]}だけ逆を選んだ世界</div><b>${esc(w.labels[i])}</b>
+    <div class="nd">総額 ${d > 0 ? '+' : ''}${man(d)}万円／月々 ${mo >= 0 ? '+' : '−'}${Math.abs(mo).toFixed(1)}万円</div><ul>${diffWords(s.player, w).slice(0, 3).map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>`;
+}
+
 // 希望との違い：守れない希望を、札と判定に出す（数字はエンジン）
 export function wishLine(ch) {
   if (!ch.length) return '';
@@ -332,11 +360,11 @@ export const SCENES = {
       : side ? `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="decideWhy">理由を伝えて決める</button><button class="opt" data-act="decideNoWhy">理由は言わずに決める</button><button class="opt" data-act="unpick">選びなおす</button>` : '';
     const co = w.company;
     const lead = { 0: 'どちらの会社と、家を建てますか。', 1: '間取りと予算の配分を決める段階です。', 2: '契約の前の最終見積と、ローンの本審査です。' }[d.no];
-    return `${chrome(s)}${hero(s, `<div class="forkmark">${Y.FORKS[d.no]}</div>${band(s)}`)}<div class="right ${tall(s)}">${chat(s, { ch: co, head: d.no === 0 ? '' : staffHead(co, busy.on ? 'think' : 'idle'), middle: mid + why + wishBox, opts, act: side ? 'decideWhy' : 'freeAnswer', thinking: busy.on, placeholder: side ? '理由を書く（任意）' : `札を押すか、自分の言葉で答える（${lead}）` })}</div>${gallery(s)}`;
+    return `${chrome(s)}${hero(s, `<div class="forkmark">${Y.FORKS[d.no]}</div>${s.band ? '' : nearestCard(s)}${band(s)}`)}<div class="right ${tall(s)}">${chat(s, { ch: co, head: d.no === 0 ? '' : staffHead(co, busy.on ? 'think' : 'idle'), middle: mid + why + wishBox, opts, act: side ? 'decideWhy' : 'freeAnswer', thinking: busy.on, placeholder: side ? '理由を書く（任意）' : `札を押すか、自分の言葉で答える（${lead}）` })}</div>${gallery(s)}`;
   },
   contract(s) {
     const m = Y.money(s.player), co = s.player.company, lc = Y.loanCheck(H(s), m.loan);
-    return `${chrome(s)}${hero(s)}<div class="right ${tall(s)}"><div class="chat">${staffHead(co, 'smile')}<div class="log" style="padding:22px">
+    return `${chrome(s)}${hero(s, nearestCard(s))}<div class="right ${tall(s)}"><div class="chat">${staffHead(co, 'smile')}<div class="log" style="padding:22px">
       <div class="msg"><div class="who">${P.coTag(co, 18)}${STAFFN(co)}</div>請負契約の書類です。図面と見積の内容をご確認ください。</div>
       <dl class="facts" style="font-size:20px;margin-top:10px"><dt>契約金額（建物）</dt><dd>${man(m.contract)}万円</dd><dt>土地</dt><dd>${man(m.land)}万円</dd><dt>総額</dt><dd>${man(m.total)}万円</dd><dt>借入</dt><dd>${man(m.loan)}万円（返済負担率 ${lc.ratio}%）</dd><dt>月々の返済（変動 ${Y.RATE.variable * 100}%）</dt><dd>約${(Math.round(lc.monthly * 100) * 100).toLocaleString('ja-JP')}円</dd><dt>選んだ道</dt><dd>${s.player.labels.map(esc).join('<br>')}</dd></dl></div>
       <div class="opts"><button class="opt" style="background:var(--ink);color:var(--paper)" data-act="toCoord">署名する</button></div>${navs(s)}</div></div>${gallery(s)}`;
@@ -347,7 +375,7 @@ export const SCENES = {
     const wall = Y.FINISH.wall.find(x => x.id === f.wall) || Y.FINISH.wall[0];
     const opt = (k, x) => `<button class="o" data-act="finish" data-k="${k}" data-v="${x.id}" aria-pressed="${f[k] === x.id}"><span class="sw" style="background:${x.sw || x.colors[0][1]}"></span>${x.label}<em>${x.v ? '+' + x.v + '万円' : '標準'}</em></button>`;
     const add = Y.finishCost(f);
-    return `${chrome(s)}${hero(s, `<div class="forkmark">${Y.FORKS[3]}</div>`)}<div class="right ${tall(s)}"><div class="chat"><div class="staffbar">${P.avatar(coordinator(s)?.gender === 'male' ? 'IC2' : 'IC', 70, 'smile')}<div class="nm">${Y.COMPANIES[w.company].name}<b>コーディネーター・${esc(coordinator(s)?.name || '中村')}</b></div><div class="nm" style="margin-left:auto;text-align:right">${Y.FORKS[3]}<br><b style="font-size:22px">どう仕上げる？</b></div></div>
+    return `${chrome(s)}${hero(s, `<div class="forkmark">${Y.FORKS[3]}</div>${nearestCard(s)}`)}<div class="right ${tall(s)}"><div class="chat"><div class="staffbar">${P.avatar(coordinator(s)?.gender === 'male' ? 'IC2' : 'IC', 70, 'smile')}<div class="nm">${Y.COMPANIES[w.company].name}<b>コーディネーター・${esc(coordinator(s)?.name || '中村')}</b></div><div class="nm" style="margin-left:auto;text-align:right">${Y.FORKS[3]}<br><b style="font-size:22px">どう仕上げる？</b></div></div>
       <div class="log coord" style="padding:14px 22px;justify-content:flex-start">
       <div class="msg"><div class="who">コーディネーター・${esc(coordinator(s)?.name || '中村')}</div>${esc((coordinator(s)?.tone || ['外壁と床、内壁を決めましょう。'])[0])}標準からの増額だけ、お伝えしますね。</div>
       <h4>外壁</h4>${Y.FINISH.wall.map(x => opt('wall', x)).join('')}
@@ -397,6 +425,8 @@ export const SCENES = {
     return `${top(s)}${moneyBox(s)}<div class="hero tall res">${lifeSVG(s, o)}</div><div class="card"><h3>${pad(YOU)}　あなたの家の、1年後</h3>
       <dl><dt>冬の朝</dt><dd>${o.warmth.label}</dd><dt>家計のゆとり</dt><dd>${o.slack.label}</dd><dt>総額</dt><dd>${man(o.total)}万円</dd><dt>借入</dt><dd>${man(o.principal)}万円</dd></dl>
       <div style="font-size:16px;color:var(--ink2);font-weight:700">この1年の出来事</div><ul class="ev">${(o.events.length ? o.events : ['大きな出来事はなかった']).slice(0, 3).map(e => `<li>${esc(e)}</li>`).join('')}</ul>
+      <div style="font-size:16px;color:var(--ink2);font-weight:700;margin-top:14px">一つだけ選択が違う世界</div>
+      <table class="cmp near4">${[0, 1, 2, 3].map(i => { const w = nearest(s, i); if (!w) return ''; const ow = Y.outcome(w); return `<tr><td>${Y.FORKS[i]}だけ逆</td><td>${esc(w.labels[i])}</td><td>${ow.total - o.total > 0 ? '+' : ''}${man(ow.total - o.total)}万円</td><td>${ow.warmth.label}</td></tr>`; }).join('')}</table>
       <div class="acts"><button class="btn" data-act="toYear">16の区画を見る</button></div></div>`;
   },
   year(s) {
@@ -413,7 +443,7 @@ export const SCENES = {
       <dl><dt>総額</dt><dd>${man(o.total)}万円</dd><dt>借入</dt><dd>${man(o.principal)}万円</dd><dt>冬の朝</dt><dd>${o.warmth.label}</dd><dt>家計のゆとり</dt><dd>${o.slack.label}</dd><dt>引渡し</dt><dd>${o.days}日目</dd></dl>
       <div style="font-size:16px;color:var(--ink2);font-weight:700">この1年の出来事</div><ul class="ev">${(o.events.length ? o.events : ['大きな出来事はなかった']).map(e => `<li>${esc(e)}</li>`).join('')}</ul>
       ${line ? `<div class="ln">${P.coTag(o.company, 18)} ${STAFFN(o.company)}：${esc(line)}</div>` : ''}
-      <div class="acts">${mine ? '' : `<button class="btn ghost" data-act="openPop" data-pop="world">もし、あのとき（この世界を再生）</button>`}<button class="btn" data-act="toReport">レポートを受け取る</button></div></div>`;
+      <div class="acts">${mine ? '' : `<button class="btn ghost" data-act="openPop" data-pop="world">決断の履歴を見る</button>`}<button class="btn" data-act="toReport">レポートを受け取る</button></div></div>`;
   },
   // 区画を押す：押した位置をアイソメの逆算で区画に直す（16区画は表示の番号順に並ぶ）
   year_after() {
@@ -439,6 +469,7 @@ export const SCENES = {
       <div style="display:flex;gap:20px;align-items:center">${radarSVG(s, 300)}<div><h3 style="margin-top:0">悩んだら、これを優先する</h3><ol>${r.balance.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div></div>
       <h3>分岐点で、守ろうとしたもの</h3><ul>${r.memories.map((x, i) => `<li><b>${Y.FORKS[i] || ''}</b>　${esc(x)}</li>`).join('')}</ul></div>
       <div class="box"><h3>本物の打ち合わせで、先に伝えておきたいこと</h3><ol>${r.tellFirst.map(x => `<li>${esc(x)}</li>`).join('')}</ol>
+      ${keptHTML(s)}
       ${r.couple ? `<h3>ふたりの傾向</h3><p class="lead" style="margin-bottom:8px">${esc(r.couple)}</p>` : ''}
       <h3>1年後のあなたの家</h3><dl class="facts" style="font-size:19px"><dt>総額</dt><dd>${man(o.total)}万円</dd><dt>借入</dt><dd>${man(o.principal)}万円</dd><dt>冬の朝</dt><dd>${o.warmth.label}</dd><dt>家計のゆとり</dt><dd>${o.slack.label}</dd></dl>
       <p class="lead" style="margin-top:16px">${esc(r.closing)}</p></div></div>`;
@@ -507,7 +538,7 @@ export function worldHTML(s) {
   const rows = o.labels.map((l, i) => `<li style="animation-delay:${i * 0.7}s" class="${i === diverge ? 'dv' : ''}"><b>${at[i]}日目</b><span>${Y.FORKS[i]}「${Y.DECISIONS[i].q}」<br><strong>${esc(l)}</strong>${i === diverge ? '<em>ここで、あなたと分かれた</em>' : (i < diverge ? '<em>あなたと同じ</em>' : '')}</span></li>`).join('');
   const ev = (o.events.length ? o.events : ['大きな出来事はなかった']).map((e, i) => `<li style="animation-delay:${3 + i * 0.7}s"><b>${i ? '' : '1年後'}</b><span>${esc(e)}</span></li>`).join('');
   const cmp = (k, a, b) => `<tr><td>${k}</td><td>${a}</td><td>${b}</td></tr>`;
-  return `<div class="pop wplay"><div class="ph2"><div class="ttl">もし、あのとき　<span class="no2">${pad(n)}</span>${P.coTag(o.company, 22)}${Y.COMPANIES[o.company].name}</div><button class="close" data-act="closePop">閉じる</button></div>
+  return `<div class="pop wplay"><div class="ph2"><div class="ttl">決断の履歴　<span class="no2">${pad(n)}</span>${P.coTag(o.company, 22)}${Y.COMPANIES[o.company].name}</div><button class="close" data-act="closePop">閉じる</button></div>
     <div class="body" style="display:grid;grid-template-columns:1.2fr 1fr;gap:28px"><ol class="timeline replay">${rows}${ev}</ol>
     <div><table class="cmp"><tr><th></th><th>この世界</th><th>あなたの世界（${pad(YOU)}）</th></tr>
       ${cmp('選択による総額', man(o.choiceTotal) + '万円', man(me.choiceTotal) + '万円')}${cmp('途中の出来事による増額', o.increase ? '+' + man(o.increase) + '万円' : 'なし', me.increase ? '+' + man(me.increase) + '万円' : 'なし')}${cmp('最終的な総額', man(o.total) + '万円', man(me.total) + '万円')}${cmp('借入', man(o.principal) + '万円', man(me.principal) + '万円')}${cmp('冬の朝', o.warmth.label, me.warmth.label)}${cmp('家計のゆとり', o.slack.label, me.slack.label)}${cmp('引渡し', o.days + '日目', me.days + '日目')}</table>
@@ -618,4 +649,20 @@ export function showHTML(s) {
         <button class="flyer-btn" style="margin-top:12px" data-act="openPhone">スマホから送る（QRコード）</button></div>
       <div><label class="note">気になったページのURLや、写真の説明（任意）</label><textarea class="free" id="showText" data-keep style="height:200px" placeholder="例：https://… こんな玄関が好きです"></textarea></div></div></div>
     <div class="ft"><span class="meta">写真そのものは保存しません。家の要素だけを読み取ります。</span><button class="btn" data-act="doShow">担当者に見せる</button></div></div>`;
+}
+
+// 守れなかった希望と、どの分岐点で何を選べば守れたか（エンジンで確かめる）
+export function unkept(s) {
+  const mine = Y.checkWishes(s.player, s.wishes);
+  return mine.filter(c => !c.ok).map(c => {
+    for (let i = 3; i >= 0; i--) { const w = nearest(s, i); if (!w) continue; const cw = Y.checkWishes(w, [c])[0]; if (cw && cw.ok) return { ...c, fix: `${Y.FORKS[i]}で「${w.labels[i]}」を選べば守れた` }; }
+    return { ...c, fix: '一つの分岐点だけでは守れなかった' };
+  });
+}
+function keptHTML(s) {
+  const mine = Y.checkWishes(s.player, s.wishes), o = Y.outcome(s.player);
+  const done = [...mine.filter(c => c.ok).map(c => c.label), o.warmth.level >= 2 ? `冬の朝は「${o.warmth.label}」` : '', s.player.spec.exterior === 'full' ? '入居の日から外構が整った' : ''].filter(Boolean);
+  const ng = unkept(s);
+  return `<h3>実現できたこと</h3>${done.length ? `<ul>${done.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : '<p class="note">（記録された希望の条件がありません）</p>'}
+    ${ng.length ? `<h3>守れなかった希望</h3><ul>${ng.map(c => `<li><b>${esc(c.label)}</b>　${esc(c.fix)}</li>`).join('')}</ul>` : ''}`;
 }

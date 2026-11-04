@@ -238,7 +238,7 @@ async function report(env, body) {
   const words = (body.words || []).slice(-16).map(w => `- ${w.who}：${String(w.text).slice(0, 120)}`).join('\n');
   const worlds = (body.worlds || []).slice(0, 16);
   const wlist = worlds.map(w => `- no ${w.no}${w.mine ? '（施主の世界）' : ''}：${(w.labels || []).join(' → ')}／冬の朝 ${w.warmth}／ゆとり ${w.slack}／出来事：${(w.events || []).join('、') || 'なし'}`).join('\n');
-  const user = `# 4つの分かれ道（memories は、この順に${labels.length}つ書く）\n${forks}\n# 施主が打ち合わせで話した言葉\n${words || 'なし'}\n# 施主が最初に書いた思い\n${String(body.entry || 'なし').slice(0, 400)}\n# ふたりの要望の付箋の数（コードで数えた）\n${body.couple || 'なし'}\n# 1年後の出来事\n${(body.events || []).join('\n') || 'とくになし'}\n# 暖かさ・家計のゆとり\n${body.warmth || ''}／${body.slack || ''}\n# 16の世界（worlds は、この no ごとに1つずつ）\n${wlist}`;
+  const user = `# 4つの分かれ道（memories は、この順に${labels.length}つ書く）\n${forks}\n# 施主が打ち合わせで話した言葉\n${words || 'なし'}\n# 施主が最初に書いた思い\n${String(body.entry || 'なし').slice(0, 400)}\n# ふたりの要望の付箋の数（コードで数えた）\n${body.couple || 'なし'}\n# 守れなかった希望（エンジンで確かめた。memories や tellFirst で、責めずに触れてよい）\n${(body.unkept || []).join('\n') || 'なし'}\n# 1年後の出来事\n${(body.events || []).join('\n') || 'とくになし'}\n# 暖かさ・家計のゆとり\n${body.warmth || ''}／${body.slack || ''}\n# 16の世界（worlds は、この no ごとに1つずつ）\n${wlist}`;
   const fb = { title: '', balance: ['毎日の暮らしやすさ', '家計の安心', '家族の時間'], memories: labels.map(l => `「${l}」を選びました。`), tellFirst: ['いちばん大切にしたいこと', '予算の上限と、その理由', '後から変えにくいところ（下地・配線・窓）'], couple: '', closing: 'この紙を、本物の打ち合わせに持っていってください。', worlds: [] };
   const check = x => {
     const bad = digitsIn(x, ['title', 'balance', 'memories', 'tellFirst', 'couple', 'closing']);
