@@ -149,3 +149,16 @@ test('大きな出来事は、前の工程の種がある世界でだけ起き�
   const ws = Y.allWorlds({ seed: 7 }).filter(w => w.company === 'A' && w.bits[3] === 0 && !w.third);
   assert.ok(ws.every(w => !w.causes.some(c => c.amount === 380)));
 });
+
+test('間取りの骨組み：部屋の一覧から面積と形の係数を出し、見積・建蔽率に効く', () => {
+  const rooms = [{ name: 'LDK', size: 20, floor: 1 }, { name: '和室', size: 6, floor: 1 }, { name: '洗面', size: 3, floor: 1 }, { name: '主寝室', size: 8, floor: 2 }, { name: '子ども部屋', size: 6, floor: 2 }, { name: '子ども部屋', size: 6, floor: 2 }];
+  const m = Y.planMetrics({ rooms, shape: { form: '総二階', roof: 'cube' } });
+  assert.ok(m.tsubo >= 25 && m.tsubo <= 40, `延床 ${m.tsubo}坪`);
+  const flat = Y.planMetrics({ rooms: rooms.map(r => ({ ...r, floor: 1 })), shape: { form: '平屋に近い' } });
+  assert.ok(flat.shapeFactor > m.shapeFactor); // 1階が大きいほど割高
+  const w = Y.newWorld({ household: H }); Y.choose(w, Y.DECISIONS[0], 'a');
+  const a = Y.measurePlan(w, { rooms, shape: { form: '総二階', roof: 'cube' } });
+  const b = Y.measurePlan(w, { rooms: rooms.map(r => ({ ...r, floor: 1 })), shape: { form: '平屋に近い', roof: 'cube' } });
+  assert.ok(b.coverage > a.coverage);
+  assert.ok(typeof a.total === 'number' && typeof a.monthly === 'number');
+});

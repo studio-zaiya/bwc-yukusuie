@@ -8,13 +8,14 @@ import reportMd from '../prompts/report.md';
 import staff16Md from '../prompts/staff16.md';
 import entryMd from '../prompts/entry.md';
 import partnerMd from '../prompts/partner.md';
+import plannerMd from '../prompts/planner.md';
 
 function parsePrompt(md) {
   const m = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(md);
   const meta = {}; if (m) m[1].split('\n').forEach(l => { const i = l.indexOf(':'); if (i > 0) meta[l.slice(0, i).trim()] = l.slice(i + 1).trim(); });
   return { meta, body: (m ? m[2] : md).trim() };
 }
-export const PROMPTS = Object.fromEntries(Object.entries({ trade: tradeMd, hearing: hearingMd, myai: myaiMd, report: reportMd, staff16: staff16Md, entry: entryMd, partner: partnerMd }).map(([k, v]) => [k, parsePrompt(v)]));
+export const PROMPTS = Object.fromEntries(Object.entries({ trade: tradeMd, hearing: hearingMd, myai: myaiMd, report: reportMd, staff16: staff16Md, entry: entryMd, partner: partnerMd, planner: plannerMd }).map(([k, v]) => [k, parsePrompt(v)]));
 
 export function modelFor(env, role) {
   const tier = PROMPTS[role]?.meta.model || 'MODEL_MID';

@@ -358,3 +358,12 @@ body.rec .help{display:none}
 .nearest .nd{font-family:var(--fr);font-weight:900;font-size:20px;font-variant-numeric:tabular-nums}
 .nearest ul{font-size:15px;line-height:1.6;margin:4px 0 0 1.2em}
 .near4 td{font-size:16px}
+
+/* 設計担当との調整 */
+.zone{position:absolute;left:30px;top:100px;right:30px;height:420px}
+.zone .zsvg{width:100%;height:100%}
+.pulse{animation:pls 1.2s ease-in-out infinite}@keyframes pls{50%{opacity:.45}}
+.pfacts{position:absolute;left:40px;right:30px;top:560px}
+.facts.pf{font-size:20px}
+.cd.pl.on{border-color:var(--ink);background:#fff;box-shadow:0 0 0 3px rgba(242,194,48,.5)}
+.cards{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}

@@ -120,7 +120,7 @@ function hero(s, extra = '', cls = '') {
   const w = s.player || Y.newWorld({ household: H(s) });
   const co = s.player && s.forkNo > 0 ? `　${P.coTag(w.company, 28)}${Y.COMPANIES[w.company].name}` : s.player ? '　2社を見比べ中' : (s.cur ? `　${P.coTag(s.cur, 28)}${Y.COMPANIES[s.cur].name}で相談中` : '');
   const roofDecided = s.forkNo >= 2;
-  const area = roofDecided ? `${w.spec.tsubo}坪・総二階　${Y.ROOF_JA[w.spec.roof]}` : `広さの目安 ${H(s).area[0]}〜${H(s).area[1]}坪　屋根の形は未定`;
+  const area = roofDecided || w.plan ? `${w.spec.tsubo}坪・${w.plan?.shape?.form || '総二階'}　${Y.ROOF_JA[w.spec.roof]}` : `広さの目安 ${H(s).area[0]}〜${H(s).area[1]}坪　屋根の形は未定`;
   return `<div class="hero ${tall(s)} ${cls}"><div class="lab"><span class="no">${pad(YOU)}</span>あなたの家${co}</div>
     <div class="ph">${Y.STEPS[s.step]}<br><span style="font-size:15px">${area}${w.fitted ? `（予算に合わせて${w.fitted}坪小さく）` : ''}</span></div>${heroHouse(s)}${extra}</div>`;
 }
@@ -368,6 +368,21 @@ export const SCENES = {
       <div class="msg"><div class="who">${P.coTag(co, 18)}${STAFFN(co)}</div>請負契約の書類です。図面と見積の内容をご確認ください。</div>
       <dl class="facts" style="font-size:20px;margin-top:10px"><dt>契約金額（建物）</dt><dd>${man(m.contract)}万円</dd><dt>土地</dt><dd>${man(m.land)}万円</dd><dt>総額</dt><dd>${man(m.total)}万円</dd><dt>借入</dt><dd>${man(m.loan)}万円（返済負担率 ${lc.ratio}%）</dd><dt>月々の返済（変動 ${Y.RATE.variable * 100}%）</dt><dd>約${(Math.round(lc.monthly * 100) * 100).toLocaleString('ja-JP')}円</dd><dt>選んだ道</dt><dd>${s.player.labels.map(esc).join('<br>')}</dd></dl></div>
       <div class="opts"><button class="opt" style="background:var(--ink);color:var(--paper)" data-act="toCoord">署名する</button></div>${navs(s)}</div></div>${gallery(s)}`;
+  },
+  // 設計申込・詳細打ち合わせ：設計担当と、間取りの骨組みと予算を確定させる（第二の分岐点の手前）
+  plan(s) {
+    const P0 = s.plan, co = s.player.company;
+    if (!P0) return `${chrome(s)}<div class="hero tall"><div class="lab"><span class="no">07</span>間取りの骨組み</div><div class="zone skel">${zoningSVG(null)}</div><p class="lead" style="position:absolute;left:40px;bottom:40px">図面に落としています……</p></div><div class="right tall"><div class="chat">${staffHead(co, 'think', '設計申込・詳細打ち合わせ')}<div class="log"><div class="msg typing">いただいた要望を、間取りの骨組みにしています……</div></div></div></div>`;
+    const cur = P0.view != null ? P0.options[P0.view] : { plan: P0.main, m: P0.mainM };
+    const m = cur.m;
+    const opt = (o, i) => { const d = Math.round(o.m.total - P0.mainM.total), mo = o.m.monthly - P0.mainM.monthly; return `<button class="cd pl ${P0.view === i ? 'on' : ''}" data-act="planView" data-i="${i}"><h4>${esc(o.plan.title)}</h4><ul><li>総額 ${d > 0 ? '+' : ''}${man(d)}万円／月々 ${mo >= 0 ? '+' : '−'}${Math.abs(mo).toFixed(1)}万円</li><li>${esc(o.effect)}</li></ul></button>`; };
+    const facts = `<dl class="facts pf"><dt>延床</dt><dd>${m.tsubo}坪（1階 ${(m.f1 / Y.TSUBO).toFixed(1)}坪／2階 ${(m.f2 / Y.TSUBO).toFixed(1)}坪）</dd><dt>建蔽率</dt><dd>${m.coverage}㎡／上限 ${m.coverageLimit}㎡${m.coverageOk ? '' : '（超える）'}</dd><dt>総額</dt><dd>${man(m.total)}万円</dd><dt>月々の返済</dt><dd>約${m.monthly.toFixed(1)}万円${m.loanOk ? '' : '（審査の上限を超える）'}</dd></dl>`;
+    const wl = m.wishes.length ? `<ul class="wbox">${wishLine(m.wishes.map(w => ({ ...w, kind: /総額/.test(w.label) ? 'totalMax' : /月々/.test(w.label) ? 'monthlyMax' : 'area' })))}</ul>` : '';
+    return `${chrome(s)}<div class="hero tall"><div class="lab"><span class="no">07</span>間取りの骨組み　<span style="font-size:18px;color:var(--ink2)">${esc(cur.plan.title)}${P0.fallback ? '<span class="mk">代わりの処理</span>' : ''}</span></div><div class="zone">${zoningSVG(cur.plan)}</div><div class="pfacts">${facts}${wl}</div></div>
+      <div class="right tall"><div class="chat">${staffHead(co, busy.on ? 'think' : 'idle', '設計申込・詳細打ち合わせ')}<div class="log" style="justify-content:flex-start">${s.chat.filter(m2 => m2.ch === 'plan').map(msgHTML).join('')}${busy.on ? '<div class="msg typing">図面に落としています……</div>' : ''}</div>
+      <div class="fk"><div class="q">調整の案（押すと、図と金額が動きます）</div><div class="cards">${P0.options.map(opt).join('')}</div>${P0.view != null ? `<button class="opt" style="margin-top:8px" data-act="planView" data-i="-1">元の案に戻す</button>` : ''}</div>
+      <div class="opts"><button class="opt" style="background:var(--ink);color:var(--paper)" data-act="planConfirm" ${busy.on ? 'disabled' : ''}>この間取りの骨組みと予算で、設計を進める</button><span class="note" style="align-self:center">調整はあと${Math.max(0, 3 - (s.planRound || 0))}回</span></div>
+      <div class="in">${whoSw()}<textarea id="say" rows="3" data-keep data-enter="planAsk" placeholder="例：書斎はいらない／子ども部屋は将来仕切る／収納は一か所にまとめたい"></textarea><button class="btn" data-act="planAsk" ${(s.planRound || 0) >= 3 ? 'disabled' : ''}>伝える</button></div>${navs(s)}</div></div>`;
   },
   // 第四の分岐点：コーディネートで選んだ結果が、そのまま分岐点の答えになる
   coord(s) {
@@ -665,4 +680,32 @@ function keptHTML(s) {
   const ng = unkept(s);
   return `<h3>実現できたこと</h3>${done.length ? `<ul>${done.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : '<p class="note">（記録された希望の条件がありません）</p>'}
     ${ng.length ? `<h3>守れなかった希望</h3><ul>${ng.map(c => `<li><b>${esc(c.label)}</b>　${esc(c.fix)}</li>`).join('')}</ul>` : ''}`;
+}
+
+// ゾーニング図：部屋の塊を、階ごとに帯に詰めて描く（大きさは畳の段階に比例。描画はコード）
+export function zoningSVG(plan) {
+  const W = 470, H = 330, gap = 40;
+  if (!plan) return `<svg viewBox="0 0 ${W * 2 + gap} ${H + 40}" class="zsvg">${[0, 1].map(f => `<rect x="${f * (W + gap)}" y="30" width="${W}" height="${H}" rx="8" fill="#F4F1EA" stroke="rgba(30,43,54,.15)"/>${[0, 1, 2].map(r => `<rect x="${f * (W + gap) + 14}" y="${50 + r * 100}" width="${W - 28}" height="80" rx="6" fill="#ECE7DD" class="pulse"/>`).join('')}`).join('')}</svg>`;
+  const floors = [1, 2].map(f => plan.rooms.filter(r => r.floor === f));
+  const maxA = Math.max(...floors.map(rs => rs.reduce((a, r) => a + r.size, 0)), 1);
+  let g = '';
+  floors.forEach((rs, fi) => {
+    const x0 = fi * (W + gap), area = rs.reduce((a, r) => a + r.size, 0);
+    const fw = W * Math.sqrt(area / maxA), fh = H * Math.sqrt(area / maxA);
+    g += `<text x="${x0}" y="20" font-size="18" font-weight="700" fill="#1E2B36">${fi + 1}階</text>`;
+    if (!rs.length) { g += `<text x="${x0 + 20}" y="80" font-size="16" fill="#6B6358">（二階なし）</text>`; return; }
+    g += `<rect x="${x0}" y="30" width="${fw}" height="${fh}" rx="6" fill="#fff" stroke="#1E2B36" stroke-width="2"/>`;
+    const rows = Math.max(1, Math.round(Math.sqrt(rs.length / 1.6)));
+    const per = Math.ceil(rs.length / rows);
+    for (let r = 0; r < rows; r++) {
+      const row = rs.slice(r * per, (r + 1) * per); if (!row.length) continue;
+      const ra = row.reduce((a, x) => a + x.size, 0), rh = fh * (ra / area);
+      const y = 30 + rs.slice(0, r * per).reduce((a, x) => a + x.size, 0) / area * fh;
+      let x = x0;
+      row.forEach(room => { const w = fw * (room.size / ra); const wet = /浴|洗面|トイレ/.test(room.name), ldk = /LDK|リビング/.test(room.name);
+        g += `<rect x="${x + 2}" y="${y + 2}" width="${w - 4}" height="${rh - 4}" rx="4" fill="${ldk ? '#FDEBDD' : wet ? '#DDEFFA' : '#F4F1EA'}" stroke="rgba(30,43,54,.45)"/>`;
+        g += `<text x="${x + w / 2}" y="${y + rh / 2 + 5}" text-anchor="middle" font-size="${Math.min(16, Math.max(10, w / 6))}" fill="#1E2B36">${esc(room.name)}</text>`; x += w; });
+    }
+  });
+  return `<svg viewBox="0 0 ${W * 2 + gap} ${H + 40}" class="zsvg">${g}</svg>`;
 }

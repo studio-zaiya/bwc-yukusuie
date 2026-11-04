@@ -129,10 +129,44 @@ export const SPEC_SCHEMA = {
   bigWindow: [true, false], eave: ['south', 'none'], carport: [true, false], shed: [true, false],
 };
 
+// ---- 間取りの骨組み（設計担当との調整）：部屋の一覧と形から、面積・建蔽率・形の係数を出す ----
+// 部屋の広さは決まった段階（畳）から選ぶ。面積はここで計算する（Claudeは数字を作らない）
+export const ROOM_SIZES = [3, 4.5, 6, 8, 10, 12, 16, 20];
+export const JO = 1.62; // 1畳の面積（㎡、簡略値）
+export const PLAN_FORMS = ['総二階', '部分二階', '平屋に近い'];
+export function planMetrics(plan) {
+  const rooms = (plan?.rooms || []).filter(r => ROOM_SIZES.includes(+r.size) && (r.floor === 1 || r.floor === 2));
+  const sum = f => rooms.filter(r => r.floor === f).reduce((a, r) => a + r.size * JO, 0);
+  const two = rooms.some(r => r.floor === 2);
+  const stairs = two ? TSUBO : 0;                      // 階段：各階に約1坪
+  const f1 = sum(1) * 1.2 + stairs + 4.5 * JO * 0.5;   // 廊下・玄関などの割り増し
+  const f2 = two ? sum(2) * 1.15 + stairs : 0;
+  const total = f1 + f2;
+  const tsubo = Math.round(total / TSUBO);
+  const floor1Tsubo = Math.round(f1 / TSUBO * 10) / 10;
+  // 形の係数：基礎と屋根は建築面積（1階）、外壁は外周で効く。1階が大きいほど割高（総二階＝1.00）
+  const ratio1 = total ? f1 / total : 0.5;
+  const shapeFactor = round(1 + 0.18 * Math.max(0, ratio1 - 0.5), 3);
+  return { f1: round(f1, 1), f2: round(f2, 1), total: round(total, 1), tsubo, floor1Tsubo, shapeFactor, rooms: rooms.length };
+}
+export function applyPlan(w, plan) {
+  const m = planMetrics(plan);
+  w.plan = plan;
+  w.spec.tsubo = m.tsubo; w.spec.floor1Tsubo = m.floor1Tsubo; w.spec.shapeFactor = m.shapeFactor;
+  if (plan.shape?.roof && SPEC_SCHEMA.roof.includes(plan.shape.roof)) { w.spec.roof = plan.shape.roof; w.roofReq = true; }
+  return m;
+}
+// 仮計算（設計担当の道具）：この骨組みにしたら、面積・建蔽率・総額・月々・希望との違いはどうなるか
+export function measurePlan(w, plan, wishes = []) {
+  const t = forkWorld(w); const m = applyPlan(t, plan);
+  const cov = coverageCheck(t.spec), mo = money(t), lc = loanCheck(householdOf(t), mo.loan);
+  return { ...m, coverageOk: cov.ok, coverage: cov.total, coverageLimit: cov.limit, total: round(mo.total, 1), loan: round(mo.loan, 1), loanOk: lc.ok, monthly: round(payment(mo.loan, RATE.variable), 1), wishes: checkWishes(t, wishes).map(c => ({ label: c.label, ok: c.ok, diff: c.diff })) };
+}
+
 // ---- 台帳 層②：原価・価格（会社別）----
 export function priceLines(spec, co, knowGround) {
   const L = [];
-  L.push({ key: 'body', label: '本体工事', v: co.tsubo * spec.tsubo });
+  L.push({ key: 'body', label: '本体工事', v: round(co.tsubo * spec.tsubo * (spec.shapeFactor || 1), 1) });
   if (pitched(spec.roof)) L.push({ key: 'gable', label: `屋根（${ROOF_JA[spec.roof]}）`, v: co.gable });
   L.push({ key: 'futai', label: '付帯工事（給排水・仮設など）', v: co.futai });
   if (spec.kitchen) L.push({ key: 'kitchen', label: '造作キッチン', v: co.kitchen });
@@ -225,7 +259,7 @@ export function decisions(pair = ['C', 'A']) {
   const [x, y] = pair;
   return [
     { id: 'D1', no: 0, q: 'だれと建てる？', step: 2, a: { label: `${COMPANIES[x].name}と建てる`, patch: { company: x } }, b: { label: `${COMPANIES[y].name}と建てる`, patch: { company: y } } },
-    { id: 'D2', no: 1, q: 'なにを優先する？', step: 3, a: { label: w => `提案の外形（${ROOF_JA[w.spec.roof]}）のまま、広さを優先する`, patch: { spec: { kitchen: false } } }, b: { label: w => `${ROOF_JA[COMPANIES[w.company].altRoof]}に変えて、造作キッチンも（少し小さく）`, patch: { spec: { roof: '@alt', kitchen: true, tsubo: -1 } } } },
+    { id: 'D2', no: 1, q: 'なにを優先する？', step: 3, a: { label: w => w.plan ? `${w.plan.title || '確定した骨組み'}で進める` : `提案の外形（${ROOF_JA[w.spec.roof]}）のまま、広さを優先する`, patch: { spec: { kitchen: false }, plan: 'main' } }, b: { label: w => w.plan?.alt ? `${w.plan.alt.title || 'もう一つの案'}にする` : `${ROOF_JA[COMPANIES[w.company].altRoof]}に変えて、造作キッチンも（少し小さく）`, patch: { spec: { roof: '@alt', kitchen: true, tsubo: -1 }, plan: 'alt' } } },
     { id: 'D3', no: 2, q: 'いくらまでかける？', step: 5, a: { label: '外構は最小限で進める', patch: { spec: { exterior: 'min' } } }, b: { label: '借入を増やして、外構まで仕上げる', patch: { spec: { exterior: 'full' } } } },
     { id: 'D4', no: 3, q: 'どう仕上げる？', step: 6, a: { label: '標準の仕上げのまま', patch: { finish: { wall: 'std', floor: 'std', inner: 'vinyl' } } }, b: { label: 'アップグレードを受ける（外壁と床）', patch: { finish: { wall: 'galva', floor: 'oak' } } } },
   ];
@@ -242,6 +276,13 @@ export function fitBudget(w) {
 }
 function applyPatch(w, p) {
   if (p.company) { w.company = p.company; if (!w.roofReq) w.spec.roof = COMPANIES[p.company].roof; fitBudget(w); }
+  // 骨組みが確定している世界：第二の分岐点は、確定した案かもう一つの案のどちらか（面積と形はエンジンが出す）
+  if (p.plan && w.plan) {
+    const base = w.plan, pick = p.plan === 'alt' && base.alt ? { ...base.alt, alt: base } : base;
+    applyPlan(w, pick); w.plan = pick;
+    if (pick.kitchen != null) w.spec.kitchen = !!pick.kitchen;
+    return;
+  }
   if (p.spec) for (const [k, v] of Object.entries(p.spec)) {
     if (k === 'tsubo') { w.spec.tsubo = baseSpec(householdOf(w)).tsubo - (w.fitted || 0) + v; w.spec.floor1Tsubo = Math.ceil(w.spec.tsubo / 2); }
     else if (k === 'tsuboAbs') { w.spec.tsubo = v; w.spec.floor1Tsubo = Math.ceil(v / 2); }
@@ -409,5 +450,5 @@ export function createLog(seed = []) {
   };
 }
 
-export const YKS = { incidents, eventDelay, checkWishes, ROOF_JA, pitched, UA, ELECTRIC_WORDS, electricOf, missedPolicy, fitBudget, VERSION, TSUBO, HOUSEHOLDS, monthlyTakeHome, RATE, payment, loanLimit, loanCheck, SITE, landCost, coverageCheck, COMPANIES, COMMON, FINISH, ELECTRIC, finishCost, electricCost, baseSpec, SPEC_SCHEMA, quote, warmth, slack, DEADLINE, STEPS, scheduleOf, schedule, newWorld, forkWorld, money, FORKS, decisions, DECISIONS, choose, contract, branchAll, worldNo, normalizeProposal, TOOLS, simulate, outcome, allWorlds, createLog, rng, round, hashStr };
+export const YKS = { ROOM_SIZES, JO, PLAN_FORMS, planMetrics, applyPlan, measurePlan, incidents, eventDelay, checkWishes, ROOF_JA, pitched, UA, ELECTRIC_WORDS, electricOf, missedPolicy, fitBudget, VERSION, TSUBO, HOUSEHOLDS, monthlyTakeHome, RATE, payment, loanLimit, loanCheck, SITE, landCost, coverageCheck, COMPANIES, COMMON, FINISH, ELECTRIC, finishCost, electricCost, baseSpec, SPEC_SCHEMA, quote, warmth, slack, DEADLINE, STEPS, scheduleOf, schedule, newWorld, forkWorld, money, FORKS, decisions, DECISIONS, choose, contract, branchAll, worldNo, normalizeProposal, TOOLS, simulate, outcome, allWorlds, createLog, rng, round, hashStr };
 export default YKS;

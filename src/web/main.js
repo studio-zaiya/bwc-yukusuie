@@ -22,7 +22,7 @@ export function initialState() {
     pair: ['C', 'A'], player: null, others: [], newest: [],
     forkNo: 0, pendingSide: null, pendingTrade: null, band: null, calls: [], failed: null,
     aiLeft: {}, pop: null, myai: null, report: null, staff16: null, tab: null,
-    lot: null, savedId: null, toast: null, buildAuto: false, rtab: 'home',
+    lot: null, savedId: null, toast: null, buildAuto: false, rtab: 'home', plan: null, planRound: 0,
   };
 }
 export let S = initialState();
@@ -100,6 +100,9 @@ export function apply(s, e) {
     case 'pop': s.pop = e.pop; break;
     case 'lot': s.lot = e.no; break;
     case 'buildAuto': s.buildAuto = true; break;
+    case 'planGot': s.plan = { ...e.data, view: null }; s.planRound = (s.planRound || 0) + (e.round ? 1 : 0); s.chat.push({ who: 'staff', co: s.player.company, ch: 'plan', text: e.data.intro, mock: !!e.data.fallback }); if (e.call) s.calls.push(e.call); break;
+    case 'planView': if (s.plan) s.plan.view = e.i < 0 ? null : e.i; break;
+    case 'planConfirm': { const P0 = s.plan; const chosen = P0.view != null ? P0.options[P0.view].plan : P0.main; const altO = P0.view != null ? { plan: P0.main } : P0.options[P0.altIndex]; Y.applyPlan(s.player, { ...chosen, alt: altO ? altO.plan : null }); s.player.spec.kitchen = !!chosen.kitchen; s.chat.push({ who: 'sys', ch: s.player.company, text: `間取りの骨組みを確定した：${chosen.title}` }); break; }
     case 'rtab': s.rtab = e.k; break;
     case 'saved': s.savedId = e.id; break;
   }

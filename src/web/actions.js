@@ -252,6 +252,15 @@ export const ACTIONS = {
     emit('pop', { pop: 'show' });
     const t2 = document.getElementById('showText'); if (t2) t2.value = [prev, ...texts].filter(Boolean).join('\n');
   },
+  // 設計担当との調整
+  planView(d) { emit('planView', { i: +d.i }); },
+  async planAsk() {
+    const text = val('say'); if (!text || (S.planRound || 0) >= 3) return; clear('say');
+    emit('say', { who: getWho(), ch: 'plan', text });
+    await planCall(text);
+    if ((S.planRound || 0) >= 3) emit('say', { who: 'staff', co: S.player.company, ch: 'plan', text: 'いったん持ち帰って整理しましょう。いまの案で、設計を進めさせてください。' });
+  },
+  planConfirm() { if (!S.plan || busy.on) return; emit('planConfirm', {}); goto('fork', 3); },
   tourNext() { tourNext(); render(); },
   tourSkip() { tourSkip(); render(); },
   help() { tourHelp(S); render(); },
@@ -293,7 +302,7 @@ async function reportCall() {
   } catch (e) { S.report = { failed: true }; toast(String(e.message)); }
 }
 function afterFork(dec) {
-  if (dec.id === 'D1') { emit('say', { who: 'sys', ch: S.player.company, text: `${Y.COMPANIES[S.player.company].name}に決めて、土地の売買契約を結んだ（ローン特約の期限は${Y.DEADLINE.loan}日目）` }); goto('fork', 3); }
+  if (dec.id === 'D1') { emit('say', { who: 'sys', ch: S.player.company, text: `${Y.COMPANIES[S.player.company].name}に決めて、土地の売買契約を結んだ（ローン特約の期限は${Y.DEADLINE.loan}日目）` }); goto('plan', 3); planCall(''); }
   else if (dec.id === 'D2') goto('fork', 5);
   else if (dec.id === 'D3') {
     // 契約に入れてあるオプションは、その会社の担当者が聞き取れた（記録した）要望だけ
@@ -358,4 +367,14 @@ function secondOpening(co) {
   const got = S.heard.slice(-3).map(h => h.text).join('、');
   const by = { A: '弊社の標準仕様で、どこまで叶うか確かめさせてください。', B: '規格プランのどれが近いか、一緒に見ていきましょう！', C: 'いくつか、詳しく伺ってもいいですか。', D: 'だいたいできますよ。気になってることから聞かせてください。' }[co];
   return `${Y.COMPANIES[S.visit[0]].name}さんと同じご要望を伺っています${got ? `（${got}など）` : ''}。${by}`;
+}
+
+// 設計担当（Opus 5.5）に、骨組みの案を頼む。数字はエンジンが出したものだけを使う
+async function planCall(text) {
+  await withBusy(async () => {
+    const cur = S.plan ? (S.plan.view != null ? S.plan.options[S.plan.view].plan : S.plan.main) : null;
+    const r = await api('/api/ai/planner', { world: S.player, wishes: S.wishes, heard: S.heard.map(h => ({ who: nameOf(h.who === 'ゆう' ? 'yuu' : 'kazu'), text: h.text })), current: cur, text, round: (S.planRound || 0) + 1 });
+    if (!r.ok) { emit('fail', { role: 'planner', ch: 'plan', call: r.call }); return; }
+    emit('planGot', { data: { intro: r.intro, main: r.main, mainM: r.mainM, options: r.options, altIndex: r.altIndex, fallback: !!r.fallback }, round: !!text, call: r.call });
+  });
 }

@@ -191,6 +191,57 @@ async function hearing(env, body) {
   return r;
 }
 
+// ---- 設計担当との調整（間取りの骨組み。Opus 5.5 がエンジンを道具として使う）----
+const ROOM = { type: 'object', additionalProperties: false, required: ['name', 'size', 'floor', 'near'], properties: { name: { type: 'string' }, size: { type: 'number', enum: Y.ROOM_SIZES }, floor: { type: 'integer', enum: [1, 2] }, near: { type: 'array', items: { type: 'string' } } } };
+const PLAN = { type: 'object', additionalProperties: false, required: ['title', 'rooms', 'shape', 'kitchen'], properties: {
+  title: { type: 'string', description: '案の短い名前（算用数字なし）' }, rooms: { type: 'array', items: ROOM }, kitchen: { type: 'boolean', description: '造作キッチンを入れるか' },
+  shape: { type: 'object', additionalProperties: false, required: ['form', 'roof'], properties: { form: { type: 'string', enum: Y.PLAN_FORMS }, roof: { type: 'string', enum: ['cube', 'hip', 'gable', 'mane', 'flat'] } } } } };
+const OPTION = { type: 'object', additionalProperties: false, required: ['plan', 'effect'], properties: { plan: PLAN, effect: { type: 'string', description: '暮らしで何が変わるか（一行、算用数字なし）' } } };
+function planErr(p) {
+  if (!p || !Array.isArray(p.rooms) || p.rooms.length < 3 || p.rooms.length > 16) return '部屋は三つ以上、十六まで';
+  if (hasDigits(p.title) || p.rooms.some(r => hasDigits(r.name))) return '名前に算用数字';
+  return null;
+}
+async function planner(env, body) {
+  const world = body.world;
+  const co = Y.COMPANIES[world.company];
+  const wishes = body.wishes || [];
+  const tools = [
+    { name: 'measure_plan', description: '骨組みを仮に当てたときの、延床・1階と2階の床面積・建蔽率・総額・借入・月々の返済・希望との違いを返す（計算エンジン）', input_schema: { type: 'object', additionalProperties: false, required: ['plan'], properties: { plan: PLAN } }, run: i => Y.measurePlan(world, i.plan, wishes) },
+    { name: 'submit_plan', description: '骨組みと調整の案を確定して、施主に見せる。最後に一回だけ呼ぶ', input_schema: { type: 'object', additionalProperties: false, required: ['intro', 'main', 'options', 'altIndex'], properties: {
+      intro: { type: 'string', description: '担当者から施主へのひとこと（二〜三文、算用数字なし）' }, main: PLAN, options: { type: 'array', items: OPTION }, altIndex: { type: 'integer', description: '第二の分岐点で「もう一つの案」として残す option の番号（0から）' } } } },
+  ];
+  const user = [
+    `# 会社：${co.name}（${co.kind}）。提案の外形：${Y.ROOF_JA[co.roof]}`,
+    `# 世帯：${Y.HOUSEHOLDS[world.household]?.story || ''}　広さの目安：${(Y.HOUSEHOLDS[world.household]?.area || []).join('〜')}坪`,
+    `# 要望の台帳（ヒアリングで聞き取ったこと）\n${(body.heard || []).slice(0, 30).map(h => `- ${h.who}：${h.text}`).join('\n') || 'なし'}`,
+    `# 希望の条件\n${wishes.map(w => `- ${w.text}`).join('\n') || 'なし'}`,
+    body.current ? `# いまの骨組み\n${JSON.stringify(body.current)}` : '',
+    body.text ? `# 施主の指示（これを反映して組み直す。調整の回数：${body.round || 1}回目）\n${String(body.text).slice(0, 300)}` : '',
+  ].filter(Boolean).join('\n');
+  const { submit, call } = await callTools(env, {
+    role: 'planner', user, tools, effort: 'low', maxTurns: 5,
+    validateSubmit: x => planErr(x.main) || x.options.map(o => planErr(o.plan)).find(Boolean) || (digitsIn(x, ['intro']).length || x.options.some(o => hasDigits(o.effect)) ? '文に算用数字' : null),
+  });
+  if (!submit) {
+    // 代わりの処理：決まった型の骨組みと調整の案（画面には「代わりの処理」と出す）
+    const R = (name, size, floor) => ({ name, size, floor, near: [] });
+    const base = [R('LDK', 16, 1), R('和室', 6, 1), R('洗面・脱衣', 3, 1), R('浴室', 3, 1), R('トイレ', 3, 1), R('玄関収納', 3, 1), R('主寝室', 8, 2), R('子ども部屋', 6, 2), R('子ども部屋', 6, 2), R('書斎', 4.5, 2), R('納戸', 3, 2), R('トイレ', 3, 2)];
+    const shape = { form: '部分二階', roof: co.roof };
+    const main = { title: '要望を全部入れた案', rooms: base, shape, kitchen: true };
+    const opts = [
+      { plan: { title: '書斎と納戸をなくした案', rooms: base.filter(r => r.name !== '書斎' && r.name !== '納戸'), shape, kitchen: true }, effect: '在宅の仕事は、寝室の一角かリビングで' },
+      { plan: { title: '和室を畳コーナーにした総二階の案', rooms: base.filter(r => r.name !== '納戸').map(r => r.name === '和室' ? { ...r, size: 4.5, floor: 2 } : r), shape: { form: '総二階', roof: co.roof }, kitchen: true }, effect: '一階はひとまわり小さく、基礎と屋根が減る' },
+      { plan: { title: '造作キッチンを標準にした案', rooms: base, shape, kitchen: false }, effect: '台所はシステムキッチンで、こだわりは小物で' },
+    ];
+    const measure = p => Y.measurePlan(world, p, wishes);
+    return { ok: true, fallback: true, intro: 'いただいた要望を全部入れると、こうなります。調整の案もお持ちしました。', main, mainM: measure(main), options: opts.map(o => ({ ...o, m: measure(o.plan) })), altIndex: 1, call };
+  }
+  // 数字はエンジンが出す：各案の面積・総額・月々・希望との違い
+  const measure = p => Y.measurePlan(world, p, wishes);
+  return { ok: true, intro: submit.intro, main: submit.main, mainM: measure(submit.main), options: submit.options.slice(0, 3).map(o => ({ ...o, m: measure(o.plan) })), altIndex: Math.max(0, Math.min(submit.options.length - 1, submit.altIndex || 0)), call };
+}
+
 // ---- パートナー（ひとりプレイのとき、妻をAIが演じる）----
 const PARTNER_SCHEMA = { type: 'object', additionalProperties: false, required: ['line', 'wishes'], properties: { line: { type: 'string' }, wishes: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['tag', 'text'], properties: { tag: { type: 'string' }, text: { type: 'string' } } } } } };
 async function partner(env, body) {
@@ -353,7 +404,7 @@ export default {
       const body = await req.json().catch(() => ({}));
       if (path === '/api/play/start') { const msg = await guard(env, req, 'play'); return msg ? json({ ok: false, message: msg }, 429) : json({ ok: true, playId: rid() }); }
       if (path === '/api/log') return saveLog(env, body);
-      const ROLES = { '/api/ai/trade': trade, '/api/ai/hearing': hearing, '/api/ai/myai': myai, '/api/ai/report': report, '/api/ai/staff16': staff16, '/api/ai/entry': entry, '/api/ai/partner': partner };
+      const ROLES = { '/api/ai/trade': trade, '/api/ai/hearing': hearing, '/api/ai/myai': myai, '/api/ai/report': report, '/api/ai/staff16': staff16, '/api/ai/entry': entry, '/api/ai/partner': partner, '/api/ai/planner': planner };
       const fn = ROLES[path];
       if (!fn) return json({ error: 'not found' }, 404);
       const limited = await guard(env, req, 'call');
