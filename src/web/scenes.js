@@ -261,7 +261,7 @@ export const SCENES = {
   howto(s) {
     const [t, pic, body] = HOWTO[s.howto];
     const last = s.howto === HOWTO.length - 1;
-    const first = s.howto === 0 ? `<div class="namebox"><label><i class="sq"></i>夫の呼び名<input id="nmA" maxlength="8" placeholder="かず" value="${esc(s.names.a === 'かず' ? '' : s.names.a)}"></label><label><i class="ci"></i>妻の呼び名<input id="nmB" maxlength="8" placeholder="ゆう" value="${esc(s.names.b === 'ゆう' ? '' : s.names.b)}"></label></div><p class="note">ニックネームで入力してください（空欄なら「かず」「ゆう」）。</p>
+    const first = s.howto === 0 ? `<div class="namebox"><label><i class="sq"></i>夫の呼び名<input id="nmA" maxlength="8" placeholder="あなた" value="${esc(s.names.a === 'かず' ? '' : s.names.a)}"></label><label><i class="ci"></i>妻の呼び名<input id="nmB" maxlength="8" placeholder="パートナー" value="${esc(s.names.b === 'ゆう' ? '' : s.names.b)}"></label></div><p class="note">ニックネームで入力してください（空欄なら「あなた」「パートナー」）。</p>
       <div class="modebox"><button class="mode" data-act="mode" data-m="solo" aria-pressed="${s.mode === 'solo'}"><b>ひとりで遊ぶ</b><span>あなたが夫になり、妻はAIが演じます</span></button><button class="mode" data-act="mode" data-m="duo" aria-pressed="${s.mode === 'duo'}"><b>ふたりで遊ぶ</b><span>交互に入力します</span></button></div>` : '';
     return `<div class="center howto"><div class="hk">遊び方　${s.howto + 1} / ${HOWTO.length}</div><div class="h2">${t}</div>${s.howto === 0 ? '' : `<div class="pic">${MINI[pic]()}</div>`}<p class="lead">${body}</p>${first}
       <div style="display:flex;gap:14px;justify-content:center"><button class="big-btn ${played() ? '' : 'ghost'}" data-act="howtoSkip">とばす</button><button class="big-btn ${played() ? 'ghost' : ''}" data-act="howtoNext">${last ? 'はじめる' : 'つぎへ'}</button></div></div>
@@ -270,7 +270,7 @@ export const SCENES = {
   family(s) {
     const h = H(s);
     return `<div class="full"><div class="h2">あなたの家族</div><p class="lead">${h.story}</p>
-      <dl class="facts" style="max-width:900px"><dt>世帯</dt><dd>${esc(NAMES.kazu)}（夫）・${esc(NAMES.yuu)}（妻）・子ども2人</dd><dt>世帯年収</dt><dd>${man(h.income)}万円（共働き）</dd><dt>家に入れる預金</dt><dd>${man(h.saveHouse)}万円（ほかに手元に残す分 ${man(h.saveKeep)}万円）</dd><dt>借りられそうな額</dt><dd>${man(Y.loanLimit(h))}万円まで（審査の目安）</dd><dt>家の広さの目安</dt><dd>${h.area[0]}〜${h.area[1]}坪</dd></dl>
+      <dl class="facts" style="max-width:900px"><dt>世帯</dt><dd>${esc(NAMES.kazu)}（夫）・${esc(NAMES.yuu)}（妻）・子ども2人</dd><dt>世帯年収</dt><dd>${man(h.income)}万円（共働き）</dd><dt>家に入れる預金</dt><dd>${man(h.saveHouse)}万円（ほかに手元に残す分 ${man(h.saveKeep)}万円）</dd><dt>借りられそうな額</dt><dd>${man(Y.loanLimit(h))}万円まで（審査の目安）</dd></dl>
       <p class="note" style="margin-top:14px">金額はゲームの中の仮定です。</p>
       <div style="margin-top:36px;text-align:right"><button class="big-btn" data-act="toLotNoEntry">つぎへ</button></div></div>`;
   },
@@ -366,7 +366,7 @@ export const SCENES = {
     return `${chrome(s)}${hero(s)}<div class="right ${tall(s)}"><div class="chat"><div class="staffbar">${P.spouse('yuu', 70)}<div class="nm">帰り道<b>${esc(NAMES.yuu)}と話す</b></div></div>
       <div class="log">${s.chat.filter(m => m.ch === 'partner').map(msgHTML).join('')}</div>
       <div class="opts">${said ? `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="sendForgot">${Y.COMPANIES[co].staff}さんに送る</button>` : ''}<button class="opt" data-act="toSecond">${said ? '送らずに、2社目へ' : 'とくにない（2社目へ）'}</button></div>
-      <div class="in"><textarea id="say" rows="3" data-keep data-enter="sayPartner" placeholder="伝え忘れたことを、ゆうに話す"></textarea><button class="btn" data-act="sayPartner">話す</button></div>${navs(s)}</div></div>${gallery(s)}`;
+      <div class="in"><textarea id="say" rows="3" data-keep data-enter="sayPartner" placeholder="伝え忘れたことを、${esc(NAMES.yuu)}に話す"></textarea><button class="btn" data-act="sayPartner">話す</button></div>${navs(s)}</div></div>${gallery(s)}`;
   },
   reply(s) {
     const co = s.visit[0];
@@ -380,7 +380,8 @@ export const SCENES = {
     const q = Y.quote(spec, tab, false);
     const shown = q.lines.filter(l => l.shown), hidden = q.lines.filter(l => !l.shown);
     const roof = Y.COMPANIES[tab].roof;
-    const heard = s.heard.filter(h => h.co === tab || h.who === 'ふたり').slice(0, 4).map(h => h.text);
+    // 反映した要望：その会社に伝わった要望の記憶から、問いごとに1つ（ふたりが同じ答え・優先度の高いものから）
+    const heard = s.memory ? (() => { const seenQ = new Set(); return s.memory.items.filter(x => x.deliveredTo[tab] === 'told').sort((a, b) => (b.priority === 'must') - (a.priority === 'must') || (b.who === 'both') - (a.who === 'both')).filter(x => { const k = x.q || x.id; if (seenQ.has(k)) return false; seenQ.add(k); return true; }).slice(0, 4).map(x => x.text); })() : s.heard.filter(h => h.co === tab).slice(0, 4).map(h => h.text);
     const pitch = { A: '性能と保証を標準で。断熱は', B: '規格プランをもとに、ご要望に近い形を選びました。断熱は', C: '暮らしの時間帯に合わせて、南に開いた間取りにしました。断熱は', D: 'ご要望は全部入れておきました。細かいところは、これから一緒に。断熱は' }[tab];
     const thumb = P.thumb({ w: { no: 3, spec: { roof, exterior: 'full' }, company: tab, bits: [] }, stage: 4, ghost: 0 }, { style: 'width:300px;height:220px' });
     return `${chrome(s)}<div class="tabs">${s.visit.map(co => `<button class="tab" data-act="tab" data-co="${co}" aria-pressed="${co === tab}">${P.coTag(co, 24)}${Y.COMPANIES[co].name}</button>`).join('')}</div>

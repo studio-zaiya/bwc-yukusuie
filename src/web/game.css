@@ -520,3 +520,8 @@ button.th.th15{font:inherit;color:inherit;text-align:center;cursor:pointer;borde
 .meetclk{padding:8px 22px 10px;border-bottom:1px solid rgba(30,43,54,.1);font-size:17px;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}.meetclk span{color:var(--ink2);margin-left:auto}
 .meetclk .mbar{flex:0 0 100%;height:5px;border-radius:3px;background:rgba(30,43,54,.1)}.meetclk .mbar i{display:block;height:100%;background:var(--ink);border-radius:3px}
 @media (prefers-reduced-motion:reduce){.sv-card.slide,.sticky.fly{animation:none}}
+/* 受け入れ基準7：字の大きさの下限（本文16px以上。小さな見出し・印は14px以上） */
+.note,.msg.sys,.tags,.coc ul,.coc .lb,.nearest ul,.wtab td span,.cmp th,.disc,.pop .meta,.post .nm,.band .bt,.barc .lbl,.leaf .lt,.mode span,.timeline.replay li em,.rp-row ul.mem b,.fl-std,.nav .n,.who-sw{font-size:16px}
+.sp .wh{font-size:16px}.tp-tl li em{font-size:15px}.bcol h4{font-size:16px}
+.msg .who,.chat .hd .sub,.pbar,.th .thd,.moneyc .hd,.moneyc .k,.famc .rec,.vbtn small,.fl-top small,.fl-b,.fl-std b,.chips2 small,.sticky small,.sketch figcaption,.nearest .nk,.tour-n,.cst .nm{font-size:14px}
+.moneyc .sub{font-size:14px}.th .tnt{font-size:14px}.tnm,.tnm.big{font-size:15px}.th .tst{font-size:14px}.treesvg .elab{font-size:15px}.fl-small{font-size:14px}.mk{font-size:12px}
