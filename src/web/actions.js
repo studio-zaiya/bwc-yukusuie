@@ -290,7 +290,7 @@ function decide(side, reason) {
 }
 // 終わり：「第◯の分岐点：〇〇を選んだ」の帯を1.5秒出してから、通常の画面に戻る
 function closeFork(dec, then) {
-  FORK_DONE.on = true; FORK_DONE.text = `${Y.FORKS[dec.no]}：${S.player.labels.at(-1)}を選んだ`;
+  FORK_DONE.on = true; FORK_DONE.text = `${Y.FORKS[dec.no]}：「${S.player.labels.at(-1)}」を選んだ`;
   render();
   setTimeout(() => { FORK_DONE.on = false; then(); }, 1500);
 }

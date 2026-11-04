@@ -158,7 +158,7 @@ export function nearestCard(s) {
 export function wishLine(ch) {
   if (!ch.length) return '';
   const ng = ch.filter(c => !c.ok);
-  const diffs = ch.filter(c => c.kind === 'totalMax' || c.kind === 'monthlyMax').map(c => `${c.kind === 'totalMax' ? '総額' : '月々'}${c.diff > 0 ? '+' : ''}${c.kind === 'monthlyMax' ? c.diff.toFixed(1) : man(c.diff)}万円`);
+  const diffs = ch.filter(c => c.kind === 'totalMax' || c.kind === 'monthlyMax').map(c => `${c.kind === 'totalMax' ? '総額' : '月々'}${c.diff > 0 ? '+' : c.diff < 0 ? '−' : ''}${c.kind === 'monthlyMax' ? Math.abs(c.diff).toFixed(1) : man(Math.abs(c.diff))}万円`);
   return `<li class="wl">希望との違い：${diffs.join('／') || 'なし'}${ng.length ? `<br><b>この案では守れない希望：${ng.map(c => esc(c.label)).join('、')}</b>` : '<br>希望はすべて守れる'}</li>`;
 }
 // 希望のボード：わかった希望（付箋）・まだ決まっていないこと・次に決めること
@@ -354,8 +354,10 @@ export const SCENES = {
     if (FORK_DONE.on) return `${chrome(s)}${hero(s)}<div class="ritual done"><div class="rt-band">${esc(FORK_DONE.text)}</div><div class="rt-light"></div></div>${gallery(s)}`;
     const w = s.player;
     const card = side => { const t = Y.forkWorld(w); Y.choose(t, d, side); const m = Y.money(t), m0 = Y.money(w); const df = m.total - m0.total, mo = Y.payment(m.loan, Y.RATE.variable) - Y.payment(m0.loan, Y.RATE.variable); const lc = Y.loanCheck(H(s), m.loan);
-      const life = diffWords(w, t)[0] || '暮らしは大きくは変わらない';
-      return `<div class="rt-name">${esc(lab(d[side], w))}</div><div class="rt-num">総額 ${man(m.total)}<small>万円</small>${Math.round(df) ? `<em>${df > 0 ? '+' : '−'}${man(Math.abs(df))}</em>` : ''}</div><div class="rt-sub">月々 ${mo >= 0 ? '+' : '−'}${Math.abs(mo).toFixed(1)}万円${lc.ok ? '' : '　審査の上限を超える'}${t.fitted && !w.fitted ? `　予算に合わせた案（${t.spec.tsubo}坪）` : ''}</div><div class="rt-life">${esc(life)}</div><ul class="wbox">${wishLine(Y.checkWishes(t, s.wishes))}</ul>`; };
+      const co = Y.COMPANIES[t.company];
+      const life = (w.company !== t.company || d.id === 'D1' ? `${co.kind}。担当は${co.staffRole}の${co.staff}さん、${Y.ROOF_JA[t.spec.roof]}の家` : diffWords(w, t)[0]) || '暮らしは大きくは変わらない';
+      const mon = Y.payment(m.loan, Y.RATE.variable);
+      return `<div class="rt-body"><div class="rt-name">${esc(lab(d[side], w))}</div><div class="rt-num">総額 ${man(m.total)}<small>万円</small>${Math.round(df) ? `<em>${df > 0 ? '+' : '−'}${man(Math.abs(df))}</em>` : ''}</div><div class="rt-sub">月々 約${mon.toFixed(1)}万円${Math.abs(mo) >= 0.05 ? `（${mo > 0 ? '+' : '−'}${Math.abs(mo).toFixed(1)}）` : ''}${lc.ok ? '' : '　審査の上限を超える'}${t.fitted && !w.fitted ? `　予算に合わせた案（${t.spec.tsubo}坪）` : ''}</div><div class="rt-life">${esc(life)}</div><ul class="wbox">${wishLine(Y.checkWishes(t, s.wishes))}</ul></div><div class="rt-house">${P.coTag(t.company, 26)}${P.bigHouse(t, d.id === 'D3' || d.id === 'D4' ? 4 : 3, {})}</div>`; };
     const pend = s.pendingTrade, side = s.pendingSide;
     const intro = INTRO.has(`${s.playId}-${d.no}`) ? '' : 'intro';
     let body;

@@ -16,7 +16,7 @@ addEventListener('resize', fit); fit();
 // ---- 状態 ----
 export function initialState() {
   return {
-    scene: 'start', step: 0, household: 't2', seed: 7, playId: null, howto: 0, names: { a: 'かず', b: 'ゆう' }, mode: 'solo', wishes: [],
+    scene: 'start', step: 0, household: 't2', seed: 7, playId: null, howto: 0, names: { a: 'あなた', b: 'パートナー' }, mode: 'solo', wishes: [],
     entry: { text: '', photos: [] }, entryRead: null, sources: [], visit: [], cur: null, survey: null,
     chat: [], heard: [], missed: [], honne: [], turns: {},
     pair: ['C', 'A'], player: null, others: [], newest: [],
@@ -45,7 +45,7 @@ export function apply(s, e) {
     case 'start': Object.assign(s, initialState(), { scene: 'howto', seed: e.seed, playId: e.playId }); break;
     case 'scene': if (s.scene !== e.scene || s.step !== e.step) s.band = null; s.scene = e.scene; if (e.step != null) s.step = e.step; s.pop = null; s.failed = null; s.newest = e.scene === 'fork' || e.scene === 'coord' ? s.newest : []; break;
     case 'howto': s.howto = e.page; break;
-    case 'names': s.names = { a: e.a || 'かず', b: e.b || 'ゆう' }; break;
+    case 'names': s.names = { a: e.a || 'あなた', b: e.b || 'パートナー' }; break;
     case 'mode': s.mode = e.mode; break;
     case 'entry': s.entry = { text: e.text, photos: e.photos || [] }; break;
     case 'source': if (!s.sources.includes(e.id)) s.sources.push(e.id); break;
