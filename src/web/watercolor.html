@@ -109,6 +109,8 @@ function build(st){
   else if(st.form==='平屋寄り')boxes=[{x0:-5.9,x1:5.0,z0:-7.3,h0:0,h1:3.3,top:true}];
   else boxes=[{x0:-3.64,x1:3.64,z0:-6.4,h0:0,h1:5.9,top:true}];
   const fin={'塗り壁':[PAL.plaster,PAL.plasterSh],'ガルバリウム':[PAL.galva,PAL.galvaDk],'レンガ調':[PAL.brick,PAL.brickDk],'木の縦張り':[PAL.wood,PAL.woodDk]}[st.finish]||[PAL.plaster,PAL.plasterSh];
+  // ゲームから外壁の色（?wall=#rrggbb）が来たら、その色で塗る（影はその色を沈ませる）
+  const WALL=qs.get('wall');if(/^#[0-9a-fA-F]{6}$/.test(WALL||'')){const n=parseInt(WALL.slice(1),16),dk=[n>>16,n>>8&255,n&255].map(v=>Math.round(v*.62).toString(16).padStart(2,'0')).join('');fin[0]=WALL;fin[1]='#'+dk}
   const sky=SKY[st.timeOfDay]||SKY['昼'];
   // 空：大胆なウォッシュ（雲の白を残す）
   const skyC=mk(),sg=skyC.getContext('2d');

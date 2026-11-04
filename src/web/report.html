@@ -81,13 +81,13 @@ th{font-weight:700}
     <div class="cv-k">わが家の、ちょうどいいバランス</div>
     <div class="cv-title" id="cvTitle"></div>
     <iframe class="cv-wc" id="wc" title="わが家の水彩パース"></iframe>
-    <div class="cv-meta">かず と ゆう の家づくり　入居から1年後のレポート</div>
+    <div class="cv-meta"><span class="nmFam"></span>の家づくり　入居から1年後のレポート</div>
   </div>
   <div class="foot">本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。実際の家づくりでは、地域・金融機関・住宅会社によって異なります。登場する住宅会社・人物・団体はすべて架空です。</div>
 </div>
 
 <div class="page">
-  <div class="top"><div class="logo">ゆくすいえ<small>YUKUSUIE: 16 unbuilt futures</small></div><div class="meta">かず と ゆう の家づくり<br>入居から1年後のレポート</div></div>
+  <div class="top"><div class="logo">ゆくすいえ<small>YUKUSUIE: 16 unbuilt futures</small></div><div class="meta"><span class="nmFam"></span>の家づくり<br>入居から1年後のレポート</div></div>
   <h1>わが家の、ちょうどいいバランス<small id="title" style="display:block;font-size:4mm;margin-top:1mm"></small></h1>
   <p class="lead">16の世界で同時に家を建て、1年が過ぎました。よい家の答えではなく、ふたりが大切にしたいことを書き留めます。<br>このレポートは、本物の打ち合わせに持っていけるように作っています。</p>
 
@@ -102,7 +102,7 @@ th{font-weight:700}
       <h2><span class="n">2</span>ふたりのバランス</h2>
       <p>4つの決断を、だれの思いに寄せて決めたか。</p>
       <div class="bal" id="bal"></div>
-      <p style="font-size:2.8mm;color:var(--ink2)"><span class="sq">かず</span>　<span class="ci">ゆう</span>　<span class="di">ふたりで考えて出した答え</span></p>
+      <p style="font-size:2.8mm;color:var(--ink2)"><span class="sq nmA"></span>　<span class="ci nmB"></span>　<span class="di">ふたりで考えて出した答え</span></p>
       <p style="margin-top:2mm" id="tags"></p>
     </div>
   </div>
@@ -124,7 +124,7 @@ th{font-weight:700}
 
 <!-- 2ページ目 -->
 <div class="page">
-  <div class="top"><div class="logo">ゆくすいえ<small>YUKUSUIE: 16 unbuilt futures</small></div><div class="meta">かず と ゆう の家づくり<br>入居から1年後のレポート</div></div>
+  <div class="top"><div class="logo">ゆくすいえ<small>YUKUSUIE: 16 unbuilt futures</small></div><div class="meta"><span class="nmFam"></span>の家づくり<br>入居から1年後のレポート</div></div>
 
   <div class="box" style="margin-top:5mm">
     <h2><span class="n">4</span>悩んだら、何を優先するか</h2>
@@ -155,7 +155,7 @@ th{font-weight:700}
 
 <!-- 3ページ目 -->
 <div class="page">
-  <div class="top"><div class="logo">ゆくすいえ<small>YUKUSUIE: 16 unbuilt futures</small></div><div class="meta">かず と ゆう の家づくり<br>入居から1年後のレポート</div></div>
+  <div class="top"><div class="logo">ゆくすいえ<small>YUKUSUIE: 16 unbuilt futures</small></div><div class="meta"><span class="nmFam"></span>の家づくり<br>入居から1年後のレポート</div></div>
   <h2 style="margin-top:5mm;font-size:4.6mm"><span class="n">7</span>選ばなかった世界線から</h2>
   <p class="lead" style="margin-bottom:3mm">同じ家族、同じ土地で、決断が違った世界です。どちらがよいかは決めません。</p>
   <div id="cards" style="display:grid;grid-template-columns:1fr 1fr;gap:3.4mm"></div>
@@ -174,6 +174,11 @@ import * as Y from '/engine/engine.js';
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const $ = id => document.getElementById(id);
 let D = null; try { D = JSON.parse(localStorage.getItem('yuku-report') || 'null'); } catch {}
+// 家族の呼び名は、プレイで入力されたもの（既定は「あなた」「パートナー」）。内部の識別（かず＝1人目、ゆう＝2人目）は画面に出さない
+const NA = (D && D.names && D.names.a) || 'あなた', NB = (D && D.names && D.names.b) || 'パートナー';
+document.querySelectorAll('.nmFam').forEach(e => { e.textContent = `${NA} と ${NB} `; });
+document.querySelectorAll('.nmA').forEach(e => { e.textContent = NA; });
+document.querySelectorAll('.nmB').forEach(e => { e.textContent = NB; });
 if (!D || !D.player) { document.body.innerHTML = '<p style="padding:20mm;font-size:5mm">プレイ画面の「印刷用を開く」から開いてください。</p>'; throw new Error('no data'); }
 const me = Y.outcome(D.player), WS0 = [D.player, ...D.others].map(w => Y.outcome(w));
 const PN = me.no, DN = w => w.no === PN ? 7 : w.no === 7 ? PN : w.no;
@@ -184,7 +189,7 @@ const mo = p => '約' + (Math.round(Y.payment(p, Y.RATE.variable) * 100) * 100).
 $('title').textContent = R.title || '';
 $('myno').textContent = '07';
 $('cvTitle').textContent = R.title || '';
-const wcq = new URLSearchParams({ roof: { gable: '切妻', hip: '切妻', mane: '片流れ', cube: '陸屋根', flat: '陸屋根' }[D.player.spec.roof] || '陸屋根', finish: D.player.finish.wall === 'galva' ? 'ガルバリウム' : '塗り壁', time: me.warmth.level >= 3 ? '夕方' : '昼', season: '春', carport: '2', seed: String(me.no) });
+const wcq = new URLSearchParams({ roof: { gable: '切妻', hip: '切妻', mane: '片流れ', cube: '陸屋根', flat: '陸屋根' }[D.player.spec.roof] || '陸屋根', finish: D.player.finish.wall === 'galva' ? 'ガルバリウム' : '塗り壁', time: me.warmth.level >= 3 ? '夕方' : '昼', season: '春', carport: '2', seed: String(me.no), wall: ((W0 => (W0.colors[D.player.finish.color || 0] || W0.colors[0])[1])(Y.FINISH.wall.find(x => x.id === D.player.finish.wall) || Y.FINISH.wall[0])) });
 $('wc').src = '/watercolor.html?' + wcq;
 // 1 理想：ヒアリングで聞き取れた付箋（かず＝橙、ゆう＝空色）と、選んだ仕上げの色
 const heard = (D.heard || []).slice(0, 10);
@@ -192,13 +197,13 @@ $('chips').innerHTML = heard.length ? heard.map(h => `<span class="chip ${h.who 
 const f = D.player.finish, wall = Y.FINISH.wall.find(x => x.id === f.wall) || Y.FINISH.wall[0], fl = Y.FINISH.floor.find(x => x.id === f.floor) || Y.FINISH.floor[0];
 $('sw').innerHTML = [[wall.colors[f.color || 0][1], wall.label.replace('（標準）', '')], [fl.sw, fl.label.replace('（標準）', '')], ['#9BD27A', '庭の緑'], ['#CFEBFA', '南の光']].map(([c, l]) => `<div><i style="background:${c}"></i><span>${esc(l)}</span></div>`).join('');
 const nk = heard.filter(h => h.who === 'かず').length, ny = heard.filter(h => h.who === 'ゆう').length;
-$('tags').textContent = `要望の付箋は、かず${nk}枚・ゆう${ny}枚。`;
+$('tags').textContent = nk + ny ? `要望の付箋は、${NA}${nk}枚・${NB}${ny}枚。` : heard.length ? `要望の付箋は、ふたりで${heard.length}枚。` : '';
 // 2 バランス：分岐点の直前に話していた人。自分の言葉で答えた分岐点は「ふたり」
 const who = []; let last = 'g';
 for (const m of D.chat || []) { if (m.who === 'kazu') last = 'k'; if (m.who === 'yuu') last = 'y'; if (m.who === 'sys' && /分岐点：/.test(m.text)) who.push(last); }
 D.player.labels.forEach((_, i) => { if (D.player.third === `D${i + 1}`) who[i] = 'g'; if (!who[i]) who[i] = 'g'; });
 const cnt = { k: 0, y: 0, g: 0 }; who.slice(0, 4).forEach(w => cnt[w]++);
-$('bal').innerHTML = [['k', '#FDE3CC', 'かず'], ['y', '#D6ECF8', 'ゆう'], ['g', '#FBEBB0', 'ふたり']].map(([k, c, l]) => cnt[k] ? `<div style="width:${cnt[k] / 4 * 100}%;background:${c}">${l} ${cnt[k]}</div>` : '').join('');
+$('bal').innerHTML = [['k', '#FDE3CC', NA], ['y', '#D6ECF8', NB], ['g', '#FBEBB0', 'ふたり']].map(([k, c, l]) => cnt[k] ? `<div style="width:${cnt[k] / 4 * 100}%;background:${c}">${l} ${cnt[k]}</div>` : '').join('');
 // 3 選んだこと（エンジン）
 $('decs').innerHTML = D.player.labels.map((l, i) => `<div class="dec"><span class="q">${Y.DECISIONS[i].q}</span><b class="${{ k: 'sq', y: 'ci', g: 'di' }[who[i]]}">${esc(l)}</b></div>`).join('');
 $('nums').innerHTML = `<tr><th></th><th>07　わが家</th></tr><tr><td>土地と建物の総額</td><td>${man(me.total)}万円</td></tr><tr><td>借入</td><td>${man(me.principal)}万円</td></tr><tr><td>月々の返済（変動・35年）</td><td>${mo(me.principal)}</td></tr><tr><td>冬の朝の暖かさ</td><td>${me.warmth.label}</td></tr><tr><td>家計のゆとり</td><td>${me.slack.label}</td></tr>`;

@@ -532,14 +532,20 @@ export const SCENES = {
     const tab = s.rtab || 'home';
     const tabs = [['home', 'わが家'], ['worlds', '選ばれなかった世界線'], ['honne', 'それぞれの事情と見積の透視']].map(([k, l]) => `<button class="tab" data-act="rtab" data-k="${k}" aria-pressed="${tab === k}">${l}</button>`).join('');
     let body = '';
-    if (tab === 'home') body = `<div class="rep"><div class="box"><div style="font-size:18px;color:var(--ink2)">わが家の、ちょうどいいバランス</div><div class="h2" style="font-size:40px">${esc(r.title)}</div>
-      <div style="display:flex;gap:20px;align-items:center">${radarSVG(s, 300)}<div><h3 style="margin-top:0">悩んだら、これを優先する</h3><ol>${r.balance.map(x => `<li>${esc(x)}</li>`).join('')}</ol></div></div>
-      <h3>分岐点で、守ろうとしたもの</h3><ul>${r.memories.map((x, i) => `<li><b>${Y.FORKS[i] || ''}</b>　${esc(x)}</li>`).join('')}</ul></div>
-      <div class="box"><h3>本物の打ち合わせで、先に伝えておきたいこと</h3><ol>${r.tellFirst.map(x => `<li>${esc(x)}</li>`).join('')}</ol>
-      ${keptHTML(s)}
-      ${r.couple ? `<h3>ふたりの傾向</h3><p class="lead" style="margin-bottom:8px">${esc(r.couple)}</p>` : ''}
-      <h3>1年後のあなたの家</h3><dl class="facts" style="font-size:19px"><dt>総額</dt><dd>${man(o.total)}万円</dd><dt>借入</dt><dd>${man(o.principal)}万円</dd><dt>冬の朝</dt><dd>${o.warmth.label}</dd><dt>家計のゆとり</dt><dd>${o.slack.label}</dd></dl>
-      <p class="lead" style="margin-top:16px">${esc(r.closing)}</p></div></div>`;
+    if (tab === 'home') {
+      // 冒頭：水彩のパース（W1の描き方、画像生成は使わない）と、タイトルの一言（受け入れ基準6）
+      const w = s.player, wcq = new URLSearchParams({ roof: { gable: '切妻', hip: '切妻', mane: '片流れ', cube: '陸屋根', flat: '陸屋根' }[w.spec.roof] || '陸屋根', finish: w.finish.wall === 'galva' ? 'ガルバリウム' : '塗り壁', time: o.warmth.level >= 3 ? '夕方' : '昼', season: '春', carport: '2', seed: String(YOU), wall: P.finOf(w).wall });
+      body = `<div class="rep rep2">
+        <div class="rp-hero"><div class="rp-wc"><iframe src="/watercolor.html?${wcq}" title="わが家の水彩" tabindex="-1"></iframe></div>
+          <div class="rp-title"><div class="k">わが家の、ちょうどいいバランス</div><h2>${esc(r.title)}</h2><p class="lead">${esc(r.closing)}</p>
+            <div class="rp-bal"><div class="k">悩んだら、これを優先する</div>${r.balance.slice(0, 3).map((x, i) => `<div class="rk"><span class="no">${i + 1}</span><b>${esc(x)}</b></div>`).join('')}</div></div></div>
+        <div class="rp-row">
+          <section class="box"><h3>分岐点で、守ろうとしたもの</h3><div class="rp-radar">${radarSVG(s, 230)}</div><ul class="mem">${r.memories.map((x, i) => `<li><b>${Y.FORKS[i] || ''}</b>${esc(x)}</li>`).join('')}</ul></section>
+          <section class="box"><h3>本物の打ち合わせで、先に伝えておきたいこと</h3><ol>${r.tellFirst.map(x => `<li>${esc(x)}</li>`).join('')}</ol>${keptHTML(s)}</section>
+          <section class="box"><h3>1年後のあなたの家</h3><dl class="facts rp-facts"><dt>総額</dt><dd>${man(o.total)}万円</dd><dt>借入</dt><dd>${man(o.principal)}万円</dd><dt>月々の返済</dt><dd>約${Y.payment(o.principal, Y.RATE.variable).toFixed(1)}万円</dd><dt>冬の朝</dt><dd>${o.warmth.label}</dd><dt>家計のゆとり</dt><dd>${o.slack.label}</dd></dl>
+            ${r.couple ? `<h3>ふたりの傾向</h3><p class="lead">${esc(r.couple)}</p>` : ''}<p class="note" style="margin-top:14px">印刷用（PDF）は、右上のボタンから。</p></section>
+        </div></div>`;
+    }
     if (tab === 'worlds') { const ws = [s.player, ...s.others].map(w => ({ w, o: Y.outcome(w), n: dno(s, w) })).sort((a, b) => a.n - b.n);
       const meO = Y.outcome(s.player);
       body = `<div class="rep1"><div class="treehint"><button class="btn" data-act="toTree">世界樹で見る</button><span class="note">分岐点ごとの選択をたどって、16の家を見られます</span></div><table class="wtab">${ws.map(({ o: oo, n }) => `<tr class="${n === YOU ? 'me' : ''}"><td>${pad(n)}</td><td>${P.coTag(oo.company, 20)}</td><td><b>${esc(Y.worldName(oo))}</b><span>${n === YOU ? 'あなたが選んだ世界' : '教訓：' + esc(Y.worldLesson(oo, meO))}</span></td><td>${oo.warmth.label}</td><td>${oo.slack.label}</td><td>${man(oo.total)}万円</td></tr>`).join('')}</table></div>`; }
@@ -775,7 +781,9 @@ function keptHTML(s) {
   const mine = Y.checkWishes(s.player, s.wishes), o = Y.outcome(s.player);
   const done = [...mine.filter(c => c.ok).map(c => c.label), o.warmth.level >= 2 ? `冬の朝は「${o.warmth.label}」` : '', s.player.spec.exterior === 'full' ? '入居の日から外構が整った' : ''].filter(Boolean);
   const ng = unkept(s);
-  return `<h3>実現できたこと</h3>${done.length ? `<ul>${done.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : '<p class="note">（記録された希望の条件がありません）</p>'}
+  // 図面に入った電気の要望（契約で決めたもの・あとから足したもの）も、実現できたことに数える
+  done.push(...Y.ELECTRIC.options.filter(x => s.player.electric.includes(x.id)).map(x => x.label));
+  return `<h3>実現できたこと</h3>${done.length ? `<ul>${done.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : `<p class="note">${mine.length ? '（希望の条件は、この道では届かなかった）' : '（記録された希望の条件がありません）'}</p>`}
     ${ng.length ? `<h3>守れなかった希望</h3><ul>${ng.map(c => `<li><b>${esc(c.label)}</b>　${esc(c.fix)}</li>`).join('')}</ul>` : ''}`;
 }
 

@@ -230,7 +230,7 @@ export const ACTIONS = {
   toHonne() { goto('honne', 11); },
   async toReport() { goto('report', 11); if (!S.report || S.report.failed) await reportCall(); },
   retryReport() { S.report = null; render(); reportCall(); },
-  print() { try { localStorage.setItem('yuku-report', JSON.stringify({ report: S.report, player: S.player, others: S.others, heard: S.heard, missed: S.missed, chat: S.chat, staff16: S.staff16, savedId: S.savedId })); } catch { } open('/report.html', '_blank'); },
+  print() { try { localStorage.setItem('yuku-report', JSON.stringify({ report: S.report, player: S.player, others: S.others, heard: S.heard, missed: S.missed, chat: S.chat, staff16: S.staff16, savedId: S.savedId, names: S.names, mode: S.mode })); } catch { } open('/report.html', '_blank'); },
   restart() { location.href = location.pathname; },
   openPop(d) { emit('pop', { pop: d.pop }); },
   closePop() { emit('pop', { pop: null }); },
