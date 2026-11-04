@@ -156,6 +156,9 @@ function build(st){
     }else if(b.top&&st.roof==='切妻'){const zr=b.z0/2,hr=b.h1+1.9;
       sideTop=quad([b.x1,b.h0,0],[b.x1,b.h0,b.z0],[b.x1,b.h1,b.z0],[b.x1,hr,zr],[b.x1,b.h1,0]);
       roofPolys=[quad([b.x0-0.4,b.h1-0.05,0.55],[b.x1+0.4,b.h1-0.05,0.55],[b.x1+0.4,hr+0.1,zr],[b.x0-0.4,hr+0.1,zr])];
+    }else if(b.top&&st.roof==='寄棟'){const zr=b.z0/2,hr=b.h1+1.6,ins=Math.min(zr,(b.x1-b.x0)/2-0.2);
+      roofPolys=[quad([b.x0-0.4,b.h1-0.05,0.55],[b.x1+0.4,b.h1-0.05,0.55],[b.x1-ins,hr,zr],[b.x0+ins,hr,zr]),
+                 [P(b.x1+0.4,b.h1-0.05,0.55),P(b.x1+0.4,b.h1-0.05,b.z0-0.3),P(b.x1-ins,hr,zr)]];
     }else if(b.top){// 陸屋根：薄い立ち上がりだけ（中央には何も置かない）
       roofPolys=[quad([b.x0-0.05,b.h1,0.05],[b.x1+0.05,b.h1,0.05],[b.x1+0.05,b.h1+0.22,0.05],[b.x0-0.05,b.h1+0.22,0.05]),
                  quad([b.x1+0.05,b.h1,0.05],[b.x1+0.05,b.h1,b.z0],[b.x1+0.05,b.h1+0.22,b.z0],[b.x1+0.05,b.h1+0.22,0.05])];

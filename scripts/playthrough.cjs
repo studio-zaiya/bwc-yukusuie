@@ -68,7 +68,7 @@ const OUT = process.env.OUT || 'out/shots';
     await click('[data-act=toReport]'); await p.waitForSelector('.rep', { timeout: 90000 }); await p.waitForTimeout(800); await shot('report');
     await click('[data-act=rtab][data-k=worlds]'); await shot('report-worlds'); await click('[data-act=rtab][data-k=honne]'); await shot('report-honne'); await click('[data-act=rtab][data-k=home]');
     const [pr] = await Promise.all([ctx.waitForEvent('page'), p.click('[data-act=print]')]);
-    await pr.waitForFunction(() => window.READY, null, { timeout: 10000 }); await pr.pdf({ path: `${OUT}/report.pdf`, format: 'A4', printBackground: true });
+    await pr.waitForFunction(() => window.READY, null, { timeout: 10000 }); await pr.pdf({ path: `${OUT}/report.pdf`, format: 'A4', printBackground: true }); { const pgs = await pr.$$('.page'); for (let i = 0; i < pgs.length; i++) await pgs[i].screenshot({ path: `${OUT}/report-p${i + 1}.png` }); }
     await pr.close(); await click('[data-act=toEnd]'); await shot('end');
     const st = await p.evaluate(() => ({ others: YUKU.state.others.length, labels: YUKU.state.player.labels, memory: YUKU.state.player.memory, adds: YUKU.state.player.adds, saved: YUKU.state.savedId, events: YUKU.LOG.length }));
     console.log(JSON.stringify(st));

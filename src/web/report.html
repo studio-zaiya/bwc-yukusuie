@@ -4,224 +4,200 @@
 <meta charset="utf-8">
 <title>ゆくすいえ　1年後のレポート（印刷用）</title>
 <style>
+/* レポート v2（docs/REPORT_v2.md）：A4縦・4ページ。余白18mm、本文9.5pt以上、本文は墨、金額は万円 */
 @page{size:A4;margin:0}
-:root{--paper:#FFFAF0;--sheet:#FFFFFF;--ink:#1E2B36;--ink2:#6B6358;--line:rgba(30,43,54,.16);
-  --kazu:#E8701F;--kazuBg:#FDE3CC;--yuu:#1C8DCC;--yuuBg:#D6ECF8;--gold:#F2C230;--goldT:#8C6A00;--grass:#9BD27A;--ground:#F3E7CF;--sky:#CFEBFA;
+:root{--paper:#FFFAF0;--sheet:#FFFFFF;--ink:#1E2B36;--ink2:#4E5660;--line:rgba(30,43,54,.18);
+  --kazu:#E8701F;--yuu:#1C8DCC;--gold:#F2C230;--goldT:#8C6A00;
   --f:"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic",sans-serif;--fr:"Hiragino Maru Gothic ProN","Zen Maru Gothic","Hiragino Sans",sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
 html{background:#DDD5C6}
-body{font-family:var(--f);color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.page{width:210mm;height:297mm;margin:8mm auto;background:var(--paper);padding:14mm 15mm 12mm;position:relative;overflow:hidden}
+body{font-family:var(--f);color:var(--ink);font-size:9.5pt;line-height:1.6;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-variant-numeric:tabular-nums}
+.page{width:210mm;height:297mm;margin:8mm auto;background:var(--paper);padding:18mm 18mm 16mm;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:4mm}
 @media print{html{background:none}.page{margin:0;break-after:page}.page:last-of-type{break-after:auto}}
-.top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:.6mm solid var(--ink);padding-bottom:2.5mm}
-.logo{font-family:var(--fr);font-weight:900;font-size:6.2mm;letter-spacing:.05em}.logo small{display:block;font-family:var(--f);font-weight:400;font-size:2.4mm;letter-spacing:.12em;margin-top:.6mm}
-.meta{font-size:2.7mm;color:var(--ink2);text-align:right;line-height:1.6}
-.pno{position:absolute;right:15mm;bottom:6mm;font-size:2.5mm;color:var(--ink2)}
-h1{font-family:var(--fr);font-weight:900;font-size:9.2mm;line-height:1.25;margin:5mm 0 1.5mm}
-h2{font-size:4mm;font-weight:700;margin:0 0 2.2mm;display:flex;align-items:center;gap:2mm}
-h2 .n{display:inline-grid;place-items:center;width:5.2mm;height:5.2mm;border-radius:50%;background:var(--ink);color:var(--paper);font-size:2.8mm}
-.lead{font-size:3.2mm;color:var(--ink2);line-height:1.75}
-.box{background:var(--sheet);border:.3mm solid var(--line);border-radius:2.4mm;padding:3.6mm 4.2mm}
+.top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:.5mm solid var(--ink);padding-bottom:2mm}
+.logo{font-family:var(--fr);font-weight:900;font-size:14pt;letter-spacing:.05em}
+.meta{font-size:8pt;color:var(--ink2);text-align:right;line-height:1.5}
+h2{font-family:var(--fr);font-size:14pt;font-weight:900;margin:0 0 1.6mm}
+h3{font-size:10.5pt;font-weight:700;margin:0 0 1.2mm}
+.sub{font-size:8pt;color:var(--ink2)}
+.box{background:var(--sheet);border:.3mm solid var(--line);border-radius:2.4mm;padding:3.4mm 4mm}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
-.mt{margin-top:4.2mm}
-p,li{font-size:3.15mm;line-height:1.65}
-ul{list-style:none}
-.sq::before{content:"■";color:var(--kazu);margin-right:1.3mm}.ci::before{content:"●";color:var(--yuu);margin-right:1.3mm}.di::before{content:"◆";color:var(--gold);margin-right:1.3mm;-webkit-text-stroke:.15mm var(--goldT)}
-.chips{display:flex;flex-wrap:wrap;gap:1.6mm;margin-top:1.5mm}
-.chip{font-size:2.9mm;padding:.6mm 2.4mm;border-radius:99mm;border:.3mm solid var(--line);background:var(--sheet)}
-.chip.k{background:var(--kazuBg);border-color:transparent}.chip.y{background:var(--yuuBg);border-color:transparent}
-.sw{display:flex;gap:1.6mm;margin-top:2mm}.sw i{display:block;width:10mm;height:7mm;border-radius:1mm;border:.25mm solid var(--line)}
-.sw span{font-size:2.5mm;color:var(--ink2);display:block;text-align:center;margin-top:.6mm}
-table{width:100%;border-collapse:collapse;font-size:3.05mm}
-td,th{padding:1.3mm 1.2mm;border-bottom:.25mm solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
-td:first-child,th:first-child{text-align:left;color:var(--ink2);font-weight:400}
-th{font-weight:700}
-.dec{display:grid;grid-template-columns:24mm 1fr;gap:3mm;padding:2mm 0;border-bottom:.25mm dashed var(--line)}
-.dec:last-child{border-bottom:none}
-.dec .q{font-size:2.9mm;color:var(--ink2)}
-.dec b{font-size:3.2mm}
-.rank{display:grid;grid-template-columns:9mm 1fr;gap:2.5mm;align-items:start;padding:2.2mm 0;border-bottom:.25mm dashed var(--line)}
-.rank:last-child{border-bottom:none}
-.rank .no{font-family:var(--fr);font-weight:900;font-size:7mm;line-height:1}
-.rank b{font-size:3.4mm;display:block}
-.rank span{font-size:2.9mm;color:var(--ink2);line-height:1.6;display:block}
-.ask li{display:grid;grid-template-columns:5mm 1fr;gap:1mm;margin:.9mm 0}
-.ask li::before{content:"";width:3.3mm;height:3.3mm;border:.35mm solid var(--ink);border-radius:.6mm;margin-top:.9mm}
-.tr li{padding-left:0;margin:.8mm 0}
-.tag{display:inline-block;font-size:2.5mm;font-weight:700;border:.3mm solid var(--ink);border-radius:.8mm;padding:0 1.2mm;margin-right:1.4mm}
-.wcard{background:var(--sheet);border:.3mm solid var(--line);border-radius:2.4mm;padding:3mm 3.4mm;display:grid;grid-template-columns:22mm 1fr;gap:3mm}
-.wcard .no{font-family:var(--fr);font-weight:900;font-size:8mm;line-height:1}
-.wcard .co{font-size:2.5mm;color:var(--ink2);margin-top:1mm}
-.wcard b{font-size:3.2mm;display:block;margin-bottom:.6mm}
-.wcard p{font-size:2.95mm;color:var(--ink)}
-.wcard .lesson{font-size:2.9mm;color:var(--ink2);margin-top:1mm}
-.mini td{font-size:2.75mm;padding:1mm 1.1mm}
-.mini td:nth-child(2){text-align:left;color:var(--ink)}
-.foot{position:absolute;left:15mm;right:15mm;bottom:10mm;font-size:2.35mm;color:var(--ink2);line-height:1.6;border-top:.25mm solid var(--line);padding-top:2mm}
-.bal{display:flex;height:6mm;border-radius:1mm;overflow:hidden;border:.3mm solid var(--ink);margin:2mm 0 1.4mm}
-.bal div{display:grid;place-items:center;font-size:2.6mm;font-weight:700;color:var(--ink)}
-.replay{display:flex;gap:3mm;align-items:center;margin-top:3mm}
-.replay .code{font-family:Menlo,monospace;font-weight:700;font-size:4.2mm;letter-spacing:.1em;border:.35mm solid var(--ink);border-radius:1.2mm;padding:1mm 2.6mm}
-.cover{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:16mm}
-.cv-logo{height:92mm}
-.cv-main{text-align:center;margin-top:6mm;width:100%}
-.cv-k{font-size:4mm;color:var(--ink2);letter-spacing:.2em}
-.cv-title{font-family:var(--fr);font-weight:900;font-size:10mm;margin:3mm 0 5mm}
-.cv-wc{width:178mm;height:100mm;border:none;display:block;margin:0 auto}
-.cv-meta{font-size:3.4mm;color:var(--ink2);margin-top:4mm}
+ul{list-style:none}li{margin:.6mm 0}
+.sq::before{content:"■";color:var(--kazu);margin-right:1.2mm}.ci::before{content:"●";color:var(--yuu);margin-right:1.2mm}.bo::before{content:"■●";margin-right:1.2mm;background:linear-gradient(90deg,var(--kazu) 50%,var(--yuu) 50%);-webkit-background-clip:text;color:transparent}
+table{width:100%;border-collapse:collapse}
+td,th{padding:1.2mm 1.4mm;border-bottom:.25mm solid var(--line);text-align:left;vertical-align:top}
+th{font-size:8pt;color:var(--ink2);font-weight:700}
+td.n{text-align:right;white-space:nowrap}
+.tag{display:inline-block;font-size:8pt;border:.25mm solid var(--ink);border-radius:99mm;padding:0 1.8mm;margin-right:1.2mm;white-space:nowrap}
+.foot{margin-top:auto;font-size:8pt;color:var(--ink2);line-height:1.5;border-top:.25mm solid var(--line);padding-top:1.6mm;display:flex;justify-content:space-between;gap:6mm}
+/* 表紙 */
+.cover{align-items:center;text-align:center}
+.cv-logo{height:70mm;margin-top:2mm}
+.cv-k{font-size:11pt;color:var(--ink2);letter-spacing:.2em;margin-top:3mm}
+.cv-title{font-family:var(--fr);font-weight:900;font-size:28pt;line-height:1.3;margin:2mm 0 3mm}
+.cv-wc{width:174mm;height:100mm;border:none;display:block}
+.cv-meta{font-size:11pt;margin-top:3mm}.cv-date{font-size:9pt;color:var(--ink2)}
+/* 2ページ目 */
+.p2top{display:grid;grid-template-columns:82mm 1fr;gap:4mm}
+.zone svg{width:100%;height:auto;display:block}
+dl.facts{display:grid;grid-template-columns:auto 1fr;gap:.6mm 3mm;margin-top:2mm}dl.facts dt{color:var(--ink2);font-size:8.5pt}dl.facts dd{font-weight:700}
+.dec{padding:1.3mm 0;border-bottom:.25mm dashed var(--line)}.dec:last-child{border-bottom:none}
+.dec .q{font-size:8pt;color:var(--ink2)}.dec b{display:block}.dec .why{font-size:9pt}
+.money{display:grid;grid-template-columns:repeat(3,1fr);gap:2mm;margin-top:2mm}.money div{border:.25mm solid var(--line);border-radius:1.6mm;padding:1.4mm 2mm;background:#fff}
+.money span{display:block;font-size:8pt;color:var(--ink2)}.money b{font-size:12pt}
+.wtab td.st{white-space:nowrap;font-weight:700}
+.alt{margin-top:1.6mm;font-size:9.5pt;border-left:1mm solid var(--gold);padding-left:2.4mm}
+/* 3ページ目 */
+.cut{border-top:.4mm dashed var(--ink);position:relative;margin-top:-4mm;padding-top:2mm;font-size:8pt;color:var(--ink2)}
+.cut::before{content:"✂";position:absolute;left:-1mm;top:-3.4mm;font-size:11pt;color:var(--ink);background:var(--paper);padding-right:1mm}
+ol.ask{list-style:none;counter-reset:a}ol.ask li{counter-increment:a;padding-left:6mm;position:relative}ol.ask li::before{content:counter(a);position:absolute;left:0;top:.2mm;width:4.2mm;height:4.2mm;border-radius:50%;background:var(--ink);color:var(--paper);font-size:7.5pt;display:grid;place-items:center}
+ul.chk li{padding-left:5.5mm;position:relative}ul.chk li::before{content:"";position:absolute;left:0;top:1.2mm;width:3mm;height:3mm;border:.3mm solid var(--ink);border-radius:.6mm}
+/* 4ページ目 */
+.near{display:grid;grid-template-columns:1fr 1fr;gap:3mm}
+.wc{background:#fff;border:.3mm solid var(--line);border-radius:2.4mm;padding:2.6mm 3mm;display:grid;grid-template-columns:24mm 1fr;gap:2.4mm}
+.wc .no{font-family:var(--fr);font-weight:900;font-size:16pt;line-height:1}
+.wc svg{width:24mm;height:18mm}
+.wc .fk{font-size:8pt;color:var(--ink2)}.wc .dl{font-size:9pt}.wc .ln{font-size:9pt;margin-top:.8mm;border-top:.25mm dashed var(--line);padding-top:.8mm}
+.map{display:grid;grid-template-columns:1fr 48mm;gap:4mm;align-items:center}.map svg{width:100%;height:auto;max-height:100mm}
+.foot span:last-child{white-space:nowrap}
+.catch{text-align:center;font-family:var(--fr);font-weight:900;font-size:14pt;display:flex;align-items:center;justify-content:center;gap:3mm}
+.catch img{height:9mm}
 </style>
 </head>
 <body>
-
-<!-- 1ページ目 -->
-<!-- 表紙：遠目にも何の紙かわかるように、マークとロゴを中央に大きく。タイトルと、わが家の水彩パース -->
-<div class="page cover">
-  <img class="cv-logo" src="/brand/lockup-vertical.svg" alt="ゆくすいえ">
-  <div class="cv-main">
-    <div class="cv-k">わが家の、ちょうどいいバランス</div>
-    <div class="cv-title" id="cvTitle"></div>
-    <iframe class="cv-wc" id="wc" title="わが家の水彩パース"></iframe>
-    <div class="cv-meta"><span class="nmFam"></span>の家づくり　入居から1年後のレポート</div>
-  </div>
-  <div class="foot">本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。実際の家づくりでは、地域・金融機関・住宅会社によって異なります。登場する住宅会社・人物・団体はすべて架空です。</div>
-</div>
-
-<div class="page">
-  <div class="top"><div class="logo">ゆくすいえ<small>YUKUSUIE: 16 unbuilt futures</small></div><div class="meta"><span class="nmFam"></span>の家づくり<br>入居から1年後のレポート</div></div>
-  <h1>わが家の、ちょうどいいバランス<small id="title" style="display:block;font-size:4mm;margin-top:1mm"></small></h1>
-  <p class="lead">16の世界で同時に家を建て、1年が過ぎました。よい家の答えではなく、ふたりが大切にしたいことを書き留めます。<br>このレポートは、本物の打ち合わせに持っていけるように作っています。</p>
-
-  <div class="g2 mt">
-    <div class="box">
-      <h2><span class="n">1</span>わが家の理想</h2>
-      <p>ふたりが最初に伝えたことば、写真、URLから読み取った要素です。</p>
-      <div class="chips" id="chips"></div>
-      <div class="sw" id="sw"></div>
-    </div>
-    <div class="box">
-      <h2><span class="n">2</span>ふたりのバランス</h2>
-      <p>4つの決断を、だれの思いに寄せて決めたか。</p>
-      <div class="bal" id="bal"></div>
-      <p style="font-size:2.8mm;color:var(--ink2)"><span class="sq nmA"></span>　<span class="ci nmB"></span>　<span class="di">ふたりで考えて出した答え</span></p>
-      <p style="margin-top:2mm" id="tags"></p>
-    </div>
-  </div>
-
-  <div class="box mt">
-    <h2><span class="n">3</span>わが家が選んだこと（<span id="myno"></span>の世界）</h2>
-    <div class="g2" style="gap:5mm">
-      <div id="decs"></div>
-      <div>
-        <table id="nums"></table>
-        <p style="font-size:2.7mm;color:var(--ink2);margin-top:2mm">金額・日数はゲーム内の目安です。暖かさは「外気0℃の朝」の簡易な判定です。</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="foot">本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。実際の家づくりでは、地域・金融機関・住宅会社によって異なります。登場する住宅会社・人物・団体はすべて架空です。</div>
-  <div class="pno">2 / 4</div>
-</div>
-
-<!-- 2ページ目 -->
-<div class="page">
-  <div class="top"><div class="logo">ゆくすいえ<small>YUKUSUIE: 16 unbuilt futures</small></div><div class="meta"><span class="nmFam"></span>の家づくり<br>入居から1年後のレポート</div></div>
-
-  <div class="box" style="margin-top:5mm">
-    <h2><span class="n">4</span>悩んだら、何を優先するか</h2>
-    <p style="color:var(--ink2)">4つの決断の理由から、ふたりが守ろうとしたものを順に並べました。</p><div id="rank"></div>
-  </div>
-
-  <div class="g2 mt">
-    <div class="box">
-      <h2><span class="n">5</span>先に伝えておきたいこと</h2>
-      <p style="color:var(--ink2);margin-bottom:1.5mm">担当者に、最初の打ち合わせで渡す要望の要点です。</p>
-      <ul class="ask" id="ask"></ul>
-    </div>
-    <div class="box">
-      <h2><span class="n">6</span>気をつけたいこと</h2>
-      <ul class="tr" id="tr"></ul>
-      <h2 style="margin-top:3mm;font-size:3.4mm">本物の打ち合わせで、聞くこと</h2>
-      <ul class="ask">
-        <li>地盤の調査は、契約の前ですか、後ですか</li>
-        <li>見積の「別途」の項目を、全部教えてください</li>
-        <li>契約のあと、担当の方は替わりますか</li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="foot">本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。実際の家づくりでは、地域・金融機関・住宅会社によって異なります。登場する住宅会社・人物・団体はすべて架空です。</div>
-  <div class="pno">3 / 4</div>
-</div>
-
-<!-- 3ページ目 -->
-<div class="page">
-  <div class="top"><div class="logo">ゆくすいえ<small>YUKUSUIE: 16 unbuilt futures</small></div><div class="meta"><span class="nmFam"></span>の家づくり<br>入居から1年後のレポート</div></div>
-  <h2 style="margin-top:5mm;font-size:4.6mm"><span class="n">7</span>選ばなかった世界線から</h2>
-  <p class="lead" style="margin-bottom:3mm">同じ家族、同じ土地で、決断が違った世界です。どちらがよいかは決めません。</p>
-  <div id="cards" style="display:grid;grid-template-columns:1fr 1fr;gap:3.4mm"></div>
-  <div class="box mt">
-    <h2 style="font-size:3.4mm">16の世界の1年後（ひとこと）</h2>
-    <table class="mini" id="mini"></table>
-  </div>
-
-  <div class="foot">本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。実際の家づくりでは、地域・金融機関・住宅会社によって異なります。登場する住宅会社・人物・団体はすべて架空です。金額・日数はゲーム内の目安です。</div>
-  <div class="pno">4 / 4</div>
-</div>
-
+<div id="root"></div>
+<script src="/lib/iso.js"></script>
 <script type="module">
-// 印刷用のレポート（A4・3ページ）。数字はエンジン、言葉はClaude（決断の記憶から）。データはプレイ画面から localStorage で受け取る
+// 印刷用のレポート v2（A4・4ページ）。数字はエンジン、言葉はClaude（レポートの役割）と、根拠のある記録だけ。データはプレイ画面から localStorage で受け取る
 import * as Y from '/engine/engine.js';
+import * as P from '/parts.js';
+import { zoningSVG } from '/scenes.js';
+import { differsOf } from '/memory.js';
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const $ = id => document.getElementById(id);
-let D = null; try { D = JSON.parse(localStorage.getItem('yuku-report') || 'null'); } catch {}
-// 家族の呼び名は、プレイで入力されたもの（既定は「あなた」「パートナー」）。内部の識別（かず＝1人目、ゆう＝2人目）は画面に出さない
-const NA = (D && D.names && D.names.a) || 'あなた', NB = (D && D.names && D.names.b) || 'パートナー';
-document.querySelectorAll('.nmFam').forEach(e => { e.textContent = `${NA} と ${NB} `; });
-document.querySelectorAll('.nmA').forEach(e => { e.textContent = NA; });
-document.querySelectorAll('.nmB').forEach(e => { e.textContent = NB; });
-if (!D || !D.player) { document.body.innerHTML = '<p style="padding:20mm;font-size:5mm">プレイ画面の「印刷用を開く」から開いてください。</p>'; throw new Error('no data'); }
-const me = Y.outcome(D.player), WS0 = [D.player, ...D.others].map(w => Y.outcome(w));
-const PN = me.no, DN = w => w.no === PN ? 7 : w.no === 7 ? PN : w.no;
-const WS = WS0.sort((a, b) => DN(a) - DN(b));
-const R = D.report || { title: '', balance: [], memories: [], tellFirst: [], closing: '' };
+let D = null; try { D = JSON.parse(localStorage.getItem('yuku-report') || 'null'); } catch { }
+const root = document.getElementById('root');
+if (!D || !D.player) { root.innerHTML = '<p style="padding:20mm;font-size:14pt">プレイ画面の「印刷用（PDF）」から開いてください。</p>'; throw new Error('no data'); }
+const NA = D.names?.a || '夫', NB = D.names?.b || '妻';
 const man = n => Math.round(Number(n)).toLocaleString('ja-JP');
-const mo = p => '約' + (Math.round(Y.payment(p, Y.RATE.variable) * 100) * 100).toLocaleString('ja-JP') + '円';
-$('title').textContent = R.title || '';
-$('myno').textContent = '07';
-$('cvTitle').textContent = R.title || '';
-const wcq = new URLSearchParams({ roof: { gable: '切妻', hip: '切妻', mane: '片流れ', cube: '陸屋根', flat: '陸屋根' }[D.player.spec.roof] || '陸屋根', finish: D.player.finish.wall === 'galva' ? 'ガルバリウム' : '塗り壁', time: me.warmth.level >= 3 ? '夕方' : '昼', season: '春', carport: '2', seed: String(me.no), wall: ((W0 => (W0.colors[D.player.finish.color || 0] || W0.colors[0])[1])(Y.FINISH.wall.find(x => x.id === D.player.finish.wall) || Y.FINISH.wall[0])) });
-$('wc').src = '/watercolor.html?' + wcq;
-// 1 理想：ヒアリングで聞き取れた付箋（かず＝橙、ゆう＝空色）と、選んだ仕上げの色
-const heard = (D.heard || []).slice(0, 10);
-$('chips').innerHTML = heard.length ? heard.map(h => `<span class="chip ${h.who === 'ゆう' ? 'y' : 'k'}">${esc(h.text.slice(0, 16))}</span>`).join('') : '<span class="chip k">（聞き取りの記録なし）</span>';
-const f = D.player.finish, wall = Y.FINISH.wall.find(x => x.id === f.wall) || Y.FINISH.wall[0], fl = Y.FINISH.floor.find(x => x.id === f.floor) || Y.FINISH.floor[0];
-$('sw').innerHTML = [[wall.colors[f.color || 0][1], wall.label.replace('（標準）', '')], [fl.sw, fl.label.replace('（標準）', '')], ['#9BD27A', '庭の緑'], ['#CFEBFA', '南の光']].map(([c, l]) => `<div><i style="background:${c}"></i><span>${esc(l)}</span></div>`).join('');
-const nk = heard.filter(h => h.who === 'かず').length, ny = heard.filter(h => h.who === 'ゆう').length;
-$('tags').textContent = nk + ny ? `要望の付箋は、${NA}${nk}枚・${NB}${ny}枚。` : heard.length ? `要望の付箋は、ふたりで${heard.length}枚。` : '';
-// 2 バランス：分岐点の直前に話していた人。自分の言葉で答えた分岐点は「ふたり」
-const who = []; let last = 'g';
-for (const m of D.chat || []) { if (m.who === 'kazu') last = 'k'; if (m.who === 'yuu') last = 'y'; if (m.who === 'sys' && /分岐点：/.test(m.text)) who.push(last); }
-D.player.labels.forEach((_, i) => { if (D.player.third === `D${i + 1}`) who[i] = 'g'; if (!who[i]) who[i] = 'g'; });
-const cnt = { k: 0, y: 0, g: 0 }; who.slice(0, 4).forEach(w => cnt[w]++);
-$('bal').innerHTML = [['k', '#FDE3CC', NA], ['y', '#D6ECF8', NB], ['g', '#FBEBB0', 'ふたり']].map(([k, c, l]) => cnt[k] ? `<div style="width:${cnt[k] / 4 * 100}%;background:${c}">${l} ${cnt[k]}</div>` : '').join('');
-// 3 選んだこと（エンジン）
-$('decs').innerHTML = D.player.labels.map((l, i) => `<div class="dec"><span class="q">${Y.DECISIONS[i].q}</span><b class="${{ k: 'sq', y: 'ci', g: 'di' }[who[i]]}">${esc(l)}</b></div>`).join('');
-$('nums').innerHTML = `<tr><th></th><th>07　わが家</th></tr><tr><td>土地と建物の総額</td><td>${man(me.total)}万円</td></tr><tr><td>借入</td><td>${man(me.principal)}万円</td></tr><tr><td>月々の返済（変動・35年）</td><td>${mo(me.principal)}</td></tr><tr><td>冬の朝の暖かさ</td><td>${me.warmth.label}</td></tr><tr><td>家計のゆとり</td><td>${me.slack.label}</td></tr>`;
-// 4 悩んだら（Claude）
-$('rank').innerHTML = (R.balance || []).map((b, i) => `<div class="rank"><span class="no">${i + 1}</span><div><b>${esc(b)}</b><span>${esc(R.memories?.[i] || '')}</span></div></div>`).join('');
-// 5 先に伝えておきたいこと（Claude）＋聞き漏れ
-$('ask').innerHTML = [...(R.tellFirst || []), ...(D.missed || []).map(m => m.said)].slice(0, 7).map(t => `<li>${esc(t)}</li>`).join('');
-// 6 気をつけたいこと：自分の世界で起きたこと／ほかの世界で起きて、自分の世界では避けたこと（エンジン）
-const mine = new Set(me.events), other = [...new Set(WS.filter(w => w.no !== me.no).flatMap(w => w.events))].filter(e => !mine.has(e));
-const GOOD = /居場所|育って|あたたか|暖か/;
-$('tr').innerHTML = [...me.events.map(e => `<li><span class="tag">${GOOD.test(e) ? 'よかった' : '起きた'}</span>${esc(e)}</li>`), ...other.slice(0, 4).map(e => `<li><span class="tag">避けた</span>${esc(e)}</li>`)].join('') || '<li>大きな出来事はなかった</li>';
-// 7 選ばなかった世界線：各分岐点で、もう一方を選んだ世界（ほかは同じ）
-const sib = i => WS.find(w => w.bits.every((b, k) => k === i ? b !== me.bits[k] : b === me.bits[k]));
+const man1 = n => (Math.round(Number(n) * 10) / 10).toLocaleString('ja-JP', { maximumFractionDigits: 1 });
+const sgn = n => (n > 0 ? '+' : n < 0 ? '−' : '±') + man(Math.abs(n));
+const R = D.report || { title: '', balance: [], memories: [], tellFirst: [], closing: '' };
+const me = Y.outcome(D.player), all = [D.player, ...(D.others || [])].map(w => ({ w, o: Y.outcome(w) }));
+// 表示の番号：あなたの世界はいつも07（画面と同じ並べ替え）
+const PN = me.no, DN = o => o.no === PN ? 7 : o.no === 7 ? PN : o.no;
+const pad = n => String(n).padStart(2, '0');
+const monthly = o => Y.payment(o.principal, Y.RATE.variable);
+const fam = `${esc(NA)} と ${esc(NB)}`;
+const date = new Date(D.date || Date.now()); const ds = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+const head = `<div class="top"><div class="logo">ゆくすいえ</div><div class="meta">${fam} の家づくり<br>入居から1年後のレポート</div></div>`;
+const NOTICE = '本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。実際の家づくりでは、地域・金融機関・住宅会社によって異なります。登場する住宅会社・人物・団体はすべて架空です。';
+const foot = n => `<div class="foot"><span>${NOTICE}</span><span>${n} / 4</span></div>`;
+
+// ---- 1ページ目 表紙：わが家の水彩は、選んだ案の屋根・外壁の色・外構・1年後の庭木から ----
+const w = D.player, f = w.finish || {};
+const wall = Y.FINISH.wall.find(x => x.id === f.wall) || Y.FINISH.wall[0], wallCol = (wall.colors[f.color || 0] || wall.colors[0]);
+const floor = Y.FINISH.floor.find(x => x.id === f.floor) || Y.FINISH.floor[0];
+const ROOF_WC = { gable: '切妻', hip: '寄棟', mane: '片流れ', cube: '陸屋根', flat: '陸屋根' };
+const wcq = new URLSearchParams({ roof: ROOF_WC[w.spec.roof] || '陸屋根', form: w.plan?.shape?.form || '総二階', finish: f.wall === 'galva' ? 'ガルバリウム' : '塗り壁', wall: wallCol[1], time: me.warmth.level >= 3 ? '夕方' : '昼', season: '春', carport: '2', tree: w.spec.exterior === 'full' ? '落葉樹' : 'なし', seed: '7' });
+const p1 = `<div class="page cover"><img class="cv-logo" src="/brand/lockup-vertical.svg" alt="ゆくすいえ">
+  <div class="cv-k">わが家の、ちょうどいいバランス</div><div class="cv-title">${esc(R.title || 'わが家の1年後')}</div>
+  <iframe class="cv-wc" id="wc" src="/watercolor.html?${wcq}" title="わが家の水彩"></iframe>
+  <div class="cv-meta">${fam} の家づくり　入居から1年後のレポート</div><div class="cv-date">${ds}に遊んだ記録から</div>
+  <div class="foot" style="width:100%;text-align:left"><span>${NOTICE}</span><span>1 / 4</span></div></div>`;
+
+// ---- 2ページ目 わが家の答え ----
+const zone = w.plan ? zoningSVG(w.plan, { stack: true }) : '';
+const facts = [['延床', `${w.spec.tsubo}坪`], ['形と屋根', `${w.plan?.shape?.form || '総二階'}・${Y.ROOF_JA[w.spec.roof] || ''}`], ['外壁', `${wall.label.replace('（標準）', '')}（${wallCol[0]}）`], ['床', floor.label.replace('（標準）', '')], ['外構', w.spec.exterior === 'full' ? '入居の時に、外まわりまで整えた' : '最小限（あとから少しずつ）']];
+// 守ろうとしたもの：根拠（自由回答・アンケート・選んだ札）のあるものだけ。作り話の理由は書かない
+const sib = i => all.find(x => x.o.bits.length === me.bits.length && x.o.bits.every((b, k) => k === i ? b !== me.bits[k] : b === me.bits[k]))?.o;
+const warmTop = D.memory?.limits?.warmPriority === 'top'; let warmUsed = false;
+const protectedOf = i => {
+  const memo = (D.player.memory || []).find(m => m.decisionId === `D${i + 1}`);
+  if (memo?.reason) return { t: memo.reason, by: '自由回答' };
+  const o2 = sib(i); if (!o2) return { t: '—', by: '選んだ札' };
+  if (warmTop && !warmUsed && me.warmth.level > o2.warmth.level) { warmUsed = true; return { t: '冬の暖かさ（いちばん大事と答えた）', by: 'アンケート' }; }
+  if (me.choiceTotal < o2.choiceTotal - 5) return { t: `総額を抑えること（もう一方より ${man(o2.choiceTotal - me.choiceTotal)}万円低い）`, by: '選んだ札' };
+  if (i === 0) return { t: `${Y.COMPANIES[me.company].kind}の${Y.COMPANIES[me.company].name}と建てること`, by: '選んだ札' };
+  return { t: `${String(me.labels[i]).replace(/(にする|で進める|を受ける)$/, '')}の暮らし（もう一方より ${man(me.choiceTotal - o2.choiceTotal)}万円高い）`, by: '選んだ札' };
+};
+const decs = me.labels.map((l, i) => { const p = protectedOf(i); return `<div class="dec"><span class="q">${Y.FORKS[i]}　${esc(Y.DECISIONS[i].q)}</span><b>${esc(l)}</b><span class="why">守ろうとしたもの：${esc(p.t)}　<span class="tag">${p.by}</span></span></div>`; }).join('');
+// 希望と、1年後の結果（16区画のカードと同じ outcome の値から）
+const rows = [];
+for (const x of D.wishes || []) {
+  if (x.kind === 'totalMax') { const d = me.total - x.value; rows.push({ k: 'total', label: `総額 ${man(x.value)}万円以内`, res: `${man(me.total)}万円`, ok: d <= 0, st: d <= 0 ? '守れた' : `守れなかった（${sgn(d)}万円）`, test: o => o.total <= x.value }); }
+  if (x.kind === 'monthlyMax') { const m = monthly(me), d = m - x.value; rows.push({ k: 'monthly', label: `月々 ${x.value}万円以内`, res: `約${man1(m)}万円`, ok: d <= 0, st: d <= 0 ? '守れた' : `守れなかった（+${man1(d)}万円）`, test: o => monthly(o) <= x.value }); }
+}
+if (D.memory?.limits?.warmPriority) { const top = D.memory.limits.warmPriority === 'top'; const ok = me.warmth.level >= 2; rows.push({ k: 'warm', label: `冬の暖かさ${top ? '（いちばん大事）' : ''}`, res: me.warmth.label, ok, st: ok ? '守れた' : top ? '一部' : 'ふつう', test: o => o.warmth.level >= 2 }); }
+const ldkJo = D.memory?.limits?.ldkJo, ldk = w.plan?.rooms?.find(r => /LDK/.test(r.name));
+if (ldkJo && ldk) { const ok = ldk.size >= ldkJo - 2; rows.push({ k: 'ldk', label: `LDK ${ldkJo}帖くらい`, res: `${ldk.size}帖`, ok, st: ok ? '守れた' : '少し小さい', test: null }); }
+// 守れなかった希望を守れた道：いちばん近い4つの世界のうち、その希望を守れた世界（エンジンが選ぶ）
+const alts = rows.filter(r => !r.ok && r.test).map(r => { const cand = [0, 1, 2, 3].map(i => ({ i, o: sib(i) })).filter(x => x.o && !x.o.unbuilt && r.test(x.o)).sort((a, b) => a.o.total - b.o.total)[0]; return cand ? `「${r.label}」は、${Y.FORKS[cand.i]}で「${cand.o.labels[cand.i]}」を選んでいれば、総額 ${man(cand.o.total)}万円・月々 約${man1(monthly(cand.o))}万円で守れた（${pad(DN(cand.o))}の世界）。` : `「${r.label}」は、分岐点を一つ変えただけでは守れなかった。` });
+const p2 = `<div class="page">${head}
+  <h2>わが家の答え</h2>
+  <div class="p2top">
+    <div class="box"><h3>間取りの骨組みと、家の要点</h3><div class="zone">${zone || '<p class="sub">間取りの記録はありません</p>'}</div><dl class="facts">${facts.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl></div>
+    <div style="display:flex;flex-direction:column;gap:4mm">
+      <div class="box"><h3>4つの分岐点で選んだこと</h3>${decs}</div>
+      <div class="box"><h3>お金（1年後）</h3><div class="money"><div><span>土地と建物の総額</span><b>${man(me.total)}</b>万円</div><div><span>借入</span><b>${man(me.principal)}</b>万円</div><div><span>月々の返済（変動）</span><b>約${man1(monthly(me))}</b>万円</div></div></div>
+    </div>
+  </div>
+  <div class="box"><h3>希望と、1年後の結果</h3>
+    <table class="wtab"><tr><th>希望</th><th>1年後</th><th></th></tr>${rows.map(r => `<tr><td>${esc(r.label)}</td><td class="n">${esc(r.res)}</td><td class="st">${esc(r.st)}</td></tr>`).join('') || '<tr><td colspan="3">希望の上限は、記録されていません</td></tr>'}</table>
+    ${alts.map(t => `<p class="alt">${esc(t)}</p>`).join('')}
+  </div>
+  ${foot(2)}</div>`;
+
+// ---- 3ページ目 担当者に渡す1枚 ----
+const items = (D.memory?.items || []);
+const whoOf = t => { const n = String(t); let best = null, sc = 0; for (const it of items) { const a = it.text.replace(/[、。・\s]/g, ''); let k = 0; for (let i = 0; i < a.length - 1; i++) if (n.includes(a.slice(i, i + 2))) k++; if (k > sc) { sc = k; best = it; } } return sc >= 2 ? best.who : 'both'; };
+const WHOC = { p1: 'sq', p2: 'ci', both: 'bo' };
+const tell = [...new Set((R.tellFirst || []).map(t => String(t).trim()).filter(Boolean))].slice(0, 7);
+const tellList = tell.length ? tell : items.filter(x => x.priority === 'must' || x.who === 'both').slice(0, 6).map(x => x.text);
+const SV = D.survey;
+const splits = SV && D.memory ? differsOf(SV, D.memory).slice(0, 3).map(q => { const lab = ids => [].concat(ids || []).map(id => q.choices.find(c => c.id === id)?.label).filter(Boolean).join('・') || 'こだわらない'; const s0 = D.memory.survey[q.id]; const short = q.text.replace(/[？?].*$/, '').replace(/（.*?）/g, ''); const res = q.id === 'roof' ? `${Y.ROOF_JA[w.spec.roof]}にした` : 'これから相談'; return `<li><b>${esc(short)}</b>：<span class="sq">${esc(lab(s0.p1))}</span>　<span class="ci">${esc(lab(s0.p2))}</span> → ${esc(res)}</li>`; }) : [];
+const ASK = ['地盤の調査は、契約の前ですか、後ですか。改良が要るときの費用の目安は', '見積の「別途」の項目を、全部教えてください', '標準の仕様と、オプションの境目はどこですか', '契約のあと、担当の方は替わりますか', '引渡しの時期の目安と、遅れたときの扱いは'];
+const mine = new Set(me.events), other = [...new Set(all.filter(x => x.o.no !== me.no).flatMap(x => x.o.events))].filter(e => !mine.has(e));
+const care = [...me.events.slice(0, 3).map(e => `<li><span class="tag">この世界で起きた</span>${esc(e)}</li>`), ...other.slice(0, 3).map(e => `<li><span class="tag">別の世界で起きた</span>${esc(e)}</li>`)].join('');
+const p3 = `<div class="page">${head}
+  <div class="cut">切り取って、担当者に渡せます</div>
+  <h2>${fam} の家づくり　はじめに伝えたいこと</h2>
+  <p>ゲーム「ゆくすいえ」で、16の世界の家づくりを体験しました。わたしたちが大切にしたいことを、先にお伝えします。<span class="sq">${esc(NA)}</span>　<span class="ci">${esc(NB)}</span>　<span class="bo">ふたり</span></p>
+  <div class="box"><h3>先に伝えておきたいこと</h3><ul>${tellList.map(t => `<li class="${WHOC[whoOf(t)] || 'bo'}">${esc(t)}</li>`).join('')}</ul></div>
+  ${splits.length ? `<div class="box"><h3>ふたりの意見が分かれたこと</h3><ul>${splits.join('')}</ul></div>` : ''}
+  <div class="g2">
+    <div class="box"><h3>打ち合わせで、聞きたいこと</h3><ol class="ask">${ASK.map(t => `<li>${esc(t)}</li>`).join('')}</ol></div>
+    <div class="box"><h3>気をつけたいこと</h3><ul>${care || '<li>大きな出来事はなかった</li>'}</ul></div>
+  </div>
+  <div class="box"><h3>悩んだら、これを優先する</h3><ul class="chk">${(R.balance || []).slice(0, 3).map((b, i) => `<li>${i + 1}．${esc(b)}</li>`).join('')}</ul></div>
+  ${foot(3)}</div>`;
+
+// ---- 4ページ目 選ばなかった世界線から ----
+const short40 = t => { const s = String(t || '').replace(/(この)?[0-9一１]年、?/g, m => m).replace(/(本当に)?(お疲れ|おつかれ)さま(でした)?。?/g, '').replace(/^[0-9一１]年、?$/, '').trim(); if (s.length < 8) return ''; if (s.length <= 40) return s; const cut = s.slice(0, 40); const k = Math.max(cut.lastIndexOf('。'), cut.lastIndexOf('、')); return (k > 20 ? cut.slice(0, k) : cut.slice(0, 39)) + '。'; };
 const line = no => D.staff16?.lines?.find(l => l.no === no)?.line;
-$('cards').innerHTML = [0, 1, 2, 3].map(i => sib(i)).filter(Boolean).map((w, j) => `<div class="wcard"><div><div class="no">${String(DN(w)).padStart(2, '0')}</div><div class="co">${Y.COMPANIES[w.company].name}<br>総額 ${man(w.total)}万円<br>冬の朝 ${w.warmth.label}</div></div><div><b>${esc(Y.worldName(w))}</b><span style="display:block;font-size:2.7mm;color:var(--ink2)">${Y.FORKS[j]}で「${esc(w.labels[j])}」を選んだ世界</span><p>${esc((w.events[0] || '大きな出来事はなかった'))}。家計のゆとりは「${w.slack.label}」。</p>${line(w.no) ? `<div class="lesson">担当者のひとこと：${esc(line(w.no))}</div>` : ''}</div></div>`).join('');
-const NM = no => { const o = WS.find(w => w.no === no); return o ? { name: Y.worldName(o), lesson: Y.worldLesson(o, me) } : null; };
-$('mini').innerHTML = WS.map(w => `<tr><td>${String(DN(w)).padStart(2, '0')}${w.no === me.no ? '　わが家' : ''}</td><td><b>${esc(NM(w.no)?.name || Y.COMPANIES[w.company].name)}</b>${NM(w.no)?.lesson ? `　この世界線での気づき：${esc(NM(w.no).lesson.replace(/^教訓：/, ''))}` : ''}</td><td style="white-space:nowrap">${w.warmth.label}</td><td style="white-space:nowrap">${man(w.total)}万円</td></tr>`).join('');
-$('wc').addEventListener('load', () => { const t0 = Date.now(); const iv = setInterval(() => { try { if ($('wc').contentWindow.READY || Date.now() - t0 > 8000) { clearInterval(iv); window.READY = true; } } catch { clearInterval(iv); window.READY = true; } }, 200); });
+const near = [0, 1, 2, 3].map(i => ({ i, o: sib(i) })).filter(x => x.o).map(({ i, o }) => {
+  const x = all.find(a => a.o.no === o.no); const th = P.thumb({ w: { ...x.w, no: DN(o) }, stage: o.unbuilt ? 0 : 4, ghost: 0 });
+  const dc = o.choiceTotal - me.choiceTotal, de = o.increase - me.increase;
+  const st = line(o.no);
+  return `<div class="wc"><div><div class="no">${pad(DN(o))}</div>${th}</div><div><b>${Y.COMPANIES[o.company].name}　${esc(Y.worldName(o))}</b><div class="fk">${Y.FORKS[i]}だけ違う：「${esc(o.labels[i])}」</div>
+    <div class="dl">${o.unbuilt ? '家は建ちませんでした' : `総額 ${man(o.total)}万円（わが家と ${sgn(o.total - me.total)}万円：選択の差 ${sgn(dc)}／出来事の差 ${sgn(de)}）`}</div>
+    <div class="dl">${esc(Y.worldLesson(o, me))}</div>${st && short40(st) ? `<div class="ln">${P.coTag(o.company, 12)} ${esc(short40(st))}</div>` : ''}</div></div>`;
+}).join('');
+P.setYou(7);
+const WS = all.map(x => x.o).sort((a, b) => DN(a) - DN(b));
+const WM = { 'とても暖かい': '◎', '暖かい': '○', 'ふつう': '△', 'やや寒い': '▽' };
+const list = WS.map(o => { const x = all.find(a => a.o.no === o.no); return { w: { ...x.w, no: DN(o) }, stage: o.unbuilt ? 0 : 4, ghost: 0, note: o.unbuilt ? '建たず' : `${man(o.total)}${WM[o.warmth.label] || ''}` }; });
+const map = P.estate2(list, { notes: true, noteFs: 22 });
+const p4 = `<div class="page">${head}
+  <h2>選ばなかった世界線から</h2>
+  <p>同じ家族、同じ土地で、分岐点を一つだけ違えた4つの世界です。どちらがよいかは決めません。</p>
+  <div class="near">${near}</div>
+  <div class="box"><h3>16の区画の1年後</h3><div class="map">${map}<div><p class="sub">区画の数字：総額（万円）。冬の朝は ◎とても暖かい ○暖かい △ふつう ▽やや寒い。橙の区画が、わが家（07）です。</p><p style="margin-top:2mm">${esc(R.closing || '')}</p></div></div></div>
+  <div class="catch"><img src="/brand/mark.svg" alt="" onerror="this.remove()">16回目の、マイホームへ。</div>
+  ${foot(4)}</div>`;
+
+root.innerHTML = p1 + p2 + p3 + p4;
+const wc = document.getElementById('wc');
+wc.addEventListener('load', () => { const t0 = Date.now(); const iv = setInterval(() => { try { if (wc.contentWindow.READY || Date.now() - t0 > 8000) { clearInterval(iv); window.READY = true; } } catch { clearInterval(iv); window.READY = true; } }, 200); });
 </script>
 </body>
 </html>

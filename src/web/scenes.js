@@ -933,19 +933,22 @@ function keptHTML(s) {
 }
 
 // ゾーニング図：部屋の塊を、階ごとに帯に詰めて描く（大きさは畳の段階に比例。描画はコード）
-export function zoningSVG(plan) {
+export function zoningSVG(plan, { stack = false } = {}) {
   const W = 470, H = 330, gap = 40;
   if (!plan) return `<svg viewBox="0 0 ${W * 2 + gap} ${H + 40}" class="zsvg">${[0, 1].map(f => `<rect x="${f * (W + gap)}" y="30" width="${W}" height="${H}" rx="8" fill="#F4F1EA" stroke="rgba(30,43,54,.15)"/>${[0, 1, 2].map(r => `<rect x="${f * (W + gap) + 14}" y="${50 + r * 100}" width="${W - 28}" height="80" rx="6" fill="#ECE7DD" class="pulse"/>`).join('')}`).join('')}</svg>`;
   // 玄関と階段は、面積の割り増しに入っている分を図にだけ描く（面積は二重に数えない）
   const floors = [1, 2].map(f => [...plan.rooms.filter(r => r.floor === f), ...(f === 1 ? [{ name: '玄関', size: 3, near: [] }, { name: '階段', size: 2, near: [] }] : plan.rooms.some(r => r.floor === 2) ? [{ name: '階段・ホール', size: 3, near: [] }] : [])]);
   const maxA = Math.max(...floors.map(rs => rs.reduce((a, r) => a + r.size, 0)), 1);
   let g = '';
+  // 印刷では1階と2階を縦に並べる（stack）
+  const wrap = (t, fi) => stack && fi ? `<g transform="translate(${-(W + gap)},${H + 50})">${t}</g>` : t;
   floors.forEach((rs, fi) => {
+    let gf = '';
     const x0 = fi * (W + gap), area = rs.reduce((a, r) => a + r.size, 0);
     const fw = W * Math.sqrt(area / maxA), fh = H * Math.sqrt(area / maxA);
-    g += `<text x="${x0}" y="20" font-size="18" font-weight="700" fill="#1E2B36">${fi + 1}階</text>`;
-    if (!rs.length) { g += `<text x="${x0 + 20}" y="80" font-size="16" fill="#6B6358">（二階なし）</text>`; return; }
-    g += `<rect x="${x0}" y="30" width="${fw}" height="${fh}" rx="6" fill="#fff" stroke="#1E2B36" stroke-width="2"/>`;
+    gf += `<text x="${x0}" y="20" font-size="18" font-weight="700" fill="#1E2B36">${fi + 1}階</text>`;
+    if (!rs.length) { gf += `<text x="${x0 + 20}" y="80" font-size="16" fill="#6B6358">（二階なし）</text>`; g += wrap(gf, fi); return; }
+    gf += `<rect x="${x0}" y="30" width="${fw}" height="${fh}" rx="6" fill="#fff" stroke="#1E2B36" stroke-width="2"/>`;
     const rows = Math.max(1, Math.round(Math.sqrt(rs.length / 1.6)));
     const per = Math.ceil(rs.length / rows);
     for (let r = 0; r < rows; r++) {
@@ -954,14 +957,15 @@ export function zoningSVG(plan) {
       const y = 30 + rs.slice(0, r * per).reduce((a, x) => a + x.size, 0) / area * fh;
       let x = x0;
       row.forEach(room => { const w = fw * (room.size / ra); const wet = /浴|洗面|トイレ/.test(room.name), ldk = /LDK|リビング/.test(room.name);
-        g += `<rect x="${x + 2}" y="${y + 2}" width="${w - 4}" height="${rh - 4}" rx="4" fill="${ldk ? '#FDEBDD' : wet ? '#DDEFFA' : '#F4F1EA'}" stroke="rgba(30,43,54,.45)"/>`;
+        gf += `<rect x="${x + 2}" y="${y + 2}" width="${w - 4}" height="${rh - 4}" rx="4" fill="${ldk ? '#FDEBDD' : wet ? '#DDEFFA' : '#F4F1EA'}" stroke="rgba(30,43,54,.45)"/>`;
         // 部屋の名前が枠からはみ出さないよう、長い名前は略称にし、字の大きさを枠の幅と文字数から決める（FLOW_v3 の7）
         const nm = String(room.name).replace('ウォークインクローゼット', 'WIC').replace(/ファミリー(クローゼット|収納)/, '家族収納').replace('洗面・脱衣', '洗面'); const fH = Math.min(20, (w - 8) / Math.max(1, nm.length), rh / 2.4), fV = Math.min(20, w - 8, (rh - 10) / Math.max(1, nm.length));
         if (fV > fH * 1.2 && fV >= 11) { const ch = [...nm], y0 = y + rh / 2 - (ch.length - 1) * fV / 2; // 細長い部屋は縦書き
-          g += `<text text-anchor="middle" font-size="${fV.toFixed(1)}" fill="#1E2B36">${ch.map((c, i) => `<tspan x="${x + w / 2}" y="${(y0 + i * fV + fV / 3).toFixed(1)}">${esc(c)}</tspan>`).join('')}</text>`;
-        } else { const fsz = Math.max(10, fH); g += `<text x="${x + w / 2}" y="${y + rh / 2 + fsz / 3}" text-anchor="middle" font-size="${fsz.toFixed(1)}" fill="#1E2B36">${esc(nm)}</text>`; }
+          gf += `<text text-anchor="middle" font-size="${fV.toFixed(1)}" fill="#1E2B36">${ch.map((c, i) => `<tspan x="${x + w / 2}" y="${(y0 + i * fV + fV / 3).toFixed(1)}">${esc(c)}</tspan>`).join('')}</text>`;
+        } else { const fsz = Math.max(10, fH); gf += `<text x="${x + w / 2}" y="${y + rh / 2 + fsz / 3}" text-anchor="middle" font-size="${fsz.toFixed(1)}" fill="#1E2B36">${esc(nm)}</text>`; }
         x += w; });
     }
+  g += wrap(gf, fi);
   });
-  return `<svg viewBox="0 0 ${W * 2 + gap} ${H + 40}" class="zsvg">${g}</svg>`;
+  return `<svg viewBox="0 0 ${stack ? W : W * 2 + gap} ${stack ? H * 2 + 90 : H + 40}" class="zsvg">${g}</svg>`;
 }
