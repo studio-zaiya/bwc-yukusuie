@@ -465,12 +465,20 @@ export const SCENES = {
       <div class="opts" style="margin-top:auto">${auto ? '<span class="note">工事が進んでいます……</span>' : `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="startBuild">着工する ▶</button>`}</div>${navs(s)}</div></div>${gallery(s)}`;
   },
   // S7：白いフェードで入る引渡し式。動きが止まったら「写真を保存」と「そして1年後……」
+  // S7 引渡し（受け入れ基準5）：着工〜施主検査の早送り → 白いフェード → 切り絵（W4の描き方を、家の状態のJSONから）で、家族と担当者が家の前に立つ
   handover(s) {
-    const m = Y.money(s.player);
-    return `${chrome(s)}<div class="hero tall cer">${ceremonySVG(s)}</div><div class="right tall"><div class="chat">${staffHead(s.player.company, 'smile')}<div class="log" style="padding:22px">
-      <div class="msg"><div class="who">${P.coTag(s.player.company, 18)}${STAFFN(s.player.company)}</div>鍵をお渡しします。おめでとうございます。</div>
-      <dl class="facts" style="font-size:20px;margin-top:12px"><dt>最終の総額</dt><dd>${man(m.total)}万円</dd><dt>うち増工</dt><dd>${man(m.add)}万円</dd><dt>借入</dt><dd>${man(m.loan)}万円</dd><dt>引渡し</dt><dd>${Y.outcome(s.player).days}日目</dd></dl></div></div></div>
-      <button class="photo late" data-act="savePhoto">写真を保存</button><button class="big-btn next1y late" data-act="toSeasons">そして1年後……</button><div class="whitefade"></div>`;
+    const w = s.player, m = Y.money(w), co = w.company, days = Y.scheduleOf(w);
+    const st = encodeURIComponent(JSON.stringify(paperState(s)));
+    return `${chrome(s)}<div class="w4"><iframe id="paper" src="/paper.html?st=${st}" title="引渡しの日の家（切り絵）" tabindex="-1"></iframe>
+        <div class="lab"><span class="no">${pad(YOU)}</span>あなたの家　${P.coTag(co, 26)}${Y.COMPANIES[co].name}</div></div>
+      <div class="w4side"><div class="keys"><h3>引渡しの書類</h3><table>
+        <tr><td>最終の総額</td><td>${man(m.total)}万円</td></tr><tr><td>うち増工</td><td>${man(m.add)}万円</td></tr><tr><td>借入</td><td>${man(m.loan)}万円</td></tr><tr><td>引渡し</td><td>${days[10]}日目</td></tr></table></div>
+        <div class="chat">${staffHead(co, 'smile', '引渡し')}<div class="log" style="justify-content:flex-start">
+          <div class="msg"><div class="who">${P.coTag(co, 18)}${STAFFN(co)}</div>鍵をお渡しします。おめでとうございます。</div>
+          <div class="msg me late"><div class="who"><i class="sq"></i>${esc(NAMES.kazu)}</div>ありがとうございました。</div>
+          <div class="msg late2"><div class="who">${P.coTag(co, 18)}${STAFFN(co)}</div>1年後の点検で、またうかがいます。</div></div>
+          <div class="opts late2"><button class="opt" data-act="savePhoto">写真を保存</button><button class="opt" style="background:var(--ink);color:var(--paper)" data-act="toSeasons">そして1年後……</button></div></div></div>
+      ${gallery(s)}<div class="whitefade"></div>`;
   },
   // 1年のうつろい：空の色と木の葉が、夏→秋→冬→春と移り変わる（夜は通らない）。最後に「1年後」の札
   seasons(s) {
@@ -670,6 +678,15 @@ export function radarSVG(s, size = 300, others = []) {
   return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${g}</svg>`;
 }
 // 引渡し式：家・担当者・家族・テープ（写真の保存にも同じSVGを使う）
+// 切り絵（paper.html）に渡す家の状態：エンジンの世界から、屋根・外壁の色・外構・家族と担当者
+export function paperState(s, o = {}) {
+  const w = s.player, f = w.finish || {};
+  const wall = Y.FINISH.wall.find(x => x.id === f.wall) || Y.FINISH.wall[0];
+  const col = (wall.colors[f.color || 0] || wall.colors[0])[1];
+  const roof = { flat: 'flat', cube: 'flat', gable: 'gable', hip: 'hip', mane: 'mane' }[w.spec.roof] || 'flat';
+  return { roof, wall: col, roofCol: f.wall === 'galva' ? col : '#4A4F57', galva: f.wall === 'galva', eave: w.spec.roof === 'cube' ? 'none' : 'south', carport: w.spec.carport === false ? 0 : 2,
+    exterior: { full: 'lawn', min: 'gravel', none: 'none' }[w.spec.exterior] || 'gravel', family: 4, staff: o.staff !== false, season: o.season || 'spring', timeOfDay: o.timeOfDay || 'day', cap: false };
+}
 export function ceremonySVG(s, forPhoto = false) {
   const w = s.player;
   const fin = Y.FINISH.wall.find(x => x.id === w.finish.wall) || Y.FINISH.wall[0];

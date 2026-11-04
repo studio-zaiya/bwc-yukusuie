@@ -461,3 +461,15 @@ button.rt-card:active{transform:translateY(1px)}
 .moneyc .v.counting{color:#9A7400}
 .el-right .in{display:flex;gap:10px;align-items:center}.el-right .in textarea{flex:1;min-width:0;font:19px/1.5 var(--f);padding:10px 14px;border:1.5px solid rgba(30,43,54,.35);border-radius:12px;resize:none}
 .el-hd .lg i{border-radius:4px}
+
+/* S7 引渡し：切り絵を主役に大きく、右は書類と鍵の受け渡しだけ（文字のキャッチは入れない） */
+.w4{position:absolute;left:30px;top:124px;width:1300px;height:731px;border-radius:22px;overflow:hidden;background:#F3E7CF;box-shadow:0 10px 30px rgba(30,43,54,.12)}
+.w4 iframe{position:absolute;left:0;top:0;width:1920px;height:1080px;border:0;transform:scale(.677083);transform-origin:0 0;pointer-events:none}
+.w4 .lab{position:absolute;left:24px;top:20px;display:flex;align-items:center;gap:10px;font-size:22px;font-weight:700;background:rgba(255,250,240,.9);border-radius:12px;padding:6px 14px}
+.w4 .no{font-family:var(--fr);font-weight:900;font-size:36px}
+.w4side{position:absolute;left:1356px;top:124px;width:534px;height:731px;display:flex;flex-direction:column;gap:14px}
+.w4side .chat{flex:1;min-height:0;display:flex;flex-direction:column}.w4side .log{flex:1;padding:14px 20px}.w4side .opts{padding:0 20px 16px;display:flex;gap:10px}
+.keys{background:#fff;border:1.5px solid rgba(30,43,54,.2);border-radius:18px;padding:16px 20px}.keys h3{font-size:17px;color:var(--ink2);font-weight:400;margin:0 0 6px}
+.keys table{width:100%;border-collapse:collapse;font-size:20px;font-variant-numeric:tabular-nums}.keys td{padding:6px 2px;border-bottom:1px solid rgba(30,43,54,.08)}.keys td+td{text-align:right;font-weight:700}
+.late2{opacity:0;pointer-events:none;animation:late .6s 5.4s forwards}
+.w4 ~ .galT{top:872px}.w4 ~ .gal{top:898px;height:166px}

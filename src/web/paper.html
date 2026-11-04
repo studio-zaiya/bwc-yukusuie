@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>引渡しの切り絵</title>
+<style>
+html,body{margin:0;height:100%;background:#ece6da;font-family:"Hiragino Maru Gothic ProN","Zen Maru Gothic","Hiragino Sans",sans-serif;color:#2b2620}
+#wrap{position:fixed;inset:0;overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform-origin:center}
+canvas{display:block;width:1920px;height:1080px}
+#bar{position:fixed;left:0;right:0;bottom:0;height:56px;display:flex;align-items:center;gap:12px;padding:0 16px;background:#fbf8f2;border-top:1px solid #e2d9c6;font-size:14px}
+#bar button{font:inherit;font-weight:700;border:1px solid #d9cfbb;background:#fff;border-radius:999px;padding:6px 14px;cursor:pointer;color:#2b2620}
+#bar button[aria-pressed="true"]{background:#2b2620;color:#fff;border-color:#2b2620}
+#bar input[type=range]{flex:1}
+#time{font-variant-numeric:tabular-nums;min-width:90px;text-align:right}
+</style>
+</head>
+<body>
+<!-- 家の状態は、ゲームから ?st=（JSON）で渡される。この値だけを読んで絵を描く（引渡しの切り絵：受け入れ基準5） -->
+<div id="wrap"><div id="stage"><canvas id="c" width="1920" height="1080"></canvas></div></div>
+<script>
+const W=1920,H=1080,DUR=8;window.DUR=DUR;
+const C=document.getElementById('c'),X=C.getContext('2d');
+const qs=new URLSearchParams(location.search);
+const DEF={roof:'flat',wall:'#f6f3ec',roofCol:'#4A4F57',galva:false,accent:'wood',eave:'south',carport:2,tree:'sakura',season:'spring',timeOfDay:'day',family:4,staff:true,exterior:'gravel',cap:false};
+let ST={};try{ST=JSON.parse(qs.get('st')||'{}')}catch(e){}
+const STATE={...DEF,...ST};
+const FONT='"Hiragino Maru Gothic ProN","Zen Maru Gothic","Hiragino Sans",sans-serif';
+
+// ---------- 補助 ----------
+const shade=(hex,k)=>{const n=parseInt(String(hex).replace('#',''),16);const c=[n>>16,n>>8&255,n&255].map(v=>Math.max(0,Math.min(255,Math.round(v*k))));return '#'+c.map(v=>v.toString(16).padStart(2,'0')).join('')};
+const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
+const eo=x=>1-Math.pow(1-clamp(x),3);
+const eio=x=>{x=clamp(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2};
+function back(x){x=clamp(x);const c1=1.25,c3=c1+1;return 1+c3*Math.pow(x-1,3)+c1*Math.pow(x-1,2)}
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+// ---------- 紙の質感（繊維）----------
+const tex=(()=>{const c=document.createElement('canvas');c.width=c.height=512;const g=c.getContext('2d');
+  const r=rng(9);const id=g.createImageData(512,512);
+  for(let i=0;i<id.data.length;i+=4){const v=200+r()*55;id.data[i]=id.data[i+1]=id.data[i+2]=v;id.data[i+3]=255}
+  g.putImageData(id,0,0);
+  g.globalAlpha=.10;g.strokeStyle='#5a4a35';g.lineWidth=1;
+  for(let i=0;i<1400;i++){const x=r()*512,y=r()*512,a=r()*6.28,l=4+r()*18;g.beginPath();g.moveTo(x,y);g.quadraticCurveTo(x+Math.cos(a+.6)*l*.5,y+Math.sin(a+.6)*l*.5,x+Math.cos(a)*l,y+Math.sin(a)*l);g.stroke()}
+  g.globalAlpha=.14;g.strokeStyle='#ffffff';
+  for(let i=0;i<500;i++){const x=r()*512,y=r()*512,a=r()*6.28,l=6+r()*14;g.beginPath();g.moveTo(x,y);g.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);g.stroke()}
+  return X.createPattern(c,'repeat')})();
+
+// 紙1枚を置く：切り口の白 → 色紙 → 繊維 → 落ち影は層の深さで
+function paper(build,color,depth,o={}){
+  X.save();
+  // 落ち影（下の層へ）
+  X.shadowColor=o.shadow||'rgba(70,48,22,0.30)';X.shadowBlur=8+depth*9;X.shadowOffsetX=depth*2;X.shadowOffsetY=3+depth*4;
+  X.beginPath();build();X.fillStyle=o.rim||'#fffdf7';X.fill();
+  X.restore();
+  // 切り口の白（上側に1.6px 見せる）：色紙を少し下げて重ねる
+  X.save();X.translate(0,o.rimW==null?2.2:o.rimW);
+  X.beginPath();build();X.fillStyle=color;X.fill();
+  X.globalCompositeOperation='multiply';X.globalAlpha=o.texA==null?.35:o.texA;X.fillStyle=tex;X.fill();
+  X.restore();
+}
+// 平らな面（窓・格子など、層の中の部品）：影は小さく
+function piece(build,color,o={}){paper(build,color,o.d==null?.25:o.d,o)}
+
+// ---------- 季節と時間 ----------
+function palette(s){
+  const spring={skyT:'#a9dcf2',skyB:'#fbf1df',hillF:'#cfe6b0',hillN:'#a8d38a',lawn:'#8fc66b',lawn2:'#7bb85c',crownA:'#f6b9c9',crownB:'#f29db4',crownC:'#fbd3de',fall:['#f8c6d3','#fbe0e8','#f3a9bd'],shrub:'#5fa85a',shrub2:'#4f9a4e',flower:['#fff3a6','#ffffff','#ffb7c9'],cloud:'#ffffff'};
+  const autumn={skyT:'#9fd0ee',skyB:'#fde9cf',hillF:'#e7c58a',hillN:'#d8a65e',lawn:'#a9bf68',lawn2:'#96ad59',crownA:'#e8763d',crownB:'#f2a046',crownC:'#d95a35',fall:['#e8763d','#f2a046','#d95a35','#f4c25a'],shrub:'#7a9a47',shrub2:'#c9782f',flower:['#f4c25a','#ffffff','#e8763d'],cloud:'#fffaf0'};
+  const p=s.season==='autumn'?autumn:spring;
+  if(s.timeOfDay==='afternoon'){p.skyB='#fde2bd';}
+  return p;
+}
+
+// ---------- 層の登場（飛び出す絵本のように、下辺を軸に起き上がる）----------
+function rise(t,t0,baseY,fn){
+  const p=back((t-t0)/0.85);if(p<=0.001)return;
+  X.save();X.translate(0,baseY);X.scale(1,Math.max(0.001,p));X.translate(0,-baseY);fn(clamp((t-t0)/0.85));X.restore();
+}
+// 視差：奥ほど少なく、手前ほど多く動く
+function par(t,depth){return Math.sin((t-1)*0.35)*depth*10+(t*depth*3)}
+
+// ---------- 描く ----------
+const GY=760; // 地面の線
+let S,P,R;
+function prep(){S=STATE;P=palette(S);R=rng(S.season==='autumn'?71:37);
+  // 前もって乱数で決める（毎フレーム同じ）
+  const r=rng(S.season==='autumn'?5:3);
+  PRE={
+    clouds:[[360,190,1.1],[1460,150,.9],[1040,250,.65]],
+    flowers:Array.from({length:160},()=>[r()*1920,H-150+r()*150,r()]),
+    fall:Array.from({length:46},()=>({x:r()*2000-40,y:-60-r()*700,s:10+r()*12,ph:r()*6.28,sp:60+r()*60,c:Math.floor(r()*9)})),
+    bumps:Array.from({length:40},()=>r())
+  };
+}
+let PRE;
+function render(t){
+  if(!S)prep();
+  // 台紙
+  X.fillStyle='#efe8da';X.fillRect(0,0,W,H);
+
+  // 1 空（最初からある台紙の空）
+  X.save();const g=X.createLinearGradient(0,0,0,GY);g.addColorStop(0,P.skyT);g.addColorStop(1,P.skyB);
+  X.fillStyle=g;X.fillRect(0,0,W,GY+40);X.globalCompositeOperation='multiply';X.globalAlpha=.22;X.fillStyle=tex;X.fillRect(0,0,W,GY+40);X.restore();
+  // 太陽（紙の円）
+  rise(t,.15,330,()=>{const sx=S.season==='autumn'?1540:1600;paper(()=>X.arc(sx,210,74,0,7),S.season==='autumn'?'#ffd98a':'#fff1b8',.6,{texA:.25})});
+  // 雲
+  PRE.clouds.forEach(([cx,cy,k],i)=>rise(t,.3+i*.12,cy+40,()=>{X.save();X.translate(par(t,.4),0);
+    paper(()=>{cloud(cx,cy,k)},P.cloud,.7,{texA:.18,shadow:'rgba(90,110,130,.18)'});X.restore()}));
+
+  // 2 遠い丘
+  rise(t,.45,GY+20,()=>{X.save();X.translate(par(t,.5),0);paper(()=>hill(GY-150,90,0.0021,1.3),P.hillF,1);X.restore()});
+  // 3 隣の家々（遠景のシルエット）
+  rise(t,.7,GY+10,()=>{X.save();X.translate(par(t,.8),0);neighbors();X.restore()});
+  // 4 近い丘
+  rise(t,.9,GY+40,()=>{X.save();X.translate(par(t,1.0),0);paper(()=>hill(GY-55,45,0.0034,2.1),P.hillN,1.2);X.restore()});
+
+  // 5 分譲地の地面
+  rise(t,1.15,H,()=>{X.save();X.translate(par(t,1.4),0);
+    paper(()=>{X.moveTo(-40,GY);for(let x=-40;x<=1960;x+=40)X.lineTo(x,GY+Math.sin(x*.004)*6);X.lineTo(1960,H+40);X.lineTo(-40,H+40);X.closePath()},P.lawn,1.6);
+    // 道（アスファルト）と歩道
+    paper(()=>{X.moveTo(-40,H-90);X.lineTo(1960,H-120);X.lineTo(1960,H+40);X.lineTo(-40,H+40);X.closePath()},'#8f8c86',1.4,{texA:.4});
+    paper(()=>{X.moveTo(-40,H-104);X.lineTo(1960,H-134);X.lineTo(1960,H-118);X.lineTo(-40,H-88);X.closePath()},'#d9d3c6',1.2);
+    X.restore()});
+
+  // 6 外構・カーポート・家（主役の層）
+  const hx=980+par(t,1.8);
+  rise(t,1.6,GY+60,()=>{X.save();X.translate(par(t,1.8),0);exterior();X.restore()});
+  rise(t,1.9,GY+40,()=>{X.save();X.translate(par(t,1.8),0);carport(t);X.restore()});
+  rise(t,2.3,GY+30,(k)=>{X.save();X.translate(par(t,1.8),0);house(t);X.restore()});
+
+  // 7 木
+  rise(t,3.2,GY+60,()=>{X.save();X.translate(par(t,2.4),0);tree(1580,GY+40,1);if(S.tree==='maple')tree(300,GY+70,.8);else tree(260,GY+70,.78);X.restore()});
+  // 8 家族（後ろ姿）と担当者（向き合って、鍵を渡す）
+  rise(t,3.9,GY+190,()=>{X.save();X.translate(par(t,2.8),0);family(t);if(S.staff)staff(t);X.restore()});
+  // 9 手前の植え込み
+  rise(t,4.3,H,()=>{X.save();X.translate(par(t,3.6),0);foreground();X.restore()});
+
+  // 10 舞う花びら・葉
+  if(t>4.9)fallers(t);
+
+  // 11 ひとこと
+  const a=S.cap?eo((t-6.2)/.7):0;
+  if(a>0){X.save();X.globalAlpha=a;const y=980+(1-a)*14;
+    X.translate(1030,y+28);paper(()=>{rr(-260,-46,520,78,10)},'#fffaf0',.5,{texA:.2});
+    X.fillStyle='#2b2620';X.font=`700 40px ${FONT}`;X.textAlign='center';X.textBaseline='middle';X.fillText('16回目の、マイホームへ。',0,-6);X.restore()}
+}
+
+// ---------- 形 ----------
+function rr(x,y,w,h,r){X.moveTo(x+r,y);X.arcTo(x+w,y,x+w,y+h,r);X.arcTo(x+w,y+h,x,y+h,r);X.arcTo(x,y+h,x,y,r);X.arcTo(x,y,x+w,y,r);X.closePath()}
+function cloud(cx,cy,k){const b=[[0,0,60],[55,-22,52],[110,0,58],[-55,8,44],[160,10,40]];
+  b.forEach(([x,y,r],i)=>{X.moveTo(cx+x*k+r*k,cy+y*k);X.arc(cx+x*k,cy+y*k,r*k,0,7)});
+  X.rect(cx-90*k,cy,290*k,46*k)}
+function hill(base,amp,f,ph){X.moveTo(-60,GY+40);for(let x=-60;x<=1980;x+=20){X.lineTo(x,base-Math.sin(x*f+ph)*amp-Math.sin(x*f*2.3+ph*2)*amp*.35)}X.lineTo(1980,GY+40);X.closePath()}
+function neighbors(){
+  const list=[[160,230,160,'#f4f0e6','gable'],[520,180,130,'#e9eef2','flat'],[1290,200,140,'#f1e8dc','shed'],[1700,240,170,'#eaf0e6','gable']];
+  list.forEach(([x,w,h,c,rf])=>{paper(()=>{
+    X.moveTo(x,GY);X.lineTo(x,GY-h);
+    if(rf==='gable'){X.lineTo(x+w/2,GY-h-70);X.lineTo(x+w,GY-h)}else if(rf==='shed'){X.lineTo(x+w,GY-h-40)}else{X.lineTo(x+w,GY-h)}
+    X.lineTo(x+w,GY);X.closePath()},c,.9,{texA:.28});
+    // 窓は淡い紙
+    for(let i=0;i<2;i++)piece(()=>X.rect(x+24+i*(w/2),GY-h+40,w/3-14,30),'#cfdde6',{d:.15,rimW:1.2})
+  });
+}
+function exterior(){
+  if(S.exterior==='none'){paper(()=>{X.moveTo(700,GY+8);X.lineTo(1300,GY+8);X.lineTo(1340,GY+120);X.lineTo(660,GY+120);X.closePath()},'#c9b896',.6,{texA:.5});return}
+  // 玄関までのアプローチ（飛び石）と、砂利または芝
+  if(S.exterior==='gravel'){paper(()=>{X.moveTo(700,GY+8);X.lineTo(1300,GY+8);X.lineTo(1340,GY+120);X.lineTo(660,GY+120);X.closePath()},'#d8d0c0',.7,{texA:.55});
+    // 砂利の粒
+    const r=rng(12);X.save();X.globalAlpha=.35;for(let i=0;i<500;i++){X.fillStyle=r()<.5?'#a89f8f':'#f7f2e8';X.fillRect(680+r()*640,GY+14+r()*100,2,2)}X.restore()}
+  // 飛び石
+  for(let i=0;i<4;i++)piece(()=>{X.ellipse(1250-i*20+i*i*4,GY+40+i*44,38+i*4,13+i*2,0,0,7)},'#e9e4da',{d:.35});
+  // 小さな畑（春）
+  if(S.season==='spring'){paper(()=>rr(1390,GY+50,170,54,8),'#8a6a4a',.5);
+    for(let i=0;i<6;i++)piece(()=>{X.arc(1410+i*27,GY+58,11,0,7)},'#5fae52',{d:.2,rimW:1})}
+}
+function carport(t){
+  const n=S.carport||1,w=n===2?520:300,x0=560-w,y=GY-268;
+  // 土間コンクリート
+  paper(()=>{X.moveTo(x0-30,GY+10);X.lineTo(x0+w+20,GY+10);X.lineTo(x0+w+60,GY+150);X.lineTo(x0-60,GY+150);X.closePath()},'#d7d3cc',.6,{texA:.45});
+  // 柱
+  [x0,x0+w].forEach(px=>piece(()=>X.rect(px-7,y,14,268),'#5c5f63',{d:.5}));
+  if(n===2)piece(()=>X.rect(x0+w/2-7,y,14,268),'#5c5f63',{d:.5});
+  // 屋根（薄い板・ゆるい勾配）
+  paper(()=>{X.moveTo(x0-40,y-6);X.lineTo(x0+w+40,y-22);X.lineTo(x0+w+40,y-6);X.lineTo(x0-40,y+10);X.closePath()},'#7d8186',.9);
+  // 車（紙の切り抜き）
+  for(let i=0;i<n;i++){const cx=x0+40+i*(w/n);car(cx,GY+4,i===0?'#e8f0f5':'#f2c46a')}
+}
+function car(x,y,c){
+  paper(()=>{X.moveTo(x,y-18);X.lineTo(x,y-58);X.quadraticCurveTo(x+6,y-70,x+30,y-72);X.lineTo(x+70,y-110);X.lineTo(x+170,y-110);X.lineTo(x+206,y-72);X.lineTo(x+226,y-68);X.quadraticCurveTo(x+236,y-60,x+236,y-40);X.lineTo(x+236,y-18);X.closePath()},c,.6);
+  piece(()=>{X.moveTo(x+82,y-102);X.lineTo(x+164,y-102);X.lineTo(x+192,y-74);X.lineTo(x+62,y-74);X.closePath()},'#a9c7d8',{d:.15,rimW:1});
+  [x+52,x+186].forEach(wx=>piece(()=>X.arc(wx,y-18,22,0,7),'#3d3b38',{d:.3}));
+}
+
+// 家：正面（南）と東側面を、別々の紙として重ねる
+function house(t){
+  const fx=760,fw=470,base=GY+6, H1=210,H2=420;           // 正面の左端・幅・1階高さ・軒高
+  const sideW=150,skew=62;                                  // 東側面の見えの幅と、奥行きによる上がり
+  const plaster=S.wall;
+  const sideCol=shade(S.wall,.88);
+  const shed=S.roof==='shed'||S.roof==='mane';
+  const topL=base-H2-(shed?70:0), topR=base-H2;            // 片流れは左が高い
+  // 基礎
+  piece(()=>X.rect(fx-6,base-26,fw+sideW+8,30),'#b9b4aa',{d:.6});
+  // 東側面
+  const sT=k=>topR+42*k, sB=k=>base-24-20*k;               // 奥へ行くほど上辺は下がり、下辺は上がる（目の高さは家の中ほど）
+  piece(()=>{X.moveTo(fx+fw,base-2);X.lineTo(fx+fw+sideW,base-2-20);X.lineTo(fx+fw+sideW,sB(1));X.lineTo(fx+fw,base-24);X.closePath()},'#a9a49a',{d:.5});
+  paper(()=>{X.moveTo(fx+fw,base-24);X.lineTo(fx+fw,topR);X.lineTo(fx+fw+sideW,sT(1));X.lineTo(fx+fw+sideW,sB(1));X.closePath()},sideCol,1.1,{texA:.32});
+  // 正面
+  paper(()=>{X.moveTo(fx,base-24);X.lineTo(fx,topL);X.lineTo(fx+fw,topR);X.lineTo(fx+fw,base-24);X.closePath()},plaster,1.3,{texA:.3});
+  // ガルバの縦ハゼ
+  if(S.galva){X.save();X.globalAlpha=.25;X.strokeStyle='#2f3840';X.lineWidth=2;
+    for(let x=fx+14;x<fx+fw;x+=22){X.beginPath();X.moveTo(x,base-26);X.lineTo(x,topL+(topR-topL)*((x-fx)/fw)+4);X.stroke()}
+    for(let k=1;k<7;k++){const q=k/7,x=fx+fw+q*sideW;X.beginPath();X.moveTo(x,sB(q)-2);X.lineTo(x,sT(q)+4);X.stroke()}X.restore()}
+  // 屋根の縁
+  if(shed){
+    // 片流れ：軒先の鼻隠しを、正面と側面に（目線より上なので屋根面は見えない）
+    piece(()=>{X.moveTo(fx-22,topL-10);X.lineTo(fx+fw+16,topR-10);X.lineTo(fx+fw+16,topR+6);X.lineTo(fx-22,topL+6);X.closePath()},'#2f373e',{d:.6});
+    piece(()=>{X.moveTo(fx+fw+16,topR-10);X.lineTo(fx+fw+sideW+12,sT(1)-6);X.lineTo(fx+fw+sideW+12,sT(1)+8);X.lineTo(fx+fw+16,topR+6);X.closePath()},'#262d33',{d:.5});
+  }else if(S.roof==='gable'||S.roof==='hip'){
+    // 切妻・寄棟：目の高さより上なので、手前の屋根面は軒から棟へ奥に倒れて見える（台形）。側面は妻の三角（切妻）か、隅棟の三角（寄棟）
+    const rc=S.roofCol, rcs=shade(rc,.82), ridgeY=topR-118, hip=S.roof==='hip';
+    const eL=fx-30, eR=fx+fw+22, rL=hip?fx+110:fx-14, rR=fx+fw+sideW*.5-(hip?70:0);
+    paper(()=>{X.moveTo(eL,topR+8);X.lineTo(eR,topR+8);X.lineTo(rR,ridgeY);X.lineTo(rL,ridgeY);X.closePath()},rc,1.4,{texA:.3});
+    if(hip)paper(()=>{X.moveTo(eR,topR+8);X.lineTo(fx+fw+sideW+16,sT(1)+8);X.lineTo(rR,ridgeY);X.closePath()},rcs,1.3,{texA:.3});
+    else{paper(()=>{X.moveTo(fx+fw,topR);X.lineTo(fx+fw+sideW,sT(1));X.lineTo(rR,ridgeY+6);X.closePath()},sideCol,1.2,{texA:.3});
+      piece(()=>{X.moveTo(eR,topR+8);X.lineTo(rR,ridgeY);X.lineTo(rR+8,ridgeY+4);X.lineTo(eR+8,topR+12);X.closePath()},shade(rc,.7),{d:.4})}
+    // 軒先の線
+    piece(()=>{X.moveTo(eL,topR+4);X.lineTo(eR,topR+4);X.lineTo(eR,topR+14);X.lineTo(eL,topR+14);X.closePath()},shade(rc,.7),{d:.4});
+  }else{
+    // 陸屋根・軒ゼロのキューブ：屋根版の小口と立ち上がり（中央には何も置かない）
+    piece(()=>{X.moveTo(fx-4,topR-14);X.lineTo(fx+fw+4,topR-14);X.lineTo(fx+fw+4,topR+2);X.lineTo(fx-4,topR+2);X.closePath()},shade(S.wall,.95),{d:.4});
+    piece(()=>{X.moveTo(fx+fw+4,topR-14);X.lineTo(fx+fw+sideW+2,sT(1)-12);X.lineTo(fx+fw+sideW+2,sT(1)+2);X.lineTo(fx+fw+4,topR+2);X.closePath()},shade(S.wall,.85),{d:.3});
+  }
+  // 木の縦張り（2階の右側と玄関まわり）
+  if(S.accent==='wood'){
+    const wx=fx+fw-170,wy=base-H2+(shed?0:0)+18;
+    const yTop=x=>topL+(topR-topL)*((x-fx)/fw)+16;
+    paper(()=>{X.moveTo(wx,base-H1-6);X.lineTo(wx,yTop(wx));X.lineTo(fx+fw-16,yTop(fx+fw-16));X.lineTo(fx+fw-16,base-H1-6);X.closePath()},'#b07a4c',.45,{texA:.35});
+    X.save();X.globalAlpha=.32;X.strokeStyle='#6e4626';X.lineWidth=2;for(let x=wx+10;x<fx+fw-16;x+=12){X.beginPath();X.moveTo(x,base-H1-8);X.lineTo(x,yTop(x)+2);X.stroke()}X.restore();
+    // 玄関
+    paper(()=>X.rect(fx+fw-128,base-H1+18,92,H1-44),'#8a5a35',.4);
+    piece(()=>X.rect(fx+fw-50,base-H1+90,6,46),'#3a3a3a',{d:.1,rimW:1});
+    piece(()=>X.rect(fx+fw-150,base-H1-8,136,10),shade(S.wall,.9),{d:.5});
+  }
+  // 1階の大きな窓（南）
+  const gx=fx+34,gy=base-H1+26,gw=270,gh=H1-60;
+  const lit=S.timeOfDay==='afternoon'?'#ffe3a8':'#cfe2ec';
+  paper(()=>X.rect(gx,gy,gw,gh),'#3e4a52',.3,{rimW:1.6});
+  piece(()=>X.rect(gx+6,gy+6,gw-12,gh-12),lit,{d:.05,rimW:0,texA:.15});
+  // 空の映り込み（斜めの白）
+  X.save();X.globalAlpha=.45;X.fillStyle='#ffffff';X.beginPath();X.moveTo(gx+40,gy+6);X.lineTo(gx+90,gy+6);X.lineTo(gx+30,gy+gh-6);X.lineTo(gx+6,gy+gh-6);X.lineTo(gx+6,gy+70);X.closePath();X.fill();X.restore();
+  for(let k=1;k<3;k++)piece(()=>X.rect(gx+k*gw/3-3,gy+4,6,gh-8),'#3e4a52',{d:.05,rimW:0});
+  // 室内の気配（ソファと植物）
+  piece(()=>rr(gx+150,gy+gh-46,100,34,8),'#d9b48a',{d:.1,rimW:0});
+  piece(()=>{X.arc(gx+40,gy+gh-58,22,0,7)},'#6aa860',{d:.1,rimW:0});
+  // 南の庇（大きな窓の上だけ）
+  if(S.eave==='south'){
+    paper(()=>{X.moveTo(gx-26,gy-14);X.lineTo(gx+gw+26,gy-14);X.lineTo(gx+gw+40,gy-2);X.lineTo(gx-12,gy-2);X.closePath()},'#8d949a',.9);
+  }
+  // 2階の窓
+  const yTop2=x=>topL+(topR-topL)*((x-fx)/fw);
+  const w2x=fx+40,w2y=Math.max(yTop2(fx+40)+40,base-H2+48);
+  paper(()=>X.rect(w2x,w2y,180,74),'#3e4a52',.3,{rimW:1.4});
+  piece(()=>X.rect(w2x+6,w2y+6,168,62),'#cfe2ec',{d:.05,rimW:0});
+  piece(()=>X.rect(w2x+87,w2y+4,6,66),'#3e4a52',{d:.05,rimW:0});
+  // 東面の小窓
+  {const k0=.33,k1=.67,y0=v=>base-H1+20+(-6*v),y1=v=>base-H1+96+(-14*v);
+  paper(()=>{X.moveTo(fx+fw+k0*sideW,y0(k0));X.lineTo(fx+fw+k1*sideW,y0(k1));X.lineTo(fx+fw+k1*sideW,y1(k1));X.lineTo(fx+fw+k0*sideW,y1(k0));X.closePath()},'#3e4a52',.2,{rimW:1});
+  piece(()=>{X.moveTo(fx+fw+k0*sideW+4,y0(k0)+5);X.lineTo(fx+fw+k1*sideW-4,y0(k1)+5);X.lineTo(fx+fw+k1*sideW-4,y1(k1)-5);X.lineTo(fx+fw+k0*sideW+4,y1(k0)-5);X.closePath()},'#c3d6e0',{d:.05,rimW:0})}
+  // 雨どい
+  piece(()=>X.rect(fx+fw-4,topR+4,7,H2-30),'#8d949a',{d:.2,rimW:0});
+  // 外灯
+  piece(()=>rr(fx+fw-34,base-H1+40,12,20,3),'#ffe6a0',{d:.1,rimW:0});
+}
+function tree(x,y,k){
+  // 幹
+  paper(()=>{X.moveTo(x-9*k,y);X.lineTo(x-6*k,y-150*k);X.lineTo(x-36*k,y-210*k);X.lineTo(x-30*k,y-214*k);X.lineTo(x,y-176*k);X.lineTo(x+30*k,y-224*k);X.lineTo(x+36*k,y-218*k);X.lineTo(x+7*k,y-150*k);X.lineTo(x+10*k,y);X.closePath()},'#7a5636',1.2);
+  // 樹冠：3枚の紙を重ねる
+  const cs=[[P.crownB,0,-268,150],[P.crownA,-44,-292,118],[P.crownC,52,-300,100]];
+  cs.forEach(([c,dx,dy,r],i)=>paper(()=>blob(x+dx*k,y+dy*k,r*k,i+3),c,1.4+i*.2,{texA:.3}));
+}
+function blob(cx,cy,r,seed){const q=rng(seed*13+(S.season==='autumn'?5:1));const n=14;
+  for(let i=0;i<=n;i++){const a=i/n*6.283,rad=r*(.82+q()*.25);const x=cx+Math.cos(a)*rad,y=cy+Math.sin(a)*rad*.86;i?X.lineTo(x,y):X.moveTo(x,y)}X.closePath()}
+function staff(t){
+  // 担当者：家族と向き合って立ち、鍵を差し出す（正面向き、墨の上着）
+  const x=1340,y=GY+176,h=150,bob=Math.sin(t*2.4)*1.2*(t>5?1:0);
+  paper(()=>{X.moveTo(x-20,y);X.lineTo(x-24,y-h*.62+bob);X.quadraticCurveTo(x,y-h*.7+bob,x+24,y-h*.62+bob);X.lineTo(x+20,y);X.closePath()},'#1E2B36',.8);
+  piece(()=>{X.moveTo(x-6,y-h*.66+bob);X.lineTo(x+6,y-h*.66+bob);X.lineTo(x,y-h*.5+bob);X.closePath()},'#fffaf0',{d:.1,rimW:0});
+  paper(()=>X.arc(x,y-h*.8+bob,16,0,7),'#f1d2b4',.6);
+  paper(()=>{X.arc(x,y-h*.84+bob,16,Math.PI,0)},'#4a3b30',.4);
+  // 差し出した手と鍵（金の紙）
+  const kx=x-60,ky=y-h*.5+bob;
+  paper(()=>{X.moveTo(x-18,y-h*.58+bob);X.lineTo(kx+8,ky-4);X.lineTo(kx+8,ky+6);X.lineTo(x-18,y-h*.5+bob);X.closePath()},'#1E2B36',.5);
+  const glow=clamp((t-4.6)/.8);
+  paper(()=>{X.arc(kx,ky,9,0,7);X.rect(kx-26,ky-3,20,6)},'#F2C230',.5+glow*.5,{shadow:`rgba(242,194,48,${.3+glow*.4})`});
+}
+function family(t){
+  const n=S.family||4,x0=1080,y=GY+176;
+  const cols=['#3f6fa8','#e3874a','#f0c84c','#6aa86a'];
+  const hs=[1,0.96,0.62,0.52];
+  for(let i=0;i<n;i++){const h=150*hs[i],x=x0+i*58-(i>1?10:0),c=cols[i];
+    const bob=Math.sin(t*3+i)*1.5*(t>5?1:0);
+    // 体（後ろ姿）
+    paper(()=>{X.moveTo(x-18*hs[i],y);X.lineTo(x-22*hs[i],y-h*.62+bob);X.quadraticCurveTo(x,y-h*.72+bob,x+22*hs[i],y-h*.62+bob);X.lineTo(x+18*hs[i],y);X.closePath()},c,.8);
+    paper(()=>X.arc(x,y-h*.8+bob,16*Math.max(.7,hs[i]),0,7),'#4a3b30',.6);
+  }
+  // 手をつなぐ線は描かない（説明しすぎない）。うさぎ
+  if(S.rabbit){const rx=x0-90,ry=y+4;
+    paper(()=>{X.ellipse(rx,ry-18,26,18,0,0,7);X.moveTo(rx+22,ry-30);X.arc(rx+18,ry-32,12,0,7)},'#fbf7ef',.6);
+    paper(()=>{X.ellipse(rx+14,ry-58,5,16,-.2,0,7);X.moveTo(rx+28,ry-58);X.ellipse(rx+24,ry-58,5,16,.15,0,7)},'#fbf7ef',.5)}
+}
+function foreground(){
+  const bump=(x0,x1,top,amp,seed)=>{const q=rng(seed);X.moveTo(x0,H+40);X.lineTo(x0,top);for(let x=x0;x<x1;x+=0){const r=26+q()*30;X.arc(x+r,top-q()*amp,r,Math.PI,0);x+=r*1.6}X.lineTo(x1,H+40);X.closePath()};
+  paper(()=>bump(-40,560,H-150,40,21),P.shrub,2.4);
+  paper(()=>bump(1520,1990,H-130,36,22),P.shrub2,2.4);
+  PRE.flowers.forEach(([x,y,q],i)=>{const onL=x<520&&y>H-150,onR=x>1560&&y>H-120;if(!onL&&!onR)return;
+    piece(()=>X.arc(x,y,6+q*6,0,7),P.flower[i%3],{d:.6,rimW:1})});
+}
+function fallers(t){
+  const k=clamp((t-4.9)/1.0);
+  PRE.fall.forEach((f,i)=>{const tt=t-4.9;const y=f.y+tt*f.sp*1.6;if(y>H+40||y<-40)return;
+    const x=f.x+Math.sin(tt*1.6+f.ph)*40-tt*30;
+    X.save();X.globalAlpha=k;X.translate(x,y);X.rotate(tt*1.4+f.ph);
+    paper(()=>{if(S.season==='autumn'){X.moveTo(0,-f.s);X.lineTo(f.s*.6,0);X.lineTo(0,f.s);X.lineTo(-f.s*.6,0);X.closePath()}else{X.ellipse(0,0,f.s*.55,f.s*.35,0,0,7)}},P.fall[f.c%P.fall.length],.5,{rimW:1,texA:.2});
+    X.restore()});
+}
+window.render=render;
+
+// ---------- 再生まわり：一度だけ再生して、完成の絵で止まる（?t=秒で静止。動画の書き出し用に window.render(t) と READY）----------
+const still=qs.has('t');let t=parseFloat(qs.get('t')||'0'),last=null;const END=Math.min(DUR,parseFloat(qs.get('end')||'7.2'));
+prep();
+function loop(now){if(last!=null)t=Math.min(END,t+(now-last)/1000);last=now;try{render(t)}catch(e){console.error(e)}if(t<END)requestAnimationFrame(loop)}
+function fit(){const s=Math.min(innerWidth/W,innerHeight/H);document.getElementById('stage').style.transform=`translate(-50%,-50%) scale(${s})`}
+addEventListener('resize',fit);fit();
+if(still){render(t);window.READY=true}else{window.READY=true;requestAnimationFrame(loop)}
+</script>
+</body>
+</html>

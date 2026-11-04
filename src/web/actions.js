@@ -207,15 +207,10 @@ export const ACTIONS = {
   },
   toHandover() { goto('handover', 10); },
   // 写真を保存：引渡し式のSVGを canvas に描いて、画像として書き出す（家族の名前はニックネームだけ）
+  // 写真を保存：引渡しの切り絵（同じ出どころの iframe の canvas）を、そのまま画像に書き出す
   async savePhoto() {
-    const { ceremonySVG } = await import('./scenes.js');
-    const svg = ceremonySVG(S, true);
-    const img = new Image();
-    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-    await img.decode();
-    const c = document.createElement('canvas'); c.width = 1124 * 2; c.height = 920 * 2;
-    const g = c.getContext('2d'); g.scale(2, 2); g.drawImage(img, 0, 0);
-    const a = document.createElement('a'); a.download = 'yukusuie-hikiwatashi.png'; a.href = c.toDataURL('image/png'); a.click();
+    const fr = document.getElementById('paper'); const cv = fr?.contentDocument?.getElementById('c'); if (!cv) return;
+    const a = document.createElement('a'); a.download = 'yukusuie-hikiwatashi.png'; a.href = cv.toDataURL('image/png'); a.click();
   },
   // そして1年後……：季節が移り変わってから、1年後のわが家へ
   async toSeasons() { goto('seasons', 11); await new Promise(r => setTimeout(r, 4600)); goto('result', 11); },
