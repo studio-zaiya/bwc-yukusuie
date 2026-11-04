@@ -264,15 +264,12 @@ const played = () => { try { return !!localStorage.getItem('yuku-last'); } catch
 // ---- 場面 ----
 export const SCENES = {
   start(s) {
-    const last = (() => { try { return localStorage.getItem('yuku-last'); } catch { return null; } })();
     // 区画の番号は、遊んでいる間と同じ 01〜16（人間の回答11/5）。タイトルでは、どれも光らせない
     P.setYou(0);
     const list = Array.from({ length: 16 }, (_, i) => ({ w: { no: i + 1, spec: { roof: ['hip', 'cube', 'mane', 'gable'][i % 4], exterior: 'full' }, third: false }, stage: 4, ghost: 0, note: '' }));
     return `<div class="startbg">${P.estate2(list, {})}</div><div class="center" style="text-align:center;width:1500px">
       <h1 style="margin:0"><img src="/brand/lockup-horizontal.svg" alt="ゆくすいえ　YUKUSUIE 16 unbuilt futures" style="width:820px"></h1>
       <div class="catch">16回目の、マイホームへ。</div>
-      <div style="display:flex;gap:18px;justify-content:center;margin-top:30px"><button class="big-btn ghost" data-act="start">最初から遊ぶ</button>
-      ${last ? `<a class="big-btn ghost" href="/?replay=${last}" style="text-decoration:none">前回のプレイを再生する</a>` : ''}</div>
     </div><div class="disc">${NOTICE}</div>`;
   },
   howto(s) {
@@ -687,7 +684,7 @@ export const SCENES = {
     return `<div class="center" style="text-align:center;width:1400px"><img src="/brand/lockup-horizontal.svg" alt="ゆくすいえ" style="width:620px">
       <div class="h2" style="margin-top:30px">遊んでくださって、ありがとうございました。</div>
       <p class="lead">本物の家づくりでも、あなたの「ちょうどいい」が見つかりますように。</p>
-      <div style="display:flex;gap:16px;justify-content:center;margin-top:20px">${s.savedId ? `<a class="opt" href="/?replay=${s.savedId}" style="text-decoration:none">このプレイを再生する</a>` : ''}</div>
+      <div style="display:flex;gap:16px;justify-content:center;margin-top:20px"></div>
       <p class="note" style="margin-top:40px">Built with Claude: Japan 2026　／　© 2026 Studio ZaiYa</p></div><div class="disc">${NOTICE}</div>`;
   },
 };
@@ -699,7 +696,7 @@ export function navOf(s) {
   const g = (act, label, o = {}) => ({ act, label, ...o });
   const off = (why) => ({ off: true, why });
   switch (s.scene) {
-    case 'start': return { todo: '打ち合わせを終えた家族で、すぐに続きから遊べます', go: { act: 'continueStart', label: '続きから遊ぶ ▶' } };
+    case 'start': return { todo: '初めて家を建てる夫婦になって、家づくりを体験します', go: { act: 'start', label: '家づくりを体験する ▶' } };
     case 'seasons': return null;
     case 'howto': return { todo: s.howto === 0 ? '呼び名と、遊び方を選びましょう' : '遊び方を読みましょう', go: g('howtoNext', s.howto === HOWTO.length - 1 ? 'はじめる ▶' : 'つぎへ ▶') };
     case 'family': return { todo: '家族の条件を確かめましょう', go: g('toLotNoEntry', '区画へ ▶') };
@@ -737,7 +734,7 @@ export function navOf(s) {
     case 'year': return { todo: '16の区画を押して、ほかの世界を見てみましょう', go: g('toReport', 'レポートを受け取る ▶') };
     case 'report': return !s.report ? { todo: 'レポートを書いています', go: g('toEnd', 'おわりへ ▶', off('レポートを書いています')) } : s.report.failed ? { todo: 'レポートを書けませんでした', go: g('retryReport', 'もう一度書く ▶') } : { todo: 'レポートを読みましょう', go: g('toEnd', 'おわりへ ▶') };
     case 'tree': return { todo: '枝先の家を押して、世界線をたどりましょう', go: g('treeBack', 'もとの画面へ ▶') };
-    case 'end': return { todo: 'おつかれさまでした', go: g('restart', 'もう一度遊ぶ ▶') };
+    case 'end': return { todo: 'おつかれさまでした', go: g('restart', 'タイトルへ ▶') };
     default: return null;
   }
 }

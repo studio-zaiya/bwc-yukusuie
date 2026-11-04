@@ -8,7 +8,7 @@ const BASE = process.argv[2] || 'http://localhost:8787';
   await ctx.addInitScript(() => { for (const k of ['sources', 'play', 'compare', 'gallery', 'fork', 'coord', 'build']) localStorage.setItem('yuku-tour-' + k, '1'); });
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
   const click = async sel => { await p.click(sel, { timeout: 8000 }); await p.waitForTimeout(250); };
-  await p.goto(BASE + '/'); await click('[data-act=continueStart]');
+  await p.goto(BASE + '/?test=continue');
   await p.waitForSelector('[data-act=toFork1]:not([disabled])', { timeout: 150000 }); await click('[data-act=toFork1]'); await p.waitForTimeout(1800);
   await click('[data-act=pickSide][data-side=a]'); await click('[data-act=goSide]'); await p.waitForTimeout(4800);
   await click('[data-act=pickSide][data-side=b]'); await click('[data-act=goSide]'); await p.waitForTimeout(4800);

@@ -274,4 +274,5 @@ async function replay(id) {
 }
 
 window.YUKU = { get state() { return S; }, LOG, emit, Y };
-if (Q.get('replay')) replay(Q.get('replay')); else render();
+if (Q.get('replay')) replay(Q.get('replay'));
+else { render(); if (Q.get('test') === 'continue' && /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) ACTIONS.continueStart(); } // 確認用（手元のサーバーだけ）。画面には出さない

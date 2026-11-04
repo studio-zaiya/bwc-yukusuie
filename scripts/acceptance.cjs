@@ -1,5 +1,4 @@
-// 受け入れ基準の確認用：審査員の道（タイトル →「続きから遊ぶ」→ 分岐点 → 電気 → 引渡し → 1年後 → レポート）を通し、
-// 画面ごとのスクショを out/acceptance/ に保存する。使い方：node scripts/acceptance.cjs [URL]
+// 確認用（手元のサーバーだけ）：打ち合わせ済みの状態（?test=continue）から、提案の日 → 分岐点 → 電気 → 引渡し → 1年後 → レポートを通し、
 const { chromium } = require('playwright');
 const fs = require('fs');
 const BASE = process.argv[2] || 'http://localhost:8787';
@@ -18,7 +17,7 @@ const OUT = 'out/acceptance';
   const idle = () => p.waitForFunction(() => !document.querySelector('.msg.typing'), null, { timeout: 120000 });
   try {
     await p.goto(BASE + '/'); await shot('S0-title');
-    await click('[data-act=continueStart]'); await p.waitForTimeout(600); await shot('F1-proposal-wait');
+    await p.goto(BASE + '/?test=continue'); await p.waitForTimeout(600); await shot('F1-proposal-wait');
     // 流れ v3：提案の日 → 第一 → 第二 → 第三（続けて）→ 契約 → 色決め → 第四（自動）→ 電気
     await p.waitForSelector('[data-act=toFork1]:not([disabled])', { timeout: 150000 }); await p.waitForTimeout(400); await shot('F2-proposal');
     await click('[data-act=toFork1]'); await p.waitForTimeout(400); await shot('S4-fork1-intro'); await p.waitForTimeout(1500); await shot('S4-fork1');
