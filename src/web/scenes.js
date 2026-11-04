@@ -108,13 +108,23 @@ function heroHouse(s) {
   if (s.step >= 2) return P.bigHouse(ww, 0, { ghost: 0.45, roof: w.spec.roof });
   return P.bigHouse(ww, 0, { ghost: 0 });
 }
-function hero(s, extra = '') {
+function hero(s, extra = '', cls = '') {
   const w = s.player || Y.newWorld({ household: H(s) });
   const co = s.player && s.forkNo > 0 ? `　${P.coTag(w.company, 28)}${Y.COMPANIES[w.company].name}` : s.player ? '　2社を見比べ中' : (s.cur ? `　${P.coTag(s.cur, 28)}${Y.COMPANIES[s.cur].name}で相談中` : '');
   const roofDecided = s.forkNo >= 2;
   const area = roofDecided ? `${w.spec.tsubo}坪・総二階　${Y.ROOF_JA[w.spec.roof]}` : `広さの目安 ${H(s).area[0]}〜${H(s).area[1]}坪　屋根の形は未定`;
-  return `<div class="hero ${tall(s)}"><div class="lab"><span class="no">${pad(YOU)}</span>あなたの家${co}</div>
+  return `<div class="hero ${tall(s)} ${cls}"><div class="lab"><span class="no">${pad(YOU)}</span>あなたの家${co}</div>
     <div class="ph">${Y.STEPS[s.step]}<br><span style="font-size:15px">${area}${w.fitted ? `（予算に合わせて${w.fitted}坪小さく）` : ''}</span></div>${heroHouse(s)}${extra}</div>`;
+}
+
+// 希望のボード：わかった希望（付箋）・まだ決まっていないこと・次に決めること
+const WISH_TXT = w => ({ totalMax: `総額 ${man(w.value)}万円以内`, monthlyMax: `月々 ${man(w.value)}万円以内`, areaMax: `${w.value}坪まで`, areaMin: `${w.value}坪は欲しい` }[w.kind] || w.text);
+function boardHTML(s) {
+  const st = s.heard.slice(-14);
+  const undecided = [!s.player || s.forkNo === 0 ? '建てる会社' : '', s.forkNo < 2 ? '屋根の形と広さ' : '', !s.wishes.some(w => w.kind === 'totalMax' || w.kind === 'monthlyMax') ? '予算の上限' : '', s.forkNo < 3 ? '外構をどこまで' : '', s.forkNo < 4 ? '外壁と床の仕上げ' : ''].filter(Boolean);
+  const next = { hearing: s.visit[1] === s.cur ? '2社の提案を見比べる' : '帰り道に、伝え忘れを確かめる', forgot: '2社目を訪ねる', reply: '2社目を訪ねる' }[s.scene] || '';
+  return `<div class="board"><div class="bcol"><h4>わかった希望</h4><div class="bst">${st.length || s.wishes.length ? s.wishes.filter(w => w.kind !== 'priority').map(w => `<span class="sticky wish">${esc(WISH_TXT(w))}</span>`).join('') + st.map((h, i) => `<span class="sticky ${h.who === 'ゆう' ? 'yu' : h.who === 'かず' ? '' : 'both'}" style="--r:${(i * 37) % 7 - 3}deg">${esc(h.text.slice(0, 16))}</span>`).join('') : '<p class="note">担当者に話すと、ここに付箋がたまります。</p>'}</div></div>
+    <div class="bcol small"><h4>まだ決まっていないこと</h4><ul>${undecided.map(t => `<li>${t}</li>`).join('')}</ul><h4>次に決めること</h4><p>${next}</p></div></div>`;
 }
 
 // ---- チャット ----
@@ -129,14 +139,17 @@ function navs(s) {
 function msgHTML(m) {
   if (m.who === 'sys') return `<div class="msg sys">${esc(m.text)}</div>`;
   if (m.who === 'staff') return `<div class="msg"><div class="who">${P.coTag(m.co, 18)}${Y.COMPANIES[m.co].name}・${STAFFN(m.co)}${m.mock ? '<span class="mk">代わりの処理</span>' : ''}</div>${esc(m.text)}${m.cond ? `<div class="cond">${m.cond.map(c => '・' + esc(c)).join('<br>')}</div>` : ''}</div>`;
-  if (m.who === 'partner') return `<div class="msg"><div class="who"><i class="ci"></i>ゆう</div>${esc(m.text)}</div>`;
-  if (m.who === 'yuu') return `<div class="msg me"><div class="who"><i class="ci"></i>ゆう</div>${esc(m.text)}</div>`;
-  return `<div class="msg me kz"><div class="who"><i class="sq"></i>かず</div>${esc(m.text)}</div>`;
+  if (m.who === 'partner') return `<div class="msg"><div class="who"><i class="ci"></i>${esc(NAMES.yuu)}</div>${esc(m.text)}</div>`;
+  if (m.who === 'yuu') return `<div class="msg me yu"><div class="who"><i class="ci"></i>${esc(NAMES.yuu)}${m.ai ? '<span class="mk">パートナー</span>' : ''}</div>${esc(m.text)}</div>`;
+  return `<div class="msg me kz"><div class="who"><i class="sq"></i>${esc(NAMES.kazu)}</div>${esc(m.text)}</div>`;
 }
+export const NAMES = { kazu: 'かず', yuu: 'ゆう' };
+export const setNames = n => { NAMES.kazu = n?.a || 'かず'; NAMES.yuu = n?.b || 'ゆう'; };
 let WHO = 'kazu';
 export const setWho = w => { WHO = w; };
 export const getWho = () => WHO;
-function whoSw() { return `<div class="who-sw">話す人<button data-act="who" data-w="kazu" aria-pressed="${WHO === 'kazu'}"><i class="sq"></i>かず</button><button data-act="who" data-w="yuu" aria-pressed="${WHO === 'yuu'}"><i class="ci"></i>ゆう</button></div>`; }
+function whoSw() { if (MODE.solo) return ''; return `<div class="who-sw">話す人<button data-act="who" data-w="kazu" aria-pressed="${WHO === 'kazu'}"><i class="sq"></i>${esc(NAMES.kazu)}</button><button data-act="who" data-w="yuu" aria-pressed="${WHO === 'yuu'}"><i class="ci"></i>${esc(NAMES.yuu)}</button></div>`; }
+export const MODE = { solo: true };
 export const busy = { on: false };
 function failNote(s, ch) { return s.failed && s.failed.ch === ch ? `<div class="msg sys fail">担当者が応答できませんでした。<button class="linkbtn" data-act="retry">もう一度送る</button></div>` : ''; }
 function chat(s, { ch, head = '', middle = '', opts = '', input = true, act = 'send', placeholder = '担当者に、自由に伝える・聞く', thinking = false, who = true } = {}) {
@@ -156,7 +169,7 @@ const MINI = {
   report: () => `<svg viewBox="0 0 360 220" width="360"><rect x="110" y="10" width="140" height="200" rx="6" fill="#fff" stroke="#1E2B36" stroke-width="3"/><path d="M130 50 H230 M130 80 H220 M130 110 H230 M130 140 H200" stroke="#1E2B36" stroke-width="3"/><rect x="130" y="166" width="22" height="22" fill="#E8701F"/><circle cx="175" cy="177" r="11" fill="#1C8DCC"/></svg>`,
 };
 const HOWTO = [
-  ['あなたは', 'lot', '初めて家を建てる共働きの夫婦、<b><i class="sq"></i>かず</b>と<b><i class="ci"></i>ゆう</b>。分譲地の区画が当たったところから始まります。'],
+  ['あなたは', 'lot', '初めて家を建てる共働きの夫婦になります。分譲地の区画が当たったところから始まります。'],
   ['やること', 'chat', '家づくりの手順（上の12段階）に沿って、住宅会社の担当者と話しながら進めます。4つの分岐点で選びます。2択の札を押しても、自分の言葉で答えてもかまいません。'],
   ['同時に進む世界', 'fork', '選ばなかった道も、別の世界線として同時に進みます。1年後に、16の区画を見比べられます。'],
   ['持ち帰るもの', 'report', '最後に「わが家の、ちょうどいいバランス」のレポートを受け取ります。本物の打ち合わせに持っていけます。'],
@@ -178,16 +191,18 @@ export const SCENES = {
   howto(s) {
     const [t, pic, body] = HOWTO[s.howto];
     const last = s.howto === HOWTO.length - 1;
-    return `<div class="center howto"><div class="hk">遊び方　${s.howto + 1} / ${HOWTO.length}</div><div class="h2">${t}</div><div class="pic">${MINI[pic]()}</div><p class="lead">${body}</p>
+    const first = s.howto === 0 ? `<div class="namebox"><label><i class="sq"></i>夫の呼び名<input id="nmA" maxlength="8" placeholder="かず" value="${esc(s.names.a === 'かず' ? '' : s.names.a)}"></label><label><i class="ci"></i>妻の呼び名<input id="nmB" maxlength="8" placeholder="ゆう" value="${esc(s.names.b === 'ゆう' ? '' : s.names.b)}"></label></div><p class="note">ニックネームで入力してください（空欄なら「かず」「ゆう」）。</p>
+      <div class="modebox"><button class="mode" data-act="mode" data-m="solo" aria-pressed="${s.mode === 'solo'}"><b>ひとりで遊ぶ</b><span>あなたが夫になり、妻はAIが演じます</span></button><button class="mode" data-act="mode" data-m="duo" aria-pressed="${s.mode === 'duo'}"><b>ふたりで遊ぶ</b><span>交互に入力します</span></button></div>` : '';
+    return `<div class="center howto"><div class="hk">遊び方　${s.howto + 1} / ${HOWTO.length}</div><div class="h2">${t}</div>${s.howto === 0 ? '' : `<div class="pic">${MINI[pic]()}</div>`}<p class="lead">${body}</p>${first}
       <div style="display:flex;gap:14px;justify-content:center"><button class="big-btn ${played() ? '' : 'ghost'}" data-act="howtoSkip">とばす</button><button class="big-btn ${played() ? 'ghost' : ''}" data-act="howtoNext">${last ? 'はじめる' : 'つぎへ'}</button></div></div>
       ${last ? `<div class="disc">${NOTICE}</div>` : ''}`;
   },
   family(s) {
     const h = H(s);
     return `<div class="full"><div class="h2">あなたの家族</div><p class="lead">${h.story}</p>
-      <dl class="facts" style="max-width:900px"><dt>世帯</dt><dd>かず（夫）・ゆう（妻）・子ども2人</dd><dt>世帯年収</dt><dd>${man(h.income)}万円（共働き）</dd><dt>家に入れる預金</dt><dd>${man(h.saveHouse)}万円（ほかに手元に残す分 ${man(h.saveKeep)}万円）</dd><dt>借りられそうな額</dt><dd>${man(Y.loanLimit(h))}万円まで（審査の目安）</dd><dt>家の広さの目安</dt><dd>${h.area[0]}〜${h.area[1]}坪</dd></dl>
+      <dl class="facts" style="max-width:900px"><dt>世帯</dt><dd>${esc(NAMES.kazu)}（夫）・${esc(NAMES.yuu)}（妻）・子ども2人</dd><dt>世帯年収</dt><dd>${man(h.income)}万円（共働き）</dd><dt>家に入れる預金</dt><dd>${man(h.saveHouse)}万円（ほかに手元に残す分 ${man(h.saveKeep)}万円）</dd><dt>借りられそうな額</dt><dd>${man(Y.loanLimit(h))}万円まで（審査の目安）</dd><dt>家の広さの目安</dt><dd>${h.area[0]}〜${h.area[1]}坪</dd></dl>
       <p class="note" style="margin-top:14px">金額はゲームの中の仮定です。</p>
-      <div style="margin-top:36px;text-align:right"><button class="big-btn" data-act="toEntry">つぎへ</button></div></div>`;
+      <div style="margin-top:36px;text-align:right"><button class="big-btn" data-act="toLotNoEntry">つぎへ</button></div></div>`;
   },
   entry(s) {
     return `<div class="full"><div class="h2">どんな家にしたいですか。</div><p class="lead">思いや理想を、自由に書いてください。好きな家の写真やスクリーンショット、気になったページのURLも置けます。<br>あとで担当者に伝える要望のもとになります（書かなくても進めます）。</p>
@@ -201,6 +216,7 @@ export const SCENES = {
       <div style="margin-top:30px;text-align:right"><button class="big-btn" data-act="toLot">つぎへ</button></div></div>`;
   },
   // 入口：書いていくと、付箋がその場で生まれる（句点・読点・改行で区切る。言葉は施主のまま）
+  hearing_after() { if (document.getElementById('drop')) import('./actions.js').then(m => m.bindDrop()); },
   entry_after() {
     import('./actions.js').then(m => m.bindDrop());
     const ta = document.getElementById('entryText'), box = document.getElementById('stickies');
@@ -238,8 +254,8 @@ export const SCENES = {
       <h3>${P.coTag(co, 40)}${Y.COMPANIES[co].name}　${title}</h3><div class="sub">Tabで次へ。Ctrl＋Enterで記入を終えて、担当者のところへ。</div>
       <div class="row"><div><label>家族構成</label><input id="sv_fam" value="夫婦と子ども2人"></div><div><label>いまの住まい</label><input id="sv_now" value="賃貸のアパート"></div></div>
       <div class="row"><div><label>ご予算の目安（総額）</label><input id="sv_budget" placeholder="わからなければ空欄で"></div><div><label>入居したい時期</label><input id="sv_when" value="来年の春ごろ"></div></div>
-      <label><i class="sq"></i> かず の要望</label><textarea id="sv_kazu">${esc(s.entry.text ? s.entry.text.slice(0, 80) : '')}</textarea>
-      <label><i class="ci"></i> ゆう の要望</label><textarea id="sv_yuu"></textarea>
+      <label><i class="sq"></i> ${esc(NAMES.kazu)} の要望</label><textarea id="sv_kazu">${esc(s.entry.text ? s.entry.text.slice(0, 80) : '')}</textarea>
+      <label><i class="ci"></i> ${esc(NAMES.yuu)} の要望</label><textarea id="sv_yuu"></textarea>
       <label>気になっていること</label><textarea id="sv_worry" placeholder="例：お金のこと、性能のこと、間取りのこと"></textarea>
       <div style="margin-top:18px;text-align:right"><button class="btn" data-act="submitSurvey">書き終えた</button></div></form>
       <div class="svside">${P.avatar(co, 200, 'smile')}<p class="lead" style="margin-top:14px">${Y.COMPANIES[co].name}（${Y.COMPANIES[co].kind}）<br>${STAFFN(co)}</p>
@@ -247,15 +263,18 @@ export const SCENES = {
       <p class="note">世帯年収 ${man(h.income)}万円／借りられそうな額 ${man(Y.loanLimit(h))}万円までは、アンケートには書かなくても大丈夫です。</p></div>`;
   },
   hearing(s) {
-    const co = s.cur, n = s.chat.filter(m => m.ch === co && (m.who === 'kazu' || m.who === 'yuu')).length, second = s.visit[1] === co;
-    const enough = second ? n >= 2 : n >= 3;
-    const opts = enough ? `<button class="opt" data-act="${second ? 'toCompare' : 'toForgot'}">${second ? 'ヒアリングを終えて、提案を待つ' : 'ヒアリングを終えて、帰宅する'}</button>` : '';
-    return `${chrome(s)}${hero(s)}<div class="right ${tall(s)}">${chat(s, { ch: co, head: staffHead(co, busy.on ? 'think' : 'idle', second ? '2社目' : '1社目'), opts, thinking: busy.on, placeholder: '担当者の質問に答える・自由に伝える（暮らし方、収納、予算、性能、デザイン、将来のことなど）' })}</div>${gallery(s)}`;
+    const co = s.cur, n = s.chat.filter(m => m.ch === co && (m.who === 'kazu' || m.who === 'yuu') && !m.ai).length, second = s.visit[1] === co;
+    const need = second ? 2 : 3, left = Math.max(0, need - n);
+    const last = [...s.chat].reverse().find(m => m.ch === co && m.who === 'staff');
+    const choices = !busy.on && last?.choices?.length ? last.choices.map(c => `<button class="opt ch" data-act="choose" data-t="${esc(c)}">${esc(c)}</button>`).join('') + `<button class="opt ch" data-act="choose" data-t="おまかせします">おまかせ</button>` : '';
+    const end = left === 0 ? `<button class="opt" data-act="${second ? 'toCompare' : 'toForgot'}" ${busy.on ? 'disabled' : ''}>${second ? 'ヒアリングを終えて、提案を待つ' : 'ヒアリングを終えて、帰宅する'}</button>` : `<span class="note" style="align-self:center">あと${left}回答えると、${second ? '提案を待てます' : '帰宅できます'}</span>`;
+    const show = `<button class="opt" data-act="openShow">写真やURLを見せる</button>`;
+    return `${chrome(s)}${hero(s, boardHTML(s), 'withboard')}<div class="right ${tall(s)}">${chat(s, { ch: co, head: staffHead(co, busy.on ? 'think' : 'idle', second ? '2社目' : '1社目'), opts: choices + end + show, thinking: busy.on, placeholder: '担当者の質問に答える・自由に伝える（選択肢を押してもかまいません）' })}</div>${gallery(s)}`;
   },
   forgot(s) {
     const co = s.visit[0];
     const said = s.chat.some(m => m.ch === 'partner' && (m.who === 'kazu' || m.who === 'yuu'));
-    return `${chrome(s)}${hero(s)}<div class="right ${tall(s)}"><div class="chat"><div class="staffbar">${P.spouse('yuu', 70)}<div class="nm">帰り道<b>ゆうと話す</b></div></div>
+    return `${chrome(s)}${hero(s)}<div class="right ${tall(s)}"><div class="chat"><div class="staffbar">${P.spouse('yuu', 70)}<div class="nm">帰り道<b>${esc(NAMES.yuu)}と話す</b></div></div>
       <div class="log">${s.chat.filter(m => m.ch === 'partner').map(msgHTML).join('')}</div>
       <div class="opts">${said ? `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="sendForgot">${Y.COMPANIES[co].staff}さんに送る</button>` : ''}<button class="opt" data-act="toSecond">${said ? '送らずに、2社目へ' : 'とくにない（2社目へ）'}</button></div>
       <div class="in"><textarea id="say" rows="3" data-keep data-enter="sayPartner" placeholder="伝え忘れたことを、ゆうに話す"></textarea><button class="btn" data-act="sayPartner">話す</button></div>${navs(s)}</div></div>${gallery(s)}`;
@@ -291,7 +310,8 @@ export const SCENES = {
     const mid = pend || side ? '' : `<div class="fk"><div class="q">${Y.FORKS[d.no]}</div><div class="qq">${d.q}</div><div class="cards">
       <button class="cd" data-act="pickSide" data-side="a"><h4>${esc(lab(d.a, w))}</h4><ul>${facts('a')}</ul></button>
       <button class="cd" data-act="pickSide" data-side="b"><h4>${esc(lab(d.b, w))}</h4><ul>${facts('b')}</ul></button></div></div>`;
-    const why = side ? `<div class="fk"><div class="msg"><div class="who"><i class="ci"></i>ゆう</div>「${esc(lab(d[side], w))}」だね。どうしてそっちにしたの？</div></div>` : '';
+    const asker = MODE.solo || WHO === 'kazu' ? 'yuu' : 'kazu';
+    const why = side ? `<div class="fk"><div class="msg"><div class="who"><i class="${asker === 'yuu' ? 'ci' : 'sq'}"></i>${esc(NAMES[asker])}</div>「${esc(lab(d[side], w))}」だね。どうしてそっちにしたの？</div></div>` : '';
     const opts = pend ? (pend.result.verdict === 'いまは難しい' ? `<span class="note" style="align-self:center">この条件では進められません。</span><button class="opt" data-act="cancelTrade">ほかの答えを考える</button>` : `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="approve">この条件で進める</button><button class="opt" data-act="cancelTrade">やめておく</button>`)
       : side ? `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="decideWhy">理由を伝えて決める</button><button class="opt" data-act="decideNoWhy">理由は言わずに決める</button><button class="opt" data-act="unpick">選びなおす</button>` : '';
     const co = w.company;
@@ -517,7 +537,7 @@ export function ceremonySVG(s, forPhoto = false) {
   const date = new Date(); const d = `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate()}`;
   return `<svg class="cersvg" viewBox="0 0 1124 920" xmlns="http://www.w3.org/2000/svg" width="1124" height="920"><rect width="1124" height="560" fill="#DDF0FA"/><rect y="560" width="1124" height="360" fill="#F3E7CF"/>${house}
     <g class="tape"><path class="tl" d="M200 640 Q400 660 562 650" stroke="#C99A00" stroke-width="7" fill="none"/><path class="tr" d="M562 650 Q724 660 924 640" stroke="#C99A00" stroke-width="7" fill="none"/></g>${ppl}
-    <text x="1100" y="900" text-anchor="end" font-size="22" fill="#6B6358" font-family="Hiragino Sans, sans-serif">かず と ゆう の家　引渡しの日　${d}</text></svg>`;
+    <text x="1100" y="900" text-anchor="end" font-size="22" fill="#6B6358" font-family="Hiragino Sans, sans-serif">${esc(NAMES.kazu)} と ${esc(NAMES.yuu)} の家　引渡しの日　${d}</text></svg>`;
 }
 // 1年後のわが家：選択の結果が絵に出る（外構、窓辺のあかり、洗濯物、庭の木）
 function lifeSVG(s, o) {
@@ -568,4 +588,16 @@ export function phoneHTML(s) {
   }
   return `<div class="pop"><div class="ph2"><div class="ttl">スマホから送る</div><button class="close" data-act="closePhone">閉じる</button></div><div class="body">${body}</div>
     <div class="ft"><span class="meta">画像の読み取りは、取り込んで「つぎへ」を押したときだけ行います。</span>${p && p.items && p.items.length ? '<button class="btn" data-act="importPhone">取り込む</button>' : ''}</div></div>`;
+}
+
+// 写真やURLを見せる（打ち合わせの中で。ドロップ・貼り付け・URL・スマホから）
+export const SHOW = { photos: [], text: '' };
+export function showHTML(s) {
+  return `<div class="pop"><div class="ph2"><div class="ttl">写真やURLを見せる</div><button class="close" data-act="closePop">閉じる</button></div>
+    <div class="body"><div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div><div class="drop" id="drop">好きな家の写真をドロップ／Ctrl＋Vで貼り付け<br><span style="font-size:15px">長辺1568pxまで縮小し、撮影場所などの埋め込み情報は消えます（3枚まで）</span></div>
+        <div class="thumbs">${SHOW.photos.map(p => `<img src="${p}" alt="見せる写真">`).join('')}</div>
+        <button class="flyer-btn" style="margin-top:12px" data-act="openPhone">スマホから送る（QRコード）</button></div>
+      <div><label class="note">気になったページのURLや、写真の説明（任意）</label><textarea class="free" id="showText" data-keep style="height:200px" placeholder="例：https://… こんな玄関が好きです"></textarea></div></div></div>
+    <div class="ft"><span class="meta">写真そのものは保存しません。家の要素だけを読み取ります。</span><button class="btn" data-act="doShow">担当者に見せる</button></div></div>`;
 }

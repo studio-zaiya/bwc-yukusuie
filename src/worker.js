@@ -160,11 +160,13 @@ function staffFacts(co) {
     '{{坪単価}}': `${c.tsubo}万円`, '{{延床の目安}}': `${spec.tsubo}坪`, '{{地盤調査}}': c.groundTiming, '{{見積の見せ方}}': q.label,
   };
 }
+const WISH = { type: 'object', additionalProperties: false, required: ['kind', 'value', 'text'], properties: { kind: { type: 'string', enum: ['totalMax', 'monthlyMax', 'areaMax', 'areaMin', 'priority'] }, value: { anyOf: [{ type: 'number' }, { type: 'null' }] }, text: { type: 'string' } } };
 const HEARING_SCHEMA = {
-  type: 'object', additionalProperties: false, required: ['line', 'honne', 'heard', 'missed'],
+  type: 'object', additionalProperties: false, required: ['line', 'honne', 'heard', 'missed', 'choices', 'wishes'],
   properties: {
     line: { type: 'string' }, honne: { type: 'string' },
-    heard: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['tag', 'who', 'text'], properties: { tag: { type: 'string' }, who: { type: 'string', enum: ['かず', 'ゆう', 'ふたり'] }, text: { type: 'string' } } } },
+    choices: { type: 'array', items: { type: 'string' } }, wishes: { type: 'array', items: WISH },
+    heard: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['tag', 'who', 'text'], properties: { tag: { type: 'string' }, who: { type: 'string', enum: ['a', 'b', 'both'] }, text: { type: 'string' } } } },
     missed: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['tag', 'who', 'said', 'reason'], properties: { tag: { type: 'string' }, who: { type: 'string' }, said: { type: 'string' }, reason: { type: 'string' } } } },
   },
 };
@@ -173,13 +175,29 @@ async function hearing(env, body) {
   const p = PROMPTS.hearing;
   const facts = staffFacts(co);
   const factList = Object.entries(facts).map(([k, v]) => `- ${k}（${k.replace(/[{}]/g, '')}。画面では「${v}」に置き換わる）`).join('\n');
-  const system = p.body.replace('{{STAFF}}', STAFF_TONE[co] + (/ヒアリング|初回/.test(body.scene || '') ? `\nヒアリングの話題（会社の個性に合わせて、深く聞くものと流すものを選ぶ）：\n${TOPIC_LIST}` : '')).replace('{{SCENE}}', String(body.scene || '初回打ち合わせ').slice(0, 600)).replace('{{FACTS}}', factList);
+  const A = String(body.names?.a || 'かず').slice(0, 8), B = String(body.names?.b || 'ゆう').slice(0, 8);
+  const system = p.body.replace('{{A}}', A).replace('{{B}}', B).replace('{{STAFF}}', STAFF_TONE[co] + (/ヒアリング|初回/.test(body.scene || '') ? `\nヒアリングの話題（会社の個性に合わせて、深く聞くものと流すものを選ぶ）：\n${TOPIC_LIST}` : '')).replace('{{SCENE}}', String(body.scene || '初回打ち合わせ').slice(0, 600)).replace('{{FACTS}}', factList);
   const hist = (body.history || []).slice(-8).map(h => `${h.who}：${h.text}`).join('\n');
   const user = `${hist ? `# これまでの会話\n${hist}\n` : ''}# 施主の言葉\n${String(body.text || '').slice(0, 400)}`;
-  const fb = { line: body.fallbackLine || 'ありがとうございます。いまのお話、図面に反映できるか確認しますね。', honne: '', heard: [], missed: [] };
-  const r = await callJSON(env, { role: 'hearing', system, user, schema: HEARING_SCHEMA, fallback: fb, maxTokens: 1500, validate: x => newNumbers(x.line, [body.text, ...(body.history || []).map(h => h.text)]).length || /[一二三四五六七八九十百千]+(万円|円|日|週間|か月|ヶ月|坪)/.test(x.line) ? 'せりふに、施主が言っていない数字がある。数字は差し込み記号で書く' : hasDigits(x.honne) ? '本音のメモに数字' : null });
+  const fb = { line: body.fallbackLine || 'ありがとうございます。いまのお話、図面に反映できるか確認しますね。', honne: '', heard: [], missed: [], choices: [], wishes: [] };
+  const said = [body.text, ...(body.history || []).map(h => h.text)];
+  const r = await callJSON(env, { role: 'hearing', system, user, schema: HEARING_SCHEMA, fallback: fb, maxTokens: 1800, validate: x => x.wishes.some(w => w.value != null && newNumbers(String(w.value), said).length) ? '希望の条件の数字は、施主が言った数字だけ' : x.choices.some(hasDigits) ? '選択肢に数字' : newNumbers(x.line, said).length || /[一二三四五六七八九十百千]+(万円|円|日|週間|か月|ヶ月|坪)/.test(x.line) ? 'せりふに、施主が言っていない数字がある。数字は差し込み記号で書く' : hasDigits(x.honne) ? '本音のメモに数字' : null });
+  const WHO = { a: 'かず', b: 'ゆう', both: 'ふたり' }; // 内部の識別（1人目・2人目）。画面では入力された呼び名に置き換える
+  r.data.heard = (r.data.heard || []).map(h => ({ ...h, who: WHO[h.who] || h.who }));
+  r.data.choices = (r.data.choices || []).slice(0, 4);
   if (!r.call.fallback) { r.data.raw = r.data.line; for (const [k, v] of Object.entries(facts)) r.data.line = r.data.line.split(k).join(v); r.data.line = r.data.line.replace(/等級等級/g, '等級').replace(/UA値UA値/g, 'UA値'); }
   return r;
+}
+
+// ---- パートナー（ひとりプレイのとき、妻をAIが演じる）----
+const PARTNER_SCHEMA = { type: 'object', additionalProperties: false, required: ['line', 'wishes'], properties: { line: { type: 'string' }, wishes: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['tag', 'text'], properties: { tag: { type: 'string' }, text: { type: 'string' } } } } } };
+async function partner(env, body) {
+  const A = String(body.names?.a || 'かず').slice(0, 8), B = String(body.names?.b || 'ゆう').slice(0, 8);
+  const system = PROMPTS.partner.body.split('{{A}}').join(A).split('{{B}}').join(B);
+  const hist = (body.history || []).slice(-8).map(h => `${h.who}：${h.text}`).join('\n');
+  const user = `# いまの場面\n${String(body.scene || '').slice(0, 300)}\n${hist ? `# これまでの会話\n${hist}\n` : ''}# あなたへの問いかけ\n${String(body.ask || '').slice(0, 300)}`;
+  const fb = { line: 'うーん、わたしは毎日の家事が回るほうが気になるかな。', wishes: [] };
+  return callJSON(env, { role: 'partner', system, user, schema: PARTNER_SCHEMA, fallback: fb, maxTokens: 800, validate: x => hasDigits(x.line) ? '数字' : null });
 }
 
 // ---- 自分のAI（1ターン1回、短い回答を1回だけ。最も安価なモデル）----
@@ -333,7 +351,7 @@ export default {
       const body = await req.json().catch(() => ({}));
       if (path === '/api/play/start') { const msg = await guard(env, req, 'play'); return msg ? json({ ok: false, message: msg }, 429) : json({ ok: true, playId: rid() }); }
       if (path === '/api/log') return saveLog(env, body);
-      const ROLES = { '/api/ai/trade': trade, '/api/ai/hearing': hearing, '/api/ai/myai': myai, '/api/ai/report': report, '/api/ai/staff16': staff16, '/api/ai/entry': entry };
+      const ROLES = { '/api/ai/trade': trade, '/api/ai/hearing': hearing, '/api/ai/myai': myai, '/api/ai/report': report, '/api/ai/staff16': staff16, '/api/ai/entry': entry, '/api/ai/partner': partner };
       const fn = ROLES[path];
       if (!fn) return json({ error: 'not found' }, 404);
       const limited = await guard(env, req, 'call');

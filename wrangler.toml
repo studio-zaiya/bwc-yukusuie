@@ -19,6 +19,9 @@ id = "b6f160f4e88842288624a13eec26058a"
 MODEL_TOP = "claude-sonnet-5-5"
 MODEL_MID = "claude-sonnet-5-5"
 MODEL_LIGHT = "claude-haiku-5-5"
+# パートナー（ひとりプレイの妻）と、設計担当（間取りの骨組み）
+MODEL_PARTNER = "claude-sonnet-5-5"
+MODEL_PLANNER = "claude-opus-5-5"
 # 回数制限と費用の上限
 PLAYS_PER_IP_PER_DAY = "6"
 CALLS_PER_IP_PER_DAY = "120"

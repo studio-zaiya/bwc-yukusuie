@@ -2,7 +2,7 @@
  * Claudeが応答できなかったときは、代わりの文で成功したように見せず、「応答できませんでした（もう一度）」を出す */
 import * as Y from './engine/engine.js';
 import { S, emit, api, render } from './main.js';
-import { busy, setWho, getWho, persona, DATA, PHONE } from './scenes.js';
+import { busy, setWho, getWho, persona, DATA, PHONE, SHOW, NAMES } from './scenes.js';
 import { setFace } from './parts.js';
 import { tourNext, tourSkip, tourHelp } from './tour.js';
 
@@ -18,7 +18,7 @@ function faceTalk() { setFace(document.getElementById('face'), 'talk'); setTimeo
 const goto = (scene, step) => emit('scene', { scene, step });
 const isRealFail = call => call?.fallback && !/mock/.test(call.reason || '');
 const words = () => S.chat.filter(m => m.who === 'kazu' || m.who === 'yuu');
-const nameOf = w => w === 'yuu' ? 'ゆう' : 'かず';
+const nameOf = w => w === 'yuu' ? NAMES.yuu : NAMES.kazu;
 let lastSend = null; // 応答できなかったときに、もう一度送るため
 
 // 担当者に送る（ヒアリング・返信・質問・電気で共通）
@@ -26,7 +26,7 @@ async function askStaff({ co, ch, scene, text, flag, history = true }) {
   lastSend = { co, ch, scene, text, flag, history };
   await withBusy(async () => {
     const hist = history ? S.chat.filter(m => m.ch === ch && m.who !== 'sys').map(m => ({ who: m.who === 'staff' ? '担当者' : m.who === 'partner' ? 'ゆう' : nameOf(m.who), text: m.text })) : [];
-    const r = await api('/api/ai/hearing', { company: co, scene, history: hist, text });
+    const r = await api('/api/ai/hearing', { company: co, scene, history: hist, text, names: S.names });
     if (isRealFail(r.call)) { emit('fail', { role: 'hearing', ch, call: r.call }); return; }
     emit('ai', { role: 'hearing', co, ch, data: r.data, call: r.call, flag });
     faceTalk();
@@ -40,8 +40,26 @@ export const ACTIONS = {
     try { const r = await api('/api/play/start', {}); playId = r.playId; } catch (e) { toast(String(e.message)); return; }
     emit('start', { seed: 7, playId });
   },
-  howtoNext() { if (S.howto < 3) emit('howto', { page: S.howto + 1 }); else goto('family', 0); },
-  howtoSkip() { goto('family', 0); },
+  howtoNext() { saveNames(); if (S.howto < 3) emit('howto', { page: S.howto + 1 }); else goto('family', 0); },
+  howtoSkip() { saveNames(); goto('family', 0); },
+  mode(d) { saveNames(); emit('mode', { mode: d.m }); },
+  toLotNoEntry() { goto('lot', 0); },
+  // 担当者の質問への選択肢（押しても、自由に書いてもよい）
+  choose(d) { const el = document.getElementById('say'); if (el) el.value = d.t; ACTIONS.send(); },
+  openShow() { emit('pop', { pop: 'show' }); },
+  async doShow() {
+    const text = (document.getElementById('showText')?.value || '').trim();
+    if (!text && !SHOW.photos.length) return;
+    const photos = SHOW.photos.slice(0, 3);
+    emit('pop', { pop: null });
+    const co = S.cur;
+    emit('say', { who: getWho(), ch: co, text: `（${photos.length ? `写真を${photos.length}枚` : ''}${photos.length && text ? 'と、' : ''}${text ? 'ページやメモ' : ''}を見せた）${text ? ' ' + text.slice(0, 60) : ''}` });
+    SHOW.photos = []; SHOW.text = '';
+    let read = null;
+    await withBusy(async () => { const r = await api('/api/ai/entry', { text, photos }); if (!isRealFail(r.call)) { emit('ai', { role: 'entry', data: r.data, call: r.call }); read = r.data; } });
+    // 担当者は、読み取った要素を見て受け答えする
+    await askStaff({ co, ch: co, scene: `施主が、好きな家の写真やページを見せてくれた。読み取れた要素：${read ? read.elements.map(e => e.text).join('、') : 'うまく読み取れなかった'}。${read?.aside ? '家と関係ない写真もあった（' + read.aside + '）。' : ''}それを受けて、ひとこと返し、次の質問を一つする。`, text: `写真やページを見せた。${read?.summary || ''}` });
+  },
   toEntry() { goto('entry', 0); },
   async toLot() {
     const text = val('entryText');
@@ -75,6 +93,7 @@ export const ACTIONS = {
       ? `2社目の初回打ち合わせ。施主は前の会社と同じ要望を伝えている（${requests()}）。この会社の視点で、質問や助言をする。`
       : `1社目の初回打ち合わせ（ヒアリング）。${requests()}。ご主人（かず）と奥様（ゆう）の両方に聞く。話題：暮らし方と家族の時間帯、収納と家事の動線、予算と資金、土地、性能、デザイン、将来の変化。`;
     await askStaff({ co, ch: co, scene, text: `${nameOf(who)}：${text}` });
+    await partnerAnswers(co, scene);
   },
   async retry() { if (lastSend) await askStaff(lastSend); },
   toForgot() {
@@ -218,17 +237,17 @@ export const ACTIONS = {
     else { PHONE.st = { ...j, items: [] }; pollPhone(); }
     render();
   },
-  closePhone() { clearTimeout(pollTimer); if (PHONE.st?.code) fetch(`/api/link/${PHONE.st.code}/close`, { method: 'POST' }); PHONE.st = null; emit('pop', { pop: null }); },
+  closePhone() { clearTimeout(pollTimer); if (PHONE.st?.code) fetch(`/api/link/${PHONE.st.code}/close`, { method: 'POST' }); PHONE.st = null; emit('pop', { pop: S.scene === 'hearing' ? 'show' : null }); },
   async importPhone() {
     const code = PHONE.st?.code; if (!code) return;
     const j = await (await fetch(`/api/link/${code}/poll?full`)).json();
     const texts = (j.items || []).filter(i => i.text).map(i => i.text);
-    const photos = (j.items || []).filter(i => i.photo && i.photo.startsWith('data:')).map(i => i.photo).slice(0, 3 - S.entry.photos.length);
-    const ta = document.getElementById('entryText');
-    const text = [ta?.value || S.entry.text, ...texts].filter(Boolean).join('\n');
-    S.entry = { text, photos: [...S.entry.photos, ...photos] };
-    ACTIONS.closePhone();
-    const t2 = document.getElementById('entryText'); if (t2) { t2.value = text; t2.dispatchEvent(new Event('input')); }
+    const photos = (j.items || []).filter(i => i.photo && i.photo.startsWith('data:')).map(i => i.photo);
+    const prev = document.getElementById('showText')?.value || '';
+    SHOW.photos = [...SHOW.photos, ...photos].slice(0, 3);
+    clearTimeout(pollTimer); if (PHONE.st?.code) fetch(`/api/link/${code}/close`, { method: 'POST' }); PHONE.st = null;
+    emit('pop', { pop: 'show' });
+    const t2 = document.getElementById('showText'); if (t2) t2.value = [prev, ...texts].filter(Boolean).join('\n');
   },
   tourNext() { tourNext(); render(); },
   tourSkip() { tourSkip(); render(); },
@@ -273,8 +292,8 @@ async function shrink(file) {
   return c.toDataURL('image/jpeg', 0.85);
 }
 async function addFiles(files) {
-  const imgs = [...files].filter(f => f.type.startsWith('image/')).slice(0, 3 - S.entry.photos.length);
-  for (const f of imgs) S.entry.photos.push(await shrink(f));
+  const imgs = [...files].filter(f => f.type.startsWith('image/')).slice(0, 3 - SHOW.photos.length);
+  for (const f of imgs) SHOW.photos.push(await shrink(f));
   render();
 }
 let bound = false;
@@ -283,14 +302,33 @@ export function bindDrop() {
   el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('on'); });
   el.addEventListener('dragleave', () => el.classList.remove('on'));
   el.addEventListener('drop', e => { e.preventDefault(); el.classList.remove('on'); addFiles(e.dataTransfer.files); });
-  if (!bound) { bound = true; addEventListener('paste', e => { if (S.scene === 'entry' && e.clipboardData?.files?.length) addFiles(e.clipboardData.files); }); }
+  if (!bound) { bound = true; addEventListener('paste', e => { if (S.pop === 'show' && e.clipboardData?.files?.length) addFiles(e.clipboardData.files); }); }
 }
 
 let pollTimer = null;
-function keepEntry() { const ta = document.getElementById('entryText'); if (ta) S.entry.text = ta.value; }
+function keepEntry() { const ta = document.getElementById('showText'); if (ta) SHOW.text = ta.value; }
 async function pollPhone() {
   clearTimeout(pollTimer);
   const code = PHONE.st?.code; if (!code || S.pop !== 'phone') return;
   try { const r = await fetch(`/api/link/${code}/poll`); const j = await r.json(); if (r.status === 410) { PHONE.st = { error: j.message }; render(); return; } if (j.ok && (j.items || []).length !== (PHONE.st.items || []).length) { PHONE.st.items = j.items; render(); } } catch { }
   pollTimer = setTimeout(pollPhone, 3000);
+}
+
+function saveNames() {
+  const a = document.getElementById('nmA'), b = document.getElementById('nmB');
+  if (a || b) emit('names', { a: (a?.value || '').trim() || 'かず', b: (b?.value || '').trim() || 'ゆう' });
+}
+// ひとりプレイ：担当者が妻に聞いたとき、パートナー（AI）が答え、担当者がそれを受ける（1往復だけ）
+async function partnerAnswers(co, scene) {
+  if (S.mode !== 'solo') return;
+  const last = [...S.chat].reverse().find(m => m.ch === co && m.who === 'staff');
+  if (!last || !new RegExp(`奥様|奥さま|${NAMES.yuu}さん|おふたり|お二人`).test(last.text)) return;
+  await withBusy(async () => {
+    const hist = S.chat.filter(m => m.ch === co && m.who !== 'sys').slice(-8).map(m => ({ who: m.who === 'staff' ? '担当者' : nameOf(m.who), text: m.text }));
+    const r = await api('/api/ai/partner', { names: S.names, scene: '住宅会社の初回打ち合わせ。担当者に聞かれたことに答える。', history: hist, ask: last.text });
+    if (isRealFail(r.call)) return;
+    emit('ai', { role: 'partner', co, ch: co, data: r.data, call: r.call });
+  });
+  const said = [...S.chat].reverse().find(m => m.ch === co && m.who === 'yuu' && m.ai);
+  if (said) await askStaff({ co, ch: co, scene, text: `${NAMES.yuu}：${said.text}` });
 }

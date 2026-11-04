@@ -2,7 +2,7 @@
  * 出来事の記録（イベント）を基本にする：操作もClaudeの応答も1件のイベントとして積み、状態はイベントから組み立てる。
  * 再生（?replay=記録ID）は、同じイベントを順に当て直すだけ。Claudeは呼ばない。 */
 import * as Y from './engine/engine.js';
-import { SCENES, snsHTML, myaiHTML, worldHTML, flyersHTML, phoneHTML, setWho } from './scenes.js';
+import { SCENES, snsHTML, myaiHTML, worldHTML, flyersHTML, phoneHTML, showHTML, setWho, setNames, MODE } from './scenes.js';
 import { ACTIONS } from './actions.js';
 import { tourAfterRender, tourHTML } from './tour.js';
 
@@ -16,7 +16,7 @@ addEventListener('resize', fit); fit();
 // ---- 状態 ----
 export function initialState() {
   return {
-    scene: 'start', step: 0, household: 't2', seed: 7, playId: null, howto: 0,
+    scene: 'start', step: 0, household: 't2', seed: 7, playId: null, howto: 0, names: { a: 'かず', b: 'ゆう' }, mode: 'solo', wishes: [],
     entry: { text: '', photos: [] }, entryRead: null, sources: [], visit: [], cur: null, survey: null,
     chat: [], heard: [], missed: [], honne: [], turns: {},
     pair: ['C', 'A'], player: null, others: [], newest: [],
@@ -45,6 +45,8 @@ export function apply(s, e) {
     case 'start': Object.assign(s, initialState(), { scene: 'howto', seed: e.seed, playId: e.playId }); break;
     case 'scene': if (s.scene !== e.scene || s.step !== e.step) s.band = null; s.scene = e.scene; if (e.step != null) s.step = e.step; s.pop = null; s.failed = null; s.newest = e.scene === 'fork' || e.scene === 'coord' ? s.newest : []; break;
     case 'howto': s.howto = e.page; break;
+    case 'names': s.names = { a: e.a || 'かず', b: e.b || 'ゆう' }; break;
+    case 'mode': s.mode = e.mode; break;
     case 'entry': s.entry = { text: e.text, photos: e.photos || [] }; break;
     case 'source': if (!s.sources.includes(e.id)) s.sources.push(e.id); break;
     case 'visit': s.visit = e.cos; s.pair = [...e.cos]; break;
@@ -59,7 +61,8 @@ export function apply(s, e) {
       s.failed = null;
       const mock = isMock(e.call);
       if (e.role === 'hearing') {
-        s.chat.push({ who: 'staff', co: e.co, ch: e.ch || e.co, text: e.data.line, mock, flag: e.flag });
+        s.chat.push({ who: 'staff', co: e.co, ch: e.ch || e.co, text: e.data.line, mock, flag: e.flag, choices: e.data.choices || [] });
+        for (const w of e.data.wishes || []) { const i = s.wishes.findIndex(x => x.kind === w.kind && w.kind !== 'priority'); if (i >= 0) s.wishes[i] = w; else s.wishes.push(w); }
         if (e.data.honne) s.honne.push({ co: e.co, text: e.data.honne, step: s.step });
         s.heard.push(...(e.data.heard || []).map(h => ({ ...h, co: e.co })));
         s.missed.push(...(e.data.missed || []).map(h => ({ ...h, co: e.co })));
@@ -67,6 +70,7 @@ export function apply(s, e) {
       }
       if (e.role === 'myai') { s.myai = { q: e.q, scene: e.scene, mock, ...e.data }; s.aiLeft[s.scene] = 0; }
       if (e.role === 'report') s.report = { ...e.data, mock };
+      if (e.role === 'partner') { s.chat.push({ who: 'yuu', ch: e.ch, text: e.data.line, ai: true }); s.heard.push(...(e.data.wishes || []).map(x => ({ tag: x.tag, who: 'ゆう', text: x.text, co: e.co }))); }
       if (e.role === 'entry') { s.entryRead = e.data; s.heard.push(...(e.data.elements || []).map(x => ({ tag: x.tag, who: 'ふたり', text: x.text, from: x.from }))); }
       if (e.role === 'staff16') s.staff16 = e.data;
       if (e.role === 'trade') {
@@ -129,7 +133,7 @@ export function emit(type, payload = {}) {
   LOG.push(e);
   apply(S, e);
   // 担当者の質問に合わせて、話す人を切り替える（手で戻すこともできる）
-  if (type === 'ai' && e.role === 'hearing') { const t = e.data.line || ''; if (/奥様|ゆうさん|奥さま/.test(t)) setWho('yuu'); else if (/ご主人|かずさん|旦那/.test(t)) setWho('kazu'); }
+  if (type === 'ai' && e.role === 'hearing' && S.mode === 'duo') { const t = e.data.line || ''; if (new RegExp(`奥様|奥さま|${S.names.b}さん`).test(t)) setWho('yuu'); else if (new RegExp(`ご主人|旦那|${S.names.a}さん`).test(t)) setWho('kazu'); }
   render();
   if (['fork', 'ai'].includes(type) && !RT.replaying) autosave();
   return e;
@@ -155,6 +159,7 @@ export async function api(path, body) {
 
 // ---- 描画 ----
 export function render() {
+  setNames(S.names); MODE.solo = S.mode === 'solo';
   const fn = SCENES[S.scene] || SCENES.start;
   const view = document.getElementById('view');
   const keep = [...view.querySelectorAll('[data-keep]')].map(el => ({ id: el.id, v: el.value }));
@@ -166,7 +171,7 @@ export function render() {
 }
 function popHTML() {
   if (!S.pop) return '';
-  return `<div class="veil" data-act="closePop"></div>${S.pop === 'sns' ? snsHTML(S) : S.pop === 'world' ? worldHTML(S) : S.pop === 'flyers' ? flyersHTML(S) : S.pop === 'phone' ? phoneHTML(S) : myaiHTML(S)}`;
+  return `<div class="veil" data-act="closePop"></div>${S.pop === 'sns' ? snsHTML(S) : S.pop === 'world' ? worldHTML(S) : S.pop === 'flyers' ? flyersHTML(S) : S.pop === 'phone' ? phoneHTML(S) : S.pop === 'show' ? showHTML(S) : myaiHTML(S)}`;
 }
 
 // ---- 操作の受け口（data-act）----
