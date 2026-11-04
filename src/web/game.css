@@ -540,3 +540,18 @@ button.th.th15{font:inherit;color:inherit;text-align:center;cursor:pointer;borde
 .rt-common{font-size:18px;margin:-8px 0 12px;padding:6px 16px;border-radius:999px;background:#F4F1EA}.rt-catch{font-size:17px;color:var(--ink2)}
 .rt-pv{float:right;width:420px;margin:0 0 10px 20px;background:#fff;border:2px dashed #C99A00;border-radius:18px;padding:8px 14px}.rt-pv svg{width:100%;max-height:220px}.rt-pv ul{list-style:none;margin:0;padding:0;font-size:18px}.rt-pv li{color:#8C6A00;font-weight:700}
 .rt-tw{display:grid;grid-template-columns:400px 1fr;gap:22px;width:100%;flex:1;min-height:0;align-items:start}.rt-tw .rt-pv{float:none;width:auto;margin:0}.rt-tw .rt-trade{overflow:auto;max-height:100%}
+
+/* 流れ v3：提案の日 */
+.pp-band{position:absolute;left:50%;top:104px;transform:translateX(-50%);font-family:var(--fr);font-weight:900;font-size:22px;color:var(--ink2);animation:rtin .6s ease-out}
+.pp-wrap{position:absolute;left:30px;right:30px;top:140px;bottom:110px;display:grid;grid-template-columns:1fr 1fr;gap:26px}
+.pp-col{background:#fff;border-radius:22px;padding:18px 24px;display:flex;flex-direction:column;gap:10px;min-height:0;overflow:hidden}
+.pp-col.wait{align-items:center;justify-content:center;gap:16px;font-size:22px}.pp-col.wait .zone{width:80%}
+.pp-hd{display:flex;align-items:center;gap:12px;font-family:var(--fr);font-size:28px}.pp-hd span{margin-left:auto;font-family:var(--f);font-size:17px;color:var(--ink2)}
+.pp-intro{font-size:18px;line-height:1.6;margin:0;color:var(--ink)}
+.pp-mid{display:grid;grid-template-columns:1.35fr 1fr;gap:12px;align-items:center;min-height:0;flex:1}.pp-zone svg{width:100%;height:auto}.pp-house svg{width:100%;max-height:260px}
+.pp-facts{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px}.pp-facts div{display:flex;flex-direction:column}.pp-facts span{font-size:15px;color:var(--ink2)}.pp-facts b{font-family:var(--fr);font-size:24px}
+.pp-go{position:absolute;right:30px;bottom:24px;display:flex;align-items:center;gap:16px}
+.wswitch.soft{background:rgba(255,250,240,.75)}.wswitch.soft p{background:#fff;color:var(--ink);border:2px solid var(--ink)}
+.rt-card.auto{cursor:default}
+.pp-zone{flex:1;min-height:0;display:flex;align-items:center}.pp-zone svg{width:100%;max-height:100%}
+.pp-low{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:center}.pp-low .pp-house svg{width:100%;max-height:250px}

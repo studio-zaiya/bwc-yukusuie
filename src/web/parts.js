@@ -102,5 +102,7 @@ export function estate2(list, o = {}) {
 
 export const setFace = (el, s) => { if (el) el.setAttribute('data-s', s); };
 export function coTag(id, s = 30) { const sh = COMPANIES[id].shape; return `<span class="co ${sh}" style="width:${s}px;height:${s}px;font-size:${Math.round(s * .5)}px">${id}</span>`; }
-export const STEPS_S = ['見学', '初回', 'プラン', '設計申込', 'ショールーム', '契約', '色決め・電気', '着工', '上棟', '施主検査', '引渡し', '1年後'];
-export const progress = now => `<ol class="pbar" aria-label="家づくりの進み具合：${STEPS[now]}">${STEPS_S.map((s, i) => `<li class="${i < now ? 'done' : i === now ? 'now' : ''}"><i></i><span>${s}</span></li>`).join('')}</ol>`;
+// 工程の線は10段階（FLOW_v3 の2。設計申込・ショールームはなくした）。画面の中の工程の番号（0〜11）は変えず、表示だけを対応させる
+export const STEPS_S = ['見学・相談', '初回打ち合わせ', 'プラン提案・見積', '契約', '色決め・電気', '着工', '上棟', '施主検査', '引渡し', '1年後'];
+const STEP_TO_BAR = [0, 1, 2, 2, 2, 3, 4, 5, 6, 7, 8, 9];
+export const progress = now => { const b = STEP_TO_BAR[now] ?? 0; return `<ol class="pbar" aria-label="家づくりの進み具合：${STEPS_S[b]}">${STEPS_S.map((s, i) => `<li class="${i < b ? 'done' : i === b ? 'now' : ''}"><i></i><span>${s}</span></li>`).join('')}</ol>`; };

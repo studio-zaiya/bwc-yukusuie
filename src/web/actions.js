@@ -103,7 +103,8 @@ export const ACTIONS = {
     emit('mem', { memory: m });
     for (const [co, who, text] of [['C', 'staff', 'ご記入ありがとうございます。外まわりまで目の届く、すっきりした箱の家で、冬でも暖かい暮らしがご希望なのですね。屋根の形はおふたりで好みが分かれているようなので、外観と一緒に考えましょう。'], ['C', 'yuu', 'リビングのエアコンは、見えないようにしたいです。'], ['C', 'staff', '承知しました。メモしておきますので、全体の計画の中で調整しましょう。'], ['A', 'staff', '本日はご来場ありがとうございます。いただいたアンケート、拝見しました。性能と資金計画の両方から、ご提案をお持ちします。']]) emit('say', who === 'staff' ? { who, co, ch: co, text } : { who, ch: co, text });
     emit('say', { who: 'sys', ch: 'C', text: '（ここまでの打ち合わせは、済ませてあります）' });
-    emit('pair', { pair: ['C', 'A'] }); emit('world', {}); goto('fork', 2);
+    emit('pair', { pair: ['C', 'A'] }); emit('world', {}); goto('proposal', 2);
+    startProposals(['C', 'A'], 'preset-v3');
   },
   howtoNext() { saveNames(); if (S.howto < 3) emit('howto', { page: S.howto + 1 }); else goto('family', 0); },
   howtoSkip() { saveNames(); goto('family', 0); },
@@ -204,7 +205,8 @@ export const ACTIONS = {
     emit('say', { who: 'sys', ch: co, text: `${Y.COMPANIES[S.visit[0]].name}で書いたアンケートを、そのまま渡した` });
     await startMeeting(co);
   },
-  toCompare() { emit('tab', { co: S.visit[0] }); goto('compare', 2); },
+  // 流れ v3：2社目のあと、2社分の提案を同時に作り始め、「2週間後——提案の日」へ
+  toCompare() { if (!S.player) { emit('pair', { pair: S.visit }); emit('world', {}); } goto('proposal', 2); startProposals(S.visit.slice(0, 2)); },
   tab(d) { emit('tab', { co: d.co }); },
   async askCompare() {
     const text = val('say'); if (!text) return; clear('say');
@@ -213,9 +215,16 @@ export const ACTIONS = {
     const q = Y.quote(Y.baseSpec(Y.HOUSEHOLDS[S.household]), co, false);
     await askStaff({ co, ch: co, scene: `提案と見積の説明。見積の見せ方は「${q.label}」。別途の項目：${q.lines.filter(l => !l.shown).map(l => l.label).join('、') || 'なし'}。施主の質問に答える。`, text: `${nameOf(getWho())}：${text}` });
   },
-  toFork1() { emit('pair', { pair: S.visit }); emit('world', {}); goto('fork', 2); },
+  toFork1() { if (!S.player) { emit('pair', { pair: S.visit }); emit('world', {}); } goto('fork', 2); },
   // 札を押したら、パートナーが理由を聞く（任意）。理由は決断の記憶になり、レポートで使う
-  pickSide(d) { const dec = Y.decisions(S.pair)[S.forkNo]; const o = dec[d.side]; emit('pendingSide', { side: d.side, label: typeof o.label === 'function' ? o.label(S.player) : o.label }); prefetchPlan(d.side); },
+  // 札を押したら、そのまま決まる（理由は聞かない。FLOW_v3 の6）。選んだ札が残り、もう一方が下の列へ飛ぶ
+  async pickSide(d) {
+    if (S.pendingSide) return;
+    const dec = Y.decisions(S.pair)[S.forkNo]; const o = dec[d.side];
+    emit('pendingSide', { side: d.side, label: typeof o.label === 'function' ? o.label(S.player) : o.label });
+    await new Promise(r => setTimeout(r, 900));
+    decide(d.side, '');
+  },
   unpick() { emit('pendingSide', { side: null }); },
   decideWhy() { const reason = val('say'); clear('say'); decide(S.pendingSide, reason); },
   decideNoWhy() { decide(S.pendingSide, ''); },
@@ -237,10 +246,21 @@ export const ACTIONS = {
   },
   cancelTrade() { emit('cancelTrade', {}); },
   // 契約のあと：第四の分岐点「どう仕上げる？」を、ほかと同じ2枚の札の儀式で（人間の回答11/5）。そのあと、選んだ仕上げの中で色を決める
-  toCoord() { goto('fork', 6); },
+  toCoord() { goto('coord', 6); },
   finish(d) { emit('finish', { finish: { [d.k]: d.k === 'color' ? +d.v : d.v, ...(d.k === 'wall' ? { color: 0 } : {}) } }); },
   // 色決め：第四の分岐点で選んだ仕上げの中で、外壁の色だけを選ぶ（金額は変わらない）
-  decideCoord() { goto('electric', 6); },
+  // 仕上げを確定したら、第四の分岐点の札が自動で出て、選んだ内容に合うほうが自動で選ばれる（押させない。FLOW_v3 の3.5）
+  async decideCoord() {
+    const f = { ...S.player.finish }, add = Y.finishCost(f), dec = Y.decisions(S.pair)[3], side = add ? 'b' : 'a';
+    const label = add ? `グレードアップして仕上げた（${[f.wall !== 'std' && '外壁', f.floor !== 'std' && '床', f.inner !== 'vinyl' && '内壁'].filter(Boolean).join('・')}）` : '標準の仕上げのまま';
+    emit('autoFork', { side }); goto('fork', 6);
+    await new Promise(r => setTimeout(r, 1300));
+    emit('pendingSide', { side, label });
+    await new Promise(r => setTimeout(r, 900));
+    emit('fork', { decisionId: dec.id, proposal: { side, finish: f, plain: true, label, spec: {}, borrow: 'cover' }, reason: '', priority: '' });
+    emit('autoFork', { side: null });
+    closeFork(dec, () => afterFork(dec));
+  },
   elecTag(d) { const o = Y.ELECTRIC.options.find(x => x.id === d.id); const el = document.getElementById('say'); if (el && o) el.value = `${o.label}をお願いしたい`; },
   async sendElectric() {
     const text = val('say'); if (!text) return; clear('say');
@@ -362,6 +382,16 @@ function decide(side, reason) {
   closeFork(dec, () => { afterFork(dec); partnerReacts(dec, reason); });
 }
 // 終わり：「第◯の分岐点：〇〇を選んだ」の帯を1.5秒出してから、通常の画面に戻る
+// 分岐点どうしの短いつなぎ（FLOW_v3 の3）
+function connector(text, then) { SWITCH.on = true; SWITCH.lines = [text]; SWITCH.i = 0; SWITCH.soft = true; render(); setTimeout(() => { SWITCH.on = false; SWITCH.soft = false; then(); }, 1500); }
+// 2社分の提案を同時に作る（設計担当。数字はエンジン）。続きから遊ぶ道は、取っておいた提案を使う（cache）
+async function startProposals(cos, cache) {
+  await dataReady();
+  await Promise.all(cos.filter(co => !S.proposals[co]).map(async co => {
+    const w = Y.newWorld({ household: Y.HOUSEHOLDS[S.household] || Y.HOUSEHOLDS.t2, company: co });
+    try { const r = await api('/api/ai/planner', { ...planBody(w, '', null), cache: cache ? `${cache}-${co}` : undefined }); if (r.ok) emit('proposal', { co, data: { intro: r.intro, main: r.main, mainM: r.mainM, options: r.options, altIndex: r.altIndex, fallback: !!r.fallback }, call: r.call }); } catch (e) { toast(String(e.message || e)); }
+  }));
+}
 function closeFork(dec, then) {
   FORK_DONE.on = true; FORK_DONE.text = `${Y.FORKS[dec.no]}：「${S.player.labels.at(-1)}」を選んだ`;
   render();
@@ -395,9 +425,16 @@ async function reportCall() {
   } catch (e) { S.report = { failed: true }; toast(String(e.message)); }
 }
 function afterFork(dec) {
-  if (dec.id === 'D1') { const dd = Y.scheduleOf(S.player); emit('say', { who: 'sys', ch: S.player.company, text: `${Y.COMPANIES[S.player.company].name}に決めて、土地の売買契約を結んだ（ローン特約の期限は${Y.DEADLINE.loan}日目）` }); goto('plan', 3); emit('notice', { text: `土地の売買契約を結びました（${dd[1] || ''}日目）。住宅ローンの本審査は、ローン特約の期限（${Y.DEADLINE.loan}日目）までに通す必要があります。` }); planCall(''); }
-  else if (dec.id === 'D2') goto('fork', 5);
-  else if (dec.id === 'D4') goto('coord', 6);
+  if (dec.id === 'D1') {
+    // 選んだ会社の案で、家の本体を確定する（第二の分岐点の2案は、その案と調整の案）。ほかの世界にも各社の案を当てる
+    const co = S.player.company, p = S.proposals[co], dd = Y.scheduleOf(S.player);
+    emit('say', { who: 'sys', ch: co, text: `${Y.COMPANIES[co].name}に決めて、土地の売買契約を結んだ（ローン特約の期限は${Y.DEADLINE.loan}日目）` });
+    if (p) { emit('planGot', { data: { ...p, view: null } }); emit('planConfirm', {}); }
+    emit('planOthers', { byCo: Object.fromEntries(Object.entries(S.proposals).map(([c, x]) => [c, { main: x.main, alt: x.options?.[x.altIndex || 0]?.plan || null }])) });
+    connector('そのまま、予算の相談へ', () => { goto('fork', 3); emit('notice', { text: `土地の売買契約を結びました（${dd[1] || ''}日目）。住宅ローンの本審査は、ローン特約の期限（${Y.DEADLINE.loan}日目）までに通す必要があります。` }); });
+  }
+  else if (dec.id === 'D2') connector('契約の前に、最終のお見積りです', () => goto('fork', 5));
+  else if (dec.id === 'D4') goto('electric', 6);
   else if (dec.id === 'D3') {
     // 契約に入れてあるオプションは、その会社の担当者が聞き取れた（記録した）要望だけ
     const co = S.player.company;

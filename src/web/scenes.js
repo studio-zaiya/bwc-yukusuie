@@ -19,7 +19,7 @@ const chOf = s => s.player ? s.player.company : s.cur;
 // アンケートの、確定前の選択（複数選べる問い）と、押した札の沈み（0.2秒）
 export const SV = { sel: [], pressed: null };
 // 断られたあとのナレーションの帯（WORLD_SWITCH.md の5）
-export const SWITCH = { on: false, lines: [], i: 0 };
+export const SWITCH = { on: false, lines: [], i: 0, soft: false };
 export const DATA = { sources: null, sns: null, personas: null, electrical: null, ai: null, brochures: null, survey: null, harness: null };
 // 中身の素材集（data/content。期間中に claude.ai で作成）
 for (const [k, f] of [['sources', 'info_sources'], ['sns', 'sns_posts'], ['personas', 'personas'], ['electrical', 'electrical'], ['ai', 'ai_assistant'], ['brochures', 'brochures'], ['survey', 'survey'], ['harness', 'rep_harness']]) fetch(`/data/content/${f}.json`).then(r => r.json()).then(j => { DATA[k] = j; }).catch(() => {});
@@ -403,6 +403,27 @@ export const SCENES = {
       <div class="ppanel"><div class="pp-top">${thumb}<div><h4>提案</h4><p>${pitch}等級${Y.COMPANIES[tab].insul}。</p>${heard.length ? `<p class="note">反映した要望：${heard.map(esc).join('、')}</p>` : ''}</div></div>
         ${chat(s, { ch: tab, head: '', opts: `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="toFork1">2社を見比べて、第一の分岐点へ</button>`, thinking: busy.on, act: 'askCompare', placeholder: `${Y.COMPANIES[tab].staff}さんに、見積や提案について聞く` })}</div>`;
   },
+  // 流れ v3：提案の日。2社の案（間取りの骨組み・延床と形・立体・概算見積・希望との違い）を左右に並べる
+  proposal(s) {
+    const cos = s.visit.slice(0, 2), TMP = { A: '#EFE9DF', B: '#DDE6EA', C: '#C9A27A', D: '#F2E3C9' }, TMPR = { A: '#3E4148', B: '#3B4A57', C: '#2F3338', D: '#8B5E3C' }; // 提案の段階の仮の外壁の色（会社を見分けるため）
+    const col = co => {
+      const p = s.proposals[co], C = Y.COMPANIES[co];
+      if (!p) return `<section class="pp-col wait">${P.coTag(co, 30)}<b>${C.name}</b><div class="zone skel">${zoningSVG(null)}</div><p class="lead">${STAFFN(co)}「図面を広げますね……」</p></section>`;
+      const m = p.mainM, plan = p.main, w = Y.newWorld({ household: H(s), company: co }); Y.applyPlan(w, plan);
+      const q = Y.quote(w.spec, co, false);
+      const house = P.bigHouse({ ...w, no: 3, spec: { ...w.spec, exterior: 'min' } }, 4, { fin: { wall: TMP[co], roof: TMPR[co] } });
+      const wl = m.wishes?.length ? `<ul class="wbox">${wishLine(m.wishes.map(x => ({ ...x, kind: /総額/.test(x.label) ? 'totalMax' : /月々/.test(x.label) ? 'monthlyMax' : 'area' })))}</ul>` : '';
+      return `<section class="pp-col"><div class="pp-hd">${P.coTag(co, 34)}<b>${C.name}</b><span>${STAFFN(co)}${p.fallback ? '<span class="mk">代わりの処理</span>' : ''}</span></div>
+        <p class="pp-intro">${esc(p.intro || '')}</p>
+        <div class="pp-zone">${zoningSVG(plan)}</div>
+        <div class="pp-low"><div class="pp-house">${house}</div><div class="pp-facts"><div><span>延床と形</span><b>${m.tsubo}坪・${esc(plan.shape?.form || '総二階')}・${Y.ROOF_JA[plan.shape?.roof] || ''}</b></div>
+          <div><span>見積の表紙（${esc(q.label)}）</span><b>${man(q.cover)}万円</b></div>
+          <div><span>総額（土地と建物）</span><b>${man(m.total)}万円</b></div><div><span>月々の返済</span><b>約${m.monthly.toFixed(1)}万円</b></div></div></div>${wl}</section>`;
+    };
+    const ready = cos.every(co => s.proposals[co]);
+    return `${chrome(s)}<div class="pp-band">2週間後——提案の日</div><div class="pp-wrap">${cos.map(col).join('')}</div>
+      <div class="pp-go">${ready ? '' : '<span class="note">提案をそろえています……</span>'}<button class="big-btn" data-act="toFork1" ${ready ? '' : 'disabled'}>建てる会社を選ぶ ▶</button></div>`;
+  },
   // 分岐点：儀式にする。暗くなって札の名前と問いが大きく出て、2枚の札がメインの領域いっぱいに並ぶ。担当者は出てこない
   fork(s) {
     const d = Y.decisions(s.pair)[s.forkNo];
@@ -410,9 +431,9 @@ export const SCENES = {
     if (FORK_DONE.on) return `${chrome(s)}${hero(s)}<div class="ritual done"><div class="rt-band">${esc(FORK_DONE.text)}</div><svg class="rt-lot" viewBox="0 0 1860 676" aria-hidden="true"><polygon points="560,284 848,448 580,601 292,438" pathLength="100"/></svg></div>${gallery(s)}`;
     const w = s.player;
     // 2枚とも同じ「守れない希望」なら、札の上に1行だけ（攻めのレビュー11/5：同じ行が両方の札に出て、判断の材料にならなかった）
-    const ngOf = side => { const t = Y.forkWorld(w); Y.choose(t, d, side); return Y.checkWishes(t, s.wishes).filter(c => !c.ok).map(c => c.label).join('、'); };
+    const ngOf = side => { const t = Y.forkWorld(w); Y.choose(t, d, side); if (d.id === 'D1' && s.proposals?.[t.company]) Y.applyPlan(t, s.proposals[t.company].main); return Y.checkWishes(t, s.wishes).filter(c => !c.ok).map(c => c.label).join('、'); };
     const ngA = ngOf('a'), ngB = ngOf('b'), commonNg = ngA && ngA === ngB ? ngA : '';
-    const card = side => { const t = Y.forkWorld(w); Y.choose(t, d, side); const m = Y.money(t), m0 = Y.money(w); const df = m.total - m0.total, mo = Y.payment(m.loan, Y.RATE.variable) - Y.payment(m0.loan, Y.RATE.variable); const lc = Y.loanCheck(H(s), m.loan);
+    const card = side => { const t = Y.forkWorld(w); Y.choose(t, d, side); if (d.id === 'D1' && s.proposals?.[t.company]) Y.applyPlan(t, s.proposals[t.company].main); const m = Y.money(t), m0 = Y.money(w); const df = m.total - m0.total, mo = Y.payment(m.loan, Y.RATE.variable) - Y.payment(m0.loan, Y.RATE.variable); const lc = Y.loanCheck(H(s), m.loan);
       const co = Y.COMPANIES[t.company];
       const life = (w.company !== t.company || d.id === 'D1' ? `${co.kind}。担当は${co.staffRole}の${co.staff}さん、${Y.ROOF_JA[t.spec.roof]}の家` : diffWords(w, t)[0]) || '暮らしは大きくは変わらない';
       const mon = Y.payment(m.loan, Y.RATE.variable);
@@ -428,15 +449,13 @@ export const SCENES = {
         ${pend.result.wishCheck?.length ? `<ul class="wbox">${wishLine(pend.result.wishCheck)}</ul>` : ''}${band(s)}
         <div class="rt-acts">${pend.result.verdict === 'いまは難しい' ? '<span class="note">この条件では進められません。</span><button class="opt" data-act="cancelTrade">ほかの答えを考える</button>' : '<button class="big-btn" data-act="approve">この条件で進める</button><button class="big-btn ghost" data-act="cancelTrade">やめておく</button>'}</div></div></div>`;
     } else if (side) {
-      const asker = MODE.solo || WHO === 'kazu' ? 'yuu' : 'kazu', other = side === 'a' ? 'b' : 'a';
-      body = `<div class="rt-cards picked"><div class="rt-card on">${card(side)}</div><div class="rt-card fly">${card(other)}</div></div>
-        <div class="rt-why"><div class="msg"><div class="who"><i class="${asker === 'yuu' ? 'ci' : 'sq'}"></i>${esc(NAMES[asker])}</div>「${esc(s.pendingLabel || lab(d[side], w))}」だね。どうしてそっちにしたの？</div>
-        <div class="rt-in"><textarea id="say" rows="2" data-keep data-enter="decideWhy" placeholder="理由を書く（書かなくても進めます）"></textarea><button class="big-btn" data-act="decideWhy">理由を伝える</button><button class="big-btn ghost" data-act="decideNoWhy">言わずに進む</button></div>
-        <button class="linkbtn" data-act="unpick">札を選びなおす</button></div>`;
+      // 札を選んだら、そのまま決まる（理由は聞かない。FLOW_v3 の6）
+      const other = side === 'a' ? 'b' : 'a';
+      body = `<div class="rt-cards picked"><div class="rt-card on">${card(side)}</div><div class="rt-card fly">${card(other)}</div></div>`;
     } else {
       const refusedSide = side0 => { if (!s.refused || d.id !== 'D1') return false; const t = Y.forkWorld(w); Y.choose(t, d, side0); return t.company === s.refused.co; };
-      const btn = side0 => refusedSide(side0) ? `<div class="rt-card off">${card(side0)}<div class="rt-off">この会社とは、話が終わりました</div></div>` : `<button class="rt-card" data-act="pickSide" data-side="${side0}">${card(side0)}</button>`;
-      body = `<div class="rt-cards">${btn('a')}${btn('b')}</div>
+      const btn = side0 => s.autoFork ? `<div class="rt-card auto">${card(side0)}</div>` : refusedSide(side0) ? `<div class="rt-card off">${card(side0)}<div class="rt-off">この会社とは、話が終わりました</div></div>` : `<button class="rt-card" data-act="pickSide" data-side="${side0}">${card(side0)}</button>`;
+      body = `${s.autoFork ? '<div class="rt-common">色決めの内容から、自動で決まります</div>' : ''}<div class="rt-cards">${btn('a')}${btn('b')}</div>
         <div class="rt-in free">${whoSw()}<textarea id="say" rows="2" data-keep data-enter="freeAnswer" placeholder="${d.id === 'D3' ? '札を押すか、自分の言葉で答える（例：借入を少し増やして、南の大きな窓だけトリプルガラスにしたい）' : '札を押すか、自分の言葉で答える'}"></textarea><button class="btn" data-act="freeAnswer">送る</button></div>
         <div class="rt-navs">${navs(s)}</div>${busy.on ? '<div class="msg typing" style="margin:8px auto 0;max-width:600px">考えています……</div>' : ''}`;
     }
@@ -448,7 +467,7 @@ export const SCENES = {
     return `${chrome(s)}${hero(s, nearestCard(s))}<div class="right ${tall(s)}"><div class="chat">${staffHead(co, 'smile')}<div class="log" data-top style="padding:22px">
       <div class="msg"><div class="who">${P.coTag(co, 18)}${STAFFN(co)}</div>請負契約の書類です。図面と見積の内容をご確認ください。</div>
       <dl class="facts" style="font-size:20px;margin-top:10px"><dt>契約金額（建物）</dt><dd>${man(m.contract)}万円</dd><dt>土地</dt><dd>${man(m.land)}万円</dd><dt>総額</dt><dd>${man(m.total)}万円</dd><dt>借入</dt><dd>${man(m.loan)}万円（返済負担率 ${lc.ratio}%）</dd><dt>月々の返済（変動 ${Y.RATE.variable * 100}%）</dt><dd>約${(Math.round(lc.monthly * 100) * 100).toLocaleString('ja-JP')}円</dd><dt>選んだ道</dt><dd>${s.player.labels.map(esc).join('<br>')}</dd></dl></div>
-      <div class="opts"><button class="opt" style="background:var(--ink);color:var(--paper)" data-act="toCoord">署名する</button></div>${navs(s)}</div></div>${gallery(s)}`;
+      <div class="opts"><button class="opt" style="background:var(--ink);color:var(--paper)" data-act="toCoord">契約する ▶</button></div>${navs(s)}</div></div>${gallery(s)}`;
   },
   // 設計申込・詳細打ち合わせ：設計担当と、間取りの骨組みと予算を確定させる（第二の分岐点の手前）
   plan(s) {
@@ -466,18 +485,20 @@ export const SCENES = {
       <div class="in">${whoSw()}<textarea id="say" rows="3" data-keep data-enter="planAsk" placeholder="例：書斎はいらない／子ども部屋は将来仕切る／収納は一か所にまとめたい"></textarea><button class="btn" data-act="planAsk" ${(s.planRound || 0) >= 3 ? 'disabled' : ''}>伝える</button></div>${navs(s)}</div></div>`;
   },
   // 第四の分岐点：コーディネートで選んだ結果が、そのまま分岐点の答えになる
-  // 色決め（第四の分岐点のあと）：選んだ仕上げの中で、外壁の色を選ぶ。床と内壁は、選んだ仕上げのとおり
+  // 色決め（P4-a）：外壁・床・内壁の色と素材を選ぶ →「仕上げを確定する ▶」→ 第四の分岐点が自動で（FLOW_v3 の3.5）
   coord(s) {
     const w = s.player, f = w.finish;
-    const wall = Y.FINISH.wall.find(x => x.id === f.wall) || Y.FINISH.wall[0], floor = Y.FINISH.floor.find(x => x.id === f.floor) || Y.FINISH.floor[0], inner = Y.FINISH.inner.find(x => x.id === f.inner) || Y.FINISH.inner[0];
+    const wall = Y.FINISH.wall.find(x => x.id === f.wall) || Y.FINISH.wall[0];
     const cn = coordinator(s)?.name || '中村';
+    const opt = (k, x) => `<button class="o" data-act="finish" data-k="${k}" data-v="${x.id}" aria-pressed="${f[k] === x.id}"><span class="sw" style="background:${x.sw || x.colors[0][1]}"></span>${x.label}<em>${x.v ? '+' + x.v + '万円' : '標準'}</em></button>`;
+    const add = Y.finishCost(f);
     return `${chrome(s)}${hero(s)}<div class="right ${tall(s)}"><div class="chat"><div class="staffbar">${P.avatar(coordinator(s)?.gender === 'male' ? 'IC2' : 'IC', 70, 'smile')}<div class="nm">${Y.COMPANIES[w.company].name}<b>コーディネーター・${esc(cn)}</b></div><div class="nm" style="margin-left:auto;text-align:right">色決め</div></div>
       <div class="log coord" data-top style="padding:14px 22px;justify-content:flex-start">
-      <div class="msg"><div class="who">コーディネーター・${esc(cn)}</div>${esc(w.labels[3] || '仕上げ')}ですね。外壁の色を選びましょう。色で金額は変わりません。</div>
-      <h4>外壁：${esc(wall.label)}</h4>
+      <div class="msg"><div class="who">コーディネーター・${esc(cn)}</div>${esc((coordinator(s)?.tone || ['外壁と床、内壁を決めましょう。'])[0])}標準からの増額だけ、お伝えしますね。</div>
+      <h4>外壁</h4>${Y.FINISH.wall.map(x => opt('wall', x)).join('')}
       <div class="colors big">${wall.colors.map((c, i) => `<button data-act="finish" data-k="color" data-v="${i}" aria-pressed="${(f.color || 0) === i}" style="background:${c[1]}" title="${c[0]}"><span>${c[0]}</span></button>`).join('')}</div>
-      <h4>床と内壁</h4><p class="lead" style="font-size:19px;margin:0">${esc(floor.label)}／${esc(inner.label)}</p></div>
-      <div class="opts"><button class="opt" style="margin-left:auto;background:var(--ink);color:var(--paper)" data-act="decideCoord">この色で決める</button></div>${navs(s)}</div></div>${gallery(s)}`;
+      <h4>床</h4>${Y.FINISH.floor.map(x => opt('floor', x)).join('')}<h4>内壁</h4>${Y.FINISH.inner.map(x => opt('inner', x)).join('')}</div>
+      <div class="opts"><span style="font-size:18px;align-self:center">${add ? `グレードアップ +${man(add)}万円` : '標準の仕上げのまま'}</span><button class="opt" style="margin-left:auto;background:var(--ink);color:var(--paper)" data-act="decideCoord">仕上げを確定する ▶</button></div>${navs(s)}</div></div>${gallery(s)}`;
   },
   // 電気の打ち合わせ（受け入れ基準4）：全画面。左に部屋ごとの一覧（標準／契約で決めたオプション／追加）、右に担当者と確認
   electric(s) {
@@ -866,7 +887,12 @@ export function zoningSVG(plan) {
       let x = x0;
       row.forEach(room => { const w = fw * (room.size / ra); const wet = /浴|洗面|トイレ/.test(room.name), ldk = /LDK|リビング/.test(room.name);
         g += `<rect x="${x + 2}" y="${y + 2}" width="${w - 4}" height="${rh - 4}" rx="4" fill="${ldk ? '#FDEBDD' : wet ? '#DDEFFA' : '#F4F1EA'}" stroke="rgba(30,43,54,.45)"/>`;
-        g += `<text x="${x + w / 2}" y="${y + rh / 2 + 5}" text-anchor="middle" font-size="${Math.min(16, Math.max(10, w / 6))}" fill="#1E2B36">${esc(room.name)}</text>`; x += w; });
+        // 部屋の名前が枠からはみ出さないよう、長い名前は略称にし、字の大きさを枠の幅と文字数から決める（FLOW_v3 の7）
+        const nm = String(room.name).replace('ウォークインクローゼット', 'WIC').replace(/ファミリー(クローゼット|収納)/, '家族収納').replace('洗面・脱衣', '洗面'); const fH = Math.min(20, (w - 8) / Math.max(1, nm.length), rh / 2.4), fV = Math.min(20, w - 8, (rh - 10) / Math.max(1, nm.length));
+        if (fV > fH * 1.2 && fV >= 11) { const ch = [...nm], y0 = y + rh / 2 - (ch.length - 1) * fV / 2; // 細長い部屋は縦書き
+          g += `<text text-anchor="middle" font-size="${fV.toFixed(1)}" fill="#1E2B36">${ch.map((c, i) => `<tspan x="${x + w / 2}" y="${(y0 + i * fV + fV / 3).toFixed(1)}">${esc(c)}</tspan>`).join('')}</text>`;
+        } else { const fsz = Math.max(10, fH); g += `<text x="${x + w / 2}" y="${y + rh / 2 + fsz / 3}" text-anchor="middle" font-size="${fsz.toFixed(1)}" fill="#1E2B36">${esc(nm)}</text>`; }
+        x += w; });
     }
   });
   return `<svg viewBox="0 0 ${W * 2 + gap} ${H + 40}" class="zsvg">${g}</svg>`;

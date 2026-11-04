@@ -261,6 +261,14 @@ function planErr(p) {
   return null;
 }
 async function planner(env, body) {
+  // 続きから遊ぶ道（毎回同じ打ち合わせ済みの家族）の提案は、一度作ったものを取っておき、2回目からはすぐ返す（審査員を待たせない）
+  const ck = /^preset-[a-z0-9-]{1,20}-[ABCD]$/.test(body.cache || '') ? `plancache:${body.cache}` : null;
+  if (ck && env.STORE) { const hit = await env.STORE.get(ck); if (hit) { const j = JSON.parse(hit); return { ...j, call: { role: 'planner', cached: true, ms: 0 } }; } }
+  const out = await plannerRun(env, body);
+  if (ck && env.STORE && out.ok && !out.fallback) await env.STORE.put(ck, JSON.stringify({ ...out, call: undefined }), { expirationTtl: 60 * 60 * 24 * 30 });
+  return out;
+}
+async function plannerRun(env, body) {
   const world = body.world;
   const co = Y.COMPANIES[world.company];
   const wishes = body.wishes || [];
@@ -271,7 +279,7 @@ async function planner(env, body) {
       intro: { type: 'string', description: '担当者から施主へのひとこと（二〜三文、算用数字なし）' }, main: PLAN, options: { type: 'array', items: OPTION }, altIndex: { type: 'integer', description: '第二の分岐点で「もう一つの案」として残す option の番号（0から）' } } } },
   ];
   const user = [
-    `# 会社：${co.name}（${co.kind}）。提案の外形：${Y.ROOF_JA[co.roof]}`,
+    `# 会社：${co.name}（${co.kind}）。会社がふだん勧める外形：${Y.ROOF_JA[co.roof]}`,
     `# 世帯：${Y.HOUSEHOLDS[world.household]?.story || ''}　広さの目安：${(Y.HOUSEHOLDS[world.household]?.area || []).join('〜')}坪`,
     `# 要望の台帳（ヒアリングで聞き取ったこと）\n${(body.heard || []).slice(0, 30).map(h => `- ${h.who}：${h.text}`).join('\n') || 'なし'}`,
     `# 希望の条件\n${wishes.map(w => `- ${w.text}`).join('\n') || 'なし'}`,
@@ -291,15 +299,22 @@ async function planner(env, body) {
     const said = (body.heard || []).map(h => h.text).join(' ');
     if (/仕事は個室/.test(said)) base.push(R('書斎', 4.5, 2));
     if (/客間|和室/.test(said)) base.push(R('和室', 4.5, 1));
-    const shape = { form: '部分二階', roof: co.roof };
-    const main = { title: 'いただいた要望をそのまま入れた案', rooms: base, shape };
+    // 屋根は、要望の台帳の好みを優先（FLOW_v3 の4）
+    // ふたりの好みが分かれていれば、会社によってどちらの好みから組むかが変わる（理由は intro に一言）。形は会社の性格から
+    const RP = [['屋根は四角い箱', 'cube'], ['屋根は三角屋根', 'gable'], ['屋根は寄棟', 'hip'], ['屋根は片流れ', 'mane']].filter(([k]) => said.includes(k)).map(([, v]) => v);
+    const second = ['A', 'D'].includes(world.company);
+    const pref = RP.length ? RP[second && RP.length > 1 ? 1 : 0] : co.roof;
+    const form = ['A', 'B'].includes(world.company) ? '総二階' : '部分二階';
+    const shape = { form, roof: pref };
+    const main = { title: 'いただいた要望をそのまま入れた案', rooms: form === '総二階' ? base.map(r => r.name === 'ファミリー収納' ? { ...r, floor: 2 } : r) : base, shape };
+    const why = RP.length > 1 ? `屋根は、おふたりの好みが分かれていたので、${Y.ROOF_JA[pref]}で描いてみました。` : '';
     const opts = [
-      { plan: { title: '総二階に寄せた案', rooms: base.map(r => r.name === 'ファミリー収納' ? { ...r, floor: 2 } : r), shape: { form: '総二階', roof: co.roof } }, effect: '一階と二階の形がそろい、基礎と屋根が減る' },
+      { plan: { title: '総二階に寄せた案', rooms: base.map(r => r.name === 'ファミリー収納' ? { ...r, floor: 2 } : r), shape: { form: '総二階', roof: pref } }, effect: '一階と二階の形がそろい、基礎と屋根が減る' },
       { plan: { title: '子ども部屋をひとまわり小さくした案', rooms: base.map(r => r.name === '子ども部屋' ? { ...r, size: 4.5 } : r), shape }, effect: '子ども部屋は寝て勉強する広さに絞り、過ごすのはリビングで' },
       { plan: { title: '収納を一か所にまとめた案', rooms: base.filter(r => r.name !== '玄関収納').map(r => r.name === 'ファミリー収納' ? { ...r, size: 4.5 } : r), shape }, effect: '玄関の収納とまとめ、家族で共有する' },
     ];
     const measure = p => Y.measurePlan(world, p, wishes);
-    return { ok: true, fallback: true, intro: 'いただいた要望を全部入れると、こうなります。調整の案もお持ちしました。', main, mainM: measure(main), options: opts.map(o => ({ ...o, m: measure(o.plan) })), altIndex: 1, call };
+    return { ok: true, fallback: true, intro: `いただいた要望を全部入れると、こうなります。${why}調整の案もお持ちしました。`, main, mainM: measure(main), options: opts.map(o => ({ ...o, m: measure(o.plan) })), altIndex: 1, call };
   }
   // 数字はエンジンが出す：各案の面積・総額・月々・希望との違い
   const measure = p => Y.measurePlan(world, p, wishes);
