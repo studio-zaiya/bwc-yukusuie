@@ -113,7 +113,7 @@ export const ACTIONS = {
     await new Promise(r => setTimeout(r, 1500)); // 返信は少し時間をおいて届く
     await askStaff({ co, ch: 'msg', scene: '帰宅後、施主からメッセージアプリで届いた「伝え忘れたこと」への、翌日の返信。短く。', text, flag: 'forgot', history: false });
   },
-  toSecond() { emit('cur', { co: S.visit[1] }); goto('hearing', 1); emit('say', { who: 'sys', ch: S.visit[1], text: `${Y.COMPANIES[S.visit[0]].name}と同じ要望を伝えた` }); emit('say', { who: 'staff', co: S.visit[1], ch: S.visit[1], text: persona(S.visit[1])?.tone[1] || 'ご要望、拝見しました。気になる点からお聞かせください。' }); },
+  toSecond() { emit('cur', { co: S.visit[1] }); goto('hearing', 1); emit('say', { who: 'sys', ch: S.visit[1], text: `${Y.COMPANIES[S.visit[0]].name}と同じ要望を伝えた` }); emit('say', { who: 'staff', co: S.visit[1], ch: S.visit[1], text: secondOpening(S.visit[1]) }); },
   toCompare() { emit('tab', { co: S.visit[0] }); goto('compare', 2); },
   tab(d) { emit('tab', { co: d.co }); },
   async askCompare() {
@@ -134,7 +134,7 @@ export const ACTIONS = {
     const dec = Y.decisions(S.pair)[S.forkNo];
     emit('say', { who: getWho(), ch: S.player.company, text });
     await withBusy(async () => {
-      const r = await api('/api/ai/trade', { world: S.player, pair: S.pair, decisionId: dec.id, text });
+      const r = await api('/api/ai/trade', { world: S.player, pair: S.pair, decisionId: dec.id, text, wishes: S.wishes });
       emit('ai', { role: 'trade', text, data: r, call: r.call });
       faceTalk();
     });
@@ -331,4 +331,10 @@ async function partnerAnswers(co, scene) {
   });
   const said = [...S.chat].reverse().find(m => m.ch === co && m.who === 'yuu' && m.ai);
   if (said) await askStaff({ co, ch: co, scene, text: `${NAMES.yuu}：${said.text}` });
+}
+
+function secondOpening(co) {
+  const got = S.heard.slice(-3).map(h => h.text).join('、');
+  const by = { A: '弊社の標準仕様で、どこまで叶うか確かめさせてください。', B: '規格プランのどれが近いか、一緒に見ていきましょう！', C: 'いくつか、詳しく伺ってもいいですか。', D: 'だいたいできますよ。気になってることから聞かせてください。' }[co];
+  return `${Y.COMPANIES[S.visit[0]].name}さんと同じご要望を伺っています${got ? `（${got}など）` : ''}。${by}`;
 }

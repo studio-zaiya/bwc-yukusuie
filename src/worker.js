@@ -53,7 +53,7 @@ const PROPOSAL_SCHEMA = {
     spec: {
       type: 'object', additionalProperties: false, properties: {
         window: { type: 'string', enum: ['standard', 'triple'] }, kitchen: { type: 'boolean' }, exterior: { type: 'string', enum: ['full', 'min', 'none'] },
-        roof: { type: 'string', enum: ['flat', 'gable', 'hip', 'mane', 'cube'] }, bigWindow: { type: 'boolean' }, eave: { type: 'string', enum: ['south', 'none'] }, carport: { type: 'boolean' }, shed: { type: 'boolean' },
+        roof: { type: 'string', enum: ['flat', 'gable', 'hip', 'mane', 'cube'] }, tsubo: { type: 'integer', description: '施主が坪数を言ったときだけ、その数字を写す' }, bigWindow: { type: 'boolean' }, eave: { type: 'string', enum: ['south', 'none'] }, carport: { type: 'boolean' }, shed: { type: 'boolean' },
       },
     },
     borrow: { type: 'string', enum: ['cover', 'keep'], description: 'cover＝増額の分を借入に足す／keep＝借入は増やさない' },
@@ -115,12 +115,13 @@ async function trade(env, body) {
     `- 仕様：${JSON.stringify(world.spec)}`,
     `- 総額（土地＋建物）：${m.total}万円、借入：${m.loan}万円、自己資金：${m.self}万円`,
     `- これまでの道：${(world.labels || []).join(' → ') || 'なし'}`,
+    `- 施主の希望の条件：${(body.wishes || []).map(w => w.text).join('、') || 'なし'}（守れない案になるときは、message でやわらかく触れる）`,
     `# 施主の言葉`, String(body.text || '').slice(0, 400),
   ].join('\n');
   const tools = tradeTools(world, d);
   const { submit, call } = await callTools(env, {
     role: 'trade', user, tools,
-    validateSubmit: s => { const bad = digitsIn(s, ['message', 'reason', 'priority', 'label']); return bad.length ? `文（${bad.join('、')}）に算用数字が入っています。数字はエンジンが出すので、言葉だけで書き直してください。` : null; },
+    validateSubmit: s => { if (s.proposal?.spec?.tsubo != null && newNumbers(String(s.proposal.spec.tsubo), [body.text]).length) return '坪数は、施主が言った数字だけを写してください。'; const bad = digitsIn(s, ['message', 'reason', 'priority', 'label']); return bad.length ? `文（${bad.join('、')}）に算用数字が入っています。数字はエンジンが出すので、言葉だけで書き直してください。` : null; },
   });
   let proposal, message, reason = '', priority = '', label;
   if (submit) ({ proposal, message, reason, priority, label } = submit);
@@ -133,6 +134,7 @@ async function trade(env, body) {
   }
   proposal = { ...proposal, label };
   const result = Y.simulate(world, d, proposal);
+  { const t = Y.forkWorld(world); Y.choose(t, d, result.proposal); result.wishCheck = Y.checkWishes(t, body.wishes || []); }
   return { decisionId: d.id, proposal: result.proposal, result, message, reason, priority, label, call };
 }
 

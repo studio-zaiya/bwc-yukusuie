@@ -127,3 +127,25 @@ test('外形：要望がなければ、会社ごとの提案されやすい形�
   assert.equal(w.spec.roof, Y.COMPANIES.C.altRoof);
   assert.match(w.labels[1], /切妻/);
 });
+
+test('希望の条件：総額・月々・広さの上限と比べる（数字はエンジン）', () => {
+  const w = Y.newWorld({ household: H });
+  Y.choose(w, Y.DECISIONS[0], 'a');
+  const m = Y.money(w);
+  const r = Y.checkWishes(w, [{ kind: 'totalMax', value: Math.round(m.total) - 10, text: '' }, { kind: 'areaMax', value: 40, text: '' }, { kind: 'priority', value: null, text: '冬の暖かさ' }]);
+  assert.equal(r.length, 2);
+  assert.equal(r[0].ok, false);
+  assert.equal(r[1].ok, true);
+});
+test('面積の変更：施主が言った坪数で、建蔽率・見積・暖かさが連動する', () => {
+  const w = Y.newWorld({ household: H }); Y.choose(w, Y.DECISIONS[0], 'a'); Y.choose(w, Y.DECISIONS[1], 'a');
+  const r = Y.simulate(w, Y.DECISIONS[2], { side: 'a', spec: { tsubo: 30 }, borrow: 'keep' });
+  assert.ok(r.quote.diff < 0);
+  assert.equal(r.proposal.spec.tsuboAbs, 30);
+});
+test('大きな出来事は、前の工程の種がある世界でだけ起きる', () => {
+  for (const w of Y.allWorlds({ seed: 7 })) for (const c of w.causes) assert.ok(c.cause.length > 0);
+  // 第四の分岐で標準を選び、自由回答もしていない A の世界では、担当の交代は起きない
+  const ws = Y.allWorlds({ seed: 7 }).filter(w => w.company === 'A' && w.bits[3] === 0 && !w.third);
+  assert.ok(ws.every(w => !w.causes.some(c => c.amount === 380)));
+});

@@ -40,7 +40,15 @@ function moneyBox(s) {
 }
 // 時計の札：土地の契約までは「土地の契約期限」、そのあとは「ローン特約の期限」
 const DAY_OF_STEP = [0, 6, 14, 24, 34, 48, 62, 80, 120, 170, 200, 565];
-function dayOf(s) { if (s.player) { const d = Y.scheduleOf(s.player); return s.step === 0 ? 0 : d[Math.max(0, s.step - 1)]; } return DAY_OF_STEP[s.step] || 0; }
+function dayOf(s) {
+  const w = s.player || Y.newWorld({ household: H(s), company: s.visit[0] || 'C' });
+  const d = Y.scheduleOf(w);
+  let day = s.step === 0 ? 0 : d[Math.max(0, s.step - 1)];
+  if (s.scene === 'reply') day += 1; // 帰り道の翌日
+  if (s.scene === 'hearing' && s.visit[1] && s.cur === s.visit[1]) day += 4; // 2社目は、その週のうちに
+  if (s.step >= 10) day = d[10]; // 引渡しの日は、結果の欄・比較と同じ値（工程表の同じ値）
+  return day;
+}
 function clocks(s) {
   const day = dayOf(s);
   const out = [`<span class="clk"><b>${day}</b>日目</span>`];
@@ -117,6 +125,13 @@ function hero(s, extra = '', cls = '') {
     <div class="ph">${Y.STEPS[s.step]}<br><span style="font-size:15px">${area}${w.fitted ? `（予算に合わせて${w.fitted}坪小さく）` : ''}</span></div>${heroHouse(s)}${extra}</div>`;
 }
 
+// 希望との違い：守れない希望を、札と判定に出す（数字はエンジン）
+export function wishLine(ch) {
+  if (!ch.length) return '';
+  const ng = ch.filter(c => !c.ok);
+  const diffs = ch.filter(c => c.kind === 'totalMax' || c.kind === 'monthlyMax').map(c => `${c.kind === 'totalMax' ? '総額' : '月々'}${c.diff > 0 ? '+' : ''}${c.kind === 'monthlyMax' ? c.diff.toFixed(1) : man(c.diff)}万円`);
+  return `<li class="wl">希望との違い：${diffs.join('／') || 'なし'}${ng.length ? `<br><b>この案では守れない希望：${ng.map(c => esc(c.label)).join('、')}</b>` : '<br>希望はすべて守れる'}</li>`;
+}
 // 希望のボード：わかった希望（付箋）・まだ決まっていないこと・次に決めること
 const WISH_TXT = w => ({ totalMax: `総額 ${man(w.value)}万円以内`, monthlyMax: `月々 ${man(w.value)}万円以内`, areaMax: `${w.value}坪まで`, areaMin: `${w.value}坪は欲しい` }[w.kind] || w.text);
 function boardHTML(s) {
@@ -305,18 +320,19 @@ export const SCENES = {
     const d = Y.decisions(s.pair)[s.forkNo];
     if (!d) return chrome(s) + hero(s) + gallery(s);
     const w = s.player;
-    const facts = side => { const t = Y.forkWorld(w); Y.choose(t, d, side); const m = Y.money(t); const lc = Y.loanCheck(H(s), m.loan); const base = Y.money(w).total; const df = m.total - base; return `<li>総額 ${man(m.total)}万円${Math.round(df) ? `（${df > 0 ? '+' : ''}${man(df)}）` : ''}</li><li>借入 ${man(m.loan)}万円${lc.ok ? '' : '（審査の上限を超える）'}</li>${t.fitted && !w.fitted ? `<li>予算に合わせた案（${t.spec.tsubo}坪）</li>` : ''}`; };
+    const facts = side => { const t = Y.forkWorld(w); Y.choose(t, d, side); const m = Y.money(t); const lc = Y.loanCheck(H(s), m.loan); const base = Y.money(w).total; const df = m.total - base; return `<li>総額 ${man(m.total)}万円${Math.round(df) ? `（${df > 0 ? '+' : ''}${man(df)}）` : ''}</li><li>借入 ${man(m.loan)}万円${lc.ok ? '' : '（審査の上限を超える）'}</li>${t.fitted && !w.fitted ? `<li>予算に合わせた案（${t.spec.tsubo}坪）</li>` : ''}${wishLine(Y.checkWishes(t, s.wishes))}`; };
     const pend = s.pendingTrade, side = s.pendingSide;
     const mid = pend || side ? '' : `<div class="fk"><div class="q">${Y.FORKS[d.no]}</div><div class="qq">${d.q}</div><div class="cards">
       <button class="cd" data-act="pickSide" data-side="a"><h4>${esc(lab(d.a, w))}</h4><ul>${facts('a')}</ul></button>
       <button class="cd" data-act="pickSide" data-side="b"><h4>${esc(lab(d.b, w))}</h4><ul>${facts('b')}</ul></button></div></div>`;
     const asker = MODE.solo || WHO === 'kazu' ? 'yuu' : 'kazu';
     const why = side ? `<div class="fk"><div class="msg"><div class="who"><i class="${asker === 'yuu' ? 'ci' : 'sq'}"></i>${esc(NAMES[asker])}</div>「${esc(lab(d[side], w))}」だね。どうしてそっちにしたの？</div></div>` : '';
+    const wishBox = pend && pend.result.wishCheck?.length ? `<div class="fk"><ul class="wbox">${wishLine(pend.result.wishCheck)}</ul></div>` : '';
     const opts = pend ? (pend.result.verdict === 'いまは難しい' ? `<span class="note" style="align-self:center">この条件では進められません。</span><button class="opt" data-act="cancelTrade">ほかの答えを考える</button>` : `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="approve">この条件で進める</button><button class="opt" data-act="cancelTrade">やめておく</button>`)
       : side ? `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="decideWhy">理由を伝えて決める</button><button class="opt" data-act="decideNoWhy">理由は言わずに決める</button><button class="opt" data-act="unpick">選びなおす</button>` : '';
     const co = w.company;
     const lead = { 0: 'どちらの会社と、家を建てますか。', 1: '間取りと予算の配分を決める段階です。', 2: '契約の前の最終見積と、ローンの本審査です。' }[d.no];
-    return `${chrome(s)}${hero(s, `<div class="forkmark">${Y.FORKS[d.no]}</div>${band(s)}`)}<div class="right ${tall(s)}">${chat(s, { ch: co, head: d.no === 0 ? '' : staffHead(co, busy.on ? 'think' : 'idle'), middle: mid + why, opts, act: side ? 'decideWhy' : 'freeAnswer', thinking: busy.on, placeholder: side ? '理由を書く（任意）' : `札を押すか、自分の言葉で答える（${lead}）` })}</div>${gallery(s)}`;
+    return `${chrome(s)}${hero(s, `<div class="forkmark">${Y.FORKS[d.no]}</div>${band(s)}`)}<div class="right ${tall(s)}">${chat(s, { ch: co, head: d.no === 0 ? '' : staffHead(co, busy.on ? 'think' : 'idle'), middle: mid + why + wishBox, opts, act: side ? 'decideWhy' : 'freeAnswer', thinking: busy.on, placeholder: side ? '理由を書く（任意）' : `札を押すか、自分の言葉で答える（${lead}）` })}</div>${gallery(s)}`;
   },
   contract(s) {
     const m = Y.money(s.player), co = s.player.company, lc = Y.loanCheck(H(s), m.loan);
@@ -355,11 +371,12 @@ export const SCENES = {
   // S6：「着工する ▶」で、工程が自動で進む。前の工程で立ったフラグ（聞き漏れ）だけが、施主検査で芽を出す
   build(s) {
     const days = Y.scheduleOf(s.player);
-    const found = s.missed.filter(m => m.co === s.player.company).slice(0, 2);
+    const INSPECT = /窓|収納|下地|コンセント|照明|床|壁|扉|棚|洗面|キッチン|テレビ|エアコン|LAN|手すり|クロス|スイッチ/;
+    const found = s.missed.filter(m => m.co === s.player.company && INSPECT.test(m.said || '')).slice(0, 2);
     const rows = [[7, '申請・着工', '確認の申請がおりて、地鎮祭。基礎の工事に入る'], [8, '上棟', '骨組みが立ち上がる。家の形がいちばんわかる日'], [9, '施主検査', found.length ? `頼んだとおりか確かめる。気づいたこと：${found.map(m => esc(m.said)).join('／')}` : '頼んだとおりか、付箋を貼って確かめる'], [10, '引渡し', '鍵を受け取る']];
     const auto = s.buildAuto;
     return `${chrome(s)}${hero(s)}<div class="right ${tall(s)}"><div class="chat"><div class="staffbar"><div class="nm">工事の帳面<b>着工から引渡しまで</b></div></div>
-      <ol class="timeline">${rows.map(([st, t, d]) => `<li class="${s.step >= st && (auto || st === 7 && s.step > 7) ? 'on' : ''}"><b>${days[st - 1]}日目</b><span><b>${t}</b><br>${d}</span></li>`).join('')}</ol>
+      <ol class="timeline">${rows.map(([st, t, d]) => `<li class="${s.step >= st && (auto || st === 7 && s.step > 7) ? 'on' : ''}"><b>${days[st]}日目</b><span><b>${t}</b><br>${d}</span></li>`).join('')}</ol>
       <div class="opts" style="margin-top:auto">${auto ? '<span class="note">工事が進んでいます……</span>' : `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="startBuild">着工する ▶</button>`}</div>${navs(s)}</div></div>${gallery(s)}`;
   },
   // S7：白いフェードで入る引渡し式。動きが止まったら「写真を保存」と「そして1年後……」
@@ -367,7 +384,7 @@ export const SCENES = {
     const m = Y.money(s.player);
     return `${chrome(s)}<div class="hero tall cer">${ceremonySVG(s)}</div><div class="right tall"><div class="chat">${staffHead(s.player.company, 'smile')}<div class="log" style="padding:22px">
       <div class="msg"><div class="who">${P.coTag(s.player.company, 18)}${STAFFN(s.player.company)}</div>鍵をお渡しします。おめでとうございます。</div>
-      <dl class="facts" style="font-size:20px;margin-top:12px"><dt>最終の総額</dt><dd>${man(m.total)}万円</dd><dt>うち増工</dt><dd>${man(m.add)}万円</dd><dt>借入</dt><dd>${man(m.loan)}万円</dd><dt>引渡し</dt><dd>${Y.scheduleOf(s.player)[10]}日目</dd></dl></div></div></div>
+      <dl class="facts" style="font-size:20px;margin-top:12px"><dt>最終の総額</dt><dd>${man(m.total)}万円</dd><dt>うち増工</dt><dd>${man(m.add)}万円</dd><dt>借入</dt><dd>${man(m.loan)}万円</dd><dt>引渡し</dt><dd>${Y.outcome(s.player).days}日目</dd></dl></div></div></div>
       <button class="photo late" data-act="savePhoto">写真を保存</button><button class="big-btn next1y late" data-act="toSeasons">そして1年後……</button><div class="whitefade"></div>`;
   },
   // 1年のうつろい：空の色と木の葉が、夏→秋→冬→春と移り変わる（夜は通らない）。最後に「1年後」の札
@@ -493,7 +510,8 @@ export function worldHTML(s) {
   return `<div class="pop wplay"><div class="ph2"><div class="ttl">もし、あのとき　<span class="no2">${pad(n)}</span>${P.coTag(o.company, 22)}${Y.COMPANIES[o.company].name}</div><button class="close" data-act="closePop">閉じる</button></div>
     <div class="body" style="display:grid;grid-template-columns:1.2fr 1fr;gap:28px"><ol class="timeline replay">${rows}${ev}</ol>
     <div><table class="cmp"><tr><th></th><th>この世界</th><th>あなたの世界（${pad(YOU)}）</th></tr>
-      ${cmp('総額', man(o.total) + '万円', man(me.total) + '万円')}${cmp('借入', man(o.principal) + '万円', man(me.principal) + '万円')}${cmp('冬の朝', o.warmth.label, me.warmth.label)}${cmp('家計のゆとり', o.slack.label, me.slack.label)}${cmp('引渡し', o.days + '日目', me.days + '日目')}</table>
+      ${cmp('選択による総額', man(o.choiceTotal) + '万円', man(me.choiceTotal) + '万円')}${cmp('途中の出来事による増額', o.increase ? '+' + man(o.increase) + '万円' : 'なし', me.increase ? '+' + man(me.increase) + '万円' : 'なし')}${cmp('最終的な総額', man(o.total) + '万円', man(me.total) + '万円')}${cmp('借入', man(o.principal) + '万円', man(me.principal) + '万円')}${cmp('冬の朝', o.warmth.label, me.warmth.label)}${cmp('家計のゆとり', o.slack.label, me.slack.label)}${cmp('引渡し', o.days + '日目', me.days + '日目')}</table>
+      ${o.causes.length ? `<p class="note" style="margin-top:12px"><b>なぜ起きたか：</b>${o.causes.map(c => esc(c.cause)).join('／')}</p>` : ''}
       <p class="note" style="margin-top:12px">同じ家族、同じ土地、同じ外の出来事で、決断だけが違う世界です。どちらがよいかは決めません。</p></div></div></div>`;
 }
 

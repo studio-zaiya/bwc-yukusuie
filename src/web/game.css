@@ -349,3 +349,5 @@ body.rec .help{display:none}
 .msg.me.yu{background:#E3F1FA}
 .opt.ch{font-weight:400;font-size:17px;padding:8px 14px;border-color:rgba(30,43,54,.45)}
 .opt[disabled]{opacity:.4;cursor:default}
+.cd li.wl{list-style:none;margin:6px 0 0 -1.1em;padding:6px 8px;background:#fff;border-radius:8px;border:1px solid rgba(30,43,54,.2);font-size:15px;line-height:1.5}
+.wbox{list-style:none}.wbox li.wl{margin-left:0;font-size:17px}

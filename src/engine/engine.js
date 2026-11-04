@@ -184,7 +184,8 @@ export function scheduleOf(world) {
   const co = COMPANIES[world.company] || COMPANIES.C;
   const pre = [3, 10, 24, 40, 48, 58], post = [80, 100, 145, 175, 205, 210];
   const k = co.speed;
-  const days = [...pre.map(d => Math.round(d * (d > 10 ? k : 1))), ...post.map(d => Math.round(d * (0.9 + 0.1 * k)) + (world.delay || 0))];
+  const late = (world.delay || 0) + (world.bits && world.bits.length === 4 ? eventDelay(world) : 0);
+  const days = [...pre.map(d => Math.round(d * (d > 10 ? k : 1))), ...post.map(d => Math.round(d * (0.9 + 0.1 * k)) + late)];
   days.push(days[10] + 365);
   return days;
 }
@@ -225,7 +226,7 @@ export function decisions(pair = ['C', 'A']) {
   return [
     { id: 'D1', no: 0, q: 'だれと建てる？', step: 2, a: { label: `${COMPANIES[x].name}と建てる`, patch: { company: x } }, b: { label: `${COMPANIES[y].name}と建てる`, patch: { company: y } } },
     { id: 'D2', no: 1, q: 'なにを優先する？', step: 3, a: { label: w => `提案の外形（${ROOF_JA[w.spec.roof]}）のまま、広さを優先する`, patch: { spec: { kitchen: false } } }, b: { label: w => `${ROOF_JA[COMPANIES[w.company].altRoof]}に変えて、造作キッチンも（少し小さく）`, patch: { spec: { roof: '@alt', kitchen: true, tsubo: -1 } } } },
-    { id: 'D3', no: 2, q: 'いくらまでかける？', step: 5, a: { label: '予算内に収める（外構は最小限）', patch: { spec: { exterior: 'min' } } }, b: { label: '借入を増やして、外構まで仕上げる', patch: { spec: { exterior: 'full' } } } },
+    { id: 'D3', no: 2, q: 'いくらまでかける？', step: 5, a: { label: '外構は最小限で進める', patch: { spec: { exterior: 'min' } } }, b: { label: '借入を増やして、外構まで仕上げる', patch: { spec: { exterior: 'full' } } } },
     { id: 'D4', no: 3, q: 'どう仕上げる？', step: 6, a: { label: '標準の仕上げのまま', patch: { finish: { wall: 'std', floor: 'std', inner: 'vinyl' } } }, b: { label: 'アップグレードを受ける（外壁と床）', patch: { finish: { wall: 'galva', floor: 'oak' } } } },
   ];
 }
@@ -243,6 +244,7 @@ function applyPatch(w, p) {
   if (p.company) { w.company = p.company; if (!w.roofReq) w.spec.roof = COMPANIES[p.company].roof; fitBudget(w); }
   if (p.spec) for (const [k, v] of Object.entries(p.spec)) {
     if (k === 'tsubo') { w.spec.tsubo = baseSpec(householdOf(w)).tsubo - (w.fitted || 0) + v; w.spec.floor1Tsubo = Math.ceil(w.spec.tsubo / 2); }
+    else if (k === 'tsuboAbs') { w.spec.tsubo = v; w.spec.floor1Tsubo = Math.ceil(v / 2); }
     else if (k === 'roof' && v === '@alt') w.spec.roof = COMPANIES[w.company].altRoof;
     else w.spec[k] = v;
   }
@@ -283,10 +285,12 @@ export function normalizeProposal(p = {}) {
   const out = { side: p.side === 'a' ? 'a' : 'b', spec: {}, borrow: p.borrow === 'keep' ? 'keep' : 'cover', electric: [], finish: undefined };
   const errors = [];
   for (const [k, v] of Object.entries(p.spec || {})) {
+    if (k === 'tsubo') continue;
     if (!(k in SPEC_SCHEMA)) { errors.push(`仕様の項目「${k}」は扱えません`); continue; }
     if (!SPEC_SCHEMA[k].includes(v)) { errors.push(`「${k}」に「${v}」は選べません`); continue; }
     out.spec[k] = v;
   }
+  if (p.spec && p.spec.tsubo != null) { const t = Math.round(+p.spec.tsubo); if (t >= 24 && t <= 40) out.spec.tsuboAbs = t; else errors.push('広さは24〜40坪の範囲で扱います'); }
   for (const id of p.electric || []) { if (ELECTRIC.options.some(o => o.id === id)) out.electric.push(id); else errors.push(`電気の項目「${id}」はありません`); }
   if (p.finish) { out.finish = {}; for (const k of ['wall', 'floor', 'inner']) if (p.finish[k] && FINISH[k].some(x => x.id === p.finish[k])) out.finish[k] = p.finish[k]; }
   if (p.label) out.label = String(p.label).slice(0, 40);
@@ -337,16 +341,25 @@ export function simulate(w, d, rawProposal) {
 }
 
 // ---- 1年後：世界ごとの帰結（外的な乱数は全世界で共通の種から）----
+// 出来事：前の工程でまかれた種（seed）がある世界でだけ、担当者の力量の乱数しだいで芽が出る。種のない偶然は起こさない
+export function incidents(w) {
+  if (w.bits.length < 4) return [];
+  const no = worldNo(w.bits), skill = rng((w.seed ?? 7) * 31 + no)();
+  const changedAfter = !!w.third || w.bits[3] === 1; // 契約のあとで仕様の変更が重なった
+  const out = [];
+  if (w.company === 'A' && changedAfter && skill < 0.45) out.push({ text: '契約後に担当が替わり、頼んだ設備と違うものが入った', amount: 380, cause: '契約のあとで変更が重なり、引き継ぎの記録が追いつかなかった' });
+  if (w.company === 'B' && w.bits[3] === 1 && skill < 0.4) out.push({ text: '契約後にオプションを足していったら、思ったより増えた', amount: 120, cause: '標準仕様が最低限で、仕上げのアップグレードを重ねた' });
+  if (w.company === 'C' && w.bits[1] === 1 && skill < 0.4) out.push({ text: '詳細の打ち合わせが長引き、入居がひと月遅れた', delay: 30, cause: '設計の途中で外形を変え、図面を描き直した' });
+  if (w.company === 'D' && skill < 0.35 && !w.electric.includes('tag_tv_wall')) out.push({ text: '壁掛けテレビの下地が入っていなかった', cause: '打ち合わせの記録を残していなかった' });
+  return out;
+}
+export const eventDelay = w => incidents(w).reduce((s, e) => s + (e.delay || 0), 0);
 export function outcome(w, opts = {}) {
   const h = householdOf(w), no = worldNo(w.bits);
-  const rnd = rng((w.seed ?? 7) * 31 + no);
-  const skill = rnd();
-  const events = [];
-  let increase = 0;
-  if (w.company === 'A' && skill < 0.45) { increase = 380; events.push('契約後に担当が替わり、頼んだ設備と違うものが入った（+380万円）'); }
-  if (w.company === 'B' && skill < 0.4) { increase = 120; events.push('契約後にオプションを足していったら、思ったより増えた（+120万円）'); }
-  if (w.company === 'C' && skill < 0.4) { w.delay = (w.delay || 0) + 30; events.push('詳細の打ち合わせが長引き、入居がひと月遅れた'); }
-  if (w.company === 'D' && skill < 0.35 && !w.electric.includes('tag_tv_wall')) events.push('壁掛けテレビの下地が入っていなかった');
+  const skill = rng((w.seed ?? 7) * 31 + no)();
+  const inc = incidents(w);
+  const increase = inc.reduce((s, e) => s + (e.amount || 0), 0);
+  const events = inc.map(e => e.text + (e.amount ? `（+${e.amount}万円）` : ''));
   if (w.spec.exterior !== 'full') events.push('玄関前は砂利のまま。冬の朝、霜取りに5分');
   const wm = warmth(w.spec, w.company);
   if (wm.level <= 1) events.push('2月の朝、足元が冷たい');
@@ -354,7 +367,19 @@ export function outcome(w, opts = {}) {
   const m = money({ ...w, adds: [...w.adds, ...(increase ? [{ label: '契約後の増額', v: increase }] : [])] });
   const sl = slack(h, m.loan);
   const days = scheduleOf(w)[10];
-  return { no, bits: w.bits, labels: w.labels, company: w.company, spec: w.spec, finish: w.finish, money: m, total: m.total, principal: m.loan, increase, warmth: wm, slack: sl, days, events, third: w.third, skill: round(skill, 2) };
+  return { no, bits: w.bits, labels: w.labels, company: w.company, spec: w.spec, finish: w.finish, money: m, total: m.total, principal: m.loan, increase, choiceTotal: round(m.total - increase, 1), causes: inc, warmth: wm, slack: sl, days, events, third: w.third, skill: round(skill, 2) };
+}
+
+// P0-1：希望の条件（施主の言葉から写した数字）と、いまの案を比べる。計算はエンジン
+export function checkWishes(w, wishes = []) {
+  const m = money(w), monthly = payment(m.loan, RATE.variable);
+  return wishes.filter(x => x.kind !== 'priority' && x.value != null).map(x => {
+    if (x.kind === 'totalMax') return { ...x, ok: m.total <= x.value, diff: round(m.total - x.value, 1), label: `総額 ${x.value.toLocaleString()}万円以内` };
+    if (x.kind === 'monthlyMax') return { ...x, ok: monthly <= x.value, diff: round(monthly - x.value, 1), label: `月々 ${x.value}万円以内` };
+    if (x.kind === 'areaMax') return { ...x, ok: w.spec.tsubo <= x.value, diff: w.spec.tsubo - x.value, label: `${x.value}坪まで` };
+    if (x.kind === 'areaMin') return { ...x, ok: w.spec.tsubo >= x.value, diff: x.value - w.spec.tsubo, label: `${x.value}坪は欲しい` };
+    return null;
+  }).filter(Boolean);
 }
 
 // 16の世界を種から一度に作る（検算・自動モード用）。chosen のビットがプレイヤーの道
@@ -384,5 +409,5 @@ export function createLog(seed = []) {
   };
 }
 
-export const YKS = { ROOF_JA, pitched, UA, ELECTRIC_WORDS, electricOf, missedPolicy, fitBudget, VERSION, TSUBO, HOUSEHOLDS, monthlyTakeHome, RATE, payment, loanLimit, loanCheck, SITE, landCost, coverageCheck, COMPANIES, COMMON, FINISH, ELECTRIC, finishCost, electricCost, baseSpec, SPEC_SCHEMA, quote, warmth, slack, DEADLINE, STEPS, scheduleOf, schedule, newWorld, forkWorld, money, FORKS, decisions, DECISIONS, choose, contract, branchAll, worldNo, normalizeProposal, TOOLS, simulate, outcome, allWorlds, createLog, rng, round, hashStr };
+export const YKS = { incidents, eventDelay, checkWishes, ROOF_JA, pitched, UA, ELECTRIC_WORDS, electricOf, missedPolicy, fitBudget, VERSION, TSUBO, HOUSEHOLDS, monthlyTakeHome, RATE, payment, loanLimit, loanCheck, SITE, landCost, coverageCheck, COMPANIES, COMMON, FINISH, ELECTRIC, finishCost, electricCost, baseSpec, SPEC_SCHEMA, quote, warmth, slack, DEADLINE, STEPS, scheduleOf, schedule, newWorld, forkWorld, money, FORKS, decisions, DECISIONS, choose, contract, branchAll, worldNo, normalizeProposal, TOOLS, simulate, outcome, allWorlds, createLog, rng, round, hashStr };
 export default YKS;
