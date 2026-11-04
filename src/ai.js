@@ -23,8 +23,16 @@ export function modelFor(env, role) {
 export const hasDigits = s => /[0-9０-９]/.test(String(s || ''));
 export function digitsIn(obj, keys) { return keys.filter(k => { const v = obj?.[k]; return Array.isArray(v) ? v.some(x => hasDigits(typeof x === 'string' ? x : JSON.stringify(x))) : hasDigits(v); }); }
 
+// 料金（ドル／100万トークン。2026-10 時点の公表値。費用の上限の計算に使う）
+export const PRICE = { 'claude-sonnet-5-5': [2, 10, 0.2], 'claude-haiku-5-5': [0.1, 0.5, 0.01], 'claude-opus-5-5': [4, 20, 0.2], 'claude-sonnet-5': [2, 10, 0.2], 'claude-opus-4-8': [5, 25, 0.5] };
+export function costOf(model, u = {}) {
+  const key = Object.keys(PRICE).find(k => String(model).startsWith(k)) || 'claude-sonnet-5-5';
+  const [i, o, c] = PRICE[key];
+  return ((u.input_tokens || 0) * i + (u.cache_creation_input_tokens || 0) * i * 1.25 + (u.cache_read_input_tokens || 0) * c + (u.output_tokens || 0) * o) / 1e6;
+}
+
 export function client(env) {
-  if (!env.ANTHROPIC_API_KEY) return null;
+  if (!env.ANTHROPIC_API_KEY || env.AI_MODE === 'mock') return null;
   return new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 0, timeout: 45000 });
 }
 
@@ -45,7 +53,7 @@ export async function callJSON(env, { role, user, schema, system, validate, fall
   const rec = { role, model, promptVersion: p.meta.version, input: { system: system || p.body, user }, attempts: [], fallback: false };
   const c = client(env);
   const t0 = Date.now();
-  if (!c) { rec.fallback = true; rec.reason = 'APIキー未設定'; rec.output = fallback; rec.ms = 0; return { data: fallback, call: rec }; }
+  if (!c) { rec.fallback = true; rec.reason = env.AI_MODE === 'mock' ? '代わりの処理（mock）' : 'APIキー未設定'; rec.output = fallback; rec.ms = 0; return { data: fallback, call: rec }; }
   for (let i = 0; i < 2; i++) {
     try {
       const msg = await create(c, {
@@ -55,6 +63,7 @@ export async function callJSON(env, { role, user, schema, system, validate, fall
       }, { useFallback: i === 0 });
       const raw = textOf(msg);
       rec.attempts.push({ stop: msg.stop_reason, raw, model: msg.model, usage: msg.usage });
+      rec.costUsd = (rec.costUsd || 0) + costOf(msg.model, msg.usage);
       if (msg.stop_reason === 'refusal') throw new Error('refusal');
       const data = JSON.parse(raw);
       const err = validate ? validate(data) : null;
@@ -71,13 +80,13 @@ export async function callJSON(env, { role, user, schema, system, validate, fall
 
 // tool use の往復（手で書いたループ）。tools は {name, description, input_schema, run(input) } の配列。
 // 最後に submit の道具が呼ばれたら終わる
-export async function callTools(env, { role, user, tools, submitName = 'submit', validateSubmit, maxTurns = 6, effort = 'medium' }) {
+export async function callTools(env, { role, user, tools, submitName = 'submit', validateSubmit, maxTurns = 4, effort = 'low' }) {
   const p = PROMPTS[role];
   const model = modelFor(env, role);
   const rec = { role, model, promptVersion: p.meta.version, input: { system: p.body, user }, turns: [], toolCalls: [], fallback: false };
   const c = client(env);
   const t0 = Date.now();
-  if (!c) { rec.fallback = true; rec.reason = 'APIキー未設定'; rec.ms = 0; return { submit: null, call: rec }; }
+  if (!c) { rec.fallback = true; rec.reason = env.AI_MODE === 'mock' ? '代わりの処理（mock）' : 'APIキー未設定'; rec.ms = 0; return { submit: null, call: rec }; }
   const defs = tools.map(({ name, description, input_schema }) => ({ name, description, input_schema }));
   const byName = Object.fromEntries(tools.map(t => [t.name, t]));
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -86,6 +95,7 @@ export async function callTools(env, { role, user, tools, submitName = 'submit',
       for (let turn = 0; turn < maxTurns; turn++) {
         const msg = await create(c, { model, max_tokens: 4000, system: p.body, tools: defs, tool_choice: { type: 'auto' }, messages, output_config: { effort } }, { useFallback: attempt === 0 });
         rec.turns.push({ stop: msg.stop_reason, content: msg.content, model: msg.model, usage: msg.usage });
+        rec.costUsd = (rec.costUsd || 0) + costOf(msg.model, msg.usage);
         rec.servedModel = msg.model;
         if (msg.stop_reason === 'refusal') throw new Error('refusal');
         messages.push({ role: 'assistant', content: msg.content });

@@ -12,6 +12,13 @@ async function bump(env, key, ttl = 172800) {
   if (env.STORE) { const n = +(await env.STORE.get(key) || 0) + 1; await env.STORE.put(key, String(n), { expirationTtl: ttl }); return n; }
   const n = (mem.get(key) || 0) + 1; mem.set(key, n); return n;
 }
+async function addUsd(env, usd) {
+  if (!(usd > 0)) return;
+  const micro = Math.round(usd * 1e6), d = today();
+  for (const k of [`usd:${d}`, 'usd:total']) {
+    if (env.STORE) { const n = +(await env.STORE.get(k) || 0) + micro; await env.STORE.put(k, String(n)); } else mem.set(k, (mem.get(k) || 0) + micro);
+  }
+}
 async function peek(env, key) { return env.STORE ? +(await env.STORE.get(key) || 0) : (mem.get(key) || 0); }
 async function guard(env, req, kind) {
   if (env.EMERGENCY_STOP === '1') return '現在、一時的に停止しています。しばらくしてから、もう一度お試しください。';
@@ -21,6 +28,10 @@ async function guard(env, req, kind) {
     if (n > +(env.PLAYS_PER_IP_PER_DAY || 6)) return '本日のプレイ回数の上限に達しました。明日、またお試しください。';
     return null;
   }
+  // 費用の上限（ドル建て）。1日と累計の両方を見る。超えたら、Claudeを呼ばずに代わりの文で返す
+  const usdDay = await peek(env, `usd:${d}`) / 1e6, usdAll = await peek(env, 'usd:total') / 1e6;
+  if (usdDay >= +(env.DAILY_BUDGET_USD || 10)) return '本日の費用の上限に達しました。代わりの文でお返しします。';
+  if (usdAll >= +(env.TOTAL_BUDGET_USD || 100)) return '費用の上限に達しました。代わりの文でお返しします。';
   const g = await peek(env, `g:${d}`);
   if (g >= +(env.CALLS_GLOBAL_PER_DAY || 4000)) return '本日の全体の上限に達しました。代わりの文でお返しします。';
   const n = await bump(env, `c:${ip}:${d}`);
@@ -83,7 +94,8 @@ function fallbackProposal(text, d) {
   if (/LAN|有線/.test(t)) electric.push('lan_bed');
   const borrow = /借入|借り|ローン/.test(t) && !/増やさ|減ら/.test(t) ? 'cover' : 'keep';
   const side = d.id === 'D3' ? (borrow === 'cover' ? 'b' : 'a') : (spec.roof === 'gable' || spec.kitchen ? 'b' : 'a');
-  return { side, spec, borrow, electric, label: t.slice(0, 20) };
+  const words = [spec.window === 'triple' && '南の窓をトリプルに', spec.kitchen === true && '造作キッチン', spec.exterior === 'full' && '外構まで', spec.exterior === 'min' && '外構は最小限', spec.roof === 'gable' && '勾配屋根', electric.length && '電気の追加'].filter(Boolean);
+  return { side, spec, borrow, electric, label: (words.join('・') || d[side].label) + (borrow === 'cover' ? '（借入で）' : '') };
 }
 
 async function trade(env, body) {
@@ -166,7 +178,7 @@ const REPORT_SCHEMA = {
 async function report(env, body) {
   const user = `# 決断の記憶\n${JSON.stringify(body.memory || []).slice(0, 3000)}\n# 選んだ道\n${(body.labels || []).join(' → ')}\n# 1年後の出来事（エンジン）\n${(body.events || []).join('\n')}\n# 暖かさ・家計のゆとり（エンジン）\n${body.warmth || ''}／${body.slack || ''}`;
   const fb = { title: 'あのとき守ろうとしたもの', balance: ['毎日の暮らしやすさ', '家計の安心', '家族の時間'], memories: (body.labels || []).map(l => `「${l}」を選びました。`), tellFirst: ['いちばん大切にしたいこと', '予算の上限と、その理由', '後から変えにくいところ（下地・配線・窓）'], closing: 'この紙を、本物の打ち合わせに持っていってください。' };
-  return callJSON(env, { role: 'report', user, schema: REPORT_SCHEMA, fallback: fb, effort: 'medium', maxTokens: 3000, validate: x => digitsIn(x, ['title', 'balance', 'memories', 'tellFirst', 'closing']).length ? '数字' : null });
+  return callJSON(env, { role: 'report', user, schema: REPORT_SCHEMA, fallback: fb, effort: 'low', maxTokens: 3000, validate: x => digitsIn(x, ['title', 'balance', 'memories', 'tellFirst', 'closing']).length ? '数字' : null });
 }
 
 // ---- 選ばれなかった世界の担当者のひとこと（並列で呼ぶ）----
@@ -202,7 +214,7 @@ export default {
     const path = url.pathname;
     if (!path.startsWith('/api/')) return env.ASSETS.fetch(req);
     try {
-      if (path === '/api/health') return json({ ok: true, engine: Y.VERSION, models: { top: modelFor(env, 'trade'), mid: modelFor(env, 'hearing'), light: modelFor(env, 'myai') }, prompts: Object.fromEntries(Object.entries(PROMPTS).map(([k, v]) => [k, v.meta.version])), hasKey: !!env.ANTHROPIC_API_KEY, store: !!env.STORE, stop: env.EMERGENCY_STOP === '1', phone: env.PHONE_LINK === '1' });
+      if (path === '/api/health') return json({ ok: true, engine: Y.VERSION, models: { top: modelFor(env, 'trade'), mid: modelFor(env, 'hearing'), light: modelFor(env, 'myai') }, prompts: Object.fromEntries(Object.entries(PROMPTS).map(([k, v]) => [k, v.meta.version])), hasKey: !!env.ANTHROPIC_API_KEY, mode: env.AI_MODE || 'live', usdToday: (await peek(env, `usd:${today()}`)) / 1e6, usdTotal: (await peek(env, 'usd:total')) / 1e6, budget: { day: +(env.DAILY_BUDGET_USD || 10), total: +(env.TOTAL_BUDGET_USD || 100) }, store: !!env.STORE, stop: env.EMERGENCY_STOP === '1', phone: env.PHONE_LINK === '1' });
       if (req.method === 'GET' && path.startsWith('/api/log/')) return loadLog(env, path.slice(9));
       if (req.method !== 'POST') return json({ error: 'method' }, 405);
       const body = await req.json().catch(() => ({}));
@@ -214,7 +226,9 @@ export default {
       const limited = await guard(env, req, 'call');
       if (limited) env = { ...env, ANTHROPIC_API_KEY: '' }; // 上限を超えたら、Claudeを呼ばずに代わりの文で返す
       const out = await fn(env, body);
-      return json({ ...out, limited: limited || undefined });
+      const usd = (out.call?.costUsd || 0) + (out.calls || []).reduce((a, c) => a + (c.costUsd || 0), 0);
+      ctx.waitUntil(addUsd(env, usd));
+      return json({ ...out, limited: limited || undefined, costUsd: usd ? Math.round(usd * 1e5) / 1e5 : undefined });
     } catch (e) {
       return json({ error: String(e.message || e) }, 500);
     }

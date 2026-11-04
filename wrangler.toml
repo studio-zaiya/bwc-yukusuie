@@ -17,13 +17,18 @@ run_worker_first = ["/api/*"]
 [vars]
 # 役割ごとのモデル（環境変数で切り替え可能）
 MODEL_TOP = "claude-sonnet-5-5"
-MODEL_MID = "claude-sonnet-5-5"
+MODEL_MID = "claude-haiku-5-5"
 MODEL_LIGHT = "claude-haiku-5-5"
 # 回数制限と費用の上限
 PLAYS_PER_IP_PER_DAY = "6"
 CALLS_PER_IP_PER_DAY = "120"
 CALLS_GLOBAL_PER_DAY = "4000"
 EMERGENCY_STOP = "0"
+# 費用の上限（ドル）。超えたらClaudeを呼ばず、代わりの文で返す
+DAILY_BUDGET_USD = "10"
+TOTAL_BUDGET_USD = "100"
+# live＝Claudeを呼ぶ／mock＝呼ばずに代わりの処理（開発中のテストはこちら）
+AI_MODE = "live"
 # スマホ連携の受け付け（P1）
 PHONE_LINK = "0"
 
