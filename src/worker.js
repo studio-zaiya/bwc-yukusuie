@@ -177,7 +177,7 @@ async function hearing(env, body) {
   const p = PROMPTS.hearing;
   const facts = staffFacts(co);
   const factList = Object.entries(facts).map(([k, v]) => `- ${k}（${k.replace(/[{}]/g, '')}。画面では「${v}」に置き換わる）`).join('\n');
-  const A = String(body.names?.a || 'かず').slice(0, 8), B = String(body.names?.b || 'ゆう').slice(0, 8);
+  const A = String(body.names?.a || 'あなた').slice(0, 8), B = String(body.names?.b || 'パートナー').slice(0, 8);
   const system = p.body.replace('{{A}}', A).replace('{{B}}', B).replace('{{STAFF}}', STAFF_TONE[co] + (/ヒアリング|初回/.test(body.scene || '') ? `\nヒアリングの話題（会社の個性に合わせて、深く聞くものと流すものを選ぶ）：\n${TOPIC_LIST}` : '')).replace('{{SCENE}}', String(body.scene || '初回打ち合わせ').slice(0, 600)).replace('{{FACTS}}', factList);
   const hist = (body.history || []).slice(-8).map(h => `${h.who}：${h.text}`).join('\n');
   const user = `${hist ? `# これまでの会話\n${hist}\n` : ''}# 施主の言葉\n${String(body.text || '').slice(0, 400)}`;
@@ -193,8 +193,8 @@ async function hearing(env, body) {
 
 // ---- 設計担当との調整（間取りの骨組み。Opus 5.5 がエンジンを道具として使う）----
 const ROOM = { type: 'object', additionalProperties: false, required: ['name', 'size', 'floor', 'near'], properties: { name: { type: 'string' }, size: { type: 'number', enum: Y.ROOM_SIZES }, floor: { type: 'integer', enum: [1, 2] }, near: { type: 'array', items: { type: 'string' } } } };
-const PLAN = { type: 'object', additionalProperties: false, required: ['title', 'rooms', 'shape', 'kitchen'], properties: {
-  title: { type: 'string', description: '案の短い名前（算用数字なし）' }, rooms: { type: 'array', items: ROOM }, kitchen: { type: 'boolean', description: '造作キッチンを入れるか' },
+const PLAN = { type: 'object', additionalProperties: false, required: ['title', 'rooms', 'shape'], properties: {
+  title: { type: 'string', description: '案の短い名前（算用数字なし）' }, rooms: { type: 'array', items: ROOM },
   shape: { type: 'object', additionalProperties: false, required: ['form', 'roof'], properties: { form: { type: 'string', enum: Y.PLAN_FORMS }, roof: { type: 'string', enum: ['cube', 'hip', 'gable', 'mane', 'flat'] } } } } };
 const OPTION = { type: 'object', additionalProperties: false, required: ['plan', 'effect'], properties: { plan: PLAN, effect: { type: 'string', description: '暮らしで何が変わるか（一行、算用数字なし）' } } };
 function planErr(p) {
@@ -229,13 +229,14 @@ async function planner(env, body) {
   if (!submit) {
     // 代わりの処理：決まった型の骨組みと調整の案（画面には「代わりの処理」と出す）
     const R = (name, size, floor) => ({ name, size, floor, near: [] });
-    const base = [R('LDK', 16, 1), R('和室', 6, 1), R('洗面・脱衣', 3, 1), R('浴室', 3, 1), R('トイレ', 3, 1), R('玄関収納', 3, 1), R('主寝室', 8, 2), R('子ども部屋', 6, 2), R('子ども部屋', 6, 2), R('書斎', 4.5, 2), R('納戸', 3, 2), R('トイレ', 3, 2)];
+    // 部屋は世帯の設定（夫婦＋子ども二人）と、どの家にも要る水回り・収納だけ。聞いていない部屋（和室・書斎など）や設備は足さない
+    const base = [R('LDK', 16, 1), R('洗面・脱衣', 3, 1), R('浴室', 3, 1), R('トイレ', 3, 1), R('玄関収納', 3, 1), R('ファミリー収納', 3, 1), R('主寝室', 8, 2), R('子ども部屋', 6, 2), R('子ども部屋', 6, 2), R('ウォークインクローゼット', 3, 2), R('トイレ', 3, 2)];
     const shape = { form: '部分二階', roof: co.roof };
-    const main = { title: '要望を全部入れた案', rooms: base, shape, kitchen: true };
+    const main = { title: 'いただいた要望をそのまま入れた案', rooms: base, shape };
     const opts = [
-      { plan: { title: '書斎と納戸をなくした案', rooms: base.filter(r => r.name !== '書斎' && r.name !== '納戸'), shape, kitchen: true }, effect: '在宅の仕事は、寝室の一角かリビングで' },
-      { plan: { title: '和室を畳コーナーにした総二階の案', rooms: base.filter(r => r.name !== '納戸').map(r => r.name === '和室' ? { ...r, size: 4.5, floor: 2 } : r), shape: { form: '総二階', roof: co.roof }, kitchen: true }, effect: '一階はひとまわり小さく、基礎と屋根が減る' },
-      { plan: { title: '造作キッチンを標準にした案', rooms: base, shape, kitchen: false }, effect: '台所はシステムキッチンで、こだわりは小物で' },
+      { plan: { title: '総二階に寄せた案', rooms: base.map(r => r.name === 'ファミリー収納' ? { ...r, floor: 2 } : r), shape: { form: '総二階', roof: co.roof } }, effect: '一階と二階の形がそろい、基礎と屋根が減る' },
+      { plan: { title: '子ども部屋をひとまわり小さくした案', rooms: base.map(r => r.name === '子ども部屋' ? { ...r, size: 4.5 } : r), shape }, effect: '子ども部屋は寝て勉強する広さに絞り、過ごすのはリビングで' },
+      { plan: { title: '収納を一か所にまとめた案', rooms: base.filter(r => r.name !== 'ウォークインクローゼット').map(r => r.name === 'ファミリー収納' ? { ...r, size: 4.5 } : r), shape }, effect: 'しまう場所が一か所になり、家族で共有する' },
     ];
     const measure = p => Y.measurePlan(world, p, wishes);
     return { ok: true, fallback: true, intro: 'いただいた要望を全部入れると、こうなります。調整の案もお持ちしました。', main, mainM: measure(main), options: opts.map(o => ({ ...o, m: measure(o.plan) })), altIndex: 1, call };
@@ -248,7 +249,7 @@ async function planner(env, body) {
 // ---- パートナー（ひとりプレイのとき、妻をAIが演じる）----
 const PARTNER_SCHEMA = { type: 'object', additionalProperties: false, required: ['line', 'wishes'], properties: { line: { type: 'string' }, wishes: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['tag', 'text'], properties: { tag: { type: 'string' }, text: { type: 'string' } } } } } };
 async function partner(env, body) {
-  const A = String(body.names?.a || 'かず').slice(0, 8), B = String(body.names?.b || 'ゆう').slice(0, 8);
+  const A = String(body.names?.a || 'あなた').slice(0, 8), B = String(body.names?.b || 'パートナー').slice(0, 8);
   const system = PROMPTS.partner.body.split('{{A}}').join(A).split('{{B}}').join(B);
   const hist = (body.history || []).slice(-8).map(h => `${h.who}：${h.text}`).join('\n');
   const user = `# いまの場面\n${String(body.scene || '').slice(0, 300)}\n${hist ? `# これまでの会話\n${hist}\n` : ''}# あなたへの問いかけ\n${String(body.ask || '').slice(0, 300)}`;

@@ -44,7 +44,7 @@ export const ACTIONS = {
   async continueStart() {
     let playId = null;
     try { const r = await api('/api/play/start', {}); playId = r.playId; } catch (e) { toast(String(e.message)); return; }
-    emit('start', { seed: 7, playId }); emit('mode', { mode: 'solo' }); emit('names', { a: 'かず', b: 'ゆう' });
+    emit('start', { seed: 7, playId }); emit('mode', { mode: 'solo' }); emit('names', { a: 'あなた', b: 'パートナー' });
     emit('visit', { cos: ['C', 'A'] });
     const said = [['C', 'kazu', '外観はシンプルで、箱っぽい家が好きです。'], ['C', 'yuu', '台所と洗面を近くして、朝の家事を楽にしたい。'], ['C', 'kazu', '冬でも暖かい家にしたい。予算は総額5100万円まで、月々は13万円くらいまでにしたいです。'], ['C', 'yuu', 'テレビは壁掛けにしたいな。'], ['A', 'kazu', '性能はどのくらいですか？']];
     for (const [co, who, text] of said) emit('say', { who, ch: co, text });
@@ -366,7 +366,7 @@ async function pollPhone() {
 
 function saveNames() {
   const a = document.getElementById('nmA'), b = document.getElementById('nmB');
-  if (a || b) emit('names', { a: (a?.value || '').trim() || 'かず', b: (b?.value || '').trim() || 'ゆう' });
+  if (a || b) emit('names', { a: (a?.value || '').trim() || 'あなた', b: (b?.value || '').trim() || 'パートナー' });
 }
 // ひとりプレイ：担当者が妻に聞いたとき、パートナー（AI）が答え、担当者がそれを受ける（1往復だけ）
 async function partnerAnswers(co, scene) {

@@ -75,7 +75,7 @@ const shortName = w => w.bits.map((b, i) => i === 0 ? w.company : i === 1 ? Y.RO
 const NOTES = [
   ['見積の表紙が届いた', '「別途」の行を数えた', '担当者に質問を送った', '総額で見積が届いた'],
   ['間取りの案が2つ届いた', '収納の数で少しもめた', '階段の位置を決めた', '詳細見積を待っている'],
-  ['ショールームで迷う', 'キッチンの面材を決めた', '窓のサンプルを見た'],
+  ['ショールームで迷う', '床と建具の色を見た', '窓のサンプルを見た'],
   ['契約の日取りを決めた', '月末に契約した', '本審査の書類をそろえた', 'ローン特約の期限を確かめた'],
   ['外壁の色で迷う', 'コンセントの数を数える', '照明の打ち合わせ', '床の見本を持ち帰った'],
   ['地鎮祭', '基礎の配筋を見に行った', '地盤の結果が出た'],
@@ -121,7 +121,7 @@ function hero(s, extra = '', cls = '') {
   const w = s.player || Y.newWorld({ household: H(s) });
   const co = s.player && s.forkNo > 0 ? `　${P.coTag(w.company, 28)}${Y.COMPANIES[w.company].name}` : s.player ? '　2社を見比べ中' : (s.cur ? `　${P.coTag(s.cur, 28)}${Y.COMPANIES[s.cur].name}で相談中` : '');
   const roofDecided = s.forkNo >= 2;
-  const area = roofDecided || w.plan ? `${w.spec.tsubo}坪・${w.plan?.shape?.form || '総二階'}　${Y.ROOF_JA[w.spec.roof]}` : `広さの目安 ${H(s).area[0]}〜${H(s).area[1]}坪　屋根の形は未定`;
+  const area = roofDecided || w.plan ? `${w.spec.tsubo}坪・${w.plan?.shape?.form || '総二階'}　${Y.ROOF_JA[w.spec.roof]}` : "間取りと屋根の形は、これから";
   return `<div class="hero ${tall(s)} ${cls}"><div class="lab"><span class="no">${pad(YOU)}</span>あなたの家${co}</div>
     <div class="ph">${Y.STEPS[s.step]}<br><span style="font-size:15px">${area}${w.fitted ? `（予算に合わせて${w.fitted}坪小さく）` : ''}</span></div>${heroHouse(s)}${extra}</div>`;
 }
@@ -187,8 +187,8 @@ function msgHTML(m) {
   if (m.who === 'yuu') return `<div class="msg me yu"><div class="who"><i class="ci"></i>${esc(NAMES.yuu)}${m.ai ? '<span class="mk">パートナー</span>' : ''}</div>${esc(m.text)}</div>`;
   return `<div class="msg me kz"><div class="who"><i class="sq"></i>${esc(NAMES.kazu)}</div>${esc(m.text)}</div>`;
 }
-export const NAMES = { kazu: 'かず', yuu: 'ゆう' };
-export const setNames = n => { NAMES.kazu = n?.a || 'かず'; NAMES.yuu = n?.b || 'ゆう'; };
+export const NAMES = { kazu: 'あなた', yuu: 'パートナー' };
+export const setNames = n => { NAMES.kazu = n?.a || 'あなた'; NAMES.yuu = n?.b || 'パートナー'; };
 let WHO = 'kazu';
 export const setWho = w => { WHO = w; };
 export const getWho = () => WHO;
@@ -373,7 +373,7 @@ export const SCENES = {
         <button class="linkbtn" data-act="unpick">札を選びなおす</button></div>`;
     } else {
       body = `<div class="rt-cards"><button class="rt-card" data-act="pickSide" data-side="a">${card('a')}</button><button class="rt-card" data-act="pickSide" data-side="b">${card('b')}</button></div>
-        <div class="rt-in free">${whoSw()}<textarea id="say" rows="2" data-keep data-enter="freeAnswer" placeholder="札を押すか、自分の言葉で答える（例：借入を少し増やして、南の大きな窓だけトリプルガラスにしたい）"></textarea><button class="btn" data-act="freeAnswer">送る</button></div>
+        <div class="rt-in free">${whoSw()}<textarea id="say" rows="2" data-keep data-enter="freeAnswer" placeholder="${d.id === 'D3' ? '札を押すか、自分の言葉で答える（例：借入を少し増やして、南の大きな窓だけトリプルガラスにしたい）' : '札を押すか、自分の言葉で答える'}"></textarea><button class="btn" data-act="freeAnswer">送る</button></div>
         <div class="rt-navs">${navs(s)}</div>${busy.on ? '<div class="msg typing" style="margin:8px auto 0;max-width:600px">考えています……</div>' : ''}`;
     }
     return `${chrome(s)}${hero(s)}<div class="ritual ${intro}"><div class="rt-mark">${Y.FORKS[d.no]}</div><div class="rt-q">${d.q}</div>${body}</div>${gallery(s)}`;
@@ -628,8 +628,8 @@ function honneBody(s) {
 export function radarAxes(w) {
   const o = Y.outcome(w), h = Y.HOUSEHOLDS[w.household];
   const warm = (o.warmth.level + 1) / 4;
-  const space = Math.min(1, Math.max(0.1, (w.spec.tsubo - h.area[0] + 1) / (h.area[1] - h.area[0] + 2))) * (w.spec.kitchen ? 1 : 0.85);
-  const design = Math.min(1, 0.3 + (Y.pitched(w.spec.roof) ? 0.15 : 0.2) + Y.finishCost(w.finish) / 150 + (w.spec.kitchen ? 0.15 : 0));
+  const space = Math.min(1, Math.max(0.1, (w.spec.tsubo - h.area[0] + 1) / (h.area[1] - h.area[0] + 2)));
+  const design = Math.min(1, 0.3 + (Y.pitched(w.spec.roof) ? 0.15 : 0.2) + Y.finishCost(w.finish) / 150);
   const money = (o.slack.level + 1) / 4;
   const time = Math.max(0.15, Math.min(1, 1 - (o.days - 190) / 120));
   return [['暖かさ・性能', warm], ['広さ・間取り', space], ['デザイン・素材', design], ['家計のゆとり', money], ['時間と手間', time]];

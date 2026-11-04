@@ -259,7 +259,7 @@ export function decisions(pair = ['C', 'A']) {
   const [x, y] = pair;
   return [
     { id: 'D1', no: 0, q: 'だれと建てる？', step: 2, a: { label: `${COMPANIES[x].name}と建てる`, patch: { company: x } }, b: { label: `${COMPANIES[y].name}と建てる`, patch: { company: y } } },
-    { id: 'D2', no: 1, q: 'なにを優先する？', step: 3, a: { label: w => w.plan ? `${w.plan.title || '確定した骨組み'}で進める` : `提案の外形（${ROOF_JA[w.spec.roof]}）のまま、広さを優先する`, patch: { spec: { kitchen: false }, plan: 'main' } }, b: { label: w => w.plan?.alt ? `${w.plan.alt.title || 'もう一つの案'}にする` : `${ROOF_JA[COMPANIES[w.company].altRoof]}に変えて、造作キッチンも（少し小さく）`, patch: { spec: { roof: '@alt', kitchen: true, tsubo: -1 }, plan: 'alt' } } },
+    { id: 'D2', no: 1, q: 'なにを優先する？', step: 3, a: { label: w => w.plan ? `${w.plan.title || '確定した骨組み'}で進める` : `提案の外形（${ROOF_JA[w.spec.roof]}）のまま、広さを優先する`, patch: { plan: 'main' } }, b: { label: w => w.plan?.alt ? `${w.plan.alt.title || 'もう一つの案'}にする` : `${ROOF_JA[COMPANIES[w.company].altRoof]}に変えて、総二階に寄せる（ひとまわり小さく）`, patch: { spec: { roof: '@alt', tsubo: -1 }, plan: 'alt' } } },
     { id: 'D3', no: 2, q: 'いくらまでかける？', step: 5, a: { label: '外構は最小限で進める', patch: { spec: { exterior: 'min' } } }, b: { label: '借入を増やして、外構まで仕上げる', patch: { spec: { exterior: 'full' } } } },
     { id: 'D4', no: 3, q: 'どう仕上げる？', step: 6, a: { label: '標準の仕上げのまま', patch: { finish: { wall: 'std', floor: 'std', inner: 'vinyl' } } }, b: { label: 'アップグレードを受ける（外壁と床）', patch: { finish: { wall: 'galva', floor: 'oak' } } } },
   ];
@@ -280,7 +280,6 @@ function applyPatch(w, p) {
   if (p.plan && w.plan) {
     const base = w.plan, pick = p.plan === 'alt' && base.alt ? { ...base.alt, alt: base } : base;
     applyPlan(w, pick); w.plan = pick;
-    if (pick.kitchen != null) w.spec.kitchen = !!pick.kitchen;
     return;
   }
   if (p.spec) for (const [k, v] of Object.entries(p.spec)) {
