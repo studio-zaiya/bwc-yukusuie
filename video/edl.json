@@ -39,7 +39,7 @@
    "id": "r02-summary",
    "at": 54,
    "file": "rec/demo_slow.mp4",
-   "in": 121.6,
+   "in": 123.9,
    "label": "実機 2：担当者の総括（Cデザイン）",
    "kind": "rec"
   },
@@ -47,7 +47,7 @@
    "id": "r03-proposal",
    "at": 59,
    "file": "rec/demo_slow.mp4",
-   "in": 314.2,
+   "in": 315.0,
    "label": "実機 3：提案の日（2社の案）→ 第一の分岐点へ",
    "kind": "rec"
   },
@@ -55,7 +55,7 @@
    "id": "r04-fork1",
    "at": 66,
    "file": "rec/demo_slow.mp4",
-   "in": 327.5,
+   "in": 328.0,
    "label": "実機 4：第一の分岐点「だれと建てる？」→ 選ばなかった道が世界線の列へ",
    "kind": "rec"
   },
@@ -63,7 +63,7 @@
    "id": "r05-fork3",
    "at": 77,
    "file": "rec/demo_slow.mp4",
-   "in": 393.0,
+   "in": 394.0,
    "label": "実機 5：第三の分岐点「いくらまでかける？」（札と自分の言葉の欄）",
    "kind": "rec"
   },
@@ -71,26 +71,26 @@
    "id": "r05-trade",
    "at": 84,
    "file": "rec/demo_slow.mp4",
-   "in": 412.3,
-   "speed": 0.33,
+   "in": 413.9,
+   "speed": 0.26,
    "label": "実機 5：自分の言葉 → 家の絵と◆・担当者の条件・いま起きたこと",
-   "note": "実際の画面は約2.8秒。1/3の速さで伸ばした",
+   "note": "実際の画面は約2.4秒。0.26倍の速さで伸ばした",
    "kind": "rec"
   },
   {
    "id": "r06-coord",
    "at": 93,
    "file": "rec/demo_slow.mp4",
-   "in": 437.0,
-   "speed": 1.25,
-   "label": "実機 6：色決め → 第四の分岐点（自動）→ 15へ",
+   "in": 436.5,
+   "speed": 1.5,
+   "label": "実機 6：色決め → 第四の分岐点（自動）→ 15へ（1.5倍）",
    "kind": "rec"
   },
   {
    "id": "r07-electric",
    "at": 100,
    "file": "rec/demo_slow.mp4",
-   "in": 451.5,
+   "in": 453.4,
    "label": "実機 7：電気の打ち合わせ（左の一覧で確かめる）",
    "kind": "rec"
   },
@@ -98,7 +98,7 @@
    "id": "r08-build",
    "at": 113,
    "file": "rec/demo_slow.mp4",
-   "in": 466.0,
+   "in": 465.0,
    "speed": 8,
    "label": "実機 8：着工から引渡しまでの早送り（8倍）",
    "kind": "rec"
@@ -107,7 +107,7 @@
    "id": "r08-handover",
    "at": 118.5,
    "file": "rec/demo_slow.mp4",
-   "in": 510.5,
+   "in": 514.0,
    "label": "実機 8：引渡し（切り絵）",
    "kind": "rec"
   },
@@ -115,7 +115,7 @@
    "id": "r09-seasons",
    "at": 124,
    "file": "rec/demo_slow.mp4",
-   "in": 524.0,
+   "in": 525.0,
    "speed": 2,
    "label": "実機 9：1年のうつろい（2倍）→ 1年後",
    "kind": "rec"
@@ -124,7 +124,7 @@
    "id": "r09-year",
    "at": 127,
    "file": "rec/demo_slow.mp4",
-   "in": 537.5,
+   "in": 538.8,
    "label": "実機 9：16区画 → 区画を押して比べる → 世界樹",
    "kind": "rec"
   },
