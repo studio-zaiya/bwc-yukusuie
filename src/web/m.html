@@ -21,7 +21,7 @@ textarea{width:100%;height:120px;font:17px/1.6 var(--f);padding:12px;border:1.5p
 <p>思いや理想のことば、好きな家の写真を送れます。PCの画面で「取り込む」を押すと、入口に入ります。</p>
 <textarea id="t" placeholder="例：玄関は広めにしたい。庭で子どもと遊びたい。"></textarea>
 <button class="btn" id="sendText">ことばを送る</button>
-<label class="btn ghost" style="text-align:center">写真を選ぶ（3枚まで）<input id="f" type="file" accept="image/*" multiple hidden></label>
+<label class="btn ghost" id="pick" style="text-align:center">写真を選ぶ（あと<span id="left">3</span>枚）<input id="f" type="file" accept="image/*" multiple hidden></label>
 <div class="thumbs" id="th"></div>
 <div id="msg"></div>
 <ul class="sent" id="sent"></ul>
@@ -45,11 +45,19 @@ async function shrink(file) {
   return c.toDataURL('image/jpeg', 0.82);
 }
 document.getElementById('sendText').onclick = async () => { const t = document.getElementById('t').value.trim(); if (!t) return; if (await send({ text: t })) { sent(t.slice(0, 30)); document.getElementById('t').value = ''; } };
+// 写真は、このコードで3枚まで（サーバー側でも数えている）。残りが0になったら選べなくする
+let left = 3;
+const setLeft = n => { left = Math.max(0, n); document.getElementById('left').textContent = left; const pk = document.getElementById('pick'); pk.style.opacity = left ? 1 : .4; document.getElementById('f').disabled = !left; if (!left) pk.firstChild.textContent = '写真は送り終わりました（'; };
 document.getElementById('f').onchange = async e => {
-  for (const file of [...e.target.files].slice(0, 3)) {
+  for (const file of [...e.target.files].slice(0, left)) {
     const d = await shrink(file);
-    if (await send({ photo: d })) { const img = new Image(); img.src = d; document.getElementById('th').appendChild(img); sent('写真'); }
+    const r = await fetch(`/api/link/${code}/send`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ photo: d }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) { msg(j.message || '送れませんでした。'); setLeft(0); break; }
+    msg(''); const img = new Image(); img.src = d; document.getElementById('th').appendChild(img); sent('写真'); setLeft(3 - j.photos);
   }
+  if ([...e.target.files].length > left && left === 0) msg('写真は3枚までです。');
+  e.target.value = '';
 };
 if (!/^[a-z2-9]{10}$/.test(code)) msg('PCの画面のQRコードから開いてください。');
 </script></body></html>

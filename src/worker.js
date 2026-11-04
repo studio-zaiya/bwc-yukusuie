@@ -252,8 +252,9 @@ async function staff16(env, body) {
 
 // ---- 入口の自由入力：ことば・写真・URL（P1）----
 const ENTRY_SCHEMA = {
-  type: 'object', additionalProperties: false, required: ['elements', 'colors', 'summary'],
+  type: 'object', additionalProperties: false, required: ['elements', 'colors', 'summary', 'unrelated', 'aside'],
   properties: {
+    unrelated: { type: 'integer' }, aside: { type: 'string' },
     elements: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['tag', 'text', 'from'], properties: { tag: { type: 'string' }, text: { type: 'string' }, from: { type: 'string', enum: ['ことば', '写真', 'URL'] } } } },
     colors: { type: 'array', items: { type: 'string' } }, summary: { type: 'string' },
   },
@@ -280,8 +281,8 @@ async function entry(env, body) {
     ...photos.map(p => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: p.split(',')[1] } })),
     { type: 'text', text: `# 施主のことば\n${text || 'なし'}\n${pages.join('\n')}\n# 写真\n${photos.length}枚` },
   ];
-  const fb = { elements: [], colors: [], summary: text.slice(0, 120) };
-  const r = await callJSON(env, { role: 'entry', user: content, schema: ENTRY_SCHEMA, fallback: fb, maxTokens: 1500, validate: x => digitsIn(x, ['summary']).length || x.elements.some(e => hasDigits(e.text)) ? '数字' : null });
+  const fb = { elements: [], colors: [], summary: text.slice(0, 120), unrelated: 0, aside: '' };
+  const r = await callJSON(env, { role: 'entry', user: content, schema: ENTRY_SCHEMA, fallback: fb, maxTokens: 1500, validate: x => digitsIn(x, ['summary', 'aside']).length || x.elements.some(e => hasDigits(e.text)) ? '数字' : null });
   // 画像の中身は記録に残さない（枚数だけ）
   r.call.input = { ...r.call.input, user: `ことば ${text.length}字、写真 ${photos.length}枚、URL ${urls.length}件（取得 ${pages.length}件）` };
   return r;

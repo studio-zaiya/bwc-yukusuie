@@ -62,7 +62,7 @@ export const ACTIONS = {
     const a = { fam: val('sv_fam'), now: val('sv_now'), budget: val('sv_budget'), when: val('sv_when'), kazu: val('sv_kazu'), yuu: val('sv_yuu'), worry: val('sv_worry') };
     emit('survey', { answers: a });
     const co = S.cur;
-    const open = persona(co)?.tone[0] || 'ご来場ありがとうございます。まずは、おふたりの理想を聞かせてください。';
+    const open = [S.entryRead?.aside, persona(co)?.tone[0] || 'ご来場ありがとうございます。まずは、おふたりの理想を聞かせてください。'].filter(Boolean).join('');
     goto('hearing', 1);
     emit('say', { who: 'staff', co, ch: co, text: open });
   },
