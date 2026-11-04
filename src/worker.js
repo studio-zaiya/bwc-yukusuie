@@ -7,9 +7,10 @@ import PHRASES from '../data/content/report_phrases.json';
 import HARNESS from '../data/content/rep_harness.json';
 import SURVEY from '../data/content/survey.json';
 import BROCHURES from '../data/content/brochures.json';
-import { REP_SCHEMA, buildRepSystem, checkRep, stockReply, fillSlots, PHASES } from './rep.js';
+import { REP_SCHEMA, buildRepSystem, checkRep, repairRep, numsIn, stockReply, fillSlots, PHASES } from './rep.js';
 import { PhoneLink, linkOpen, newCode } from './link.js';
-export { PhoneLink };
+import { Meter } from './meter.js';
+export { PhoneLink, Meter };
 
 const json = (data, status = 200, headers = {}) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers } });
 const today = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10).replace(/-/g, '');
@@ -21,14 +22,19 @@ async function bump(env, key, ttl = 172800) {
   if (env.STORE) { const n = +(await env.STORE.get(key) || 0) + 1; await env.STORE.put(key, String(n), { expirationTtl: ttl }); return n; }
   const n = (mem.get(key) || 0) + 1; mem.set(key, n); return n;
 }
+// 費用の累計：計量器（Durable Object）で原子的に足す。はじめての日は、KVに残っていた値から引き継ぐ
+const meter = env => env.METER ? env.METER.get(env.METER.idFromName('global')) : null;
 async function addUsd(env, usd) {
   if (!(usd > 0)) return;
-  const micro = Math.round(usd * 1e6), d = today();
-  for (const k of [`usd:${d}`, 'usd:total']) {
-    if (env.STORE) { const n = +(await env.STORE.get(k) || 0) + micro; await env.STORE.put(k, String(n)); } else mem.set(k, (mem.get(k) || 0) + micro);
-  }
+  const micro = Math.round(usd * 1e6), keys = [`usd:${today()}`, 'usd:total'];
+  const m = meter(env);
+  if (m) { const seed = {}; if (env.STORE) for (const k of keys) seed[k] = +(await env.STORE.get(k) || 0); const r = await m.fetch('https://meter/add', { method: 'POST', body: JSON.stringify({ keys, micro, seed }) }).then(x => x.json()); if (env.STORE) for (const k of keys) await env.STORE.put(k, String(r[k])); return; }
+  for (const k of keys) { if (env.STORE) { const n = +(await env.STORE.get(k) || 0) + micro; await env.STORE.put(k, String(n)); } else mem.set(k, (mem.get(k) || 0) + micro); }
 }
-async function peek(env, key) { return env.STORE ? +(await env.STORE.get(key) || 0) : (mem.get(key) || 0); }
+async function peek(env, key) {
+  if (key.startsWith('usd:') && meter(env)) { const r = await meter(env).fetch(`https://meter/get?k=${encodeURIComponent(key)}`).then(x => x.json()); if (r.v != null) return r.v; }
+  return env.STORE ? +(await env.STORE.get(key) || 0) : (mem.get(key) || 0);
+}
 async function guard(env, req, kind) {
   if (env.EMERGENCY_STOP === '1') return '現在、一時的に停止しています。しばらくしてから、もう一度お試しください。';
   const ip = ipOf(req), d = today();
@@ -197,22 +203,29 @@ async function hearing(env, body) {
 
 // ---- 担当者（v2のハーネス）：場面ごとに役割を分ける（HEARING_v2.md の3、受け入れ基準3）----
 PROMPTS.rep = { meta: { version: HARNESS.version, model: 'REP_MODEL' }, body: '' };
+PROMPTS.trainLLM = { meta: { version: 'train-v1', model: 'MODEL_LIGHT' }, body: '' };
 PROMPTS.partnerSurvey = { meta: { version: 'partner-survey-v1', model: 'MODEL_PARTNER' }, body: '' };
 const STAFF_OF = Object.fromEntries((PERSONAS.staff || []).map(p => [p.company, p]));
-async function rep(env, body) {
+async function rep(env, body, HARNESS_ = HARNESS) {
+  const HARNESS = HARNESS_;
   const co = ['A', 'B', 'C', 'D'].includes(body.company) ? body.company : 'C';
   const phase = PHASES.includes(body.phase) ? body.phase : 'followUp';
   const specs = (BROCHURES.brochures[co]?.standard || []).map(t => t.replace('（エンジンの値）', `${Y.COMPANIES[co].insul}`));
   const system = buildRepSystem(HARNESS, { company: co, phase, staff: STAFF_OF[co], specs, memory: String(body.memory || '').slice(0, 2400), names: body.names || {}, extra: String(body.extra || '').slice(0, 600) });
   const hist = (body.history || []).slice(-8).map(h => `${h.who}：${h.text}`).join('\n');
   const user = `${hist ? `# これまでの会話\n${hist}\n` : ''}# ${phase === 'summary' ? 'アンケートを書き終えたところ' : 'お客様の言葉'}\n${String(body.text || '').slice(0, 400)}`;
-  const r = await callJSON(env, { role: 'rep', system, user, schema: REP_SCHEMA, fallback: stockReply(HARNESS, co, phase), maxTokens: 900, tries: 3, validate: x => checkRep(x, { phase, company: co }) });
-  if (r.call.fallback && !r.data.stock) r.data = stockReply(HARNESS, co, phase);
+  const staffTurns = (body.history || []).filter(h => h.who === '担当者').length;
+  const allowNums = [...new Set([body.text, ...(body.history || []).filter(h => h.who !== '担当者').map(h => h.text), ...specs].flatMap(numsIn))];
+  const r = await callJSON(env, { role: 'rep', system, user, schema: REP_SCHEMA, fallback: stockReply(HARNESS, co, phase, staffTurns), maxTokens: 900, tries: 3, validate: x => checkRep(repairRep(x, phase), { phase, company: co, allowNums }) });
+  if (r.call.fallback && !r.data.stock) r.data = stockReply(HARNESS, co, phase, staffTurns);
+  // 提案の場面：担当者からの新しい質問は、場面全体で1回まで（2回目からは「ほかに気になるところはありますか？」）
+  const asked = (body.history || []).some(h => h.who === '担当者' && /[？?]/.test(h.text) && !/ほかに気になるところ/.test(h.text));
+  if (phase === 'proposal' && asked && r.data.ask && !/ほかに気になるところ/.test(r.data.ask)) r.data.ask = 'ほかに気になるところはありますか？';
   const vals = body.slotValues || {};
   r.data.say = fillSlots(r.data.say, vals); r.data.ask = r.data.ask ? fillSlots(r.data.ask, vals) : null;
   r.data.line = [r.data.say, r.data.ask].filter(Boolean).join('');
   r.data.notes = (r.data.notes || []).slice(0, 4).map(t => String(t).slice(0, 30));
-  r.data.deferred = (r.data.deferred || []).slice(0, 3).map(t => String(t).slice(0, 30));
+  r.data.deferred = (r.data.deferred || []).slice(0, 3).map(t => String(t).replace(/[（(][^）)]*[A-Za-z][^）)]*[）)]/g, '').slice(0, 30));
   return r;
 }
 // ひとりプレイ：AIのパートナーが、同じアンケートに答える（パートナーの人格から。答えは選択肢のidだけ）
@@ -439,6 +452,17 @@ export default {
       const body = await req.json().catch(() => ({}));
       if (path === '/api/play/start') { const msg = await guard(env, req, 'play'); return msg ? json({ ok: false, message: msg }, 429) : json({ ok: true, playId: rid() }); }
       if (path === '/api/log') return saveLog(env, body);
+      // 担当者の研修（docs/REP_TRAINING.md）：合言葉（Workerの秘密）がある呼び出しだけ。研修中のハーネスを差し替えて試せる。費用は全体の上限に数える
+      if (path.startsWith('/api/train/')) {
+        if (!env.TRAIN_TOKEN || req.headers.get('x-train-token') !== env.TRAIN_TOKEN) return json({ error: 'forbidden' }, 403);
+        if (await peek(env, 'usd:total') / 1e6 >= +(env.TOTAL_BUDGET_USD || 100)) return json({ error: '費用の上限' }, 429);
+        let out;
+        if (path === '/api/train/rep') out = await rep(env, body, body.harness && body.harness.base && body.harness.companies ? body.harness : HARNESS);
+        else if (path === '/api/train/llm') out = await callJSON(env, { role: 'trainLLM', system: String(body.system || '').slice(0, 8000), user: String(body.user || '').slice(0, 12000), schema: body.schema, fallback: body.fallback || {}, maxTokens: Math.min(+body.maxTokens || 800, 2000) });
+        else return json({ error: 'not found' }, 404);
+        const usd = out.call?.costUsd || 0; ctx.waitUntil(addUsd(env, usd));
+        return json({ ...out, costUsd: usd });
+      }
       const ROLES = { '/api/ai/trade': trade, '/api/ai/hearing': hearing, '/api/ai/myai': myai, '/api/ai/report': report, '/api/ai/staff16': staff16, '/api/ai/entry': entry, '/api/ai/partner': partner, '/api/ai/planner': planner, '/api/ai/rep': rep, '/api/ai/partnerSurvey': partnerSurvey };
       const fn = ROLES[path];
       if (!fn) return json({ error: 'not found' }, 404);

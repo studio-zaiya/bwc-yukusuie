@@ -84,7 +84,9 @@ export function wishesOf(m) {
 export function memoryText(survey, m, co, names = {}) {
   const A = names.a || 'あなた', B = names.b || 'パートナー', W = { p1: A, p2: B, both: 'ふたり' };
   const told = m.items.filter(x => !co || x.deliveredTo[co] === 'told' || x.deliveredTo[co] === 'deferred');
-  const lines = [`- 要望（${told.length}件）：${told.map(x => `${x.text}（${W[x.who]}・${SRC_LABEL[x.source]}）`).join('／')}`];
+  // 担当者は数字を言わない決まりなので、要約にも数を書かない（数はアンケートの値として、計算の側だけが持つ）
+  const say = x => /[0-9０-９]/.test(x.text) ? ({ cars: '車を停めたい（台数はアンケートのとおり）', ldk_size: 'LDKの広さの希望あり', bedroom: '寝室の広さの希望あり', budget_total: '総額の上限を決めている', budget_month: '月々の返済の上限を決めている' }[x.q] || x.text.replace(/[0-9０-９,，.]+/g, '')) : x.text;
+  const lines = [`- 要望（${told.length}件）：${told.map(x => `${say(x)}（${W[x.who]}・${SRC_LABEL[x.source]}）`).join('／')}`];
   const dq = differsOf(survey, m); if (dq.length) lines.push(`- ふたりの意見が違う問い：${dq.map(q => q.text.replace(/（.*?）/g, '')).join('／')}`);
   const np = sectionsNoPref(survey, m); if (np.length) lines.push(`- 「こだわらない」が多い段：${np.join('、')}`);
   const cf = conflictsOf(m); if (cf.length) lines.push(`- 両立が難しそうな組み合わせ（計算の判定）：${cf.join('／')}`);

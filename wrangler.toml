@@ -50,6 +50,14 @@ fallthrough = true
 name = "LINK"
 class_name = "PhoneLink"
 
+[[durable_objects.bindings]]
+name = "METER"
+class_name = "Meter"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["PhoneLink"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Meter"]

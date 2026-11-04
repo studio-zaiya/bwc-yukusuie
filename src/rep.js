@@ -17,19 +17,37 @@ export const REP_SCHEMA = {
 const COMPANY_NAMES = ['Aハウス', 'Bハウス', 'Cデザイン', 'D工務店'];
 const SYSTEM_WORDS = /Claude|クロード|ＡＩ|AI|人工知能|エンジン|ゲーム|シミュレーション|プロンプト|世界線/;
 // 数字：算用数字・漢数字＋単位・単位の語。差し込み枠の中は除く
-const DIGITS = /[0-9０-９]|[一二三四五六七八九十百千万]+(?:万|円|坪|帖|畳|日|か月|ヶ月|年|件|台|部屋)|万円|坪|帖/;
+// 禁じるのは金額・面積・日数（大原則）。部屋の数・台数の漢数字（「二部屋」「二台」）は数え方なので通す（研修3回目の結果）
+const DIGITS = /[0-9０-９]|[一二三四五六七八九十百千万]+(?:万|円|坪|帖|畳|日|か月|ヶ月|年)|万円|坪|帖/;
 const sentences = t => String(t || '').split(/[。！？!?]/).map(x => x.trim()).filter(Boolean).length;
 const stripSlots = t => String(t || '').replace(/\{(price|area|days)\}/g, '');
 
 // 検査（base.validator）。通らなければ理由を返す（作り直し）。
-export function checkRep(out, { phase = 'followUp', company } = {}) {
+// 作り直す前に、コードで整える（研修1回目の結果：作り直しの6割が「3文になる」だった）
+// 上限を超えた文は削り、削った文の中に問いかけがあって ask が空なら、それを ask に移す。say の中の問いかけ（〜でしょうか。）も ask へ
+const QEND = /(でしょうか|ますか|ですか|ませんか|かな|ですかね)[。？?]?$/;
+export function repairRep(out, phase = 'followUp') {
+  if (!out || typeof out.say !== 'string') return out;
+  const max = phase === 'summary' ? 3 : 2;
+  const parts = String(out.say).match(/[^。！？!?]+[。！？!?]?/g)?.map(x => x.trim()).filter(Boolean) || [];
+  const q = parts.filter(p => /[？?]$/.test(p) || QEND.test(p));
+  let keep = parts.filter(p => !q.includes(p));
+  if (!out.ask && q.length) out.ask = q[q.length - 1].replace(/。$/, '？');
+  if (keep.length > max) keep = keep.slice(0, max);
+  if (keep.length) out.say = keep.join('');
+  if (out.ask && !/[？?]$/.test(out.ask)) out.ask = out.ask.replace(/。?$/, '？');
+  return out;
+}
+export function checkRep(out, { phase = 'followUp', company, allowNums = [] } = {}) {
   if (!out || typeof out.say !== 'string' || !out.say.trim()) return '返事（say）が空';
   const max = phase === 'summary' ? 3 : 2;
   if (sentences(out.say) > max) return `say は${max}文まで`;
   if (out.ask && (String(out.ask).match(/[？?]/g) || []).length > 1) return '質問は1つまで';
   if (out.ask && /[？?]/.test(out.say)) return 'say にも ask にも質問がある（質問は1つまで）';
   for (const t of [out.say, out.ask || '']) {
-    if (DIGITS.test(stripSlots(t))) return '数字は差し込み枠（{price} {area} {days}）で';
+    // お客様が言った数字と、自社の標準仕様の表にある数字は、繰り返してよい（Claudeが作った数字ではない）
+    let u = stripSlots(t).normalize('NFKC'); for (const n of allowNums) u = u.replace(new RegExp(n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?:万円|万|円|坪|帖|畳|日|年|台|部屋|か月|ヶ月)?', 'g'), '');
+    if (DIGITS.test(u)) return '数字は差し込み枠（{price} {area} {days}）で';
     if (SYSTEM_WORDS.test(t)) return '仕組みの言葉が入っている';
     if (COMPANY_NAMES.some(n => n !== company && t.includes(n))) return 'ほかの会社の名前が入っている';
   }
@@ -38,9 +56,10 @@ export function checkRep(out, { phase = 'followUp', company } = {}) {
 }
 
 // その会社の決まり文句（2回作り直しても通らないとき）
-export function stockReply(harness, company, phase) {
+export function stockReply(harness, company, phase, n = 0) {
   const c = harness.companies[company] || harness.companies.C;
-  const say = phase === 'summary' ? `ご記入ありがとうございます。${c.replaceTone?.[0]?.replace(/^.*?。/, '') || 'いただいた内容で、プランを考えてみます。'}` : phase === 'confirm' ? 'この内容で進めますが、問題ないでしょうか？' : (c.stockLines?.[0] || '承知しました。');
+  const lines = c.stockLines?.length ? c.stockLines : ['承知しました。'];
+  const say = phase === 'summary' ? `ご記入ありがとうございます。${c.replaceTone?.[0]?.replace(/^.*?。/, '') || 'いただいた内容で、プランを考えてみます。'}` : phase === 'confirm' ? 'この内容で進めますが、問題ないでしょうか？' : lines[n % lines.length];
   return { say, ask: null, notes: [], deferred: [], slots: [], endMeeting: false, stock: true };
 }
 
@@ -60,11 +79,14 @@ export function buildRepSystem(harness, { company = 'C', phase = 'followUp', sta
     memory ? `# 要望の記憶（アンケートと、これまでの打ち合わせ）\n${memory}` : '',
     extra ? `# この場面の補足\n${extra}` : '',
     ex.length ? `# 例\n${ex.map(e => `お客様：${e.customer}\n悪い例：${e.bad}\nよい例：${e.good}\n（理由：${e.why}）`).join('\n\n')}` : '',
-    `# 出力\nJSONで返す。say：受け止めと答え（${phase === 'summary' ? '3' : '2'}文まで、質問を入れない）。ask：質問（1つだけ、なければ null）。notes：要望の記憶に入れる、お客様の要望の言葉（短く、要望でない事実や名前は入れない）。deferred：預かったこと。slots：使った差し込み枠。endMeeting：区切ってよいとき true。`,
+    `# 出力\nJSONで返す。say：受け止めと答え（句点「。」で数えて${phase === 'summary' ? '三' : '二'}文まで。質問はsayに入れずaskへ。数字・漢数字・金額・広さは書かない）。ask：質問（1つだけ、なければ null）。notes：要望の記憶に入れる、お客様の要望の言葉（短く、要望でない事実や名前は入れない）。deferred：預かったこと。slots：使った差し込み枠。endMeeting：区切ってよいとき true。`,
   ].filter(Boolean).join('\n\n');
 }
 
 // 差し込み枠に、コードの値を入れる（値がないときは、数字を使わない言い方に）
 export function fillSlots(text, values = {}) {
-  return String(text || '').replace(/\{(price|area|days)\}/g, (_, k) => values[k] ?? { price: 'お見積りの金額', area: '広さ', days: '日程' }[k]);
+  return String(text || '').replace(/\{(price|area|days)\}/g, (_, k) => values[k] ?? { price: 'いくらか', area: '少し', days: '少し' }[k]);
 }
+
+// 文の中の数（「20帖」「4,500万円」「等級6」の 20／4,500／6）。繰り返してよい数の一覧に使う
+export const numsIn = t => (String(t || '').normalize('NFKC').match(/\d[\d,]*(?:\.\d+)?/g) || []).sort((a, b) => b.length - a.length);
