@@ -445,6 +445,12 @@ export function outcome(w, opts = {}) {
   if (wm.level >= 3 && w.spec.window === 'triple') events.push('南の窓辺が、冬でもいちばんの居場所');
   const m = money({ ...w, adds: [...w.adds, ...(increase ? [{ label: '契約後の増額', v: increase }] : [])] });
   const sl = slack(h, m.loan);
+  // 予算や借入の上限を超えた世界には、暮らしのひとことだけ添える（計算は変えない。人間の回答11/6）
+  if (!w.unbuilt) {
+    const over = m.loan - loanLimit(h);
+    if (over > 0) events.push(['借りられる額を超えた分は、NISAと学資の積み立てを崩して払った', '借りられる額を超えた分を、知り合いに頼んで少し借りた', '足りない分は、子どもの学資の積み立てを取り崩した'][no % 3]);
+    else if (sl.level === 0) events.push(['月々の返済が重く、外食と旅行をしばらくやめた', 'ボーナスは、ほとんど返済に消えた', '毎月の家計簿を見るたびに、ため息が出る'][no % 3]);
+  }
   const days = scheduleOf(w)[10];
   return { no, bits: w.bits, labels: w.labels, company: w.company, spec: w.spec, finish: w.finish, money: m, total: m.total, principal: m.loan, increase, choiceTotal: round(m.total - increase, 1), causes: inc, warmth: wm, slack: sl, days, events, unbuilt: w.unbuilt || null, third: w.third, skill: round(skill, 2) };
 }
