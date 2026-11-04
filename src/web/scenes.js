@@ -228,7 +228,7 @@ export const SCENES = {
       <p class="note">世帯年収 ${man(h.income)}万円／借りられそうな額 ${man(Y.loanLimit(h))}万円までは、アンケートには書かなくても大丈夫です。</p></div>`;
   },
   hearing(s) {
-    const co = s.cur, n = s.turns[co] || 0, second = s.visit[1] === co;
+    const co = s.cur, n = s.chat.filter(m => m.ch === co && (m.who === 'kazu' || m.who === 'yuu')).length, second = s.visit[1] === co;
     const enough = second ? n >= 2 : n >= 3;
     const opts = enough ? `<button class="opt" data-act="${second ? 'toCompare' : 'toForgot'}">${second ? 'ヒアリングを終えて、提案を待つ' : 'ヒアリングを終えて、帰宅する'}</button>` : '';
     return `${chrome(s)}${hero(s)}<div class="right ${tall(s)}">${chat(s, { ch: co, head: staffHead(co, busy.on ? 'think' : 'idle', second ? '2社目' : '1社目'), opts, thinking: busy.on, placeholder: '担当者の質問に答える・自由に伝える（暮らし方、収納、予算、性能、デザイン、将来のことなど）' })}</div>${gallery(s)}`;

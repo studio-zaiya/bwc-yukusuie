@@ -139,6 +139,9 @@ const STAFF_TONE = {
   C: 'Cデザイン（作り込み型の工務店）の設計・佐々木。丁寧で寡黙。家族の一日の時間帯、収納の量、家事の動線、将来の変化まで、ひとつずつ深く聞く。聞き漏れは少ないが、見積が出るまで時間がかかる',
   D: 'D工務店（身軽型の工務店）の社長・森。気さくで話が早い。「全部できますよ」と受け止めるが、細かいことはメモを取らずに流しがち。口約束が多い',
 };
+// 施主が自分で言った数字（例：18時）を繰り返すのは許す。それ以外の数字は、Claudeが作った数字として差し戻す
+const nums = t => (String(t || '').normalize('NFKC').match(/\d+(?:\.\d+)?/g) || []);
+function newNumbers(line, sources) { const ok = new Set(sources.flatMap(nums)); return nums(line).filter(n => !ok.has(n)); }
 // 担当者が数字を言うときは、この差し込み記号を書く。値はエンジンが入れる（Claudeは数字を作らない）
 function staffFacts(co) {
   const c = Y.COMPANIES[co], spec = Y.baseSpec(Y.HOUSEHOLDS.t2), q = Y.quote(spec, co, false);
@@ -164,7 +167,7 @@ async function hearing(env, body) {
   const hist = (body.history || []).slice(-8).map(h => `${h.who}：${h.text}`).join('\n');
   const user = `${hist ? `# これまでの会話\n${hist}\n` : ''}# 施主の言葉\n${String(body.text || '').slice(0, 400)}`;
   const fb = { line: body.fallbackLine || 'ありがとうございます。いまのお話、図面に反映できるか確認しますね。', honne: '', heard: [], missed: [] };
-  const r = await callJSON(env, { role: 'hearing', system, user, schema: HEARING_SCHEMA, fallback: fb, maxTokens: 1500, validate: x => digitsIn(x, ['line']).length ? 'せりふに算用数字。数字は差し込み記号で書く' : null });
+  const r = await callJSON(env, { role: 'hearing', system, user, schema: HEARING_SCHEMA, fallback: fb, maxTokens: 1500, validate: x => newNumbers(x.line, [body.text, ...(body.history || []).map(h => h.text)]).length ? 'せりふに、施主が言っていない数字がある。数字は差し込み記号で書く' : null });
   if (!r.call.fallback) { r.data.raw = r.data.line; for (const [k, v] of Object.entries(facts)) r.data.line = r.data.line.split(k).join(v); r.data.line = r.data.line.replace(/等級等級/g, '等級').replace(/UA値UA値/g, 'UA値'); }
   return r;
 }
