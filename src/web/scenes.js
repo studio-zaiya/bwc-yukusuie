@@ -316,7 +316,7 @@ export const SCENES = {
   },
   forgot(s) {
     const co = s.visit[0];
-    const said = s.chat.some(m => m.ch === 'partner' && (m.who === 'kazu' || m.who === 'yuu'));
+    const said = s.chat.some(m => m.ch === 'partner' && (m.who === 'kazu' || m.who === 'yuu' || m.forgot));
     return `${chrome(s)}${hero(s)}<div class="right ${tall(s)}"><div class="chat"><div class="staffbar">${P.spouse('yuu', 70)}<div class="nm">帰り道<b>${esc(NAMES.yuu)}と話す</b></div></div>
       <div class="log">${s.chat.filter(m => m.ch === 'partner').map(msgHTML).join('')}</div>
       <div class="opts">${said ? `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="sendForgot">${Y.COMPANIES[co].staff}さんに送る</button>` : ''}<button class="opt" data-act="toSecond">${said ? '送らずに、2社目へ' : 'とくにない（2社目へ）'}</button></div>

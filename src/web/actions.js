@@ -96,9 +96,11 @@ export const ACTIONS = {
     await partnerAnswers(co, scene);
   },
   async retry() { if (lastSend) await askStaff(lastSend); },
-  toForgot() {
+  async toForgot() {
     goto('forgot', 1);
     emit('say', { who: 'partner', ch: 'partner', text: `${Y.COMPANIES[S.visit[0]].staff}さんとの打ち合わせ、伝え忘れたこと、あった？` });
+    // ひとりプレイ：パートナーも、自分が伝え忘れたことを一つ言う（その言葉も担当者に送れる）
+    if (S.mode === 'solo') await partnerSays('partner', `帰り道。${Y.COMPANIES[S.visit[0]].name}の打ち合わせのあと。担当者に伝え忘れたことを、自分の分を一つだけ言い、夫にも聞く。`, '伝え忘れたこと、ある？', true);
   },
   sayPartner() {
     const text = val('say'); if (!text) return; clear('say');
@@ -107,7 +109,7 @@ export const ACTIONS = {
   },
   async sendForgot() {
     const co = S.visit[0];
-    const text = S.chat.filter(m => m.ch === 'partner' && m.forgot).map(m => m.text).join('\n');
+    const text = S.chat.filter(m => m.ch === 'partner' && m.forgot).map(m => (m.byPartner ? NAMES.yuu + '：' : '') + m.text).join('\n');
     goto('reply', 1);
     emit('say', { who: 'kazu', ch: 'msg', text });
     await new Promise(r => setTimeout(r, 1500)); // 返信は少し時間をおいて届く
@@ -144,6 +146,7 @@ export const ACTIONS = {
     const dec = Y.decisions(S.pair).find(x => x.id === t.decisionId);
     emit('fork', { decisionId: dec.id, proposal: t.proposal, reason: t.reason, priority: t.priority });
     afterFork(dec);
+    partnerReacts(dec, t.reason);
   },
   cancelTrade() { emit('cancelTrade', {}); },
   toCoord() { goto('coord', 6); },
@@ -260,6 +263,24 @@ function decide(side, reason) {
   if (reason) emit('say', { who: getWho(), ch: S.player.company, text: reason });
   emit('fork', { decisionId: dec.id, side, reason, priority: '' });
   afterFork(dec);
+  partnerReacts(dec, reason);
+}
+// ひとりプレイ：分岐点のあと、パートナーがひとこと（感想か心配）。決めるのはプレイヤー
+async function partnerReacts(dec, reason) {
+  if (S.mode !== 'solo') return;
+  const ch = S.player.company;
+  await partnerSays(ch, `分岐点「${dec.q}」で、夫が「${S.player.labels.at(-1)}」を選んだ。${reason ? '夫の理由：' + reason : '夫は理由を言わなかった'}。ひとことだけ、感想か心配を言う（反対しすぎない）。`, '');
+}
+async function partnerSays(ch, scene, ask, forgot = false) {
+  try {
+    const hist = S.chat.filter(m => m.ch === ch && m.who !== 'sys').slice(-6).map(m => ({ who: m.who === 'staff' ? '担当者' : nameOf(m.who === 'partner' ? 'yuu' : m.who), text: m.text }));
+    const r = await api('/api/ai/partner', { names: S.names, scene, history: hist, ask });
+    if (isRealFail(r.call)) return;
+    S.calls.push(r.call);
+    emit('say', { who: ch === 'partner' ? 'partner' : 'yuu', ai: true, ch, text: r.data.line, forgot: forgot || undefined, byPartner: true });
+    for (const x of r.data.wishes || []) S.heard.push({ tag: x.tag, who: 'ゆう', text: x.text, co: S.cur });
+    render();
+  } catch { /* パートナーが黙っていても進める */ }
 }
 async function reportCall() {
   const o = Y.outcome(S.player);
