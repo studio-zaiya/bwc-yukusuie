@@ -450,13 +450,23 @@ async function reportCall() {
     emit('ai', { role: 'report', data: r.data, call: r.call });
   } catch (e) { S.report = { failed: true }; toast(String(e.message)); }
 }
+// 要望を全部入れた案が建蔽率の上限を超えるときは、上限に収まる案を本体に、次に収まる案を第二の分岐点のもう一方にする（建てられない案で契約まで進めない）
+function fitProposal(p) {
+  if (!p?.main || p.mainM?.coverageOk !== false) return p;
+  const cand = [{ plan: p.main, m: p.mainM }, ...(p.options || []).map(o => ({ ...o }))];
+  const fit = cand.filter(c => c.m?.coverageOk);
+  if (!fit.length) return p;
+  const A = fit[0], rest = cand.filter(c => c !== A), B = fit[1] || rest.find(c => c.plan === p.options?.[p.altIndex || 0]?.plan) || rest[0];
+  const options = rest.map(c => c.plan === p.main ? { plan: c.plan, m: c.m, effect: '要望をすべて入れた案（建蔽率の上限を超える）' } : c);
+  return { ...p, main: A.plan, mainM: A.m, options, altIndex: Math.max(0, rest.indexOf(B)) };
+}
 function afterFork(dec) {
   if (dec.id === 'D1') {
     // 選んだ会社の案で、家の本体を確定する（第二の分岐点の2案は、その案と調整の案）。ほかの世界にも各社の案を当てる
     const co = S.player.company, p = S.proposals[co], dd = Y.scheduleOf(S.player);
     emit('say', { who: 'sys', ch: co, text: `${Y.COMPANIES[co].name}に決めて、土地の売買契約を結んだ（ローン特約の期限は${Y.DEADLINE.loan}日目）` });
-    if (p) { emit('planGot', { data: { ...p, view: null } }); emit('planConfirm', {}); }
-    emit('planOthers', { byCo: Object.fromEntries(Object.entries(S.proposals).map(([c, x]) => [c, { main: x.main, alt: x.options?.[x.altIndex || 0]?.plan || null }])) });
+    if (p) { const q = fitProposal(p); if (q !== p) emit('say', { who: 'sys', ch: co, text: `敷地に建てられる大きさ（建蔽率）に収めるため、「${q.main.title || '調整の案'}」を本体の案にした` }); emit('planGot', { data: { ...q, view: null } }); emit('planConfirm', {}); }
+    emit('planOthers', { byCo: Object.fromEntries(Object.entries(S.proposals).map(([c, x0]) => { const x = fitProposal(x0); return [c, { main: x.main, alt: x.options?.[x.altIndex || 0]?.plan || null }]; })) });
     connector('そのまま、予算の相談へ', () => { goto('fork', 3); emit('notice', { text: `土地の売買契約を結びました（${dd[1] || ''}日目）。住宅ローンの本審査は、ローン特約の期限（${Y.DEADLINE.loan}日目）までに通す必要があります。` }); });
   }
   else if (dec.id === 'D2') connector('契約の前に、最終のお見積りです', () => goto('fork', 5));

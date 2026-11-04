@@ -49,7 +49,7 @@ dl.facts{display:grid;grid-template-columns:auto 1fr;gap:.6mm 3mm;margin-top:2mm
 .alt{margin-top:1.6mm;font-size:9.5pt;border-left:1mm solid var(--gold);padding-left:2.4mm}
 /* 3ページ目 */
 .cut{border-top:.4mm dashed var(--ink);position:relative;margin-top:-4mm;padding-top:2mm;font-size:8pt;color:var(--ink2)}
-.cut::before{content:"✂";position:absolute;left:-1mm;top:-3.4mm;font-size:11pt;color:var(--ink);background:var(--paper);padding-right:1mm}
+.cut svg{position:absolute;left:-1mm;top:-2.6mm;background:var(--paper)}
 ol.ask{list-style:none;counter-reset:a}ol.ask li{counter-increment:a;padding-left:6mm;position:relative}ol.ask li::before{content:counter(a);position:absolute;left:0;top:.2mm;width:4.2mm;height:4.2mm;border-radius:50%;background:var(--ink);color:var(--paper);font-size:7.5pt;display:grid;place-items:center}
 ul.chk li{padding-left:5.5mm;position:relative}ul.chk li::before{content:"";position:absolute;left:0;top:1.2mm;width:3mm;height:3mm;border:.3mm solid var(--ink);border-radius:.6mm}
 /* 4ページ目 */
@@ -159,7 +159,7 @@ const ASK = ['地盤の調査は、契約の前ですか、後ですか。改良
 const mine = new Set(me.events), other = [...new Set(all.filter(x => x.o.no !== me.no).flatMap(x => x.o.events))].filter(e => !mine.has(e));
 const care = [...me.events.slice(0, 3).map(e => `<li><span class="tag">この世界で起きた</span>${esc(e)}</li>`), ...other.slice(0, 3).map(e => `<li><span class="tag">別の世界で起きた</span>${esc(e)}</li>`)].join('');
 const p3 = `<div class="page">${head}
-  <div class="cut">切り取って、担当者に渡せます</div>
+  <div class="cut"><svg width="16" height="10" viewBox="0 0 16 10" fill="none" stroke="#1E2B36" stroke-width="1.2"><circle cx="3" cy="2.6" r="2"/><circle cx="3" cy="7.4" r="2"/><path d="M4.6 3.6 15 8.6M4.6 6.4 15 1.4"/></svg>切り取って、担当者に渡せます</div>
   <h2>${fam} の家づくり　はじめに伝えたいこと</h2>
   <p>ゲーム「ゆくすいえ」で、16の世界の家づくりを体験しました。わたしたちが大切にしたいことを、先にお伝えします。<span class="sq">${esc(NA)}</span>　<span class="ci">${esc(NB)}</span>　<span class="bo">ふたり</span></p>
   <div class="box"><h3>先に伝えておきたいこと</h3><ul>${tellList.map(t => `<li class="${WHOC[whoOf(t)] || 'bo'}">${esc(t)}</li>`).join('')}</ul></div>
