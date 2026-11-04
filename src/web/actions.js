@@ -5,6 +5,7 @@ import { S, emit, api, render } from './main.js';
 import { busy, setWho, getWho, persona, DATA, PHONE, SHOW, NAMES, unkept, FORK_DONE, dataReady, SV, SWITCH, PICK, pickKey } from './scenes.js';
 import { buildMemory, deliver, addItem, memoryText, conflictsOf, slotValuesOf } from './memory.js';
 import { setFace } from './parts.js';
+import { BUILD } from './buildanim.js';
 
 const val = id => (document.getElementById(id)?.value || '').trim();
 const clear = id => { const el = document.getElementById(id); if (el) el.value = ''; };
@@ -24,8 +25,8 @@ let lastSend = null; // 応答できなかったときに、もう一度送る�
 // 担当者に送る（ヒアリング・返信・質問・電気で共通）
 // 担当者は、場面ごとに役割を分けたハーネス（rep_harness.json）で話す。phase：summary／followUp／proposal／adjust／confirm
 const PHASE_OF = { hearing: 'followUp', reply: 'followUp', forgot: 'followUp', compare: 'proposal', plan: 'proposal', contract: 'proposal', electric: 'confirm', coord: 'confirm' };
-async function askStaff({ co, ch, scene, text, flag, history = true, phase }) {
-  lastSend = { co, ch, scene, text, flag, history, phase };
+async function askStaff({ co, ch, scene, text, flag, history = true, phase, ask }) {
+  lastSend = { co, ch, scene, text, flag, history, phase, ask };
   const ph = phase || PHASE_OF[S.scene] || 'proposal';
   await withBusy(async () => {
     const hist = history ? S.chat.filter(m => m.ch === ch && m.who !== 'sys').map(m => ({ who: m.who === 'staff' ? '担当者' : nameOf(m.who === 'partner' ? 'yuu' : m.who), text: m.text })) : [];
@@ -39,6 +40,7 @@ async function askStaff({ co, ch, scene, text, flag, history = true, phase }) {
     const weight = ['discount', 'overSpec', 'unreasonable'].includes(pr) ? (DATA.harness?.companies?.[co]?.patience?.[pr] ?? 1) : 0;
     const strikes = t.strikes + weight, stage = strikes >= 4 ? 3 : strikes >= 3 ? 2 : strikes >= 2 ? 1 : 0;
     const data = { ...r.data };
+    if (ask !== undefined) data.ask = ask; // 締めの前の「最後に何かございますか？」や、締めの返事（質問なし）はコードが決める（TESTPLAY T1）
     if (weight && stage > t.stage) { data.line = STAGE_LINE[stage](pr); data.say = data.line; data.ask = null; data.notes = []; }
     emit('ai', { role: 'rep', co, ch, phase: ph, data, call: r.call, flag, weight, stage });
     faceTalk();
@@ -109,6 +111,7 @@ export const ACTIONS = {
   howtoNext() { saveNames(); if (S.howto < 3) emit('howto', { page: S.howto + 1 }); else goto('family', 0); },
   howtoSkip() { saveNames(); goto('family', 0); },
   mode(d) { saveNames(); emit('mode', { mode: d.m }); },
+  role(d) { saveNames(d.r); },
   toLotNoEntry() { goto('lot', 0); },
   // 担当者の質問への選択肢（押しても、自由に書いてもよい）
   choose(d) { const el = document.getElementById('say'); if (el) el.value = d.t; ACTIONS.send(); },
@@ -163,12 +166,24 @@ export const ACTIONS = {
     const who = getWho(), co = S.cur, mt = S.meet[co] || { rounds: 0, min: 15 };
     if (mt.ended) return;
     emit('say', { who, ch: co, text });
+    const base = S.visit[1] === co ? '2社目の初回打ち合わせ。アンケートの答えは1社目と同じ。' : '1社目の初回打ち合わせ。';
+    // 最後の確認への答え：受け止めて預かり、締めの一言で終える（担当者の発言が2つ続かないよう、締めはこの1回だけ）
+    if (mt.lastCall) {
+      emit('meet', { co, data: { min: Math.max(mt.min, 55) } });
+      await askStaff({ co, ch: co, phase: 'followUp', ask: null, text: `${nameOf(who)}：${text}`, scene: base + '時間の終わり。いまの発言は「最後に何かございますか？」への答え。受け止めて預かり、「次回、ラフなプランと概算をお持ちします」の趣旨の締めの一言で終える。質問はしない。' });
+      emit('meet', { co, data: { ended: true } });
+      return;
+    }
+    const final = mt.rounds + 1 >= 4 || mt.min + 10 >= 45;
     emit('meet', { co, data: { rounds: mt.rounds + 1, min: mt.min + 10 } });
-    await askStaff({ co, ch: co, phase: 'followUp', text: `${nameOf(who)}：${text}`, scene: S.visit[1] === co ? '2社目の初回打ち合わせ。アンケートの答えは1社目と同じ。' : '1社目の初回打ち合わせ。' });
+    await askStaff({ co, ch: co, phase: 'followUp', text: `${nameOf(who)}：${text}`, scene: base + (final ? 'そろそろ時間。この返事では質問をしない（最後の確認は別に入る）。' : ''), ...(final ? { ask: LAST_CALL } : {}) });
+    if (final) { emit('meet', { co, data: { lastCall: true } }); return; }
     await partnerAnswers(co);
-    maybeEndMeeting(co);
   },
-  endMeeting() { closeMeeting(S.cur); },
+  // 「今日はこのあたりで」：プレイヤーの言葉として出し、担当者が最後の確認をする
+  endMeeting() { const co = S.cur, mt = S.meet[co]; if (!mt || mt.ended || mt.lastCall) return; emit('say', { who: getWho(), ch: co, text: '今日はこのあたりで。' }); emit('say', { who: 'staff', co, ch: co, text: LAST_CALL }); emit('meet', { co, data: { lastCall: true, min: Math.max(mt.min, 50) } }); },
+  // 最後の確認に「とくにありません」
+  noMore() { const co = S.cur, mt = S.meet[co]; if (!mt || mt.ended) return; emit('say', { who: getWho(), ch: co, text: 'とくにありません。今日はありがとうございました。' }); emit('say', { who: 'staff', co, ch: co, text: 'こちらこそ、ありがとうございました。次回までに、ラフなプランと概算をお持ちします。' }); emit('meet', { co, data: { ended: true, min: Math.max(mt.min, 55) } }); },
   async retry() { if (lastSend) await askStaff(lastSend); },
   async toForgot() {
     goto('forgot', 1);
@@ -182,9 +197,10 @@ export const ACTIONS = {
     if (S.chat.filter(m => m.ch === 'partner' && m.forgot && !m.byPartner).length >= 2) { toast('送れるのは、2つまでです'); return; }
     clear('say');
     emit('say', { who: 'kazu', ch: 'partner', text, forgot: true });
-    emit('say', { who: 'partner', ch: 'partner', text: `それ、${Y.COMPANIES[S.visit[0]].staff}さんに送っておこうよ。` });
+    emit('say', { who: 'partner', ch: 'partner', text: `じゃあ、${Y.COMPANIES[S.visit[0]].staff}さんに送っておくね！` });
   },
   async sendForgot() {
+    return; // 帰り道の転送画面はなくした（TESTPLAY T2）。古い記録の再生のために名前だけ残す
     const co = S.visit[0];
     // 担当者に送るのは、プレイヤーが話したことだけ（パートナーの相づちは送らない。攻めのレビュー11/5）
     const lines = S.chat.filter(m => m.ch === 'partner' && m.forgot && !m.byPartner).slice(-2);
@@ -198,6 +214,8 @@ export const ACTIONS = {
   },
   // 2社目：同じアンケートの答えを使い回す（総括の切り口だけが会社で違う）
   async toSecond() {
+    // 帰り道で話した伝え忘れは、担当者の返事の画面を経ずに、裏で要望の記憶へ（TESTPLAY T2。出どころ：メッセージ）
+    if (S.scene === 'forgot') commitForgot();
     const co = S.visit[1];
     emit('cur', { co });
     if (S.memory) { const m = structuredClone(S.memory); deliver(m, co, DATA.harness.companies[co].oftenMiss, S.seed); emit('mem', { memory: m }); }
@@ -303,8 +321,11 @@ export const ACTIONS = {
   async startBuild() {
     emit('buildAuto', {});
     { const dd = Y.scheduleOf(S.player); emit('notice', { text: `土地の決済と、つなぎ融資の実行（着工金の支払い）が済みました（${dd[6] || ''}日目）。着工します。` }); }
-    for (const st of [8, 9, 10]) { await new Promise(r => setTimeout(r, 1700)); goto('build', st); }
-    await new Promise(r => setTimeout(r, 1400));
+    // 早送りは動く絵（TESTPLAY T11）。工程の線と日付は、絵の場面に合わせて進む
+    BUILD.t0 = performance.now();
+    const at = sec => new Promise(r => setTimeout(r, Math.max(0, BUILD.t0 + sec * 1000 - performance.now())));
+    await at(5.2); goto('build', 8); await at(12.6); goto('build', 9); await at(16); goto('build', 10);
+    await at(17.4); BUILD.t0 = null;
     goto('handover', 10);
   },
   toHandover() { goto('handover', 10); },
@@ -405,7 +426,7 @@ function closeFork(dec, then) {
 async function partnerReacts(dec, reason) {
   if (S.mode !== 'solo') return;
   const ch = S.player.company;
-  await partnerSays(ch, `分岐点「${dec.q}」で、夫が「${S.player.labels.at(-1)}」を選んだ。${reason ? '夫の理由：' + reason : '夫は理由を言わなかった'}。ひとことだけ、感想か心配を言う（反対しすぎない）。`, '');
+  await partnerSays(ch, `分岐点「${dec.q}」で、${NAMES.kazu}が「${S.player.labels.at(-1)}」を選んだ。${reason ? '理由：' + reason : '理由は言わなかった'}。ひとことだけ、感想か心配を言う（反対しすぎない）。`, '');
 }
 async function partnerSays(ch, scene, ask, forgot = false) {
   try {
@@ -480,15 +501,18 @@ async function pollPhone() {
   pollTimer = setTimeout(pollPhone, 3000);
 }
 
-function saveNames() {
-  const a = document.getElementById('nmA'), b = document.getElementById('nmB');
-  if (a || b) emit('names', { a: (a?.value || '').trim() || 'あなた', b: (b?.value || '').trim() || 'パートナー' });
+// 呼び名の初期値は、選んだ立場で「夫」「妻」（TESTPLAY T3）
+function saveNames(role) {
+  const a = document.getElementById('nmA'), b = document.getElementById('nmB'), r = role || S.names.role || 'h';
+  const da = r === 'w' ? '妻' : '夫', db = r === 'w' ? '夫' : '妻';
+  const va = (a?.value || '').trim(), vb = (b?.value || '').trim();
+  if (a || b || role) emit('names', { a: va && !['夫', '妻', 'あなた'].includes(va) ? va : da, b: vb && !['夫', '妻', 'パートナー'].includes(vb) ? vb : db, role: r });
 }
 // ひとりプレイ：担当者が妻に聞いたとき、パートナー（AI）が答え、担当者がそれを受ける（1往復だけ）
 async function partnerAnswers(co) {
   if (S.mode !== 'solo') return;
   const last = [...S.chat].reverse().find(m => m.ch === co && m.who === 'staff');
-  if (!last || !new RegExp(`奥様|奥さま|${NAMES.yuu}さん|おふたり|お二人`).test(last.text) || !/[？?]/.test(last.text)) return;
+  if (!last || !new RegExp(`${NAMES.yuu}(さん|様)|おふたり|お二人|パートナー`).test(last.text) || !/[？?]/.test(last.text)) return;
   await withBusy(async () => {
     const hist = S.chat.filter(m => m.ch === co && m.who !== 'sys').slice(-8).map(m => ({ who: m.who === 'staff' ? '担当者' : nameOf(m.who), text: m.text }));
     const r = await api('/api/ai/partner', { names: S.names, scene: '住宅会社の初回打ち合わせ。担当者に聞かれたことに、短く答える。', history: hist, ask: last.text });
@@ -519,13 +543,17 @@ async function startMeeting(co) {
   const cf = conflictsOf(S.memory);
   await askStaff({ co, ch: co, phase: 'summary', history: false, text: '（アンケートを書き終えて、担当者に渡した）', scene: `${S.visit[1] === co ? '2社目。1社目と同じアンケートの答えを受け取った。総括の切り口は、あなたの会社の個性で。' : '1社目。'}${cf.length ? `両立が難しそうな組み合わせのうち、言うのは一つだけ：${cf[0]}` : ''}` });
 }
-// 区切り：4往復か、残りが15分を切ったとき（2往復を終えていて担当者が区切ってよいと判断したときも）
-function maybeEndMeeting(co) {
-  const mt = S.meet[co]; if (!mt || mt.ended) return;
-  const last = [...S.chat].reverse().find(m => m.ch === co && m.who === 'staff');
-  if (mt.rounds >= 4 || mt.min >= 45) closeMeeting(co);
-  else if (mt.rounds >= 2 && last && /このあたりにしましょう/.test(last.text)) emit('meet', { co, data: { ended: true } });
+function commitForgot() {
+  const co = S.visit[0];
+  const lines = S.chat.filter(m => m.ch === 'partner' && m.forgot && !m.byPartner).slice(-2);
+  if (!lines.length || !S.memory) return;
+  const m = structuredClone(S.memory);
+  for (const l of lines) { m.messages.push({ to: co, text: l.text, day: 7 }); addItem(m, { text: l.text.slice(0, 30), who: 'p1', source: 'message', co }); }
+  emit('mem', { memory: m });
+  emit('say', { who: 'sys', ch: co, text: `帰り道に話した伝え忘れを、メッセージで送った：${lines.map(l => l.text).join('／')}` });
 }
+// 区切り（TESTPLAY T1）：4往復か残りが15分を切ったら、担当者は返事の最後に「最後に何かございますか？」と聞き、その答えを受けてから締める
+const LAST_CALL = 'すみません、そろそろお時間ですが、最後に何かございますか？';
 function closeMeeting(co) {
   if (S.meet[co]?.ended) return;
   emit('say', { who: 'staff', co, ch: co, text: '今日はこのあたりにしましょうか。次回までに、ラフなプランと概算をお持ちします。' });

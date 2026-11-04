@@ -16,7 +16,7 @@ addEventListener('resize', fit); fit();
 // ---- 状態 ----
 export function initialState() {
   return {
-    scene: 'start', step: 0, household: 't2', seed: 7, playId: null, howto: 0, names: { a: 'あなた', b: 'パートナー' }, mode: 'solo', wishes: [],
+    scene: 'start', step: 0, household: 't2', seed: 7, playId: null, howto: 0, names: { a: '夫', b: '妻', role: 'h' }, mode: 'solo', wishes: [],
     entry: { text: '', photos: [] }, entryRead: null, sources: [], visit: [], cur: null, survey: null,
     chat: [], heard: [], missed: [], honne: [], turns: {},
     pair: ['C', 'A'], player: null, others: [], newest: [],
@@ -47,7 +47,7 @@ export function apply(s, e) {
     case 'start': Object.assign(s, initialState(), { scene: 'howto', seed: e.seed, playId: e.playId }); break;
     case 'scene': if (s.scene !== e.scene || s.step !== e.step) s.band = null; s.scene = e.scene; if (e.step != null) s.step = e.step; s.pop = null; s.failed = null; s.newest = e.scene === 'fork' || e.scene === 'coord' ? s.newest : []; break;
     case 'howto': s.howto = e.page; break;
-    case 'names': s.names = { a: e.a || 'あなた', b: e.b || 'パートナー' }; break;
+    case 'names': s.names = { a: e.a || 'あなた', b: e.b || 'パートナー', role: e.role || s.names?.role || 'h' }; break;
     case 'mode': s.mode = e.mode; break;
     case 'entry': s.entry = { text: e.text, photos: e.photos || [] }; break;
     case 'source': if (!s.sources.includes(e.id)) s.sources.push(e.id); break;
@@ -170,7 +170,7 @@ export function emit(type, payload = {}) {
   LOG.push(e);
   apply(S, e);
   // 担当者の質問に合わせて、話す人を切り替える（手で戻すこともできる）
-  if (type === 'ai' && e.role === 'hearing' && S.mode === 'duo') { const t = e.data.line || ''; if (new RegExp(`奥様|奥さま|${S.names.b}さん`).test(t)) setWho('yuu'); else if (new RegExp(`ご主人|旦那|${S.names.a}さん`).test(t)) setWho('kazu'); }
+  if (type === 'ai' && e.role === 'hearing' && S.mode === 'duo') { const t = e.data.line || ''; if (new RegExp(`${S.names.b}(さん|様)`).test(t)) setWho('yuu'); else if (new RegExp(`ご主人|旦那|${S.names.a}さん`).test(t)) setWho('kazu'); }
   render();
   if (['fork', 'ai'].includes(type) && !RT.replaying) autosave();
   return e;

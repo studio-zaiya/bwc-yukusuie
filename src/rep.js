@@ -91,7 +91,7 @@ export function buildRepSystem(harness, { company = 'C', phase = 'followUp', sta
     `# いまの場面：${ph.role}\n${ph.rule}`,
     `# あなたの会社の個性\n- 総括の切り口：${c.angle}\n- 深く聞く話題：${c.digDeep.join('、')}\n- 口調：${c.tone}\n- くせ：${c.quirk}\n- 言いがちな一言：${(c.stockLines || []).join('／')}\n- あいさつの例：${(c.replaceTone || []).join('／')}`,
     specs.length ? `# 自社の標準仕様（この範囲でだけ答える。表の数字は繰り返してよい）\n${specs.map(x => '- ' + x).join('\n')}` : '',
-    `# お客様\n- ご主人の呼び名：${A}／奥様の呼び名：${B}`,
+    `# お客様\n- おふたりの呼び名：${A}、${B}。呼ぶときは呼び名＋敬称（${company === 'A' ? '様' : 'さん'}）。「ご主人」「奥様」とは呼ばない（夫婦の形を決めつけない）`,
     memory ? `# 要望の記憶（アンケートと、これまでの打ち合わせ）\n${memory}` : '',
     `# 使える差し込み枠（値はコードが入れる。ここにない枠は使わない）\n${usable.length ? usable.map(k => `- {${k}}：${SLOTS[k]}`).join('\n') : '- なし（金額・広さ・日数は、まだ言えない。いつ出すかを約束する）'}`,
     extra ? `# この場面の補足\n${extra}` : '',

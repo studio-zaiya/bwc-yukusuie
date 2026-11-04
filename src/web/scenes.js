@@ -1,5 +1,6 @@
 /* ゆくすいえ　場面ごとの描画。数字はすべてエンジン（engine.js）から。仕組みの名前は画面に出さない */
 import * as Y from './engine/engine.js';
+import { drawBuild, BUILD, DUR, PHASES, phaseAt } from './buildanim.js';
 import * as P from './parts.js';
 import { buildMemory, SRC_LABEL } from './memory.js';
 
@@ -226,7 +227,7 @@ function msgHTML(m) {
   return `<div class="msg me kz"><div class="who"><i class="sq"></i>${esc(NAMES.kazu)}</div>${esc(m.text)}</div>`;
 }
 export const NAMES = { kazu: 'あなた', yuu: 'パートナー' };
-export const setNames = n => { NAMES.kazu = n?.a || 'あなた'; NAMES.yuu = n?.b || 'パートナー'; };
+export const setNames = n => { NAMES.kazu = n?.a || '夫'; NAMES.yuu = n?.b || '妻'; };
 let WHO = 'kazu';
 export const setWho = w => { WHO = w; };
 export const getWho = () => WHO;
@@ -277,8 +278,9 @@ export const SCENES = {
   howto(s) {
     const [t, pic, body] = HOWTO[s.howto];
     const last = s.howto === HOWTO.length - 1;
-    const first = s.howto === 0 ? `<div class="namebox"><label><i class="sq"></i>夫の呼び名<input id="nmA" maxlength="8" placeholder="あなた" value="${esc(s.names.a === 'かず' ? '' : s.names.a)}"></label><label><i class="ci"></i>妻の呼び名<input id="nmB" maxlength="8" placeholder="パートナー" value="${esc(s.names.b === 'ゆう' ? '' : s.names.b)}"></label></div><p class="note">ニックネームで入力してください（空欄なら「あなた」「パートナー」）。</p>
-      <div class="modebox"><button class="mode" data-act="mode" data-m="solo" aria-pressed="${s.mode === 'solo'}"><b>ひとりで遊ぶ</b><span>あなたが夫になり、妻はAIが演じます</span></button><button class="mode" data-act="mode" data-m="duo" aria-pressed="${s.mode === 'duo'}"><b>ふたりで遊ぶ</b><span>交互に入力します</span></button></div>` : '';
+    const r = s.names.role || 'h', me = r === 'w' ? '妻' : '夫', pa = r === 'w' ? '夫' : '妻', dflt = v => ['夫', '妻', 'あなた', 'パートナー'].includes(v) ? '' : v;
+    const first = s.howto === 0 ? `<div class="rolebox">あなたは<button class="mode sm" data-act="role" data-r="h" aria-pressed="${r === 'h'}">夫</button><button class="mode sm" data-act="role" data-r="w" aria-pressed="${r === 'w'}">妻</button></div><div class="namebox"><label><i class="sq"></i>あなたの呼び名<input id="nmA" maxlength="8" placeholder="${me}" value="${esc(dflt(s.names.a))}"></label><label><i class="ci"></i>パートナーの呼び名<input id="nmB" maxlength="8" placeholder="${pa}" value="${esc(dflt(s.names.b))}"></label></div><p class="note">ニックネームで入力してください（空欄なら「${me}」「${pa}」）。担当者は、この呼び名で呼びます。</p>
+      <div class="modebox"><button class="mode" data-act="mode" data-m="solo" aria-pressed="${s.mode === 'solo'}"><b>ひとりで遊ぶ</b><span>パートナーはAIが演じます</span></button><button class="mode" data-act="mode" data-m="duo" aria-pressed="${s.mode === 'duo'}"><b>ふたりで遊ぶ</b><span>交互に入力します</span></button></div>` : '';
     return `<div class="center howto"><div class="hk">遊び方　${s.howto + 1} / ${HOWTO.length}</div><div class="h2">${t}</div>${s.howto === 0 ? '' : `<div class="pic">${MINI[pic]()}</div>`}<p class="lead">${body}</p>${first}
       <div style="display:flex;gap:14px;justify-content:center"><button class="opt" data-act="howtoSkip">遊び方をとばす</button></div></div>
       ${last ? `<div class="disc">${NOTICE}</div>` : ''}`;
@@ -286,7 +288,7 @@ export const SCENES = {
   family(s) {
     const h = H(s);
     return `<div class="full"><div class="h2">あなたの家族</div><p class="lead">${h.story}</p>
-      <dl class="facts" style="max-width:900px"><dt>世帯</dt><dd>${esc(NAMES.kazu)}（夫）・${esc(NAMES.yuu)}（妻）・子ども2人</dd><dt>世帯年収</dt><dd>${man(h.income)}万円（共働き）</dd><dt>家に入れる預金</dt><dd>${man(h.saveHouse)}万円（ほかに手元に残す分 ${man(h.saveKeep)}万円）</dd><dt>借りられそうな額</dt><dd>${man(Y.loanLimit(h))}万円まで（審査の目安）</dd></dl>
+      <dl class="facts" style="max-width:900px"><dt>世帯</dt><dd>${esc(NAMES.kazu)}（${(s.names.role || 'h') === 'w' ? '妻' : '夫'}）・${esc(NAMES.yuu)}（${(s.names.role || 'h') === 'w' ? '夫' : '妻'}）・子ども2人</dd><dt>世帯年収</dt><dd>${man(h.income)}万円（共働き）</dd><dt>家に入れる預金</dt><dd>${man(h.saveHouse)}万円（ほかに手元に残す分 ${man(h.saveKeep)}万円）</dd><dt>借りられそうな額</dt><dd>${man(Y.loanLimit(h))}万円まで（審査の目安）</dd></dl>
       <p class="note" style="margin-top:14px">金額はゲームの中の仮定です。</p>
 </div>`;
   },
@@ -369,9 +371,9 @@ export const SCENES = {
   hearing(s) {
     const co = s.cur, second = s.visit[1] === co, mt = s.meet[co] || { rounds: 0, min: 0 };
     const canEnd = (mt.rounds >= 2 || mt.ended) && !busy.on;
-    const clock = `<div class="meetclk"><b>打ち合わせ ${Math.min(60, mt.min)}分</b>／60分<span>追加の質問 ${mt.rounds}往復（2〜4往復）</span><div class="mbar"><i style="width:${Math.min(100, mt.min / 60 * 100)}%"></i></div></div>`;
-    const quick = !busy.on && !mt.ended ? ['おまかせします', 'あとで考えます'].map(t => `<button class="opt ch" data-act="choose" data-t="${t}">${t}</button>`).join('') + `<button class="opt" data-act="openShow">写真やURLを見せる</button>` : '';
-    const end = !mt.ended && canEnd ? `<button class="opt" data-act="endMeeting">今日はこのあたりで</button>` : '';
+    const clock = `<div class="meetclk"><b>打ち合わせ ${Math.min(60, mt.min)}分</b>／60分<div class="mbar"><i style="width:${Math.min(100, mt.min / 60 * 100)}%"></i></div></div>`;
+    const quick = !busy.on && !mt.ended && mt.lastCall ? `<button class="opt ch" data-act="noMore">とくにありません</button>` : !busy.on && !mt.ended ? ['おまかせします', 'あとで考えます'].map(t => `<button class="opt ch" data-act="choose" data-t="${t}">${t}</button>`).join('') + `<button class="opt" data-act="openShow">写真やURLを見せる</button>` : '';
+    const end = !mt.ended && !mt.lastCall && canEnd ? `<button class="opt" data-act="endMeeting">今日はこのあたりで</button>` : '';
     return `${chrome(s)}${hero(s, boardHTML(s), 'withboard')}<div class="right ${tall(s)}">${chat(s, { ch: co, head: staffHead(co, busy.on || (s.trust[co]?.stage || 0) >= 2 ? 'think' : 'idle', second ? '2社目' : '1社目') + clock, opts: quick + end, thinking: busy.on, placeholder: mt.ended ? '今日の打ち合わせは終わりました' : '担当者に答える・補足する' })}</div>${gallery(s)}`;
   },
   forgot(s) {
@@ -379,7 +381,7 @@ export const SCENES = {
     const said = s.chat.some(m => m.ch === 'partner' && m.forgot && !m.byPartner);
     return `${chrome(s)}${hero(s)}<div class="right ${tall(s)}"><div class="chat"><div class="staffbar">${P.spouse('yuu', 70)}<div class="nm">帰り道<b>${esc(NAMES.yuu)}と話す</b></div></div>
       <div class="log">${s.chat.filter(m => m.ch === 'partner').map(msgHTML).join('')}</div>
-      <div class="opts">${said ? `<button class="opt" data-act="sendForgot">${Y.COMPANIES[co].staff}さんに送る</button>` : ''}</div>
+      
       <div class="in">${tbox('say', 'sayPartner', `伝え忘れたことを、${esc(NAMES.yuu)}に話す`, 3, '話す')}</div>${navs(s)}</div></div>${gallery(s)}`;
   },
   reply(s) {
@@ -533,9 +535,24 @@ export const SCENES = {
     const found = s.missed.filter(m => m.co === s.player.company && INSPECT.test(m.said || '') && !fixed(m.said)).slice(0, 2);
     const rows = [[7, '申請・着工', '確認の申請がおりて、地鎮祭。基礎の工事に入る'], [8, '上棟', '骨組みが立ち上がる。家の形がいちばんわかる日'], [9, '施主検査', found.length ? `頼んだとおりか確かめる。気づいたこと：${found.map(m => esc(m.said)).join('／')}` : '頼んだとおりか、付箋を貼って確かめる'], [10, '引渡し', '鍵を受け取る']];
     const auto = s.buildAuto;
-    return `${chrome(s)}${hero(s)}<div class="right ${tall(s)}"><div class="chat"><div class="staffbar"><div class="nm">工事の帳面<b>着工から引渡しまで</b></div></div>
+    const anim = auto ? `<div class="hero ${tall(s)} bld"><div class="lab"><span class="no">${pad(YOU)}</span>あなたの家　${P.coTag(s.player.company, 28)}${Y.COMPANIES[s.player.company].name}</div><div id="banim"></div><div class="bcap" id="bcap"></div></div>` : hero(s);
+    return `${chrome(s)}${anim}<div class="right ${tall(s)}"><div class="chat"><div class="staffbar"><div class="nm">工事の帳面<b>着工から引渡しまで</b></div></div>
       <ol class="timeline">${rows.map(([st, t, d]) => `<li class="${s.step >= st && (auto || st === 7 && s.step > 7) ? 'on' : ''}"><b>${days[st]}日目</b><span><b>${t}</b><br>${d}</span></li>`).join('')}</ol>
       <div class="opts" style="margin-top:auto">${auto ? '<span class="note">工事が進んでいます……</span>' : ''}</div>${navs(s)}</div></div>${gallery(s)}`;
+  },
+  build_after(s) {
+    if (!s.buildAuto) return;
+    if (BUILD.t0 == null) BUILD.t0 = performance.now();
+    cancelAnimationFrame(BUILD.raf);
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, fin = P.finOf(s.player);
+    const tick = () => {
+      const el = document.getElementById('banim'), cap = document.getElementById('bcap'); if (!el || BUILD.t0 == null) return;
+      const t = Math.min(DUR, (performance.now() - BUILD.t0) / 1000);
+      el.innerHTML = drawBuild(s.player, t, fin, reduce);
+      const k = phaseAt(t); if (cap && cap.dataset.k !== String(k)) { cap.dataset.k = k; cap.textContent = PHASES[k][1]; }
+      if (t < DUR) BUILD.raf = requestAnimationFrame(tick);
+    };
+    tick();
   },
   // S7：白いフェードで入る引渡し式。動きが止まったら「写真を保存」と「そして1年後……」
   // S7 引渡し（受け入れ基準5）：着工〜施主検査の早送り → 白いフェード → 切り絵（W4の描き方を、家の状態のJSONから）で、家族と担当者が家の前に立つ
@@ -555,12 +572,14 @@ export const SCENES = {
   },
   // 1年のうつろい：空の色と木の葉が、夏→秋→冬→春と移り変わる（夜は通らない）。最後に「1年後」の札
   seasons(s) {
-    return `<div class="seasons"><div class="sky"></div><div class="tree"><i></i><i></i><i></i><i></i><i></i></div><div class="ground"></div><div class="tag1y">1年後</div></div>`;
+    // 同じわが家の定点で、空と季節が1年ぶん移り変わる（切り絵は引渡しだけ。TESTPLAY T10）
+    const w = s.player;
+    return `<div class="seasons"><div class="sky"></div><div class="ground"></div><div class="tree"><i></i><i></i><i></i><i></i><i></i></div><div class="sz-house">${w ? P.bigHouse(w, 4, { fin: P.finOf(w) }) : ''}</div><div class="tag1y">1年後</div></div>`;
   },
   // S8a：1年後のわが家（リザルト）。選択の結果が絵に出る
   result(s) {
     const o = Y.outcome(s.player);
-    return `${top(s)}${moneyBox(s)}<div class="hero tall res paperwrap"><iframe src="/paper.html?from=2.2&st=${encodeURIComponent(JSON.stringify(paperState(s, { staff: false })))}" title="1年後のわが家（切り絵）" tabindex="-1"></iframe><div class="pcap">${s.player.spec.exterior !== 'full' ? '玄関の前は、まだ砂利のまま' : '庭の緑が、少しずつ育ってきた'}</div></div><div class="card"><h3>${pad(YOU)}　あなたの家の、1年後</h3>
+    return `${top(s)}${moneyBox(s)}<div class="hero tall res yr1"><div class="yr1-house">${P.bigHouse(s.player, 4, { fin: P.finOf(s.player), life: 1 })}</div><div class="pcap">${s.player.spec.exterior !== 'full' ? '玄関の前は、まだ砂利のまま' : '庭の緑が、少しずつ育ってきた'}</div></div><div class="card"><h3>${pad(YOU)}　あなたの家の、1年後</h3>
       <dl><dt>冬の朝</dt><dd>${o.warmth.label}</dd><dt>家計のゆとり</dt><dd>${o.slack.label}</dd><dt>総額</dt><dd>${man(o.total)}万円</dd><dt>借入</dt><dd>${man(o.principal)}万円</dd></dl>
       <div style="font-size:16px;color:var(--ink2);font-weight:700">この1年の出来事</div><ul class="ev">${(o.events.length ? o.events : ['大きな出来事はなかった']).slice(0, 3).map(e => `<li>${esc(e)}</li>`).join('')}</ul>
       <div style="font-size:16px;color:var(--ink2);font-weight:700;margin-top:14px">一つだけ選択が違う世界</div>
@@ -694,7 +713,8 @@ export function navOf(s) {
       const go = g(second ? 'toCompare' : 'toForgot', second ? '提案の日へ ▶' : '帰り道へ ▶');
       if (busy.on) return { todo: '担当者の質問に答えましょう', go: { ...go, ...off('担当者の返事を待っています') } };
       if (mt.ended) return { todo: '担当者の質問に答えましょう', go: { ...go, ready: true } };
-      return { todo: '担当者の質問に答えましょう', go: { ...go, ...off(mt.rounds >= 2 ? '「今日はこのあたりで」で、打ち合わせを区切れます' : `あと${Math.max(0, 2 - mt.rounds)}往復で、区切れます`) } }; }
+      if (mt.lastCall) return { todo: '最後に伝えたいことがあれば、伝えましょう', go: { ...go, ...off('担当者の最後の確認に答えてください') } };
+      return { todo: '担当者の質問に答えましょう', go: { ...go, ...off(mt.rounds >= 2 ? '「今日はこのあたりで」で、打ち合わせを区切れます' : 'もう少し話してから、区切れます') } }; }
     case 'forgot': return { todo: '伝え忘れたことがあれば、話しましょう', go: g('toSecond', '2社目へ ▶', busy.on ? off('返事を待っています') : {}) };
     case 'reply': return { todo: '担当者からの返事を読みましょう', go: g('toSecond', '2社目へ ▶', busy.on ? off('返事を待っています') : {}) };
     case 'compare': return { todo: '2社の見積を見比べましょう', go: g('toFork1', '建てる会社を選ぶ ▶') };

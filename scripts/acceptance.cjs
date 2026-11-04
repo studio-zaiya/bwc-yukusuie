@@ -30,7 +30,7 @@ const OUT = 'out/acceptance';
     await click('[data-act=decideCoord]'); await p.waitForTimeout(800); await shot('S4-fork4-auto'); await p.waitForTimeout(1600); await shot('S4-fork4-band'); await p.waitForTimeout(1500); await shot('P4b-electric');
     await p.fill('#say', 'リビングのエアコンは見えないようにしたいと伝えていたはずです'); await click('[data-act=sendElectric]'); await idle(); await p.waitForTimeout(500); await shot('P4b-electric-add');
     const m0 = await p.textContent('.moneyc .v'); await p.fill('#say', '間接照明をお願いしたい'); await click('[data-act=sendElectric]'); await p.waitForTimeout(1300); await shot('P4b-electric-count'); await p.waitForTimeout(1000); console.log('お金の札', m0, '→', await p.textContent('.moneyc .v'));
-    await click('[data-act=elecOk]'); await shot('U2-electric-ok'); await click('[data-act=toBuild]'); await click('[data-act=startBuild]'); await p.waitForTimeout(2000); await shot('S6-build');
+    await click('[data-act=elecOk]'); await shot('U2-electric-ok'); await click('[data-act=toBuild]'); await click('[data-act=startBuild]'); await p.waitForTimeout(3000); await shot('S6-build'); await p.waitForTimeout(5000); await shot('S6-build-frame');
     await p.waitForFunction(() => YUKU.state.scene === 'handover', null, { timeout: 20000 }); await p.waitForTimeout(400); await shot('S7-handover-fade'); await p.waitForTimeout(3800); await shot('S7-handover');
     await click('[data-act=toSeasons]'); await p.waitForTimeout(2200); await p.waitForFunction(() => YUKU.state.scene === 'result', null, { timeout: 8000 }); await p.waitForTimeout(5200); await shot('S8-result');
     await click('[data-act=toYear]'); await p.waitForTimeout(1200); await shot('S8-year');

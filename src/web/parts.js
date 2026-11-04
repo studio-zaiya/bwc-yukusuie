@@ -67,6 +67,14 @@ export function bigHouse(w, stage, o = {}) {
     if (stage >= 4) {
       const cp = (x, y) => { let t = ''; [[0,0],[24,0],[0,22],[24,22]].forEach(([a,b]) => { const q = P(x+a, y+b, 0), r = P(x+a, y+b, 20); t += `<line x1="${q[0]}" y1="${q[1]}" x2="${r[0]}" y2="${r[1]}" stroke="#8A8F96" stroke-width="1.6"/>`; }); t += I.poly([[0,0],[24,0],[24,22],[0,22]].map(([a,b]) => P(x+a, y+b, 20)), 'rgba(220,230,236,.85)', '#8A8F96', 1.2); return t; };
       s += cp(64, 56);
+      // 1年後の暮らしの跡（TESTPLAY T10）：伸びた庭木、自転車、鉢植え。外構の状態と外壁の色は、その世界のまま
+      if (o.life) {
+        const tree = (x, y, k) => { const a = P(x, y, 0), b = P(x, y, 16 * k); return `<ellipse cx="${a[0]}" cy="${a[1]}" rx="${12 * k}" ry="${5 * k}" fill="rgba(30,43,54,.14)"/><line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#7A5A3A" stroke-width="3"/><circle cx="${b[0]}" cy="${b[1] - 9 * k}" r="${14 * k}" fill="#7DBF62" stroke="#1E2B36" stroke-width="1.2"/><circle cx="${b[0] - 7 * k}" cy="${b[1] - 2 * k}" r="${9 * k}" fill="#8CCB6E" stroke="#1E2B36" stroke-width="1"/>`; };
+        s += tree(86, -8, w.spec.exterior === 'full' ? 1.5 : 1.0);
+        const bk = P(58, 52, 0); s += `<g transform="translate(${bk[0]},${bk[1] - 10})" stroke="#1E2B36" stroke-width="1.6" fill="none"><circle cx="-9" cy="6" r="6"/><circle cx="9" cy="6" r="6"/><path d="M-9 6 L-2 -4 L6 -4 L9 6 M-2 -4 L0 6 M6 -4 L5 -8"/></g>`;
+        s += tree(-14, 72, w.spec.exterior === 'full' ? 1.2 : 0.8);
+        [[56, 14], [56, 20]].forEach(([x, y]) => { const q = P(x, y, 0); s += `<rect x="${q[0] - 4}" y="${q[1] - 6}" width="8" height="6" fill="#B9774F" stroke="#1E2B36" stroke-width="1"/><circle cx="${q[0]}" cy="${q[1] - 9}" r="5" fill="#7DBF62" stroke="#1E2B36" stroke-width="1"/>`; });
+      }
       if (w.spec.exterior === 'full') [[-12, 80, 1.1], [86, -8, .9], [-14, 20, .8]].forEach(([x, y, k]) => { const a = P(x, y, 0), b = P(x, y, 12 * k); s += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#7A5A3A" stroke-width="2.4"/><circle cx="${b[0]}" cy="${b[1] - 7 * k}" r="${11 * k}" fill="#7DBF62" stroke="#1E2B36" stroke-width="1.2"/>`; });
     }
     const minX = P(-20, 92)[0] - 10, maxX = P(96, -16)[0] + 10, minY = P(-20, -16)[1] - 90, maxY = P(96, 92)[1] + 10;
@@ -87,17 +95,31 @@ export function estate2(list, o = {}) {
     const road = (x0, y0, x1, y1) => I.poly([P(x0, y0), P(x1, y0), P(x1, y1), P(x0, y1)], '#E2D8C4', 'none', 0);
     s += road(-gap, -gap, 4 * (Lz + gap), 0); s += road(2 * (Lz + gap) - gap, -gap, 2 * (Lz + gap), 4 * (Lz + gap));
     const order = list.map((x, i) => [x, i]).sort((a, b) => (Math.floor(a[1] / 4) + a[1] % 4) - (Math.floor(b[1] / 4) + b[1] % 4));
+    // 地面を先に全部描き、家はそのあと（枠の線が手前の家に重ならない。TESTPLAY T13）
+    // 自分の区画：地面を橙の薄い塗り＋太い橙の縁。いま見ている区画：墨の太い枠。ほかは緑の細い線
     order.forEach(([x, i]) => {
-      const r = Math.floor(i / 4), c = i % 4, X = c * (Lz + gap), Yy = r * (Lz + gap), w = x.w, you = w.no === YOU, hi = o.hi && o.hi.includes(w.no);
-      s += I.poly([P(X, Yy), P(X + Lz, Yy), P(X + Lz, Yy + Lz), P(X, Yy + Lz)], x.stage >= 4 && w.spec.exterior !== 'full' ? '#E7E0D2' : '#F3E7CF', you ? '#1E2B36' : hi ? '#C99A00' : '#9BD27A', you ? 3.4 : hi ? 3 : 2.2, hi && !you ? 'stroke-dasharray="7 4"' : '');
+      const r = Math.floor(i / 4), c = i % 4, X = c * (Lz + gap), Yy = r * (Lz + gap), w = x.w, you = w.no === YOU && YOU > 0, hi = o.hi && o.hi.includes(w.no);
+      s += I.poly([P(X, Yy), P(X + Lz, Yy), P(X + Lz, Yy + Lz), P(X, Yy + Lz)], you ? '#FBE1C9' : x.stage >= 4 && w.spec.exterior !== 'full' ? '#E7E0D2' : '#F3E7CF', you ? '#E8701F' : '#9BD27A', you ? 5 : 2.2);
+      if (hi) s += I.poly([P(X + 5, Yy + 5), P(X + Lz - 5, Yy + 5), P(X + Lz - 5, Yy + Lz - 5), P(X + 5, Yy + Lz - 5)], 'none', '#1E2B36', 4);
+    });
+    order.forEach(([x, i]) => {
+      const r = Math.floor(i / 4), c = i % 4, X = c * (Lz + gap), Yy = r * (Lz + gap), w = x.w, you = w.no === YOU && YOU > 0;
       if (x.stage === 0 && x.ghost) s += `<g opacity="${x.ghost}">` + I.house({ x: X + 10, y: Yy + 8, roof: w.spec.roof, fin: I.FINISH[0], stage: 3 }) + '</g>';
-      else s += I.house({ x: X + 10, y: Yy + 8, roof: w.spec.roof, fin: x.stage >= 4 ? finOf(w) : I.FINISH[(w.no * 5) % 8], stage: x.stage, third: !!w.third && you && x.stage >= 4 });
+      else { // 各世界の案のデータから描き分ける：延床で大きさ、外構まで整えた世界は庭木（TESTPLAY T13）
+        const k = Math.sqrt(Math.max(28, Math.min(44, w.spec.tsubo || 34)) / 34);
+        s += I.house({ x: X + 10, y: Yy + 8, w: Math.round(46 * k), d: Math.round(38 * k), roof: w.spec.roof, fin: x.stage >= 4 ? finOf(w) : I.FINISH[(w.no * 5) % 8], stage: x.stage, third: !!w.third && you && x.stage >= 4 });
+        if (x.stage >= 4 && w.spec.exterior === 'full') [[X + 84, Yy + 14, 1], [X + 12, Yy + 84, .8]].forEach(([tx, ty, kk]) => { const a0 = P(tx, ty, 0), b0 = P(tx, ty, 14 * kk); s += `<ellipse cx="${a0[0]}" cy="${a0[1]}" rx="${9 * kk}" ry="${4 * kk}" fill="rgba(30,43,54,.12)"/><line x1="${a0[0]}" y1="${a0[1]}" x2="${b0[0]}" y2="${b0[1]}" stroke="#7A5A3A" stroke-width="2.4"/><circle cx="${b0[0]}" cy="${b0[1] - 8 * kk}" r="${12 * kk}" fill="#7DBF62" stroke="#1E2B36" stroke-width="1.2"/>`; });
+      }
       const t = P(X + 33, Yy + 27, 66); // 番号札は、その区画の家の真上に（手前の区画の家と取り違えない）
-      tags += `<g transform="translate(${t[0]},${t[1] + 4})"><rect x="-17" y="-12" width="34" height="22" rx="5" fill="${you ? '#1E2B36' : '#FFFAF0'}" stroke="#1E2B36" stroke-width="1.2"/><text x="0" y="4" text-anchor="middle" font-size="13" font-weight="700" fill="${you ? '#FFFAF0' : '#1E2B36'}">${String(w.no).padStart(2, '0')}</text></g>`;
+      if (you) { // 「あなた」の札：墨の地に白字、橙の■。ゆっくり上下に揺れる。寄った最初の数秒だけ、薄い光の柱
+        const g0 = P(X + Lz / 2, Yy + Lz / 2, 0);
+        tags += `<g class="youbeam"><polygon points="${g0[0] - 34},${g0[1]} ${g0[0] + 34},${g0[1]} ${g0[0] + 22},${g0[1] - 260} ${g0[0] - 22},${g0[1] - 260}" fill="url(#yb)"/></g>`;
+        tags += `<g transform="translate(${t[0]},${t[1] - 6})"><g class="youtag"><rect x="-44" y="-17" width="88" height="30" rx="7" fill="#1E2B36"/><rect x="-36" y="-7" width="10" height="10" fill="#E8701F"/><text x="8" y="5" text-anchor="middle" font-size="15" font-weight="700" fill="#FFFAF0">${String(w.no).padStart(2, '0')} あなた</text></g></g>`;
+      } else tags += `<g transform="translate(${t[0]},${t[1] + 4})"><rect x="-17" y="-12" width="34" height="22" rx="5" fill="#FFFAF0" stroke="#1E2B36" stroke-width="1.2"/><text x="0" y="4" text-anchor="middle" font-size="13" font-weight="700" fill="#1E2B36">${String(w.no).padStart(2, '0')}</text></g>`;
       if (o.notes && x.note && (o.notes === true || o.notes.includes(w.no))) { const m = P(X + Lz / 2, Yy + Lz / 2, 74); const tw = x.note.length * 11 + 18; tags += `<g transform="translate(${m[0]},${m[1]})"><rect x="${-tw / 2}" y="-13" width="${tw}" height="22" rx="11" fill="rgba(255,250,240,.94)" stroke="rgba(30,43,54,.3)"/><text x="0" y="3" text-anchor="middle" font-size="11" fill="#1E2B36">${x.note}</text></g>`; }
     });
     const minX = P(0, 4 * (Lz + gap))[0] - 40, maxX = P(4 * (Lz + gap), 0)[0] + 40, minY = -120, maxY = P(4 * (Lz + gap), 4 * (Lz + gap))[1] + 30;
-    return `<svg viewBox="${minX} ${minY} ${maxX - minX} ${maxY - minY}" xmlns="http://www.w3.org/2000/svg" style="${o.style || ''}">${s}${tags}</svg>`;
+    return `<svg viewBox="${minX} ${minY} ${maxX - minX} ${maxY - minY}" xmlns="http://www.w3.org/2000/svg" style="${o.style || ''}"><defs><linearGradient id="yb" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#F2C230" stop-opacity=".55"/><stop offset="1" stop-color="#F2C230" stop-opacity="0"/></linearGradient></defs>${s}${tags}</svg>`;
   }
 
 export const setFace = (el, s) => { if (el) el.setAttribute('data-s', s); };

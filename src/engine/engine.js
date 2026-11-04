@@ -282,11 +282,13 @@ export function money(w) {
 
 // ---- 4つの分かれ道（名前と順番は固定）。bit=0 が左の札、bit=1 が右の札 ----
 export const FORKS = ['第一の分岐点', '第二の分岐点', '第三の分岐点', '第四の分岐点'];
+// 案の名前が「〜まとめる」のように動詞で終わるときは、そのまま札の名前にする（「まとめるで進める」を避ける。TESTPLAY T9）
+const verbL = (t, tail) => /(る|た|う|く|す)$/.test(t) ? t : t + tail;
 export function decisions(pair = ['C', 'A']) {
   const [x, y] = pair;
   return [
     { id: 'D1', no: 0, q: 'だれと建てる？', step: 2, a: { label: `${COMPANIES[x].name}と建てる`, patch: { company: x } }, b: { label: `${COMPANIES[y].name}と建てる`, patch: { company: y } } },
-    { id: 'D2', no: 1, q: 'なにを優先する？', step: 3, a: { label: w => w.plan ? `${w.plan.title || '確定した骨組み'}で進める` : `提案の外形（${ROOF_JA[w.spec.roof]}）のまま、広さを優先する`, patch: { plan: 'main' } }, b: { label: w => w.plan?.alt ? `${w.plan.alt.title || 'もう一つの案'}にする` : `${ROOF_JA[COMPANIES[w.company].altRoof]}に変えて、総二階に寄せる（ひとまわり小さく）`, patch: { spec: { roof: '@alt', tsubo: -1 }, plan: 'alt' } } },
+    { id: 'D2', no: 1, q: 'なにを優先する？', step: 3, a: { label: w => w.plan ? verbL(w.plan.title || '確定した骨組み', 'で進める') : `提案の外形（${ROOF_JA[w.spec.roof]}）のまま、広さを優先する`, patch: { plan: 'main' } }, b: { label: w => w.plan?.alt ? verbL(w.plan.alt.title || 'もう一つの案', 'にする') : `${ROOF_JA[COMPANIES[w.company].altRoof]}に変えて、総二階に寄せる（ひとまわり小さく）`, patch: { spec: { roof: '@alt', tsubo: -1 }, plan: 'alt' } } },
     { id: 'D3', no: 2, q: 'いくらまでかける？', step: 5, a: { label: '外構は最小限で進める', patch: { spec: { exterior: 'min' } } }, b: { label: '借入を増やして、外構まで仕上げる', patch: { spec: { exterior: 'full' } } } },
     { id: 'D4', no: 3, q: 'どう仕上げる？', step: 6, a: { label: '標準の仕上げのまま', patch: { finish: { wall: 'std', floor: 'std', inner: 'vinyl' } } }, b: { label: 'アップグレードを受ける（外壁と床）', patch: { finish: { wall: 'galva', floor: 'oak' } } } },
   ];

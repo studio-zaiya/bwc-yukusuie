@@ -325,10 +325,13 @@ async function plannerRun(env, body) {
 const PARTNER_SCHEMA = { type: 'object', additionalProperties: false, required: ['line', 'wishes'], properties: { line: { type: 'string' }, wishes: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['tag', 'text'], properties: { tag: { type: 'string' }, text: { type: 'string' } } } } } };
 async function partner(env, body) {
   const A = String(body.names?.a || 'あなた').slice(0, 8), B = String(body.names?.b || 'パートナー').slice(0, 8);
-  const system = PROMPTS.partner.body.split('{{A}}').join(A).split('{{B}}').join(B);
+  // パートナーの立場はプレイヤーが選ぶ（TESTPLAY T3）。口調は男女の2種類
+  const wife = (body.names?.role || 'h') === 'h';
+  const TONE = wife ? '口調：やわらかい話し言葉。口ぐせ：「それ、毎日のことだよね」「わたしは、こっちのほうが気になるかな」' : '口調：落ち着いた話し言葉（一人称は「ぼく」）。口ぐせ：「それ、毎日のことだよな」「ぼくは、こっちのほうが気になるかな」';
+  const system = PROMPTS.partner.body.split('{{A}}').join(A).split('{{B}}').join(B).split('{{PR}}').join(wife ? '妻' : '夫').split('{{ME}}').join(wife ? '夫' : '妻').split('{{TONE}}').join(TONE);
   const hist = (body.history || []).slice(-8).map(h => `${h.who}：${h.text}`).join('\n');
   const user = `# いまの場面\n${String(body.scene || '').slice(0, 300)}\n${hist ? `# これまでの会話\n${hist}\n` : ''}# あなたへの問いかけ\n${String(body.ask || '').slice(0, 300)}`;
-  const fb = { line: 'うーん、わたしは毎日の家事が回るほうが気になるかな。', wishes: [] };
+  const fb = { line: wife ? 'うーん、わたしは毎日の家事が回るほうが気になるかな。' : 'うーん、ぼくは毎日の家事が回るほうが気になるかな。', wishes: [] };
   return callJSON(env, { role: 'partner', system, user, schema: PARTNER_SCHEMA, fallback: fb, maxTokens: 800, validate: x => hasDigits(x.line) ? '数字' : null });
 }
 
