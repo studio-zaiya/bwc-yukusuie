@@ -18,7 +18,7 @@ description: ゆくすいえの「守り」の監査。公開物のルール、�
 
 ```bash
 # 個人・実在の名前と、人間が指定した使わない語（一覧は公開しない：.claude/local/private-words.txt。リポジトリに入れない）
-rg -n -F -f .claude/local/private-words.txt --glob '!prototypes/**' --glob '!design/v2/**'
+rg -n -F -f .claude/local/private-words.txt --glob '!prototypes/**' --glob '!design/v2/**' --glob '!.claude/local/**'
 # 禁止の言い回し（人間の明示の指示がない限り禁止）
 rg -n "17本目|17番目|17の世界|2択じゃなく|16に納まら|16通りより|未来は、16|正解の家より" --glob '!prototypes/**' --glob '!design/v2/**'
 # ギリシャ文字
