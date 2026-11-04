@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>ゆくすいえ — 題名カード</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#FFFAF0;--ink:#1E2B36;--ink2:#6B6358}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:var(--paper)}
+body{background-image:linear-gradient(rgba(28,141,204,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(28,141,204,.06) 1px,transparent 1px);background-size:32px 32px}
+#lock{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center}
+#mark{width:300px;height:300px}
+#t{font-family:"Hiragino Maru Gothic ProN","Zen Maru Gothic",sans-serif;font-weight:900;font-size:150px;letter-spacing:.1em;color:var(--ink);margin-top:-10px;line-height:1.1}
+#e{font-family:"Hiragino Maru Gothic ProN","Zen Maru Gothic",sans-serif;font-weight:700;font-size:36px;letter-spacing:.16em;color:var(--ink);margin-top:14px}
+#e span{font-weight:500}
+#c{font-family:"Hiragino Maru Gothic ProN","Zen Maru Gothic",sans-serif;font-weight:900;font-size:50px;color:var(--ink);margin-top:44px}
+</style></head><body>
+<div id="lock"><div id="mark"></div><div id="t">ゆくすいえ</div><div id="e">YUKUSUIE: <span>16 unbuilt futures</span></div><div id="c">16回目の、マイホームへ。</div></div>
+<script src="logo.js"></script>
+<script>
+const DUR = 5; window.DUR = DUR;
+const cl = v => Math.max(0, Math.min(1, v)), eo = v => 1 - Math.pow(1 - cl(v), 3);
+const $ = id => document.getElementById(id);
+const fade = (el, a) => { el.style.opacity = a.toFixed(3); el.style.transform = `translateY(${((1 - a) * 14).toFixed(1)}px)`; };
+window.render = t => {
+  $('mark').innerHTML = YLOGO.markSVG(cl(t / 1.9), { size: 300 });
+  fade($('t'), eo((t - 1.9) / 0.6));
+  fade($('e'), eo((t - 2.3) / 0.5));
+  fade($('c'), eo((t - 2.9) / 0.6));
+};
+const q = new URLSearchParams(location.search);
+render(q.has('t') ? +q.get('t') : DUR);
+window.READY = true;
+</script>
+</body></html>

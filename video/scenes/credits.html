@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>ゆくすいえ — スタッフロールと注記</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#11161C;color:#F4EFE6}
+#w{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:1400px;text-align:center}
+#mk{width:96px;height:96px;margin:0 auto 10px}
+.t{font-family:"Hiragino Maru Gothic ProN","Zen Maru Gothic",sans-serif;font-weight:900;font-size:64px;letter-spacing:.1em}
+.e{font-family:"Hiragino Maru Gothic ProN","Zen Maru Gothic",sans-serif;font-weight:700;font-size:22px;letter-spacing:.16em;color:#CFC8BC;margin-top:6px}
+dl{display:grid;grid-template-columns:1fr 1fr;gap:12px 28px;margin:54px auto 0;width:760px;font-family:"Hiragino Sans","BIZ UDPGothic",sans-serif;font-size:26px}
+dt{text-align:right;color:#A9A193}dd{text-align:left}
+.n{margin-top:64px;font-family:"Hiragino Sans","BIZ UDPGothic",sans-serif;font-size:20px;line-height:1.75;color:#CFC8BC}
+.b{margin-top:30px;font-family:"Hiragino Sans","BIZ UDPGothic",sans-serif;font-size:20px;letter-spacing:.12em;color:#A9A193}
+</style></head><body>
+<div id="w">
+  <div id="mk"></div>
+  <div class="t">ゆくすいえ</div>
+  <div class="e">YUKUSUIE: 16 unbuilt futures</div>
+  <dl>
+    <dt>企画・設計・演出</dt><dd>Studio ZaiYa</dd>
+    <dt>開発</dt><dd>Claude Code ／ Claude</dd>
+    <dt>作品の中のAI</dt><dd>Claude API</dd>
+  </dl>
+  <p class="n">本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。<br>実際の家づくりでは、地域・金融機関・住宅会社によって異なります。<br>登場する住宅会社・人物・団体はすべて架空です。</p>
+  <p class="b">Built with Claude: Japan 2026</p>
+</div>
+<script src="logo.js"></script>
+<script>
+const q=new URLSearchParams(location.search);
+const DUR=+(q.get('dur')||5); window.DUR=DUR;
+document.getElementById('mk').innerHTML=YLOGO.markSVG(1,{size:96,ink:'#F4EFE6',accent:'#E8701F'});
+const W=document.getElementById('w');
+window.render=t=>{const a=Math.min(1,t/0.4)*(1-Math.min(1,Math.max(0,(t-(DUR-1.2))/1.0)));W.style.opacity=a.toFixed(3);};
+render(q.has('t')?+q.get('t'):1); window.READY=true;
+</script>
+</body></html>
