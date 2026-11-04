@@ -25,7 +25,7 @@ export const REP_SCHEMA = {
 };
 
 const COMPANY_NAMES = ['Aハウス', 'Bハウス', 'Cデザイン', 'D工務店'];
-const SYSTEM_WORDS = /Claude|クロード|ＡＩ|AI|人工知能|エンジン|ゲーム|シミュレーション|プロンプト|世界線/;
+const SYSTEM_WORDS = /Claude|クロード|ＡＩ|AI|人工知能|エンジン|ゲーム|シミュレーション|プロンプト|世界線|枠で|枠を|枠の|差し込み|スロット/;
 // 禁じるのは、Claudeが金額・面積・日数を作ること（大原則）。部屋の数・台数の漢数字（「二部屋」「二台」）は数え方なので通す
 const DIGITS = /[0-9０-９]|[一二三四五六七八九十百千万]+(?:万|円|坪|帖|畳|日|か月|ヶ月|年)|万円|坪|帖/;
 const SLOT_RE = /\{([^{}]{1,12})\}/g;
@@ -49,7 +49,7 @@ export function repairRep(out, phase = 'followUp') {
 }
 // 検査（base.validator）。通らなければ理由を返す（作り直し）
 // 数字は「お客様の発言に出た数」「自社の標準仕様の表の数」（allowNums）か、「エンジンが渡した枠」（slotValues）だけ
-export function checkRep(out, { phase = 'followUp', company, allowNums = [], slotValues = {} } = {}) {
+export function checkRep(out, { phase = 'followUp', company, allowNums = [], slotValues = {}, banned = [] } = {}) {
   if (!out || typeof out.say !== 'string' || !out.say.trim()) return '返事（say）が空';
   const max = phase === 'summary' ? 3 : 2;
   if (sentences(out.say) > max) return `say は${max}文まで`;
@@ -64,6 +64,7 @@ export function checkRep(out, { phase = 'followUp', company, allowNums = [], slo
     if (bad) return `「${bad[0]}」は、お客様が言った数でも、使える枠の値でもない（自分で計算した数は書かない）。枠に置き換えるか、その数を消して言葉で言う`;
     if (SYSTEM_WORDS.test(t)) return '仕組みの言葉が入っている';
     if (COMPANY_NAMES.some(n => n !== company && t.includes(n))) return 'ほかの会社の名前が入っている';
+    const bp = banned.find(b => t.includes(b)); if (bp) return `「${bp}」は、この会社の担当者の口調では使わない`;
   }
   if (phase === 'summary' && !/ご記入ありがとうございます/.test(out.say)) return '総括は「ご記入ありがとうございます。」から';
   return null;

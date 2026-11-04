@@ -221,7 +221,7 @@ async function rep(env, body, HARNESS_ = HARNESS) {
   const user = `${hist ? `# これまでの会話\n${hist}\n` : ''}# ${phase === 'summary' ? 'アンケートを書き終えたところ' : 'お客様の言葉'}\n${String(body.text || '').slice(0, 400)}`;
   const staffTurns = (body.history || []).filter(h => h.who === '担当者').length;
   const allowNums = [...new Set([body.text, ...(body.history || []).filter(h => h.who !== '担当者').map(h => h.text), ...specs].flatMap(numsIn))];
-  const r = await callJSON(env, { role: 'rep', system, user, schema: REP_SCHEMA, fallback: stockReply(HARNESS, co, phase, staffTurns), maxTokens: 900, tries: 3, validate: x => checkRep(repairRep(x, phase), { phase, company: co, allowNums, slotValues }) });
+  const r = await callJSON(env, { role: 'rep', system, user, schema: REP_SCHEMA, fallback: stockReply(HARNESS, co, phase, staffTurns), maxTokens: 900, tries: 3, validate: x => checkRep(repairRep(x, phase), { phase, company: co, allowNums, slotValues, banned: HARNESS.companies[co]?.bannedPhrases || [] }) });
   if (r.call.fallback && !r.data.stock) r.data = stockReply(HARNESS, co, phase, staffTurns);
   // 提案の場面：担当者からの新しい質問は、場面全体で1回まで（2回目からは「ほかに気になるところはありますか？」）
   const asked = (body.history || []).some(h => h.who === '担当者' && /[？?]/.test(h.text) && !/ほかに気になるところ/.test(h.text));
