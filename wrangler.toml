@@ -9,10 +9,10 @@ directory = "./public"
 binding = "ASSETS"
 run_worker_first = ["/api/*"]
 
-# プレイの記録（再生コード用）と回数の数え上げ。id は `wrangler kv namespace create YUKU_STORE` の結果で埋める
-# [[kv_namespaces]]
-# binding = "STORE"
-# id = ""
+# プレイの記録（再生コード用）と、回数・費用の数え上げ
+[[kv_namespaces]]
+binding = "STORE"
+id = "b6f160f4e88842288624a13eec26058a"
 
 [vars]
 # 役割ごとのモデル（環境変数で切り替え可能）
@@ -25,8 +25,8 @@ CALLS_PER_IP_PER_DAY = "120"
 CALLS_GLOBAL_PER_DAY = "4000"
 EMERGENCY_STOP = "0"
 # 費用の上限（ドル）。超えたらClaudeを呼ばず、代わりの文で返す
-DAILY_BUDGET_USD = "10"
-TOTAL_BUDGET_USD = "100"
+DAILY_BUDGET_USD = "25"
+TOTAL_BUDGET_USD = "150"
 # live＝Claudeを呼ぶ／mock＝呼ばずに代わりの処理（開発中のテストはこちら）
 AI_MODE = "live"
 # スマホ連携の受け付け（P1）
