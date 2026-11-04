@@ -25,7 +25,14 @@ export const ACTIONS = {
   },
   household(d) { emit('household', { id: d.id }); },
   toEntry() { goto('entry', 0); },
-  toLot() { emit('entry', { text: val('entryText'), photos: S.entry.photos }); goto('lot', 0); },
+  async toLot() {
+    const text = val('entryText');
+    emit('entry', { text, photos: S.entry.photos, nPhotos: S.entry.photos.length });
+    goto('lot', 0);
+    if (!text && !S.entry.photos.length) return;
+    // ことば・写真・URLから、要望の要素を読み取る（1回だけ）。画像そのものは記録に残さない
+    try { const r = await api('/api/ai/entry', { text, photos: S.entry.photos }); emit('ai', { role: 'entry', data: r.data, call: r.call }); } catch { /* 読み取れなくても進める */ }
+  },
   firstCo(d) { emit('firstCo', { co: d.co }); },
   toSurvey() { goto('survey', 1); },
   submitSurvey() {
@@ -41,7 +48,7 @@ export const ACTIONS = {
     const who = getWho(), co = S.firstCo;
     emit('say', { who, text });
     await withBusy(async () => {
-      const r = await api('/api/ai/hearing', { company: co, scene: `初回打ち合わせ（ヒアリング）。アンケート：${JSON.stringify(S.survey || {})}。施主が最初に書いた思い：${S.entry.text || 'なし'}。ご主人（かず）と奥様（ゆう）の両方に、順に聞く。`, history: S.chat.filter(m => m.who !== 'sys').map(m => ({ who: m.who === 'staff' ? '担当者' : m.who === 'yuu' ? 'ゆう' : 'かず', text: m.text })), text: `${who === 'yuu' ? 'ゆう' : 'かず'}：${text}`, fallbackLine: S.hearingTurns === 0 ? 'なるほど。奥様は、いかがですか。' : 'ありがとうございます。いまのお話、プランに反映できるか確認しますね。' });
+      const r = await api('/api/ai/hearing', { company: co, scene: `初回打ち合わせ（ヒアリング）。アンケート：${JSON.stringify(S.survey || {})}。施主が最初に書いた思い：${S.entry.text || 'なし'}。入口で読み取った要望：${S.entryRead?.summary || 'なし'}。ご主人（かず）と奥様（ゆう）の両方に、順に聞く。`, history: S.chat.filter(m => m.who !== 'sys').map(m => ({ who: m.who === 'staff' ? '担当者' : m.who === 'yuu' ? 'ゆう' : 'かず', text: m.text })), text: `${who === 'yuu' ? 'ゆう' : 'かず'}：${text}`, fallbackLine: S.hearingTurns === 0 ? 'なるほど。奥様は、いかがですか。' : 'ありがとうございます。いまのお話、プランに反映できるか確認しますね。' });
       emit('ai', { role: 'hearing', co, data: r.data, call: r.call });
       faceTalk();
     });

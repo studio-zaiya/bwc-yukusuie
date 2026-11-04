@@ -193,3 +193,19 @@ textarea.free{width:100%;font:22px/1.6 var(--f);padding:16px 18px;border:1.5px s
 .replaybar{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);background:rgba(30,43,54,.9);color:#fff;padding:6px 16px;border-radius:999px;font-size:14px;z-index:60}
 body.rec .ctrl,body.rec .replaybar,body.rec .dbg{display:none}
 .ctrl{position:absolute;right:24px;bottom:auto;top:84px;display:flex;gap:8px;z-index:25}
+
+/* もし、あのとき */
+.pop.wplay{left:200px;top:110px;width:1520px}
+.pop .no2{font-family:var(--fr);font-weight:900;font-size:30px;margin-right:8px}
+.timeline.replay{padding:0}
+.timeline.replay li{opacity:0;animation:rin .5s forwards}
+.timeline.replay li.dv{border-left:4px dashed var(--gold);padding-left:10px;background:#FFFCF0}
+.timeline.replay li em{display:block;font-style:normal;font-size:15px;color:var(--goldT);font-weight:700}
+@keyframes rin{to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.timeline.replay li{animation:none;opacity:1}}
+.cmp{width:100%;border-collapse:collapse;font-size:19px}
+.cmp th,.cmp td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;font-variant-numeric:tabular-nums}
+.cmp th{font-size:15px;color:var(--ink2)}
+.chips2{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+.chips2 span{background:#FBEBB0;border-radius:999px;padding:4px 12px;font-size:17px}
+.chips2 small{font-size:12px;color:var(--ink2);margin-left:6px}

@@ -140,7 +140,7 @@ export const SCENES = {
         <textarea class="free" id="entryText" data-keep style="height:420px" placeholder="例：外観はシンプルでかっこよく。キッチンは家族の顔が見えるように。冬でも暖かい家がいい。"></textarea>
         <div><div class="drop" id="drop">ここに写真をドロップ／Ctrl＋Vで貼り付け<br><span style="font-size:15px">送る前に長辺1568pxまで縮小し、撮影場所などの埋め込み情報は消えます</span></div>
           <div class="thumbs">${(s.entry.photos || []).map(p => `<img src="${p}" alt="置いた写真">`).join('')}</div>
-          <p class="note" style="margin-top:12px">写真の読み取り（Claudeの画像の読み取り）は準備中です。いまは、要望のメモとして残ります。</p></div>
+          <p class="note" style="margin-top:12px">「次へ」で、ことば・写真・URLから要望の要素を読み取ります（Claudeの画像の読み取り。写真そのものは保存しません）。</p></div>
       </div>
       <div style="margin-top:30px;text-align:right"><button class="big-btn" data-act="toLot">次へ</button></div></div>`;
   },
@@ -177,6 +177,7 @@ export const SCENES = {
       <label>気になっていること</label><textarea id="sv_worry" placeholder="例：お金のこと、性能のこと、間取りのこと"></textarea>
       <div style="margin-top:18px;text-align:right"><button class="btn" data-act="submitSurvey">書き終えた</button></div></form>
       <div class="svside">${P.avatar(co, 200, 'smile')}<p class="lead" style="margin-top:14px">${Y.COMPANIES[co].name}（${Y.COMPANIES[co].kind}）<br>${STAFFN(co)}</p>
+      ${s.entryRead?.elements?.length ? `<p class="note" style="font-weight:700;margin-top:10px">入口で読み取った要望（Claude）</p><div class="chips2">${s.entryRead.elements.map(e => `<span>${esc(e.text)}<small>${esc(e.from)}</small></span>`).join('')}</div>` : ''}
       <p class="note">世帯年収 ${man(h.income)}万円／借りられそうな額 ${man(Y.loanLimit(h))}万円までは、アンケートには書かなくても大丈夫です。</p></div>`;
   },
   hearing(s) {
@@ -271,7 +272,7 @@ export const SCENES = {
       <dl><dt>総額</dt><dd>${man(o.total)}万円</dd><dt>借入</dt><dd>${man(o.principal)}万円</dd><dt>冬の朝</dt><dd>${o.warmth.label}</dd><dt>家計のゆとり</dt><dd>${o.slack.label}</dd><dt>引渡し</dt><dd>${o.days}日目</dd></dl>
       <div style="font-size:16px;color:var(--ink2);font-weight:700">この1年の出来事</div><ul class="ev">${(o.events.length ? o.events : ['大きな出来事はなかった']).map(e => `<li>${esc(e)}</li>`).join('')}</ul>
       ${line ? `<div class="ln">${P.coTag(o.company, 18)} ${STAFFN(o.company)}：${esc(line)}</div>` : ''}
-      <div class="acts"><button class="btn ghost" data-act="toHonne">それぞれの事情と、見積の透視</button><button class="btn" data-act="toReport">レポートを受け取る</button></div></div>`;
+      <div class="acts">${mine ? '' : `<button class="btn ghost" data-act="openPop" data-pop="world">もし、あのとき（この世界を再生）</button>`}<button class="btn ghost" data-act="toHonne">それぞれの事情と、見積の透視</button><button class="btn" data-act="toReport">レポートを受け取る</button></div></div>`;
   },
   honne(s) {
     const spec = s.player.spec;
@@ -334,4 +335,22 @@ export function myaiHTML(s) {
   return `<div class="pop"><div class="ph2"><div class="ttl">${ICON.ai}自分のAI<span class="meta">施主のスマホの中の汎用AI。専門家ではありません</span></div><button class="close" data-act="closePop">閉じる</button></div>
     <div class="body">${a ? `<div class="ask">聞いたこと：<b>${esc(a.q)}</b></div><div class="ans">${esc(a.answer)}</div>${sketch}` : busy.on ? '<div class="ans">考えています……</div>' : '<div class="ask">1ターンに1回、短く答えます。</div>'}</div>
     <div class="ft">${a || !left ? `<span class="meta">このターンは、あと0回</span>` : `<input id="aiq" data-keep data-enter="askAI" placeholder="例：土地の期限が近いけど、詳細の見積まで待つべき？"><button class="btn" data-act="askAI">聞く</button>`}</div></div>`;
+}
+
+// もし、あのとき：選ばれなかった世界を、分岐点ごとにたどって再生する（数字はエンジン、自分の世界と並べる）
+export function worldHTML(s) {
+  const all = [s.player, ...s.others];
+  const w = all.find(x => Y.worldNo(x.bits) === s.lot) || s.player;
+  const o = Y.outcome(w), me = Y.outcome(s.player);
+  const days = Y.scheduleOf(w);
+  const at = [days[2], days[3], days[5], days[6]];
+  const diverge = o.bits.findIndex((b, i) => b !== me.bits[i]);
+  const rows = o.labels.map((l, i) => `<li style="animation-delay:${i * 0.7}s" class="${i === diverge ? 'dv' : ''}"><b>${at[i]}日目</b><span>${Y.FORKS[i]}「${Y.DECISIONS[i].q}」<br><strong>${esc(l)}</strong>${i === diverge ? '<em>ここで、あなたと分かれた</em>' : (i < diverge ? '<em>あなたと同じ</em>' : '')}</span></li>`).join('');
+  const ev = (o.events.length ? o.events : ['大きな出来事はなかった']).map((e, i) => `<li style="animation-delay:${3 + i * 0.7}s"><b>${i ? '' : '1年後'}</b><span>${esc(e)}</span></li>`).join('');
+  const cmp = (k, a, b) => `<tr><td>${k}</td><td>${a}</td><td>${b}</td></tr>`;
+  return `<div class="pop wplay"><div class="ph2"><div class="ttl">もし、あのとき　<span class="no2">${String(o.no).padStart(2, '0')}</span>${P.coTag(o.company, 22)}${Y.COMPANIES[o.company].name}</div><button class="close" data-act="closePop">閉じる</button></div>
+    <div class="body" style="display:grid;grid-template-columns:1.2fr 1fr;gap:28px"><ol class="timeline replay">${rows}${ev}</ol>
+    <div><table class="cmp"><tr><th></th><th>この世界</th><th>あなたの世界（${String(me.no).padStart(2, '0')}）</th></tr>
+      ${cmp('総額', man(o.total) + '万円', man(me.total) + '万円')}${cmp('借入', man(o.principal) + '万円', man(me.principal) + '万円')}${cmp('冬の朝', o.warmth.label, me.warmth.label)}${cmp('家計のゆとり', o.slack.label, me.slack.label)}${cmp('引渡し', o.days + '日目', me.days + '日目')}</table>
+      <p class="note" style="margin-top:12px">同じ家族、同じ土地、同じ外の出来事で、決断だけが違う世界です。どちらが正解かは決めません。</p></div></div></div>`;
 }

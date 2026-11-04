@@ -51,6 +51,7 @@ export function apply(s, e) {
       }
       if (e.role === 'myai') { s.myai = { q: e.q, scene: e.scene, ...e.data }; s.aiLeft[s.scene] = 0; }
       if (e.role === 'report') s.report = e.data;
+      if (e.role === 'entry') { s.entryRead = e.data; s.heard.push(...(e.data.elements || []).map(x => ({ tag: x.tag, who: 'ふたり', text: x.text, from: x.from }))); }
       if (e.role === 'staff16') s.staff16 = e.data;
       if (e.role === 'trade') {
         s.pendingTrade = { decisionId: e.data.decisionId, text: e.text, ...e.data };
@@ -118,7 +119,7 @@ function autosave() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
     try {
-      const r = await fetch('/api/log', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: S.savedId, events: LOG }) });
+      const r = await fetch('/api/log', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: S.savedId, events: LOG.map(e => e.type === 'entry' ? { ...e, photos: [] } : e) }) });
       const j = await r.json(); if (j.id && j.id !== S.savedId) { LOG.push({ type: 'saved', id: j.id, at: Date.now() }); S.savedId = j.id; }
     } catch { /* 保存に失敗してもプレイは続ける */ }
   }, 600);
@@ -145,10 +146,10 @@ export function render() {
 }
 
 // ポップアップ（SNS・自分のAI）
-import { snsHTML, myaiHTML } from './scenes.js';
+import { snsHTML, myaiHTML, worldHTML } from './scenes.js';
 function popHTML() {
   if (!S.pop) return '';
-  return `<div class="veil" data-act="closePop"></div>${S.pop === 'sns' ? snsHTML(S) : myaiHTML(S)}`;
+  return `<div class="veil" data-act="closePop"></div>${S.pop === 'sns' ? snsHTML(S) : S.pop === 'world' ? worldHTML(S) : myaiHTML(S)}`;
 }
 
 // ---- 操作の受け口（data-act）----

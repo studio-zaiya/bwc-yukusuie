@@ -43,6 +43,7 @@ const OUT = process.env.OUT || 'out/shots';
   await click('[data-act=buildNext]'); await click('[data-act=buildNext]'); await click('[data-act=toHandover]'); await shot('handover');
   await click('[data-act=toYear]'); await p.waitForTimeout(800); await shot('year');
   await p.mouse.click(222, 560); await p.waitForTimeout(300); console.log('区画を押した →', await p.evaluate(() => YUKU.state.lot)); await shot('year-lot');
+  await click('[data-act=openPop][data-pop=world]'); await p.waitForTimeout(4500); await shot('moshi'); await click('.close');
   await click('[data-act=toHonne]'); await shot('honne');
   await click('[data-act=toReport]'); await p.waitForSelector('.rep', { timeout: 60000 }); await p.waitForTimeout(1200); await shot('report');
   const [pr] = await Promise.all([p.context().waitForEvent('page'), p.click('[data-act=print]')]);

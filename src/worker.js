@@ -197,6 +197,43 @@ async function staff16(env, body) {
   return { lines: res.map((r, i) => ({ no: worlds[i].no, line: r.data.line })), calls: res.map(r => r.call) };
 }
 
+// ---- 入口の自由入力：ことば・写真・URL（P1）----
+const ENTRY_SCHEMA = {
+  type: 'object', additionalProperties: false, required: ['elements', 'colors', 'summary'],
+  properties: {
+    elements: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['tag', 'text', 'from'], properties: { tag: { type: 'string' }, text: { type: 'string' }, from: { type: 'string', enum: ['ことば', '写真', 'URL'] } } } },
+    colors: { type: 'array', items: { type: 'string' } }, summary: { type: 'string' },
+  },
+};
+// URLのページを Worker 側で取得し、題名・説明・本文の先頭だけを取り出す（大きさと時間に上限）
+async function pageText(url) {
+  try {
+    const u = new URL(url); if (!/^https?:$/.test(u.protocol)) return null;
+    const r = await fetch(u.toString(), { headers: { 'user-agent': 'yukusuie-entry/1.0', accept: 'text/html' }, signal: AbortSignal.timeout(5000), redirect: 'follow' });
+    if (!r.ok || !/text\/html/.test(r.headers.get('content-type') || '')) return null;
+    const html = (await r.text()).slice(0, 300000);
+    const pick = re => (html.match(re) || [])[1] || '';
+    const title = pick(/<title[^>]*>([^<]{0,200})/i), desc = pick(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']{0,400})/i) || pick(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']{0,400})/i);
+    const body = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 1500);
+    return `題名：${title}\n説明：${desc}\n本文の先頭：${body}`;
+  } catch { return null; }
+}
+async function entry(env, body) {
+  const text = String(body.text || '').slice(0, 1000);
+  const urls = (text.match(/https?:\/\/[^\s　]+/g) || []).slice(0, 2);
+  const pages = (await Promise.all(urls.map(pageText))).map((t, i) => t ? `# URL ${i + 1}\n${t}` : '').filter(Boolean);
+  const photos = (body.photos || []).filter(p => /^data:image\/jpeg;base64,/.test(p) && p.length < 1600000).slice(0, 3);
+  const content = [
+    ...photos.map(p => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: p.split(',')[1] } })),
+    { type: 'text', text: `# 施主のことば\n${text || 'なし'}\n${pages.join('\n')}\n# 写真\n${photos.length}枚` },
+  ];
+  const fb = { elements: [], colors: [], summary: text.slice(0, 120) };
+  const r = await callJSON(env, { role: 'entry', user: content, schema: ENTRY_SCHEMA, fallback: fb, maxTokens: 1500, validate: x => digitsIn(x, ['summary']).length || x.elements.some(e => hasDigits(e.text)) ? '数字' : null });
+  // 画像の中身は記録に残さない（枚数だけ）
+  r.call.input = { ...r.call.input, user: `ことば ${text.length}字、写真 ${photos.length}枚、URL ${urls.length}件（取得 ${pages.length}件）` };
+  return r;
+}
+
 // ---- 記録の保存と再生 ----
 const rid = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), b => 'abcdefghjkmnpqrstuvwxyz23456789'[b % 31]).join('');
 const logMem = new Map();
@@ -224,7 +261,7 @@ export default {
       const body = await req.json().catch(() => ({}));
       if (path === '/api/play/start') { const msg = await guard(env, req, 'play'); return msg ? json({ ok: false, message: msg }, 429) : json({ ok: true, playId: rid() }); }
       if (path === '/api/log') return saveLog(env, body);
-      const ROLES = { '/api/ai/trade': trade, '/api/ai/hearing': hearing, '/api/ai/myai': myai, '/api/ai/report': report, '/api/ai/staff16': staff16 };
+      const ROLES = { '/api/ai/trade': trade, '/api/ai/hearing': hearing, '/api/ai/myai': myai, '/api/ai/report': report, '/api/ai/staff16': staff16, '/api/ai/entry': entry };
       const fn = ROLES[path];
       if (!fn) return json({ error: 'not found' }, 404);
       const limited = await guard(env, req, 'call');
