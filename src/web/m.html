@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ゆくすいえ　スマホから送る</title>
+<link rel="icon" href="/brand/mark.svg" type="image/svg+xml">
+<style>
+:root{--paper:#FFFAF0;--ink:#1E2B36;--ink2:#6B6358;--kazu:#E8701F;--f:"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic","Noto Sans CJK JP",sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f);padding:20px 16px 40px}
+header{display:flex;align-items:center;gap:8px;font-weight:900;font-size:20px}header img{width:32px}
+h1{font-size:22px;margin:18px 0 6px}p{line-height:1.6;color:var(--ink2);font-size:15px}
+textarea{width:100%;height:120px;font:17px/1.6 var(--f);padding:12px;border:1.5px solid rgba(30,43,54,.35);border-radius:12px;background:#fff}
+.btn{display:block;width:100%;font:700 18px var(--f);padding:14px;border-radius:999px;border:2px solid var(--ink);background:var(--ink);color:var(--paper);margin-top:10px}
+.btn.ghost{background:#fff;color:var(--ink)}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.thumbs img{height:80px;border-radius:8px}
+.sent{margin-top:16px;font-size:15px}.sent li{margin:4px 0}
+.msg{margin-top:12px;padding:10px 12px;border-radius:10px;background:#fff;border:1px solid rgba(30,43,54,.2);font-size:15px}
+.note{font-size:12.5px;color:var(--ink2);margin-top:20px}
+</style></head><body>
+<header><img src="/brand/mark.svg" alt="">ゆくすいえ</header>
+<h1>スマホから、PCに送る</h1>
+<p>思いや理想のことば、好きな家の写真を送れます。PCの画面で「取り込む」を押すと、入口に入ります。</p>
+<textarea id="t" placeholder="例：玄関は広めにしたい。庭で子どもと遊びたい。"></textarea>
+<button class="btn" id="sendText">ことばを送る</button>
+<label class="btn ghost" style="text-align:center">写真を選ぶ（3枚まで）<input id="f" type="file" accept="image/*" multiple hidden></label>
+<div class="thumbs" id="th"></div>
+<div id="msg"></div>
+<ul class="sent" id="sent"></ul>
+<p class="note">写真は、送る前にこのスマホの中で小さくし、撮影場所などの埋め込み情報を消してから送ります。送ったものは、30分で自動で消えます。</p>
+<script>
+const code = new URLSearchParams(location.search).get('c') || '';
+const msg = t => { document.getElementById('msg').innerHTML = t ? `<div class="msg">${t}</div>` : ''; };
+const sent = t => { const li = document.createElement('li'); li.textContent = '送った：' + t; document.getElementById('sent').appendChild(li); };
+async function send(body) {
+  const r = await fetch(`/api/link/${code}/send`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.ok) { msg(j.message || '送れませんでした。'); return false; }
+  msg(''); return true;
+}
+// 長辺1568pxまで縮小し、canvasで描き直す（撮影場所などの埋め込み情報が消える）
+async function shrink(file) {
+  const bmp = await createImageBitmap(file);
+  const k = Math.min(1, 1568 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.82);
+}
+document.getElementById('sendText').onclick = async () => { const t = document.getElementById('t').value.trim(); if (!t) return; if (await send({ text: t })) { sent(t.slice(0, 30)); document.getElementById('t').value = ''; } };
+document.getElementById('f').onchange = async e => {
+  for (const file of [...e.target.files].slice(0, 3)) {
+    const d = await shrink(file);
+    if (await send({ photo: d })) { const img = new Image(); img.src = d; document.getElementById('th').appendChild(img); sent('写真'); }
+  }
+};
+if (!/^[a-z2-9]{10}$/.test(code)) msg('PCの画面のQRコードから開いてください。');
+</script></body></html>

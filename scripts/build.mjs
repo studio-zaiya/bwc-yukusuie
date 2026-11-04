@@ -7,5 +7,7 @@ const copy = (from, to) => { if (existsSync(from)) cpSync(from, `${out}/${to}`, 
 copy('src/web', '.');
 copy('src/engine', 'engine');
 copy('data', 'data');
+// QRコードを描く npm のライブラリ（依存として使う）
+copy('node_modules/qrcode-generator/qrcode.js', 'lib/qrcode.js');
 // 見本と試作（app/・design/・prototypes/）は版の記録なので公開しない（台本の画面を本物の処理と見せないため）
 console.log('built public/');

@@ -2,7 +2,7 @@
  * Claudeが応答できなかったときは、代わりの文で成功したように見せず、「応答できませんでした（もう一度）」を出す */
 import * as Y from './engine/engine.js';
 import { S, emit, api, render } from './main.js';
-import { busy, setWho, getWho, persona, DATA } from './scenes.js';
+import { busy, setWho, getWho, persona, DATA, PHONE } from './scenes.js';
 import { setFace } from './parts.js';
 import { tourNext, tourSkip, tourHelp } from './tour.js';
 
@@ -208,6 +208,28 @@ export const ACTIONS = {
       emit('ai', { role: 'myai', q, scene, data: r.data, call: r.call });
     });
   },
+  // スマホ連携
+  async openPhone() {
+    keepEntry();
+    PHONE.st = null; emit('pop', { pop: 'phone' });
+    const r = await fetch('/api/link/new', { method: 'POST' }); const j = await r.json().catch(() => ({}));
+    if (r.status === 403) PHONE.st = { closed: true, message: j.message };
+    else if (!j.ok) PHONE.st = { error: j.message || 'コードを出せませんでした。' };
+    else { PHONE.st = { ...j, items: [] }; pollPhone(); }
+    render();
+  },
+  closePhone() { clearTimeout(pollTimer); if (PHONE.st?.code) fetch(`/api/link/${PHONE.st.code}/close`, { method: 'POST' }); PHONE.st = null; emit('pop', { pop: null }); },
+  async importPhone() {
+    const code = PHONE.st?.code; if (!code) return;
+    const j = await (await fetch(`/api/link/${code}/poll?full`)).json();
+    const texts = (j.items || []).filter(i => i.text).map(i => i.text);
+    const photos = (j.items || []).filter(i => i.photo && i.photo.startsWith('data:')).map(i => i.photo).slice(0, 3 - S.entry.photos.length);
+    const ta = document.getElementById('entryText');
+    const text = [ta?.value || S.entry.text, ...texts].filter(Boolean).join('\n');
+    S.entry = { text, photos: [...S.entry.photos, ...photos] };
+    ACTIONS.closePhone();
+    const t2 = document.getElementById('entryText'); if (t2) { t2.value = text; t2.dispatchEvent(new Event('input')); }
+  },
   tourNext() { tourNext(); render(); },
   tourSkip() { tourSkip(); render(); },
   help() { tourHelp(S); render(); },
@@ -262,4 +284,13 @@ export function bindDrop() {
   el.addEventListener('dragleave', () => el.classList.remove('on'));
   el.addEventListener('drop', e => { e.preventDefault(); el.classList.remove('on'); addFiles(e.dataTransfer.files); });
   if (!bound) { bound = true; addEventListener('paste', e => { if (S.scene === 'entry' && e.clipboardData?.files?.length) addFiles(e.clipboardData.files); }); }
+}
+
+let pollTimer = null;
+function keepEntry() { const ta = document.getElementById('entryText'); if (ta) S.entry.text = ta.value; }
+async function pollPhone() {
+  clearTimeout(pollTimer);
+  const code = PHONE.st?.code; if (!code || S.pop !== 'phone') return;
+  try { const r = await fetch(`/api/link/${code}/poll`); const j = await r.json(); if (r.status === 410) { PHONE.st = { error: j.message }; render(); return; } if (j.ok && (j.items || []).length !== (PHONE.st.items || []).length) { PHONE.st.items = j.items; render(); } } catch { }
+  pollTimer = setTimeout(pollPhone, 3000);
 }

@@ -195,6 +195,7 @@ export const SCENES = {
         <div><div class="stickies" id="stickies" aria-live="polite"></div><textarea class="free" id="entryText" data-keep style="height:300px" placeholder="例：外観はシンプルでかっこよく。キッチンは家族の顔が見えるように。冬でも暖かい家がいい。"></textarea></div>
         <div><div class="drop" id="drop">ここに写真をドロップ／Ctrl＋Vで貼り付け<br><span style="font-size:15px">送る前に長辺1568pxまで縮小し、撮影場所などの埋め込み情報は消えます</span></div>
           <div class="thumbs">${(s.entry.photos || []).map(p => `<img src="${p}" alt="置いた写真">`).join('')}</div>
+          <button class="flyer-btn" style="margin-top:14px" data-act="openPhone">スマホから送る（QRコード）</button>
           <p class="note" style="margin-top:12px">「つぎへ」で、ことば・写真・URLから要望の要素を読み取ります。写真そのものは保存しません。</p></div>
       </div>
       <div style="margin-top:30px;text-align:right"><button class="big-btn" data-act="toLot">つぎへ</button></div></div>`;
@@ -546,4 +547,25 @@ export function flyersHTML(s) {
       <div class="fl-price">本体価格 ${man(c.tsubo * h.area[0])}万円〜<small>（${h.area[0]}坪の例）</small></div><div class="fl-small">${esc(b.small)}</div></div>`; };
   return `<div class="pop flyers"><div class="ph2"><div class="ttl">各社のチラシ・ウェブサイト<span class="meta">宣伝の言葉です。どの会社も、自分をよく見せています</span></div><button class="close" data-act="closePop">閉じる</button></div>
     <div class="body fl-grid">${'ABCD'.split('').map(card).join('')}</div></div>`;
+}
+
+// スマホ連携のポップアップ：QRと短いコード。PCは数秒おきに読みに来る。「取り込む」で入口に入る
+export const PHONE = { st: null };
+export function phoneHTML(s) {
+  const p = PHONE.st;
+  let body;
+  if (!p) body = '<p class="lead">準備しています……</p>';
+  else if (p.closed) body = `<p class="lead">${esc(p.message || '審査期間中のみ利用できます。')}</p><p class="note">期間外は、PCの画面に直接書くか、写真をドロップしてください。</p>`;
+  else if (p.error) body = `<p class="lead">${esc(p.error)}</p>`;
+  else {
+    let qr = '';
+    try { const q = window.qrcode(0, 'M'); q.addData(p.url); q.make(); qr = q.createSvgTag({ cellSize: 6, margin: 2, scalable: true }); } catch { }
+    const n = (p.items || []).length, ph = (p.items || []).filter(i => i.photo).length;
+    body = `<div style="display:grid;grid-template-columns:320px 1fr;gap:30px;align-items:center"><div class="qrbox">${qr}</div>
+      <div><p class="lead">スマホのカメラでQRコードを読み取ると、送るためのページが開きます。</p><p style="font-size:20px">コード：<span class="code">${esc(p.code)}</span></p>
+      <p class="note">30分で期限が切れます。写真は3枚まで。送ったものは、取り込むか期限が来ると消えます。</p>
+      <p style="font-size:20px;margin-top:14px">届いたもの：ことば ${n - ph}件、写真 ${ph}枚</p></div></div>`;
+  }
+  return `<div class="pop"><div class="ph2"><div class="ttl">スマホから送る</div><button class="close" data-act="closePhone">閉じる</button></div><div class="body">${body}</div>
+    <div class="ft"><span class="meta">画像の読み取りは、取り込んで「つぎへ」を押したときだけ行います。</span>${p && p.items && p.items.length ? '<button class="btn" data-act="importPhone">取り込む</button>' : ''}</div></div>`;
 }

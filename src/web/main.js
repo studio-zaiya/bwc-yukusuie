@@ -2,7 +2,7 @@
  * 出来事の記録（イベント）を基本にする：操作もClaudeの応答も1件のイベントとして積み、状態はイベントから組み立てる。
  * 再生（?replay=記録ID）は、同じイベントを順に当て直すだけ。Claudeは呼ばない。 */
 import * as Y from './engine/engine.js';
-import { SCENES, snsHTML, myaiHTML, worldHTML, flyersHTML, setWho } from './scenes.js';
+import { SCENES, snsHTML, myaiHTML, worldHTML, flyersHTML, phoneHTML, setWho } from './scenes.js';
 import { ACTIONS } from './actions.js';
 import { tourAfterRender, tourHTML } from './tour.js';
 
@@ -166,7 +166,7 @@ export function render() {
 }
 function popHTML() {
   if (!S.pop) return '';
-  return `<div class="veil" data-act="closePop"></div>${S.pop === 'sns' ? snsHTML(S) : S.pop === 'world' ? worldHTML(S) : S.pop === 'flyers' ? flyersHTML(S) : myaiHTML(S)}`;
+  return `<div class="veil" data-act="closePop"></div>${S.pop === 'sns' ? snsHTML(S) : S.pop === 'world' ? worldHTML(S) : S.pop === 'flyers' ? flyersHTML(S) : S.pop === 'phone' ? phoneHTML(S) : myaiHTML(S)}`;
 }
 
 // ---- 操作の受け口（data-act）----

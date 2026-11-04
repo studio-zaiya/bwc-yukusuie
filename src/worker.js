@@ -4,6 +4,8 @@ import { callJSON, callTools, PROMPTS, modelFor, hasDigits, digitsIn } from './a
 import PERSONAS from '../data/content/personas.json';
 import TOPICS from '../data/content/hearing_topics.json';
 import PHRASES from '../data/content/report_phrases.json';
+import { PhoneLink, linkOpen, newCode } from './link.js';
+export { PhoneLink };
 
 const json = (data, status = 200, headers = {}) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers } });
 const today = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10).replace(/-/g, '');
@@ -308,6 +310,24 @@ export default {
     try {
       if (path === '/api/health') return json({ ok: true, engine: Y.VERSION, models: { top: modelFor(env, 'trade'), mid: modelFor(env, 'hearing'), light: modelFor(env, 'myai') }, prompts: Object.fromEntries(Object.entries(PROMPTS).map(([k, v]) => [k, v.meta.version])), hasKey: !!env.ANTHROPIC_API_KEY, mode: env.AI_MODE || 'live', usdToday: (await peek(env, `usd:${today()}`)) / 1e6, usdTotal: (await peek(env, 'usd:total')) / 1e6, budget: { day: +(env.DAILY_BUDGET_USD || 10), total: +(env.TOTAL_BUDGET_USD || 100) }, store: !!env.STORE, stop: env.EMERGENCY_STOP === '1', phone: env.PHONE_LINK === '1' });
       if (req.method === 'GET' && path.startsWith('/api/log/')) return loadLog(env, path.slice(9));
+      // スマホ連携（審査期間中のみ）
+      if (path.startsWith('/api/link')) {
+        if (!linkOpen(env) || !env.LINK) return json({ ok: false, closed: true, message: '審査期間中のみ利用できます。' }, 403);
+        if (path === '/api/link/new' && req.method === 'POST') {
+          const n = await bump(env, `l:${ipOf(req)}:${today()}`);
+          if (n > 10) return json({ ok: false, message: '本日の上限に達しました。' }, 429);
+          const g = await bump(env, `lg:${today()}`);
+          if (g > 1000) return json({ ok: false, message: '本日の全体の上限に達しました。' }, 429);
+          const code = newCode();
+          const r = await env.LINK.get(env.LINK.idFromName(code)).fetch('https://link/init', { method: 'POST' });
+          const j = await r.json();
+          return json({ ok: true, code, url: `${url.origin}/m.html?c=${code}`, expiresAt: j.expiresAt });
+        }
+        const m = /^\/api\/link\/([a-z2-9]{10})\/(send|poll|close)$/.exec(path);
+        if (!m) return json({ error: 'not found' }, 404);
+        if (m[2] === 'send') { const n = await bump(env, `ls:${ipOf(req)}:${today()}`); if (n > 60) return json({ ok: false, message: '本日の上限に達しました。' }, 429); }
+        return env.LINK.get(env.LINK.idFromName(m[1])).fetch(`https://link/${m[2]}${url.search}`, { method: req.method, body: req.method === 'POST' ? await req.text() : undefined });
+      }
       if (req.method !== 'POST') return json({ error: 'method' }, 405);
       const body = await req.json().catch(() => ({}));
       if (path === '/api/play/start') { const msg = await guard(env, req, 'play'); return msg ? json({ ok: false, message: msg }, 429) : json({ ok: true, playId: rid() }); }

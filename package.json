@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.4.0",
-    "qrcode-generator": "^1.4.4"
+    "qrcode-generator": "1.4.4"
   },
   "devDependencies": {
     "wrangler": "4.157.0"
