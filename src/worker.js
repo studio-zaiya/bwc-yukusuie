@@ -211,7 +211,7 @@ async function planner(env, body) {
   let measured = 0;
   const tools = [
     { name: 'measure_plan', description: '骨組みを仮に当てたときの、延床・1階と2階の床面積・建蔽率・総額・借入・月々の返済・希望との違いを返す（計算エンジン）。main について二回まで', input_schema: { type: 'object', additionalProperties: false, required: ['plan'], properties: { plan: PLAN } }, run: i => (++measured > 2 ? { note: 'これ以上は測らずに、submit_plan を呼んでください。調整の案の数字は、エンジンがあとで出します。' } : Y.measurePlan(world, i.plan, wishes)) },
-    { name: 'submit_plan', description: '骨組みと調整の案を確定して、施主に見せる。最後に一回だけ呼ぶ', input_schema: { type: 'object', additionalProperties: false, required: ['intro', 'main', 'options', 'altIndex'], properties: {
+    { name: 'submit_plan', strict: true, description: '骨組みと調整の案を確定して、施主に見せる。最後に一回だけ呼ぶ', input_schema: { type: 'object', additionalProperties: false, required: ['intro', 'main', 'options', 'altIndex'], properties: {
       intro: { type: 'string', description: '担当者から施主へのひとこと（二〜三文、算用数字なし）' }, main: PLAN, options: { type: 'array', items: OPTION }, altIndex: { type: 'integer', description: '第二の分岐点で「もう一つの案」として残す option の番号（0から）' } } } },
   ];
   const user = [
@@ -223,8 +223,8 @@ async function planner(env, body) {
     body.text ? `# 施主の指示（これを反映して組み直す。調整の回数：${body.round || 1}回目）\n${String(body.text).slice(0, 300)}` : '',
   ].filter(Boolean).join('\n');
   const { submit, call } = await callTools(env, {
-    role: 'planner', user, tools, effort: 'low', maxTurns: 4,
-    validateSubmit: x => planErr(x.main) || x.options.map(o => planErr(o.plan)).find(Boolean) || (digitsIn(x, ['intro']).length || x.options.some(o => hasDigits(o.effect)) ? '文に算用数字' : null),
+    role: 'planner', user, tools, submitName: 'submit_plan', effort: 'low', maxTurns: 4,
+    validateSubmit: x => (!x.main || !Array.isArray(x.options) ? 'main と options（二つか三つ）を入れてください' : null) || planErr(x.main) || x.options.map(o => planErr(o?.plan)).find(Boolean) || (digitsIn(x, ['intro']).length || x.options.some(o => hasDigits(o.effect)) ? '文に算用数字' : null),
   });
   if (!submit) {
     // 代わりの処理：決まった型の骨組みと調整の案（画面には「代わりの処理」と出す）

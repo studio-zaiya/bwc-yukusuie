@@ -2,7 +2,7 @@
  * Claudeが応答できなかったときは、代わりの文で成功したように見せず、「応答できませんでした（もう一度）」を出す */
 import * as Y from './engine/engine.js';
 import { S, emit, api, render } from './main.js';
-import { busy, setWho, getWho, persona, DATA, PHONE, SHOW, NAMES, unkept } from './scenes.js';
+import { busy, setWho, getWho, persona, DATA, PHONE, SHOW, NAMES, unkept, FORK_DONE } from './scenes.js';
 import { setFace } from './parts.js';
 import { tourNext, tourSkip, tourHelp } from './tour.js';
 
@@ -140,7 +140,7 @@ export const ACTIONS = {
   },
   toFork1() { emit('pair', { pair: S.visit }); emit('world', {}); goto('fork', 2); },
   // 札を押したら、パートナーが理由を聞く（任意）。理由は決断の記憶になり、レポートで使う
-  pickSide(d) { emit('pendingSide', { side: d.side }); },
+  pickSide(d) { const dec = Y.decisions(S.pair)[S.forkNo]; const o = dec[d.side]; emit('pendingSide', { side: d.side, label: typeof o.label === 'function' ? o.label(S.player) : o.label }); },
   unpick() { emit('pendingSide', { side: null }); },
   decideWhy() { const reason = val('say'); clear('say'); decide(S.pendingSide, reason); },
   decideNoWhy() { decide(S.pendingSide, ''); },
@@ -158,8 +158,7 @@ export const ACTIONS = {
     const t = S.pendingTrade; if (!t || t.result.verdict === 'いまは難しい') return;
     const dec = Y.decisions(S.pair).find(x => x.id === t.decisionId);
     emit('fork', { decisionId: dec.id, proposal: t.proposal, reason: t.reason, priority: t.priority });
-    afterFork(dec);
-    partnerReacts(dec, t.reason);
+    closeFork(dec, () => { afterFork(dec); partnerReacts(dec, t.reason); });
   },
   cancelTrade() { emit('cancelTrade', {}); },
   toCoord() { goto('coord', 6); },
@@ -287,8 +286,13 @@ function decide(side, reason) {
   const dec = Y.decisions(S.pair)[S.forkNo];
   if (reason) emit('say', { who: getWho(), ch: S.player.company, text: reason });
   emit('fork', { decisionId: dec.id, side, reason, priority: '' });
-  afterFork(dec);
-  partnerReacts(dec, reason);
+  closeFork(dec, () => { afterFork(dec); partnerReacts(dec, reason); });
+}
+// 終わり：「第◯の分岐点：〇〇を選んだ」の帯を1.5秒出してから、通常の画面に戻る
+function closeFork(dec, then) {
+  FORK_DONE.on = true; FORK_DONE.text = `${Y.FORKS[dec.no]}：${S.player.labels.at(-1)}を選んだ`;
+  render();
+  setTimeout(() => { FORK_DONE.on = false; then(); }, 1500);
 }
 // ひとりプレイ：分岐点のあと、パートナーがひとこと（感想か心配）。決めるのはプレイヤー
 async function partnerReacts(dec, reason) {

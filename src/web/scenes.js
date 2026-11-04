@@ -139,7 +139,7 @@ function diffWords(me, w) {
   if (me.spec.kitchen !== w.spec.kitchen) out.push(w.spec.kitchen ? '造作キッチンがある' : '造作キッチンはない');
   if (me.spec.exterior !== w.spec.exterior) out.push(w.spec.exterior === 'full' ? '入居の日から玄関前と庭が整う' : '玄関前は砂利のまま、外構はあとから');
   if (me.spec.window !== w.spec.window) out.push(w.spec.window === 'triple' ? '南の窓がトリプルガラス' : '南の窓は標準のガラス');
-  if (me.spec.tsubo !== w.spec.tsubo) out.push(`${w.spec.tsubo}坪`);
+  if (me.spec.tsubo !== w.spec.tsubo) out.push(`広さは${w.spec.tsubo}坪になる`);
   if (Y.finishCost(me.finish) !== Y.finishCost(w.finish)) out.push(Y.finishCost(w.finish) ? '外壁や床をアップグレード' : '標準の仕上げ');
   const wa = Y.warmth(me.spec, me.company), wb = Y.warmth(w.spec, w.company);
   if (wa.level !== wb.level) out.push(`冬の朝は「${wb.label}」`);
@@ -195,6 +195,8 @@ export const getWho = () => WHO;
 function whoSw() { if (MODE.solo) return ''; return `<div class="who-sw">話す人<button data-act="who" data-w="kazu" aria-pressed="${WHO === 'kazu'}"><i class="sq"></i>${esc(NAMES.kazu)}</button><button data-act="who" data-w="yuu" aria-pressed="${WHO === 'yuu'}"><i class="ci"></i>${esc(NAMES.yuu)}</button></div>`; }
 export const MODE = { solo: true };
 export const busy = { on: false };
+export const INTRO = new Set();
+export const FORK_DONE = { on: false, text: '' };
 function failNote(s, ch) { return s.failed && s.failed.ch === ch ? `<div class="msg sys fail">担当者が応答できませんでした。<button class="linkbtn" data-act="retry">もう一度送る</button></div>` : ''; }
 function chat(s, { ch, head = '', middle = '', opts = '', input = true, act = 'send', placeholder = '担当者に、自由に伝える・聞く', thinking = false, who = true } = {}) {
   const co = ch && 'ABCD'.includes(ch) ? ch : chOf(s);
@@ -345,24 +347,36 @@ export const SCENES = {
       <div class="ppanel"><div class="pp-top">${thumb}<div><h4>提案</h4><p>${pitch}等級${Y.COMPANIES[tab].insul}。</p>${heard.length ? `<p class="note">反映した要望：${heard.map(esc).join('、')}</p>` : ''}</div></div>
         ${chat(s, { ch: tab, head: '', opts: `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="toFork1">2社を見比べて、第一の分岐点へ</button>`, thinking: busy.on, act: 'askCompare', placeholder: `${Y.COMPANIES[tab].staff}さんに、見積や提案について聞く` })}</div>`;
   },
+  // 分岐点：儀式にする。暗くなって札の名前と問いが大きく出て、2枚の札がメインの領域いっぱいに並ぶ。担当者は出てこない
   fork(s) {
     const d = Y.decisions(s.pair)[s.forkNo];
-    if (!d) return chrome(s) + hero(s) + gallery(s);
+    if (!d && !FORK_DONE.on) return chrome(s) + hero(s) + gallery(s);
+    if (FORK_DONE.on) return `${chrome(s)}${hero(s)}<div class="ritual done"><div class="rt-band">${esc(FORK_DONE.text)}</div><div class="rt-light"></div></div>${gallery(s)}`;
     const w = s.player;
-    const facts = side => { const t = Y.forkWorld(w); Y.choose(t, d, side); const m = Y.money(t); const lc = Y.loanCheck(H(s), m.loan); const base = Y.money(w).total; const df = m.total - base; return `<li>総額 ${man(m.total)}万円${Math.round(df) ? `（${df > 0 ? '+' : ''}${man(df)}）` : ''}</li><li>借入 ${man(m.loan)}万円${lc.ok ? '' : '（審査の上限を超える）'}</li>${t.fitted && !w.fitted ? `<li>予算に合わせた案（${t.spec.tsubo}坪）</li>` : ''}${wishLine(Y.checkWishes(t, s.wishes))}`; };
+    const card = side => { const t = Y.forkWorld(w); Y.choose(t, d, side); const m = Y.money(t), m0 = Y.money(w); const df = m.total - m0.total, mo = Y.payment(m.loan, Y.RATE.variable) - Y.payment(m0.loan, Y.RATE.variable); const lc = Y.loanCheck(H(s), m.loan);
+      const life = diffWords(w, t)[0] || '暮らしは大きくは変わらない';
+      return `<div class="rt-name">${esc(lab(d[side], w))}</div><div class="rt-num">総額 ${man(m.total)}<small>万円</small>${Math.round(df) ? `<em>${df > 0 ? '+' : '−'}${man(Math.abs(df))}</em>` : ''}</div><div class="rt-sub">月々 ${mo >= 0 ? '+' : '−'}${Math.abs(mo).toFixed(1)}万円${lc.ok ? '' : '　審査の上限を超える'}${t.fitted && !w.fitted ? `　予算に合わせた案（${t.spec.tsubo}坪）` : ''}</div><div class="rt-life">${esc(life)}</div><ul class="wbox">${wishLine(Y.checkWishes(t, s.wishes))}</ul>`; };
     const pend = s.pendingTrade, side = s.pendingSide;
-    const mid = pend || side ? '' : `<div class="fk"><div class="q">${Y.FORKS[d.no]}</div><div class="qq">${d.q}</div><div class="cards">
-      <button class="cd" data-act="pickSide" data-side="a"><h4>${esc(lab(d.a, w))}</h4><ul>${facts('a')}</ul></button>
-      <button class="cd" data-act="pickSide" data-side="b"><h4>${esc(lab(d.b, w))}</h4><ul>${facts('b')}</ul></button></div></div>`;
-    const asker = MODE.solo || WHO === 'kazu' ? 'yuu' : 'kazu';
-    const why = side ? `<div class="fk"><div class="msg"><div class="who"><i class="${asker === 'yuu' ? 'ci' : 'sq'}"></i>${esc(NAMES[asker])}</div>「${esc(lab(d[side], w))}」だね。どうしてそっちにしたの？</div></div>` : '';
-    const wishBox = pend && pend.result.wishCheck?.length ? `<div class="fk"><ul class="wbox">${wishLine(pend.result.wishCheck)}</ul></div>` : '';
-    const opts = pend ? (pend.result.verdict === 'いまは難しい' ? `<span class="note" style="align-self:center">この条件では進められません。</span><button class="opt" data-act="cancelTrade">ほかの答えを考える</button>` : `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="approve">この条件で進める</button><button class="opt" data-act="cancelTrade">やめておく</button>`)
-      : side ? `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="decideWhy">理由を伝えて決める</button><button class="opt" data-act="decideNoWhy">理由は言わずに決める</button><button class="opt" data-act="unpick">選びなおす</button>` : '';
-    const co = w.company;
-    const lead = { 0: 'どちらの会社と、家を建てますか。', 1: '間取りと予算の配分を決める段階です。', 2: '契約の前の最終見積と、ローンの本審査です。' }[d.no];
-    return `${chrome(s)}${hero(s, `<div class="forkmark">${Y.FORKS[d.no]}</div>${s.band ? '' : nearestCard(s)}${band(s)}`)}<div class="right ${tall(s)}">${chat(s, { ch: co, head: d.no === 0 ? '' : staffHead(co, busy.on ? 'think' : 'idle'), middle: mid + why + wishBox, opts, act: side ? 'decideWhy' : 'freeAnswer', thinking: busy.on, placeholder: side ? '理由を書く（任意）' : `札を押すか、自分の言葉で答える（${lead}）` })}</div>${gallery(s)}`;
+    const intro = INTRO.has(`${s.playId}-${d.no}`) ? '' : 'intro';
+    let body;
+    if (pend) {
+      body = `<div class="rt-trade"><div class="msg"><div class="who">${P.coTag(w.company, 18)}${Y.COMPANIES[w.company].name}・${STAFFN(w.company)}${pend.call?.fallback ? '<span class="mk">代わりの処理</span>' : ''}</div>${esc(pend.message)}<div class="cond">${pend.result.conditions.map(c => '・' + esc(c)).join('<br>')}</div></div>
+        ${pend.result.wishCheck?.length ? `<ul class="wbox">${wishLine(pend.result.wishCheck)}</ul>` : ''}${band(s)}
+        <div class="rt-acts">${pend.result.verdict === 'いまは難しい' ? '<span class="note">この条件では進められません。</span><button class="opt" data-act="cancelTrade">ほかの答えを考える</button>' : '<button class="big-btn" data-act="approve">この条件で進める</button><button class="big-btn ghost" data-act="cancelTrade">やめておく</button>'}</div></div>`;
+    } else if (side) {
+      const asker = MODE.solo || WHO === 'kazu' ? 'yuu' : 'kazu', other = side === 'a' ? 'b' : 'a';
+      body = `<div class="rt-cards picked"><div class="rt-card on">${card(side)}</div><div class="rt-card fly">${card(other)}</div></div>
+        <div class="rt-why"><div class="msg"><div class="who"><i class="${asker === 'yuu' ? 'ci' : 'sq'}"></i>${esc(NAMES[asker])}</div>「${esc(s.pendingLabel || lab(d[side], w))}」だね。どうしてそっちにしたの？</div>
+        <div class="rt-in"><textarea id="say" rows="2" data-keep data-enter="decideWhy" placeholder="理由を書く（書かなくても進めます）"></textarea><button class="big-btn" data-act="decideWhy">理由を伝える</button><button class="big-btn ghost" data-act="decideNoWhy">言わずに進む</button></div>
+        <button class="linkbtn" data-act="unpick">札を選びなおす</button></div>`;
+    } else {
+      body = `<div class="rt-cards"><button class="rt-card" data-act="pickSide" data-side="a">${card('a')}</button><button class="rt-card" data-act="pickSide" data-side="b">${card('b')}</button></div>
+        <div class="rt-in free">${whoSw()}<textarea id="say" rows="2" data-keep data-enter="freeAnswer" placeholder="札を押すか、自分の言葉で答える（例：借入を少し増やして、南の大きな窓だけトリプルガラスにしたい）"></textarea><button class="btn" data-act="freeAnswer">送る</button></div>
+        <div class="rt-navs">${navs(s)}</div>${busy.on ? '<div class="msg typing" style="margin:8px auto 0;max-width:600px">考えています……</div>' : ''}`;
+    }
+    return `${chrome(s)}${hero(s)}<div class="ritual ${intro}"><div class="rt-mark">${Y.FORKS[d.no]}</div><div class="rt-q">${d.q}</div>${body}</div>${gallery(s)}`;
   },
+  fork_after(s) { const d = Y.decisions(s.pair)[s.forkNo]; if (d && !INTRO.has(`${s.playId}-${d.no}`)) setTimeout(() => INTRO.add(`${s.playId}-${d.no}`), 1600); },
   contract(s) {
     const m = Y.money(s.player), co = s.player.company, lc = Y.loanCheck(H(s), m.loan);
     return `${chrome(s)}${hero(s, nearestCard(s))}<div class="right ${tall(s)}"><div class="chat">${staffHead(co, 'smile')}<div class="log" style="padding:22px">

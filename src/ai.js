@@ -90,13 +90,13 @@ export async function callTools(env, { role, user, tools, submitName = 'submit',
   const c = client(env);
   const t0 = Date.now();
   if (!c) { rec.fallback = true; rec.reason = env.AI_MODE === 'mock' ? '代わりの処理（mock）' : 'APIキー未設定'; rec.ms = 0; return { submit: null, call: rec }; }
-  const defs = tools.map(({ name, description, input_schema }) => ({ name, description, input_schema }));
+  const defs = tools.map(({ name, description, input_schema, strict }) => ({ name, description, input_schema, ...(strict ? { strict: true } : {}) }));
   const byName = Object.fromEntries(tools.map(t => [t.name, t]));
   for (let attempt = 0; attempt < 2; attempt++) {
     const messages = [{ role: 'user', content: user }];
     try {
       for (let turn = 0; turn < maxTurns; turn++) {
-        const msg = await create(c, { model, max_tokens: 4000, system: p.body, tools: defs, tool_choice: { type: 'auto' }, messages, output_config: { effort } }, { useFallback: attempt === 0 });
+        const msg = await create(c, { model, max_tokens: 4000, system: p.body, tools: defs, tool_choice: turn >= maxTurns - 1 ? { type: 'tool', name: submitName } : { type: 'auto' }, messages, output_config: { effort } }, { useFallback: attempt === 0 });
         rec.turns.push({ stop: msg.stop_reason, content: msg.content, model: msg.model, usage: msg.usage });
         rec.costUsd = (rec.costUsd || 0) + costOf(msg.model, msg.usage);
         rec.servedModel = msg.model;
@@ -108,7 +108,8 @@ export async function callTools(env, { role, user, tools, submitName = 'submit',
         let submitted = null;
         for (const u of uses) {
           if (u.name === submitName) {
-            const err = validateSubmit ? validateSubmit(u.input) : null;
+            let err = null;
+            try { err = validateSubmit ? validateSubmit(u.input) : null; } catch (e) { err = `形式が合いません（${String(e.message || e).slice(0, 80)}）。必要な項目をすべて入れて、もう一度 ${submitName} を呼んでください。`; }
             rec.toolCalls.push({ name: u.name, input: u.input, error: err || undefined, ms: 0 });
             if (err) { results.push({ type: 'tool_result', tool_use_id: u.id, is_error: true, content: err }); continue; }
             submitted = u.input;

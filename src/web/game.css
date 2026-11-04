@@ -394,3 +394,37 @@ body.rec .help{display:none}
 .tnm.big{font-size:13.5px}
 .treehint{display:flex;align-items:center;gap:14px;margin-bottom:10px}
 @media (prefers-reduced-motion:reduce){.treesvg .edge{animation:none;stroke-dashoffset:0}}
+
+/* 分岐点の儀式 */
+.ritual{position:absolute;left:30px;right:30px;top:124px;height:676px;border-radius:22px;background:rgba(255,250,240,.97);box-shadow:0 0 0 2000px rgba(30,43,54,.12);z-index:8;padding:26px 40px;display:flex;flex-direction:column;align-items:center}
+.rt-mark{font-family:var(--fr);font-weight:900;font-size:22px;background:var(--ink);color:var(--paper);padding:6px 22px;border-radius:999px}
+.rt-q{font-family:var(--fr);font-weight:900;font-size:52px;margin:10px 0 16px}
+.ritual.intro{animation:rtdim .5s ease-out}
+.ritual.intro .rt-mark{animation:rtmark .6s ease-out both;transform-origin:center}
+.ritual.intro .rt-q{animation:rtin .5s .5s ease-out both}
+.ritual.intro .rt-cards .rt-card{animation:rtin .5s .9s ease-out both}
+@keyframes rtdim{from{box-shadow:0 0 0 2000px rgba(30,43,54,.4)}}
+@keyframes rtmark{from{transform:scale(2.2);opacity:0}}
+@keyframes rtin{from{transform:translateY(24px);opacity:0}}
+.rt-cards{display:grid;grid-template-columns:1fr 1fr;gap:30px;width:100%;flex:1;min-height:0}
+.rt-card{display:flex;flex-direction:column;gap:6px;text-align:left;background:#fff;border:2px solid rgba(30,43,54,.22);border-radius:22px;padding:22px 28px;font-family:var(--f);color:var(--ink);cursor:pointer;transition:transform .15s,box-shadow .15s}
+button.rt-card:hover{transform:translateY(-3px);border-color:var(--ink);box-shadow:0 12px 30px rgba(30,43,54,.15)}
+button.rt-card:active{transform:translateY(1px)}
+.rt-name{font-family:var(--fr);font-weight:900;font-size:30px;line-height:1.3}
+.rt-num{font-family:var(--fr);font-weight:900;font-size:34px;font-variant-numeric:tabular-nums}.rt-num small{font-size:18px}.rt-num em{font-style:normal;font-size:20px;margin-left:10px;border:1.5px solid var(--ink2);border-radius:8px;padding:0 8px}
+.rt-sub{font-size:19px;color:var(--ink2)}.rt-life{font-size:20px;line-height:1.5}
+.rt-card .wbox li.wl{font-size:16px}
+.rt-in{display:flex;gap:12px;width:100%;margin-top:14px;align-items:center}.rt-in textarea{flex:1;font:19px/1.5 var(--f);padding:10px 14px;border:1.5px solid rgba(30,43,54,.35);border-radius:12px;background:#fff;resize:none}
+.rt-cards.picked{grid-template-columns:1fr 1fr;flex:0 0 auto}
+.rt-card.on{border:3px solid #C99A00;box-shadow:0 0 0 5px rgba(242,194,48,.35);cursor:default}
+.rt-card.fly{animation:fly .9s ease-in forwards}
+@keyframes fly{to{transform:translate(-30%,560px) scale(.25);opacity:0}}
+.rt-why{width:100%;margin-top:14px}.rt-why .msg{max-width:none;font-size:22px}
+.rt-trade{width:100%;overflow:auto}.rt-trade .msg{max-width:none}.rt-trade .band{position:static;margin-top:10px}
+.rt-acts{display:flex;gap:14px;justify-content:center;margin-top:14px;align-items:center}
+.ritual.done{justify-content:center;background:rgba(255,250,240,.9)}
+.rt-band{font-family:var(--fr);font-weight:900;font-size:36px;background:#fff;border:2px solid var(--ink);border-radius:999px;padding:16px 40px;animation:rtin .4s ease-out both}
+.rt-light{position:absolute;left:10%;right:10%;top:62%;height:3px;background:linear-gradient(90deg,transparent,#F2C230,transparent);animation:light 1.2s ease-out forwards;opacity:0}
+@keyframes light{0%{opacity:0;transform:scaleX(.1)}40%{opacity:1}100%{opacity:0;transform:scaleX(1)}}
+@media (prefers-reduced-motion:reduce){.ritual *,.ritual{animation:none!important}}
+.rt-navs{width:100%}.rt-navs .navs{border-top:none;padding:8px 0 0}

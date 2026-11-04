@@ -81,7 +81,7 @@ export function apply(s, e) {
       break;
     }
     case 'world': s.player = Y.newWorld({ household: Y.HOUSEHOLDS[s.household], seed: s.seed, company: s.pair[0] }); s.others = []; break;
-    case 'pendingSide': s.pendingSide = e.side; break;
+    case 'pendingSide': s.pendingSide = e.side; s.pendingLabel = e.label || null; break;
     case 'fork': {
       const d = D(s).find(x => x.id === e.decisionId);
       const before = new Set(s.others.map(w => w.bits.join('')));
