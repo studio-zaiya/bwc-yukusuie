@@ -321,3 +321,9 @@ body.rec .help{display:none}
 .fl-std b{font-size:13px;color:var(--ink2)}
 .fl-price{font-family:var(--fr);font-weight:900;font-size:22px;font-variant-numeric:tabular-nums}.fl-price small{font-size:13px;font-weight:400;color:var(--ink2)}
 .fl-small{font-size:12.5px;color:var(--ink2)}
+
+/* 入口の付箋 */
+.stickies{display:flex;flex-wrap:wrap;gap:10px;min-height:110px;margin-bottom:12px;align-content:flex-start}
+.sticky{background:#FDEBDD;border-left:5px solid var(--kazu);padding:8px 12px;font-size:18px;border-radius:4px;box-shadow:0 3px 8px rgba(30,43,54,.12);transform:rotate(var(--r,0));animation:pop .35s ease-out}
+@keyframes pop{from{transform:scale(.4) rotate(var(--r,0));opacity:0}to{transform:scale(1) rotate(var(--r,0));opacity:1}}
+@media (prefers-reduced-motion:reduce){.sticky{animation:none}}

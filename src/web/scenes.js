@@ -192,14 +192,26 @@ export const SCENES = {
   entry(s) {
     return `<div class="full"><div class="h2">どんな家にしたいですか。</div><p class="lead">思いや理想を、自由に書いてください。好きな家の写真やスクリーンショット、気になったページのURLも置けます。<br>あとで担当者に伝える要望のもとになります（書かなくても進めます）。</p>
       <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:30px">
-        <textarea class="free" id="entryText" data-keep style="height:420px" placeholder="例：外観はシンプルでかっこよく。キッチンは家族の顔が見えるように。冬でも暖かい家がいい。"></textarea>
+        <div><div class="stickies" id="stickies" aria-live="polite"></div><textarea class="free" id="entryText" data-keep style="height:300px" placeholder="例：外観はシンプルでかっこよく。キッチンは家族の顔が見えるように。冬でも暖かい家がいい。"></textarea></div>
         <div><div class="drop" id="drop">ここに写真をドロップ／Ctrl＋Vで貼り付け<br><span style="font-size:15px">送る前に長辺1568pxまで縮小し、撮影場所などの埋め込み情報は消えます</span></div>
           <div class="thumbs">${(s.entry.photos || []).map(p => `<img src="${p}" alt="置いた写真">`).join('')}</div>
           <p class="note" style="margin-top:12px">「つぎへ」で、ことば・写真・URLから要望の要素を読み取ります。写真そのものは保存しません。</p></div>
       </div>
       <div style="margin-top:30px;text-align:right"><button class="big-btn" data-act="toLot">つぎへ</button></div></div>`;
   },
-  entry_after() { import('./actions.js').then(m => m.bindDrop()); },
+  // 入口：書いていくと、付箋がその場で生まれる（句点・読点・改行で区切る。言葉は施主のまま）
+  entry_after() {
+    import('./actions.js').then(m => m.bindDrop());
+    const ta = document.getElementById('entryText'), box = document.getElementById('stickies');
+    if (!ta || !box) return;
+    const draw = () => {
+      const parts = ta.value.split(/[。\n！？!?]+/).map(t => t.trim()).filter(t => t.length >= 3).slice(0, 12);
+      const have = [...box.children].map(el => el.dataset.t);
+      parts.forEach((t, i) => { if (!have.includes(t)) { const el = document.createElement('span'); el.className = 'sticky'; el.dataset.t = t; el.textContent = t.length > 18 ? t.slice(0, 18) + '…' : t; el.style.setProperty('--r', ((i * 37) % 7 - 3) + 'deg'); box.appendChild(el); } });
+      [...box.children].forEach(el => { if (!parts.includes(el.dataset.t)) el.remove(); });
+    };
+    ta.addEventListener('input', draw); draw();
+  },
   lot(s) {
     const c = Y.coverageCheck(Y.baseSpec(H(s)));
     return `${top(s)}${moneyBox(s)}${clocks(s)}<div class="full" style="padding-top:150px"><div class="h2">分譲地の区画が当たりました。</div><p class="lead">第一希望は外れましたが、第二希望の区画が当たりました。${Y.DEADLINE.land}日以内に土地の契約を結びます。ここから、建物を建てる会社を探します。</p>
