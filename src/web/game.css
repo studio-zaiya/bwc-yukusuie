@@ -304,3 +304,20 @@ body.rec .help{display:none}
 .wtab td{padding:7px 8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;vertical-align:middle}
 .wtab td span{display:block;font-size:15px;color:var(--ink2)}
 .wtab tr.me{background:#FFF6E8}
+/* 各社のチラシ・ウェブサイト */
+.flyer-btn{font:700 19px var(--f);padding:12px 20px;border-radius:14px;border:2px dashed var(--ink);background:#fff;cursor:pointer;margin-bottom:14px}
+.pop.flyers{left:40px;top:60px;width:1840px;max-height:980px}
+.fl-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.flyer{border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;border:1.5px solid rgba(30,43,54,.2)}
+.flyer.paper{background:#FFFDF4;box-shadow:2px 3px 0 rgba(30,43,54,.08);transform:rotate(-.4deg)}
+.flyer.web{background:#fff;border-top:26px solid #E9E6DF;position:relative}
+.fl-url{position:absolute;top:-21px;left:10px;font-size:11px;color:#B9B0A0;letter-spacing:2px}
+.fl-top{display:flex;align-items:center;gap:8px;font-size:19px}.fl-top small{margin-left:auto;font-size:13px;color:var(--ink2)}
+.fl-img{background:linear-gradient(#DDF0FA,#F4FAFD 60%,#F3E7CF 60.1%);border-radius:10px}
+.fl-catch{font-family:var(--fr);font-weight:900;font-size:26px;line-height:1.3}
+.fl-lead{font-size:16px;line-height:1.6;color:var(--ink2)}
+.fl-pt{font-size:16px;line-height:1.6;margin-left:1.2em}
+.fl-std{display:flex;flex-direction:column;font-size:14.5px;line-height:1.55;background:var(--paper);border-radius:8px;padding:8px 10px}
+.fl-std b{font-size:13px;color:var(--ink2)}
+.fl-price{font-family:var(--fr);font-weight:900;font-size:22px;font-variant-numeric:tabular-nums}.fl-price small{font-size:13px;font-weight:400;color:var(--ink2)}
+.fl-small{font-size:12.5px;color:var(--ink2)}

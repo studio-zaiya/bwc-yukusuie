@@ -1,6 +1,9 @@
 // ゆくすいえ Worker：/api/*（Claude呼び出し・保存・回数制限）。それ以外は静的アセット（public/）
 import * as Y from './engine/engine.js';
 import { callJSON, callTools, PROMPTS, modelFor, hasDigits, digitsIn } from './ai.js';
+import PERSONAS from '../data/content/personas.json';
+import TOPICS from '../data/content/hearing_topics.json';
+import PHRASES from '../data/content/report_phrases.json';
 
 const json = (data, status = 200, headers = {}) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers } });
 const today = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10).replace(/-/g, '');
@@ -48,7 +51,7 @@ const PROPOSAL_SCHEMA = {
     spec: {
       type: 'object', additionalProperties: false, properties: {
         window: { type: 'string', enum: ['standard', 'triple'] }, kitchen: { type: 'boolean' }, exterior: { type: 'string', enum: ['full', 'min', 'none'] },
-        roof: { type: 'string', enum: ['flat', 'gable'] }, bigWindow: { type: 'boolean' }, eave: { type: 'string', enum: ['south', 'none'] }, carport: { type: 'boolean' }, shed: { type: 'boolean' },
+        roof: { type: 'string', enum: ['flat', 'gable', 'hip', 'mane', 'cube'] }, bigWindow: { type: 'boolean' }, eave: { type: 'string', enum: ['south', 'none'] }, carport: { type: 'boolean' }, shed: { type: 'boolean' },
       },
     },
     borrow: { type: 'string', enum: ['cover', 'keep'], description: 'cover＝増額の分を借入に足す／keep＝借入は増やさない' },
@@ -81,7 +84,7 @@ function tradeTools(world, d) {
 }
 
 // APIキーが無いとき・失敗したときの代わりの読み替え（キーワードだけ。画面と記録には「代わりの処理」と出す）
-function fallbackProposal(text, d) {
+function fallbackProposal(text, d, world) {
   const t = String(text);
   const spec = {};
   if (/トリプル|断熱|寒/.test(t)) spec.window = 'triple';
@@ -90,12 +93,12 @@ function fallbackProposal(text, d) {
   if (/勾配|三角/.test(t)) spec.roof = 'gable';
   if (/箱型|フラット/.test(t)) spec.roof = 'flat';
   const electric = [];
-  if (/テレビ|壁掛け/.test(t)) electric.push('tv_wall');
-  if (/LAN|有線/.test(t)) electric.push('lan_bed');
+  if (/テレビ|壁掛け/.test(t)) electric.push('tag_tv_wall');
+  if (/LAN|有線/.test(t)) electric.push('tag_lan');
   const borrow = /借入|借り|ローン/.test(t) && !/増やさ|減ら/.test(t) ? 'cover' : 'keep';
   const side = d.id === 'D3' ? (borrow === 'cover' ? 'b' : 'a') : (spec.roof === 'gable' || spec.kitchen ? 'b' : 'a');
-  const words = [spec.window === 'triple' && '南の窓をトリプルに', spec.kitchen === true && '造作キッチン', spec.exterior === 'full' && '外構まで', spec.exterior === 'min' && '外構は最小限', spec.roof === 'gable' && '勾配屋根', electric.length && '電気の追加'].filter(Boolean);
-  return { side, spec, borrow, electric, label: (words.join('・') || d[side].label) + (borrow === 'cover' ? '（借入で）' : '') };
+  const words = [spec.window === 'triple' && '南の窓をトリプルに', spec.kitchen === true && '造作キッチン', spec.exterior === 'full' && '外構まで', spec.exterior === 'min' && '外構は最小限', spec.roof && spec.roof !== 'flat' && Y.ROOF_JA[spec.roof], electric.length && '電気の追加'].filter(Boolean);
+  return { side, spec, borrow, electric, label: (words.join('・') || (typeof d[side].label === 'function' ? d[side].label(world) : d[side].label)) + (borrow === 'cover' ? '（借入で）' : '') };
 }
 
 async function trade(env, body) {
@@ -104,7 +107,7 @@ async function trade(env, body) {
   const m = Y.money(world);
   const user = [
     `# いまの分かれ道：${Y.FORKS[d.no]}「${d.q}」`,
-    `- 札a：${d.a.label}`, `- 札b：${d.b.label}`,
+    `- 札a：${typeof d.a.label === 'function' ? d.a.label(world) : d.a.label}`, `- 札b：${typeof d.b.label === 'function' ? d.b.label(world) : d.b.label}`,
     `# 施主の家づくり（エンジンの値）`,
     `- 会社：${co.name}（${co.kind}）、担当：${co.staffRole}・${co.staff}`,
     `- 仕様：${JSON.stringify(world.spec)}`,
@@ -120,7 +123,7 @@ async function trade(env, body) {
   let proposal, message, reason = '', priority = '', label;
   if (submit) ({ proposal, message, reason, priority, label } = submit);
   else {
-    proposal = fallbackProposal(body.text, d);
+    proposal = fallbackProposal(body.text, d, world);
     message = 'いただいたご要望で、見積と借入を試算しました。条件をご確認のうえ、進めてよいか教えてください。';
     label = proposal.label;
     // 代わりの処理でも、エンジンへの問い合わせは実際に行い、その記録を残す
@@ -132,13 +135,18 @@ async function trade(env, body) {
 }
 
 // ---- 担当者（ヒアリング・場面ごとのせりふ）----
-// 担当者の人格と、聞き方の深さ（会社の型と担当者の力量。聞き漏れは記録として残し、後の工程で効かせる）
-const STAFF_TONE = {
-  A: 'Aハウス（大手ハウスメーカー）の営業・高橋。きっちりした敬語。段取りがよく、予算と入居の時期を先に詰める。性能と保証の話が得意。暮らし方の細かいことは、設計の打ち合わせに回しがち。契約を急ぎがち',
-  B: 'Bハウス（ローコスト・規格）の営業・小林。元気で明るい。規格プランの選択肢を見せて、どれが近いかを聞く。標準仕様の安さを推す。オプションや電気の細かい話は後回しにしがち',
-  C: 'Cデザイン（作り込み型の工務店）の設計・佐々木。丁寧で寡黙。家族の一日の時間帯、収納の量、家事の動線、将来の変化まで、ひとつずつ深く聞く。聞き漏れは少ないが、見積が出るまで時間がかかる',
-  D: 'D工務店（身軽型の工務店）の社長・森。気さくで話が早い。「全部できますよ」と受け止めるが、細かいことはメモを取らずに流しがち。口約束が多い',
+// 担当者の人格と、聞き方の深さ（data/content/personas.json から組み立てる。会社の型と担当者の力量で、聞き方の深さと抜けが変わる）
+const TYPE_HINT = {
+  A: '予算と入居の時期を先に詰める。暮らし方の細かいことは、設計の打ち合わせに回しがち。契約を急ぎがち',
+  B: '規格プランの選択肢を見せて、どれが近いかを聞く。オプションや電気の細かい話は後回しにしがち',
+  C: '家族の一日の時間帯、収納の量、家事の動線、将来の変化まで、ひとつずつ深く聞く。見積が出るまで時間がかかる',
+  D: '「全部できますよ」と受け止めるが、細かいことはメモを取らずに流しがち。口約束が多い',
 };
+const STAFF_TONE = Object.fromEntries(PERSONAS.staff.map(p => [p.company, `${p.companyName}（${p.type}）の${p.role}・${p.name}（${p.gender === 'female' ? '女性' : '男性'}、${p.age}）。${TYPE_HINT[p.company]}。
+口調の見本：${p.tone.join('／')}
+深く聞く話題：${p.digDeep.join('、')}。聞き漏らしやすい話題：${p.oftenMiss.join('、')}（施主が話しても、heard に入れずに missed に入れることがある）。
+得意な助言：${p.advice}。言いがちな一言：「${p.catchphrase}」`]));
+const TOPIC_LIST = TOPICS.topics.map(t => `- ${t.label}（質問の例：${t.questions[0]}）`).join('\n');
 // 施主が自分で言った数字（例：18時）を繰り返すのは許す。それ以外の数字は、Claudeが作った数字として差し戻す
 const nums = t => (String(t || '').normalize('NFKC').match(/\d+(?:\.\d+)?/g) || []);
 function newNumbers(line, sources) { const ok = new Set(sources.flatMap(nums)); return nums(line).filter(n => !ok.has(n)); }
@@ -163,7 +171,7 @@ async function hearing(env, body) {
   const p = PROMPTS.hearing;
   const facts = staffFacts(co);
   const factList = Object.entries(facts).map(([k, v]) => `- ${k}（${k.replace(/[{}]/g, '')}。画面では「${v}」に置き換わる）`).join('\n');
-  const system = p.body.replace('{{STAFF}}', STAFF_TONE[co]).replace('{{SCENE}}', String(body.scene || '初回打ち合わせ').slice(0, 600)).replace('{{FACTS}}', factList);
+  const system = p.body.replace('{{STAFF}}', STAFF_TONE[co] + (/ヒアリング|初回/.test(body.scene || '') ? `\nヒアリングの話題（会社の個性に合わせて、深く聞くものと流すものを選ぶ）：\n${TOPIC_LIST}` : '')).replace('{{SCENE}}', String(body.scene || '初回打ち合わせ').slice(0, 600)).replace('{{FACTS}}', factList);
   const hist = (body.history || []).slice(-8).map(h => `${h.who}：${h.text}`).join('\n');
   const user = `${hist ? `# これまでの会話\n${hist}\n` : ''}# 施主の言葉\n${String(body.text || '').slice(0, 400)}`;
   const fb = { line: body.fallbackLine || 'ありがとうございます。いまのお話、図面に反映できるか確認しますね。', honne: '', heard: [], missed: [] };
@@ -195,8 +203,11 @@ const REPORT_SCHEMA = {
     worlds: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['no', 'name', 'lesson'], properties: { no: { type: 'integer' }, name: { type: 'string' }, lesson: { type: 'string' } } } },
   },
 };
-// 呼び名の候補（Claudeの呼び名が規則に合わないときの代わり）
-const NAME_POOL = ['性能とコストのベストバランス。', '間取りは、メリハリ。', '断熱より、自然素材。', '窓辺に、冬の陽だまり。', '台所が、家の真ん中。', '外構は、暮らしながら。', '箱のかたちに、木のぬくもり。', '借りすぎない、ちょうどよさ。', '勾配屋根の、ひろい空。', '標準で、じゅうぶん。', '仕上げに、ひとさじ。', '早く住んで、あとから整える。', '聞いてくれた人と、建てる。', '保証という、安心。', '小さく建てて、大きく暮らす。', '冬の朝に、強い家。'];
+// 呼び名・タイトル・教訓の候補（Claudeの生成が確認に通らないときの代わり。data/content/report_phrases.json）
+const tagsOf = w => [w.company, ...(w.labels || []).flatMap(l => [/勾配/.test(l) && 'gable', /箱型/.test(l) && 'box', /外構まで/.test(l) && 'full', /最小限/.test(l) && 'min', /トリプル/.test(l) && 'triple', /アップグレード/.test(l) && 'upgrade', /標準/.test(l) && 'standard']).filter(Boolean)];
+function pickPhrase(list, tags, salt) { const sc = list.map((x, i) => [x.tags.filter(t => tags.includes(t)).length * 10 - ((i + salt) % 7), x]); sc.sort((a, b) => b[0] - a[0]); return sc[0][1].text; }
+const BANNED = PHRASES.checks.bannedWords;
+const hasBanned = t => BANNED.some(b => String(t).includes(b));
 const lenOK = (t, n) => [...String(t).replace(/[。、「」・\s]/g, '')].length <= n;
 async function report(env, body) {
   const labels = (body.labels || []).slice(0, 4);
@@ -206,12 +217,13 @@ async function report(env, body) {
   const worlds = (body.worlds || []).slice(0, 16);
   const wlist = worlds.map(w => `- no ${w.no}${w.mine ? '（施主の世界）' : ''}：${(w.labels || []).join(' → ')}／冬の朝 ${w.warmth}／ゆとり ${w.slack}／出来事：${(w.events || []).join('、') || 'なし'}`).join('\n');
   const user = `# 4つの分かれ道（memories は、この順に${labels.length}つ書く）\n${forks}\n# 施主が打ち合わせで話した言葉\n${words || 'なし'}\n# 施主が最初に書いた思い\n${String(body.entry || 'なし').slice(0, 400)}\n# ふたりの要望の付箋の数（コードで数えた）\n${body.couple || 'なし'}\n# 1年後の出来事\n${(body.events || []).join('\n') || 'とくになし'}\n# 暖かさ・家計のゆとり\n${body.warmth || ''}／${body.slack || ''}\n# 16の世界（worlds は、この no ごとに1つずつ）\n${wlist}`;
-  const fb = { title: 'わが家の、ちょうどいいところ。', balance: ['毎日の暮らしやすさ', '家計の安心', '家族の時間'], memories: labels.map(l => `「${l}」を選びました。`), tellFirst: ['いちばん大切にしたいこと', '予算の上限と、その理由', '後から変えにくいところ（下地・配線・窓）'], couple: '', closing: 'この紙を、本物の打ち合わせに持っていってください。', worlds: [] };
+  const fb = { title: '', balance: ['毎日の暮らしやすさ', '家計の安心', '家族の時間'], memories: labels.map(l => `「${l}」を選びました。`), tellFirst: ['いちばん大切にしたいこと', '予算の上限と、その理由', '後から変えにくいところ（下地・配線・窓）'], couple: '', closing: 'この紙を、本物の打ち合わせに持っていってください。', worlds: [] };
   const check = x => {
     const bad = digitsIn(x, ['title', 'balance', 'memories', 'tellFirst', 'couple', 'closing']);
     if (bad.length) return `算用数字（${bad.join('、')}）`;
     if (x.memories.length !== labels.length) return `memories は${labels.length}つ`;
-    if (!lenOK(x.title, 16)) return 'title は16字以内';
+    if (!lenOK(x.title, PHRASES.checks.titleMaxChars)) return 'title は16字以内';
+    if (hasBanned(JSON.stringify(x))) return '使わない言葉が入っている（正解・失敗など）';
     if (worlds.length && x.worlds.length < worlds.length - 2) return 'worlds が足りない';
     if (x.worlds.some(w => !lenOK(w.name, 16) || !lenOK(w.lesson, 26) || hasDigits(w.name + w.lesson))) return '呼び名は16字以内、教訓は26字以内、数字なし';
     return null;
@@ -219,7 +231,8 @@ async function report(env, body) {
   const r = await callJSON(env, { role: 'report', user, schema: REPORT_SCHEMA, fallback: fb, effort: 'low', maxTokens: 5000, validate: check });
   // 足りない世界には、候補から呼び名を当てる（コード）
   const have = new Set((r.data.worlds || []).map(w => w.no));
-  r.data.worlds = [...(r.data.worlds || []), ...worlds.filter(w => !have.has(w.no)).map((w, i) => ({ no: w.no, name: NAME_POOL[(w.no * 7 + i) % NAME_POOL.length], lesson: '' }))];
+  r.data.worlds = [...(r.data.worlds || []), ...worlds.filter(w => !have.has(w.no)).map((w, i) => ({ no: w.no, name: pickPhrase(PHRASES.worldNames, tagsOf(w), w.no + i), lesson: pickPhrase(PHRASES.lessons, tagsOf(w), w.no) }))];
+  if (r.call.fallback) { const me = worlds.find(w => w.mine); if (me) r.data.title = pickPhrase(PHRASES.titles, tagsOf(me), me.no); }
   return r;
 }
 

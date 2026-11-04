@@ -5,14 +5,15 @@ const I = window.ISO;
 let YOU = 7;
 export const setYou = n => { YOU = n; };
 export const STAFF = {
-    A: { id: 'takahashi', co: 'A', role: '営業', name: '高橋', tone: 'きっちり', suit: '#2F3B4A', shirt: '#FFFFFF', tie: '#B48A5A', hair: 'neat', hairC: '#1E2B36',
+    A: { id: 'takahashi', co: 'A', role: '営業', name: '高橋', tone: 'きっちり', suit: '#2F3B4A', shirt: '#FFFFFF', tie: '#B48A5A', hair: 'bob', hairC: '#1E2B36',
       line: '本日はご来場ありがとうございます。弊社の標準仕様で、性能面はご安心いただけます。ご予算の目安から伺ってもよろしいでしょうか。' },
     B: { id: 'kobayashi', co: 'B', role: '営業', name: '小林', tone: '元気', suit: '#3C79B5', shirt: '#FFFFFF', tie: null, hair: 'bob', hairC: '#2B2B2B', badge: true,
       line: 'いらっしゃいませ！規格プランなら、迷わずにすぐ建ちますよ。まずは、どの間取りが気になりましたか？' },
-    C: { id: 'sasaki', co: 'C', role: '設計', name: '佐々木', tone: '丁寧で寡黙', suit: '#7E8F80', shirt: '#F4EFE6', tie: null, hair: 'bob', hairC: '#6B4A35', glasses: true, knit: true,
+    C: { id: 'sasaki', co: 'C', role: '設計', name: '佐々木', tone: '丁寧で寡黙', suit: '#7E8F80', shirt: '#F4EFE6', tie: null, hair: 'side', hairC: '#3A322C', glasses: true, knit: true,
       line: '……はい。まず、今の暮らしで困っていることから、伺ってもいいですか。' },
     D: { id: 'mori', co: 'D', role: '社長', name: '森', tone: '気さく', suit: '#A08A68', shirt: '#E9E4DA', tie: null, hair: 'thin', hairC: '#9A948C', vest: true, wrinkle: true,
       line: 'おう、よく来てくれたね。要望は全部言ってよ。なんとかするから。' },
+    IC2: { id: 'yamada', co: 'C', role: 'コーディネーター', name: '山田', tone: '落ち着いた', suit: '#B9C2B0', shirt: '#FFFFFF', tie: null, hair: 'neat', hairC: '#2E2621', line: 'ひとつだけ上げるなら、床をおすすめします。' },
     IC: { id: 'nakamura', co: 'C', role: 'コーディネーター', name: '中村', tone: 'やわらか', suit: '#D8CBB8', shirt: '#FFFFFF', tie: null, hair: 'bob', hairC: '#5A3E2B',
       line: '床をオークの挽き板にすると、足ざわりがずいぶん変わりますよ。' },
   };

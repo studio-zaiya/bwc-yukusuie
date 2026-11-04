@@ -1,0 +1,47 @@
+{
+  "version": "content-v1",
+  "note": "電気の打ち合わせ（P4-b）。標準仕様はテキストのリスト。金額は値を入れず engine と書く（エンジンが計算）。要望の候補タグは「この内容でOK」の下に並べる。",
+  "standard": {
+    "A": ["照明：LDKはダウンライト、各部屋はシーリングライト", "コンセント：LDK 6か所、各部屋 2か所", "スイッチ：各部屋の入口の横", "エアコン：専用回路 4か所（本体は別途）", "テレビ：LDK・主寝室に端子", "インターネット：光回線の引き込み、LDKに配管", "プレート：標準品（白）"],
+    "B": ["照明：各部屋に照明の取り付け口のみ（器具は別途）", "コンセント：LDK 4か所、各部屋 2か所", "スイッチ：各部屋の入口の横", "エアコン：専用回路 3か所", "テレビ：LDKに端子 1か所", "インターネット：光回線の引き込みと電源 1か所", "プレート：標準品"],
+    "C": ["照明：ダウンライト（子ども部屋のみリモコン付きシーリングライト）", "コンセント：LDK 4か所、その他の部屋 2か所ずつ", "スイッチ：生活の動線に合わせた位置", "エアコン：専用回路と配管の穴の位置を図面で指定", "テレビ：地上波 1か所・床置き", "インターネット：光回線の引き込みと電源 1か所", "プレート：標準品"],
+    "D": ["照明：現場で相談", "コンセント：各部屋 2か所くらい", "スイッチ：入口の横", "エアコン：取り付けは家電量販店で", "テレビ：LDKに端子", "インターネット：引き込みのみ", "プレート：標準品"]
+  },
+  "contractOptions": {
+    "examples": [
+      { "id": "opt_lan_study", "label": "書斎に有線LANを追加", "price": "engine" },
+      { "id": "opt_indirect_ldk", "label": "LDKに間接照明", "price": "engine" },
+      { "id": "opt_outdoor_outlet", "label": "外部コンセント 1か所", "price": "engine" },
+      { "id": "opt_ev", "label": "カーポートに電気自動車用のコンセント", "price": "engine" }
+    ],
+    "rule": "契約に入れてあるオプションは、ヒアリングで伝わり、担当者が記録した要望だけ（台帳の includedInContract=true）"
+  },
+  "requestTags": [
+    { "id": "tag_indirect", "label": "間接照明", "price": "engine" },
+    { "id": "tag_dimmer", "label": "調光", "price": "engine" },
+    { "id": "tag_more_outlets", "label": "コンセント／スイッチを増やしたい", "price": "engine" },
+    { "id": "tag_owner_lights", "label": "照明を施主支給", "price": "engine" },
+    { "id": "tag_solar", "label": "太陽光・蓄電池", "price": "engine" },
+    { "id": "tag_owner_aircon", "label": "エアコンを施主支給", "price": "engine" },
+    { "id": "tag_hide_aircon", "label": "エアコンを隠したい", "price": "engine" },
+    { "id": "tag_remote", "label": "リモートワークに対応してほしい", "price": "engine" },
+    { "id": "tag_toggle", "label": "トグルスイッチ", "price": "engine" },
+    { "id": "tag_tv_wall", "label": "テレビを壁掛けに", "price": "engine" },
+    { "id": "tag_lan", "label": "有線LANを増やしたい", "price": "engine" },
+    { "id": "tag_outdoor", "label": "外にコンセントがほしい", "price": "engine" },
+    { "id": "tag_ev", "label": "電気自動車の充電", "price": "engine" }
+  ],
+  "replyPatterns": {
+    "requestedButMissed": {
+      "note": "ヒアリングや伝え忘れのメッセージで伝えていたのに、契約に入っていなかった場合。会社の型と担当者の力量、議事録の有無で、次のどれかになる（判定はエンジン）",
+      "free": "申し訳ありません。いただいていたご要望でした。こちらの不手際ですので、追加の費用なしで対応します。",
+      "half": "記録を確認しました。お伺いしていた内容です。差額の半分を、こちらで持たせてください。",
+      "paidNoRecord": "打ち合わせの記録に残っていなくて……。申し訳ないのですが、追加のご契約でお願いできますか。"
+    },
+    "notRequested": {
+      "note": "一度も伝えていない要望の場合",
+      "default": "そちらは、契約には入っていないんです。追加で承りますね。",
+      "tooLate": "壁を閉じる前でないと難しい工事なので、いまからだと、できる方法が限られます。"
+    }
+  }
+}

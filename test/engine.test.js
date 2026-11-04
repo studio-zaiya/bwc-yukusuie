@@ -108,9 +108,22 @@ test('お金の札：契約後は「土地＋契約金額＋増工」', () => {
   const before = Y.money(p);
   assert.equal(before.contract, before.building);
   ({ player: p, others: o } = Y.branchAll(p, o, Y.DECISIONS[3], 'b'));
-  p.electric.push('tv_wall');
+  p.electric.push('tag_tv_wall');
   const m = Y.money(p);
   assert.equal(m.add, Y.round(48 + 42 + 4.8, 1));
   assert.equal(m.total, Y.round(m.land + m.contract + m.add, 1));
   assert.equal(m.loan, Y.round(m.total - m.self, 1));
+});
+
+test('外形：要望がなければ、会社ごとの提案されやすい形（A・Bは寄棟、Cはキューブ、Dは招き屋根）', () => {
+  for (const [co, roof] of [['A', 'hip'], ['B', 'hip'], ['C', 'cube'], ['D', 'mane']]) {
+    const w = Y.newWorld({ household: H });
+    Y.choose(w, Y.decisions([co, co === 'A' ? 'C' : 'A'])[0], 'a');
+    assert.equal(w.spec.roof, roof);
+  }
+  // 第二の分岐点で「外形を変える」と、その会社のもう一つの形になる
+  const w = Y.newWorld({ household: H });
+  Y.choose(w, Y.DECISIONS[0], 'a'); Y.choose(w, Y.DECISIONS[1], 'b');
+  assert.equal(w.spec.roof, Y.COMPANIES.C.altRoof);
+  assert.match(w.labels[1], /切妻/);
 });

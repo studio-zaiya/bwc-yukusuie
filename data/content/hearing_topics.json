@@ -1,0 +1,17 @@
+{
+  "version": "content-v1",
+  "note": "ヒアリングの話題。担当者は personas.json の digDeep を深く、oftenMiss を浅く（または聞かない）扱う。聞かれなかった話題の要望は、見落としの種として台帳に残す。seedProcess＝種がまかれる工程、sproutProcess＝芽が出る工程（07の12段階の名前）。",
+  "topics": [
+    { "id": "lifestyle", "label": "暮らし方と時間帯", "questions": ["平日の朝は、どなたが何時ごろに起きますか？", "休日は、家でどう過ごすことが多いですか？"], "answers": { "kazu": "朝は6時に出るから、玄関まわりが混まないといいな。", "yuu": "休日は庭で子どもと遊びたい。リビングから見えるといい。" }, "seed": { "id": "ENTRY_RUSH", "issue": "朝の玄関と洗面が混む", "seedProcess": "設計申込・詳細打ち合わせ", "sproutProcess": "1年後" } },
+    { "id": "storage", "label": "収納と家事動線", "questions": ["いまのお住まいで、片づけに困っている物はありますか？", "洗濯は、干すところから仕舞うところまで、どう動きますか？"], "answers": { "kazu": "アウトドア用品とタイヤの置き場がほしい。", "yuu": "洗って、干して、しまうまでが近いとうれしい。" }, "seed": { "id": "LAUNDRY_PATH", "issue": "洗濯物を干す場所が決まっていない", "seedProcess": "設計申込・詳細打ち合わせ", "sproutProcess": "1年後" } },
+    { "id": "budget", "label": "予算と資金", "questions": ["月々の返済は、どれくらいまでなら安心ですか？", "親御さんからの援助のご予定はありますか？"], "answers": { "kazu": "月々は、いまの家賃くらいに抑えたい。", "yuu": "教育費は手元に残しておきたい。" }, "seed": { "id": "HIDDEN_COST", "issue": "見積に入っていない費用を確かめていない", "seedProcess": "プラン提案・見積", "sproutProcess": "契約" } },
+    { "id": "land", "label": "土地", "questions": ["区画の条件で、気になっていることはありますか？", "地盤の調査は、どの時点で行うか、ご存じですか？"], "answers": { "kazu": "南向きの庭がほしい。", "yuu": "地盤のことは、よくわからない。" }, "seed": { "id": "GROUND_LATE", "issue": "地盤改良の費用があとから出る", "seedProcess": "プラン提案・見積", "sproutProcess": "契約" } },
+    { "id": "performance", "label": "性能（断熱・気密・耐震）", "questions": ["冬の寒さや、夏の暑さで困ったことはありますか？", "窓の大きさと、性能の考え方についてお話ししてもいいですか？"], "answers": { "kazu": "性能は、まあ普通でいいかな。", "yuu": "いまの家の冬の朝が、とにかく寒い。" }, "seed": { "id": "BIG_WINDOW_COLD", "issue": "大きな窓のガラスの性能を決めていない", "seedProcess": "設計申込・詳細打ち合わせ", "sproutProcess": "1年後" } },
+    { "id": "design", "label": "デザイン", "questions": ["好きな家の写真があれば、見せていただけますか？", "外から見たときの印象で、大切にしたいことは？"], "answers": { "kazu": "かっこいい外観。ミニマルに。", "yuu": "木を使った、ナチュラルな家がいい。" }, "seed": { "id": "TASTE_CLASH", "issue": "ふたりの好みのすり合わせ", "seedProcess": "設計申込・詳細打ち合わせ", "sproutProcess": "コーディネート・電気" } },
+    { "id": "future", "label": "将来の変化", "questions": ["お子さんが大きくなったら、部屋はどう使いたいですか？", "在宅で仕事をする予定はありますか？"], "answers": { "kazu": "在宅の日が週に2回ある。", "yuu": "子ども部屋は、最初はひとつでいい。" }, "seed": { "id": "REMOTE_WORK", "issue": "在宅の仕事の場所と通信", "seedProcess": "設計申込・詳細打ち合わせ", "sproutProcess": "コーディネート・電気" } },
+    { "id": "parking", "label": "駐車と外構", "questions": ["車は何台、どこに停めますか？", "庭や駐車場の仕上げは、入居のときに必要ですか？"], "answers": { "kazu": "カーポート2台と物置は必須。", "yuu": "庭は広めに。畑とうさぎの囲いも。" }, "seed": { "id": "EXTERIOR_LATER", "issue": "外構を後回しにする", "seedProcess": "契約", "sproutProcess": "1年後" } },
+    { "id": "electric", "label": "電気とネット", "questions": ["テレビは壁掛けにしますか？", "エアコンの位置や、ネットの配線のご希望は？"], "answers": { "kazu": "テレビは壁掛けがいい。", "yuu": "エアコンは目立たないようにしたい。" }, "seed": { "id": "TV_WALL_BACKING", "issue": "壁掛けテレビの下地と配線", "seedProcess": "初回打ち合わせ", "sproutProcess": "コーディネート・電気" } },
+    { "id": "family", "label": "家相・親族", "questions": ["ご両親から、家についてご意見はありそうですか？", "方角や間取りで、気にされることはありますか？"], "answers": { "kazu": "母が玄関の向きを気にするかも。", "yuu": "父が一度、打ち合わせに来たいって。" }, "seed": { "id": "FAMILY_LATE", "issue": "契約の直前に、親族から間取りへの意見が出る", "seedProcess": "初回打ち合わせ", "sproutProcess": "契約" } },
+    { "id": "schedule", "label": "入居の時期", "questions": ["いつごろまでに入居したいですか？", "土地の契約の期限は、ご存じですか？"], "answers": { "kazu": "子どもの入学に間に合わせたい。", "yuu": "急ぎすぎて後悔はしたくない。" }, "seed": { "id": "LAND_DEADLINE", "issue": "土地の契約の期限と、見積の精度", "seedProcess": "プラン提案・見積", "sproutProcess": "契約" } }
+  ]
+}

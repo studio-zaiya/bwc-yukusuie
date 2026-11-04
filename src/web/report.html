@@ -183,7 +183,7 @@ const mo = p => Y.payment(p, Y.RATE.variable).toFixed(1) + '万円';
 $('title').textContent = R.title || '';
 $('myno').textContent = '07';
 $('cvTitle').textContent = R.title || '';
-const wcq = new URLSearchParams({ roof: D.player.spec.roof === 'gable' ? '切妻' : '陸屋根', finish: D.player.finish.wall === 'galva' ? 'ガルバリウム' : '塗り壁', time: me.warmth.level >= 3 ? '夕方' : '昼', season: '春', carport: '2', seed: String(me.no) });
+const wcq = new URLSearchParams({ roof: { gable: '切妻', hip: '切妻', mane: '片流れ', cube: '陸屋根', flat: '陸屋根' }[D.player.spec.roof] || '陸屋根', finish: D.player.finish.wall === 'galva' ? 'ガルバリウム' : '塗り壁', time: me.warmth.level >= 3 ? '夕方' : '昼', season: '春', carport: '2', seed: String(me.no) });
 $('wc').src = '/watercolor.html?' + wcq;
 // 1 理想：ヒアリングで聞き取れた付箋（かず＝橙、ゆう＝空色）と、選んだ仕上げの色
 const heard = (D.heard || []).slice(0, 10);

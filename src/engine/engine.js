@@ -3,7 +3,7 @@
  * 単位：金額は万円、面積は㎡（坪は 3.30579㎡）、日数は日。
  * 数字はすべて仮置き（docs/06_engine.md に準拠）。app/engine.js（試作 v0.1）からの移植と拡張。
  */
-export const VERSION = 'engine-0.4';
+export const VERSION = 'engine-0.5';
 export const TSUBO = 3.30579;
 export const round = (v, d = 0) => { const k = 10 ** d; return Math.round(v * k) / k; };
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -56,13 +56,15 @@ export function coverageCheck(spec) {
 
 // ---- 住宅会社（型）。色は付けない。形だけで区別 ----
 export const COMPANIES = {
-  A: { id: 'A', name: 'Aハウス', shape: 'square', kind: '大手ハウスメーカー', staff: '高橋', staffRole: '営業', tsubo: 92, futai: 230, kitchen: 90, triple: 52, insul: 6, equip: 1, style: 'body', groundTiming: '契約後', speed: 1.0, gable: 60 },
-  B: { id: 'B', name: 'Bハウス', shape: 'triangle', kind: 'ローコスト・規格', staff: '小林', staffRole: '営業', tsubo: 65, futai: 220, kitchen: 110, triple: 70, insul: 5, equip: 0, style: 'options', groundTiming: '契約後', speed: 0.8, gable: 45 },
-  C: { id: 'C', name: 'Cデザイン', shape: 'circle', kind: '作り込み型の工務店', staff: '佐々木', staffRole: '設計', tsubo: 84, futai: 250, kitchen: 70, triple: 58, insul: 6, equip: 0, style: 'total', groundTiming: '契約前', speed: 1.3, gable: 55 },
-  D: { id: 'D', name: 'D工務店', shape: 'hex', kind: '身軽型の工務店', staff: '森', staffRole: '社長', tsubo: 75, futai: 200, kitchen: 60, triple: 64, insul: 5, equip: 0, style: 'lump', groundTiming: '曖昧', speed: 0.9, gable: 50 },
+  A: { id: 'A', name: 'Aハウス', shape: 'square', kind: '大手ハウスメーカー', staff: '高橋', staffRole: '営業', tsubo: 92, futai: 230, kitchen: 90, triple: 52, insul: 6, equip: 1, style: 'body', groundTiming: '契約後', speed: 1.0, gable: 60, roof: 'hip', altRoof: 'cube' },
+  B: { id: 'B', name: 'Bハウス', shape: 'triangle', kind: 'ローコスト・規格', staff: '小林', staffRole: '営業', tsubo: 65, futai: 220, kitchen: 110, triple: 70, insul: 5, equip: 0, style: 'options', groundTiming: '契約後', speed: 0.8, gable: 45, roof: 'hip', altRoof: 'gable' },
+  C: { id: 'C', name: 'Cデザイン', shape: 'circle', kind: '作り込み型の工務店', staff: '佐々木', staffRole: '設計', tsubo: 84, futai: 250, kitchen: 70, triple: 58, insul: 6, equip: 0, style: 'total', groundTiming: '契約前', speed: 1.3, gable: 55, roof: 'cube', altRoof: 'gable' },
+  D: { id: 'D', name: 'D工務店', shape: 'hex', kind: '身軽型の工務店', staff: '森', staffRole: '社長', tsubo: 75, futai: 200, kitchen: 60, triple: 64, insul: 5, equip: 0, style: 'lump', groundTiming: '曖昧', speed: 0.9, gable: 50, roof: 'mane', altRoof: 'cube' },
 };
 // 断熱等級ごとの外皮平均熱貫流率（UA値、W/㎡K、6地域の基準値の目安）
 export const UA = { 4: 0.87, 5: 0.6, 6: 0.46, 7: 0.26 };
+export const ROOF_JA = { flat: '箱型', cube: '軒ゼロのキューブ', hip: '寄棟', gable: '切妻', mane: '招き屋根' };
+export const pitched = r => ['gable', 'hip', 'mane'].includes(r);
 export const COMMON = { exterior: 180, exteriorMin: 40, lighting: 60, aircon: 50, ground: 120, ground_range: [80, 150], misc: 250 };
 
 // ---- 仕上げ（コーディネート）と電気の単価（仮置き。design/v3/parts/P4a・P4b と同じ値）----
@@ -75,22 +77,37 @@ export const FINISH = {
   floor: [{ id: 'std', label: 'シート貼りフローリング（標準）', v: 0, sw: '#D9B98E' }, { id: 'oak', label: 'オークの挽き板', v: 42, sw: '#C49A66' }, { id: 'pine', label: '無垢のパイン', v: 28, sw: '#E2C28E' }],
   inner: [{ id: 'vinyl', label: 'ビニールクロス（標準）', v: 0, sw: '#F7F6F2' }, { id: 'eco', label: '自然素材クロス', v: 18, sw: '#F1ECE1' }, { id: 'nuri', label: '塗り壁', v: 45, sw: '#ECE6DA' }],
 };
+// 電気：会社ごとの標準仕様と、要望の候補（data/content/electrical.json と同じ id）。金額はエンジンが持つ（仮置き）
 export const ELECTRIC = {
-  standard: ['コンセント 各室2か所（LDKは6か所）', 'スイッチは入口の横', '照明はシーリング（LDKはダウンライト6灯）', 'エアコン用の専用回路 4か所', 'テレビ端子 LDK・主寝室', 'LAN配管 LDKのみ'],
+  standardBy: {
+    A: ['照明：LDKはダウンライト、各部屋はシーリングライト', 'コンセント：LDK 6か所、各部屋 2か所', 'スイッチ：各部屋の入口の横', 'エアコン：専用回路 4か所（本体は別途）', 'テレビ：LDK・主寝室に端子', 'インターネット：光回線の引き込み、LDKに配管', 'プレート：標準品（白）'],
+    B: ['照明：各部屋に照明の取り付け口のみ（器具は別途）', 'コンセント：LDK 4か所、各部屋 2か所', 'スイッチ：各部屋の入口の横', 'エアコン：専用回路 3か所', 'テレビ：LDKに端子 1か所', 'インターネット：光回線の引き込みと電源 1か所', 'プレート：標準品'],
+    C: ['照明：ダウンライト（子ども部屋のみリモコン付きシーリングライト）', 'コンセント：LDK 4か所、その他の部屋 2か所ずつ', 'スイッチ：生活の動線に合わせた位置', 'エアコン：専用回路と配管の穴の位置を図面で指定', 'テレビ：地上波 1か所・床置き', 'インターネット：光回線の引き込みと電源 1か所', 'プレート：標準品'],
+    D: ['照明：現場で相談', 'コンセント：各部屋 2か所くらい', 'スイッチ：入口の横', 'エアコン：取り付けは家電量販店で', 'テレビ：LDKに端子', 'インターネット：引き込みのみ', 'プレート：標準品'],
+  },
   options: [
-    { id: 'tv_wall', label: '壁掛けテレビの下地と配線', v: 4.8, issue: 'TV_WALL_BACKING' },
-    { id: 'lan_bed', label: '寝室のLAN', v: 2.5, issue: 'LAN_BEDROOM' },
-    { id: 'outlet_out', label: '外部コンセント（防水）', v: 1.6, issue: 'OUTLET_OUTSIDE' },
-    { id: 'ev', label: '電気自動車の充電用コンセント', v: 9.5, issue: 'EV_OUTLET' },
-    { id: 'aircon_louver', label: 'エアコンを隠すルーバー（リビング）', v: 6.5, issue: 'AIRCON_HIDE' },
+    { id: 'tag_tv_wall', label: 'テレビを壁掛けに（下地と配線）', v: 4.8 },
+    { id: 'tag_lan', label: '有線LANを増やしたい', v: 2.5 },
+    { id: 'tag_outdoor', label: '外にコンセントがほしい', v: 1.6 },
+    { id: 'tag_ev', label: '電気自動車の充電', v: 9.5 },
+    { id: 'tag_hide_aircon', label: 'エアコンを隠したい（ルーバー）', v: 6.5 },
+    { id: 'tag_indirect', label: '間接照明', v: 12 },
+    { id: 'tag_dimmer', label: '調光', v: 3.5 },
+    { id: 'tag_more_outlets', label: 'コンセント／スイッチを増やしたい', v: 4 },
+    { id: 'tag_owner_lights', label: '照明を施主支給', v: 0 },
+    { id: 'tag_solar', label: '太陽光・蓄電池', v: 120 },
+    { id: 'tag_owner_aircon', label: 'エアコンを施主支給', v: 0 },
+    { id: 'tag_remote', label: 'リモートワークに対応してほしい', v: 6 },
+    { id: 'tag_toggle', label: 'トグルスイッチ', v: 2.5 },
   ],
 };
+ELECTRIC.standard = ELECTRIC.standardBy.C;
 export function finishCost(f = {}) {
   const pick = (k, id) => (FINISH[k].find(x => x.id === id) || FINISH[k][0]);
   return pick('wall', f.wall).v + pick('floor', f.floor).v + pick('inner', f.inner).v;
 }
 // 電気の要望の言葉 → 項目（コード）
-export const ELECTRIC_WORDS = { tv_wall: /テレビ|壁掛け/, lan_bed: /LAN|有線|ネット/, outlet_out: /外.*コンセント|防水|屋外/, ev: /充電|EV|電気自動車/, aircon_louver: /エアコン.*(隠|ルーバー|見えな)|ルーバー/ };
+export const ELECTRIC_WORDS = { tag_tv_wall: /テレビ|壁掛け/, tag_lan: /LAN|有線/, tag_outdoor: /外.*コンセント|防水|屋外/, tag_ev: /充電|EV|電気自動車/, tag_hide_aircon: /エアコン.*(隠|ルーバー|見えな)|ルーバー/, tag_indirect: /間接照明/, tag_dimmer: /調光/, tag_more_outlets: /(コンセント|スイッチ).*(増|多)/, tag_owner_lights: /照明.*施主支給|照明を(自分|持ち込)/, tag_solar: /太陽光|蓄電池/, tag_owner_aircon: /エアコン.*(施主支給|自分で|持ち込)/, tag_remote: /リモート|在宅|テレワーク|仕事部屋/, tag_toggle: /トグル/ };
 export const electricOf = text => Object.entries(ELECTRIC_WORDS).filter(([, re]) => re.test(String(text))).map(([id]) => id);
 // 伝えていたのに入っていなかったとき、会社と担当者の力量で扱いが分かれる（議事録の有無が効く）
 export function missedPolicy(coId, skill = 0.5) {
@@ -108,7 +125,7 @@ export function baseSpec(h) {
 }
 // 仕様の変更として受け付ける項目（Claude の「変更の提案」はこの範囲だけ）
 export const SPEC_SCHEMA = {
-  window: ['standard', 'triple'], kitchen: [true, false], exterior: ['full', 'min', 'none'], roof: ['flat', 'gable'],
+  window: ['standard', 'triple'], kitchen: [true, false], exterior: ['full', 'min', 'none'], roof: ['flat', 'gable', 'hip', 'mane', 'cube'],
   bigWindow: [true, false], eave: ['south', 'none'], carport: [true, false], shed: [true, false],
 };
 
@@ -116,7 +133,7 @@ export const SPEC_SCHEMA = {
 export function priceLines(spec, co, knowGround) {
   const L = [];
   L.push({ key: 'body', label: '本体工事', v: co.tsubo * spec.tsubo });
-  if (spec.roof === 'gable') L.push({ key: 'gable', label: '勾配屋根', v: co.gable });
+  if (pitched(spec.roof)) L.push({ key: 'gable', label: `屋根（${ROOF_JA[spec.roof]}）`, v: co.gable });
   L.push({ key: 'futai', label: '付帯工事（給排水・仮設など）', v: co.futai });
   if (spec.kitchen) L.push({ key: 'kitchen', label: '造作キッチン', v: co.kitchen });
   if (spec.window === 'triple') L.push({ key: 'triple', label: '南の大開口をトリプルガラスに', v: co.triple });
@@ -146,7 +163,7 @@ export function quote(spec, coId, knowGround = false) {
 // ---- 暖かさの体験（4段階）----
 export function warmth(spec, coId) {
   const co = COMPANIES[coId];
-  const s = 3 + (co.equip || 0) + (co.insul - 5) * 2.5 + (spec.window === 'triple' ? 2 : 0) - (spec.bigWindow ? 3 : 0) + (spec.eave === 'south' ? 1 : 0) + (spec.roof === 'gable' ? 0.5 : 0);
+  const s = 3 + (co.equip || 0) + (co.insul - 5) * 2.5 + (spec.window === 'triple' ? 2 : 0) - (spec.bigWindow ? 3 : 0) + (spec.eave === 'south' ? 1 : 0) + (pitched(spec.roof) ? 0.5 : 0);
   const lv = s >= 5.5 ? 3 : s >= 4 ? 2 : s >= 2 ? 1 : 0;
   return { score: round(s, 1), level: lv, label: ['寒い', 'やや寒い', 'おおむね快適', '快適'][lv] };
 }
@@ -206,7 +223,7 @@ export function decisions(pair = ['C', 'A']) {
   const [x, y] = pair;
   return [
     { id: 'D1', no: 0, q: 'だれと建てる？', step: 2, a: { label: `${COMPANIES[x].name}と建てる`, patch: { company: x } }, b: { label: `${COMPANIES[y].name}と建てる`, patch: { company: y } } },
-    { id: 'D2', no: 1, q: 'なにを優先する？', step: 3, a: { label: '箱型の屋根で、広さを優先する', patch: { spec: { roof: 'flat', form: 'box', kitchen: false } } }, b: { label: '勾配屋根と造作キッチン（少し小さく）', patch: { spec: { roof: 'gable', form: 'gable', kitchen: true, tsubo: -1 } } } },
+    { id: 'D2', no: 1, q: 'なにを優先する？', step: 3, a: { label: w => `提案の外形（${ROOF_JA[w.spec.roof]}）のまま、広さを優先する`, patch: { spec: { kitchen: false } } }, b: { label: w => `${ROOF_JA[COMPANIES[w.company].altRoof]}に変えて、造作キッチンも（少し小さく）`, patch: { spec: { roof: '@alt', kitchen: true, tsubo: -1 } } } },
     { id: 'D3', no: 2, q: 'いくらまでかける？', step: 5, a: { label: '予算内に収める（外構は最小限）', patch: { spec: { exterior: 'min' } } }, b: { label: '借入を増やして、外構まで仕上げる', patch: { spec: { exterior: 'full' } } } },
     { id: 'D4', no: 3, q: 'どう仕上げる？', step: 6, a: { label: '標準の仕上げのまま', patch: { finish: { wall: 'std', floor: 'std', inner: 'vinyl' } } }, b: { label: 'アップグレードを受ける（外壁と床）', patch: { finish: { wall: 'galva', floor: 'oak' } } } },
   ];
@@ -222,9 +239,10 @@ export function fitBudget(w) {
   return n;
 }
 function applyPatch(w, p) {
-  if (p.company) { w.company = p.company; fitBudget(w); }
+  if (p.company) { w.company = p.company; if (!w.roofReq) w.spec.roof = COMPANIES[p.company].roof; fitBudget(w); }
   if (p.spec) for (const [k, v] of Object.entries(p.spec)) {
     if (k === 'tsubo') { w.spec.tsubo = baseSpec(householdOf(w)).tsubo - (w.fitted || 0) + v; w.spec.floor1Tsubo = Math.ceil(w.spec.tsubo / 2); }
+    else if (k === 'roof' && v === '@alt') w.spec.roof = COMPANIES[w.company].altRoof;
     else w.spec[k] = v;
   }
   if (p.finish) w.finish = { ...w.finish, ...p.finish };
@@ -234,10 +252,11 @@ function applyPatch(w, p) {
 export function choose(w, d, opt, extra = {}) {
   const side = typeof opt === 'string' ? opt : opt.side;
   const base = d[side];
+  const baseLabel = typeof base.label === 'function' ? base.label(w) : base.label;
   applyPatch(w, base.patch);
   if (typeof opt === 'object') { applyPatch(w, { spec: opt.spec || {}, finish: opt.finish, electric: opt.electric }); if (!opt.plain) w.third = d.id; }
   w.bits.push(side === 'a' ? 0 : 1);
-  w.labels.push(typeof opt === 'object' ? (opt.label || base.label) : base.label);
+  w.labels.push(typeof opt === 'object' ? (opt.label || baseLabel) : baseLabel);
   if (extra.reason || extra.priority) w.memory.push({ decisionId: d.id, action: w.labels.at(-1), reason: extra.reason || '', priority: extra.priority || '' });
   if (d.id === 'D3') contract(w);
   return w;
@@ -324,7 +343,7 @@ export function outcome(w, opts = {}) {
   const events = [];
   let increase = 0;
   if (w.company === 'A' && skill < 0.45) { increase = 380; events.push('契約後に担当が替わり、頼んだ設備と違うものが入った（+380万円）'); }
-  if (w.company === 'D' && skill < 0.35 && !w.electric.includes('tv_wall')) events.push('壁掛けテレビの下地が入っていなかった');
+  if (w.company === 'D' && skill < 0.35 && !w.electric.includes('tag_tv_wall')) events.push('壁掛けテレビの下地が入っていなかった');
   if (w.spec.exterior !== 'full') events.push('玄関前は砂利のまま。冬の朝、霜取りに5分');
   const wm = warmth(w.spec, w.company);
   if (wm.level <= 1) events.push('2月の朝、足元が冷たい');
@@ -362,5 +381,5 @@ export function createLog(seed = []) {
   };
 }
 
-export const YKS = { UA, ELECTRIC_WORDS, electricOf, missedPolicy, fitBudget, VERSION, TSUBO, HOUSEHOLDS, monthlyTakeHome, RATE, payment, loanLimit, loanCheck, SITE, landCost, coverageCheck, COMPANIES, COMMON, FINISH, ELECTRIC, finishCost, electricCost, baseSpec, SPEC_SCHEMA, quote, warmth, slack, DEADLINE, STEPS, scheduleOf, schedule, newWorld, forkWorld, money, FORKS, decisions, DECISIONS, choose, contract, branchAll, worldNo, normalizeProposal, TOOLS, simulate, outcome, allWorlds, createLog, rng, round, hashStr };
+export const YKS = { ROOF_JA, pitched, UA, ELECTRIC_WORDS, electricOf, missedPolicy, fitBudget, VERSION, TSUBO, HOUSEHOLDS, monthlyTakeHome, RATE, payment, loanLimit, loanCheck, SITE, landCost, coverageCheck, COMPANIES, COMMON, FINISH, ELECTRIC, finishCost, electricCost, baseSpec, SPEC_SCHEMA, quote, warmth, slack, DEADLINE, STEPS, scheduleOf, schedule, newWorld, forkWorld, money, FORKS, decisions, DECISIONS, choose, contract, branchAll, worldNo, normalizeProposal, TOOLS, simulate, outcome, allWorlds, createLog, rng, round, hashStr };
 export default YKS;

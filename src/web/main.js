@@ -2,7 +2,7 @@
  * 出来事の記録（イベント）を基本にする：操作もClaudeの応答も1件のイベントとして積み、状態はイベントから組み立てる。
  * 再生（?replay=記録ID）は、同じイベントを順に当て直すだけ。Claudeは呼ばない。 */
 import * as Y from './engine/engine.js';
-import { SCENES, snsHTML, myaiHTML, worldHTML, setWho } from './scenes.js';
+import { SCENES, snsHTML, myaiHTML, worldHTML, flyersHTML, setWho } from './scenes.js';
 import { ACTIONS } from './actions.js';
 import { tourAfterRender, tourHTML } from './tour.js';
 
@@ -112,7 +112,7 @@ function bandOf(t) {
   if (sp.spec?.kitchen === true) words.push('造作キッチンを入れる');
   if (sp.spec?.kitchen === false) words.push('造作キッチンはやめる');
   if (sp.spec?.exterior) words.push({ full: '外構を予定どおりに', min: '外構は最小限に', none: '外構はなし' }[sp.spec.exterior]);
-  if (sp.spec?.roof) words.push(sp.spec.roof === 'gable' ? '勾配屋根に' : '箱型の屋根に');
+  if (sp.spec?.roof) words.push(`${Y.ROOF_JA[sp.spec.roof]}に`);
   (sp.electric || []).forEach(id => words.push(Y.ELECTRIC.options.find(o => o.id === id)?.label));
   words.push(sp.borrow === 'cover' ? '増額の分は借入で' : '借入は増やさない');
   return {
@@ -166,7 +166,7 @@ export function render() {
 }
 function popHTML() {
   if (!S.pop) return '';
-  return `<div class="veil" data-act="closePop"></div>${S.pop === 'sns' ? snsHTML(S) : S.pop === 'world' ? worldHTML(S) : myaiHTML(S)}`;
+  return `<div class="veil" data-act="closePop"></div>${S.pop === 'sns' ? snsHTML(S) : S.pop === 'world' ? worldHTML(S) : S.pop === 'flyers' ? flyersHTML(S) : myaiHTML(S)}`;
 }
 
 // ---- 操作の受け口（data-act）----

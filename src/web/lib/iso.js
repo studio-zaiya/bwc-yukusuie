@@ -61,6 +61,24 @@
       s += poly(g([[w, 0, h], [w, d, h], [w, d / 2, h + r]]), shade(wall, .86));
       s += poly(g([[-2, d / 2, h + r], [w + 2, d / 2, h + r], [w + 2, d + 3, h - 1], [-2, d + 3, h - 1]]), rf);
       s += poly(g([[w + 2, d / 2, h + r], [w + 2, d + 3, h - 1], [w + 2, d + 3, h - 2.5], [w + 2, d / 2, h + r - 1.5]]), shade(rf, .8), '#1E2B36', .8);
+    } else if (roof === 'hip') {
+      // 寄棟：四方に軒が出る
+      const r = 13, o2 = 4;
+      s += poly(g([[w * 0.3, d / 2, h + r], [w * 0.7, d / 2, h + r], [w + o2, d + o2, h - 1], [-o2, d + o2, h - 1]]), rf);
+      s += poly(g([[w * 0.7, d / 2, h + r], [w + o2, -o2, h - 1], [w + o2, d + o2, h - 1]]), shade(rf, .82));
+      s += poly(g([[-o2, d + o2, h - 1], [w + o2, d + o2, h - 1], [w + o2, d + o2, h - 2.6], [-o2, d + o2, h - 2.6]]), shade(rf, .7), '#1E2B36', .8);
+    } else if (roof === 'mane') {
+      // 招き屋根：棟をずらした切妻。段差に高窓
+      const r1 = 18, r2 = 10, ry = d * 0.62;
+      s += poly(g([[w, 0, h], [w, ry, h + r1], [w, ry, h + r2], [w, d, h]]), shade(wall, .86));
+      s += poly(g([[w, ry, h + r2], [w, ry, h + r1 - 2], [w, d, h + 1]]), shade(wall, .86));
+      s += poly(g([[-2, ry, h + r2], [w + 2, ry, h + r2], [w + 2, d + 3, h - 1], [-2, d + 3, h - 1]]), rf);
+      s += poly(g([[-2, ry, h + r1], [w + 2, ry, h + r1], [w + 2, ry, h + r2 + 1], [-2, ry, h + r2 + 1]]), '#A9C9DB', '#1E2B36', 1);
+    } else if (roof === 'cube') {
+      // 軒ゼロのキューブ：パラペットだけ。庇も出さない
+      s += poly(g([[0, 0, h + 4], [w, 0, h + 4], [w, d, h + 4], [0, d, h + 4]]), shade(wall, 1.04));
+      s += poly(g([[0, d, h], [w, d, h], [w, d, h + 4], [0, d, h + 4]]), wall);
+      s += poly(g([[w, 0, h], [w, d, h], [w, d, h + 4], [w, 0, h + 4]]), shade(wall, .86));
     } else {
       const r = 12;
       s += poly(g([[w, 0, h], [w, d, h], [w, 0, h + r]]), shade(wall, .86));

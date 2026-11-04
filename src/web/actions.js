@@ -2,7 +2,7 @@
  * Claudeが応答できなかったときは、代わりの文で成功したように見せず、「応答できませんでした（もう一度）」を出す */
 import * as Y from './engine/engine.js';
 import { S, emit, api, render } from './main.js';
-import { busy, setWho, getWho } from './scenes.js';
+import { busy, setWho, getWho, persona, DATA } from './scenes.js';
 import { setFace } from './parts.js';
 import { tourNext, tourSkip, tourHelp } from './tour.js';
 
@@ -62,7 +62,7 @@ export const ACTIONS = {
     const a = { fam: val('sv_fam'), now: val('sv_now'), budget: val('sv_budget'), when: val('sv_when'), kazu: val('sv_kazu'), yuu: val('sv_yuu'), worry: val('sv_worry') };
     emit('survey', { answers: a });
     const co = S.cur;
-    const open = { A: '本日はご来場ありがとうございます。アンケート、拝見しました。まず、ご予算と、入居したい時期から伺ってもよろしいでしょうか。', B: 'アンケートありがとうございます！規格プランが3つあるんですが、まずは、どんな暮らしがしたいか聞かせてください！', C: '……ありがとうございます。まず、平日の朝、ご家族がどう過ごしているかから、伺ってもいいですか。', D: 'おう、ありがとね。で、どんな家にしたいの。なんでも言ってよ、だいたいできるから。' }[co];
+    const open = persona(co)?.tone[0] || 'ご来場ありがとうございます。まずは、おふたりの理想を聞かせてください。';
     goto('hearing', 1);
     emit('say', { who: 'staff', co, ch: co, text: open });
   },
@@ -94,7 +94,7 @@ export const ACTIONS = {
     await new Promise(r => setTimeout(r, 1500)); // 返信は少し時間をおいて届く
     await askStaff({ co, ch: 'msg', scene: '帰宅後、施主からメッセージアプリで届いた「伝え忘れたこと」への、翌日の返信。短く。', text, flag: 'forgot', history: false });
   },
-  toSecond() { emit('cur', { co: S.visit[1] }); goto('hearing', 1); emit('say', { who: 'sys', ch: S.visit[1], text: `${Y.COMPANIES[S.visit[0]].name}と同じ要望を伝えた` }); emit('say', { who: 'staff', co: S.visit[1], ch: S.visit[1], text: { A: 'ご要望、拝見しました。弊社の標準でかなりの部分が叶います。気になる点からお聞かせください。', B: 'ご要望ありがとうございます！うちの規格プランだと、どれが近いか一緒に見てみましょう！', C: '……ご要望、ありがとうございます。いくつか、詳しく伺ってもいいですか。', D: '話は聞いたよ。だいたいできる。気になってることある？' }[S.visit[1]] }); },
+  toSecond() { emit('cur', { co: S.visit[1] }); goto('hearing', 1); emit('say', { who: 'sys', ch: S.visit[1], text: `${Y.COMPANIES[S.visit[0]].name}と同じ要望を伝えた` }); emit('say', { who: 'staff', co: S.visit[1], ch: S.visit[1], text: persona(S.visit[1])?.tone[1] || 'ご要望、拝見しました。気になる点からお聞かせください。' }); },
   toCompare() { emit('tab', { co: S.visit[0] }); goto('compare', 2); },
   tab(d) { emit('tab', { co: d.co }); },
   async askCompare() {
@@ -136,6 +136,10 @@ export const ACTIONS = {
     const label = add ? `アップグレードを受ける（${[f.wall !== 'std' && '外壁', f.floor !== 'std' && '床', f.inner !== 'vinyl' && '内壁'].filter(Boolean).join('・')}）` : '標準の仕上げのまま';
     emit('fork', { decisionId: dec.id, proposal: { side: add ? 'b' : 'a', finish: f, plain: true, label, spec: {}, borrow: 'cover' }, reason: '', priority: '' });
     goto('electric', 6);
+    const co = S.player.company;
+    const heardText = S.heard.filter(h => h.co === co).map(h => h.text).join(' ');
+    const inc = Y.electricOf(heardText).filter(id => !S.player.electric.includes(id));
+    if (inc.length) emit('electric', { ids: inc, adj: [], contract: true });
   },
   elecTag(d) { const o = Y.ELECTRIC.options.find(x => x.id === d.id); const el = document.getElementById('say'); if (el && o) el.value = `${o.label}をお願いしたい`; },
   async sendElectric() {
@@ -144,21 +148,21 @@ export const ACTIONS = {
     emit('say', { who: getWho(), ch: 'elec', text });
     // 指摘を電気の項目に読み替える（コード）。伝えていたのに漏れていたか、一度も伝えていないかを、それまでの会話で見分ける
     const ids = Y.electricOf(text).filter(id => !S.player.electric.includes(id));
-    // 入口の思いとアンケートも「伝えたこと」に含める（1社目に渡した要望）
+    if (!ids.length) { await askStaff({ co, ch: 'elec', scene: '契約後の電気の打ち合わせ。施主の指摘が、電気の項目に当たらない。確認して次回お返事すると、ていねいに伝える（金額は言わない）。', text, flag: 'electric', history: false }); return; }
     const before = [...words().filter(m => m.ch !== 'elec'), { text: S.entry.text || '' }, { text: Object.values(S.survey || {}).join(' ') }];
     const told = ids.filter(id => before.some(m => Y.ELECTRIC_WORDS[id].test(m.text)));
-    const skill = Y.outcome(S.player).skill;
-    const pol = Y.missedPolicy(co, skill);
+    const pol = Y.missedPolicy(co, Y.outcome(S.player).skill);
     const adj = told.map(id => { const o = Y.ELECTRIC.options.find(x => x.id === id); return { label: `伝え漏れの扱い：${o.label}`, v: -Math.round(o.v * (1 - pol.rate) * 10) / 10 }; }).filter(a => a.v);
-    const optsTold = Y.ELECTRIC.options.filter(o => told.includes(o.id)), optsNew = Y.ELECTRIC.options.filter(o => ids.includes(o.id) && !told.includes(o.id));
-    const scene = [
-      '契約後の電気の打ち合わせ。施主の指摘に返事をする（金額は言わない）。',
-      optsTold.length ? `「${optsTold.map(o => o.label).join('、')}」は、前の打ち合わせで施主が伝えていたのに図面に入っていなかった。まず謝り、会社の扱いを伝える：${pol.label}。` : '',
-      optsNew.length ? `「${optsNew.map(o => o.label).join('、')}」は、これまで一度も伝えられていない。契約には入っていないので追加になることを、ていねいに伝える。` : '',
-      !ids.length ? '指摘が電気の項目に当たらなければ、確認して次回お返事すると伝える。' : '',
-    ].join('');
-    await askStaff({ co, ch: 'elec', scene, text, flag: 'electric', history: false });
-    if (ids.length) emit('electric', { ids, adj, told, policy: told.length ? pol.kind : null });
+    const rp = DATA.electrical?.replyPatterns;
+    const lines = [];
+    if (told.length) lines.push(pol.kind === 'free' ? rp?.requestedButMissed.free : pol.kind === 'half' ? rp?.requestedButMissed.half : rp?.requestedButMissed.paidNoRecord);
+    if (ids.length > told.length) lines.push(rp?.notRequested.default);
+    busy.on = true; render(); setFace(document.getElementById('face'), 'think');
+    await new Promise(r => setTimeout(r, 900));
+    busy.on = false;
+    emit('say', { who: 'staff', co, ch: 'elec', text: lines.filter(Boolean).join('') || '承知しました。' });
+    emit('electric', { ids, adj, told, policy: told.length ? pol.kind : null });
+    faceTalk();
   },
   toBuild() { goto('build', 7); },
   // S6：着工すると、上棟・施主検査・引渡しまで自動で進み、白いフェードで引渡し式へ
