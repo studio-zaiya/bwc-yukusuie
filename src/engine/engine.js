@@ -317,7 +317,10 @@ export function choose(w, d, opt, extra = {}) {
   const side = typeof opt === 'string' ? opt : opt.side;
   const base = d[side];
   const baseLabel = typeof base.label === 'function' ? base.label(w) : base.label;
-  applyPatch(w, base.patch);
+  // 自由回答では、札の中身（外構・仕上げなど）を黙って足さない。札からは分かれ道の骨格（会社・間取りの案）だけを引き継ぎ、
+  // 仕様はプレイヤーの答えを読み替えたものだけを当てる（攻めのレビュー11/5：「トリプルに」と答えたのに外構が入っていた）
+  if (typeof opt === 'object') applyPatch(w, { company: base.patch.company, plan: base.patch.plan });
+  else applyPatch(w, base.patch);
   if (typeof opt === 'object') { applyPatch(w, { spec: opt.spec || {}, finish: opt.finish, electric: opt.electric }); if (!opt.plain) w.third = d.id; }
   w.bits.push(side === 'a' ? 0 : 1);
   w.labels.push(typeof opt === 'object' ? (opt.label || baseLabel) : baseLabel);

@@ -24,6 +24,8 @@ async function bump(env, key, ttl = 172800) {
 }
 // 費用の累計：計量器（Durable Object）で原子的に足す。はじめての日は、KVに残っていた値から引き継ぐ
 const meter = env => env.METER ? env.METER.get(env.METER.idFromName('global')) : null;
+async function meterAdd(env, keys, n) { const m = meter(env); if (m) return m.fetch('https://meter/add', { method: 'POST', body: JSON.stringify({ keys, micro: n }) }).then(x => x.json()); const o = {}; for (const k of keys) { o[k] = (mem.get(k) || 0) + n; mem.set(k, o[k]); } return o; }
+async function meterGet(env, k) { const m = meter(env); if (m) return (await m.fetch(`https://meter/get?k=${encodeURIComponent(k)}`).then(x => x.json())).v; return mem.has(k) ? mem.get(k) : null; }
 async function addUsd(env, usd) {
   if (!(usd > 0)) return;
   const micro = Math.round(usd * 1e6), keys = [`usd:${today()}`, 'usd:total'];
@@ -382,7 +384,9 @@ const ENTRY_SCHEMA = {
 async function pageText(url) {
   try {
     const u = new URL(url); if (!/^https?:$/.test(u.protocol)) return null;
-    const r = await fetch(u.toString(), { headers: { 'user-agent': 'yukusuie-entry/1.0', accept: 'text/html' }, signal: AbortSignal.timeout(5000), redirect: 'follow' });
+    // IPを直接書いたアドレス・内部向けの名前は取りに行かない。転送先は追わない（どこへでも届く中継にしない）
+    if (/^(\d{1,3}\.){3}\d{1,3}$|^\[|^localhost$|\.local$|\.internal$|^metadata/i.test(u.hostname) || u.port && !['80', '443'].includes(u.port)) return null;
+    const r = await fetch(u.toString(), { headers: { 'user-agent': 'yukusuie-entry/1.0', accept: 'text/html' }, signal: AbortSignal.timeout(5000), redirect: 'manual' });
     if (!r.ok || !/text\/html/.test(r.headers.get('content-type') || '')) return null;
     const html = (await r.text()).slice(0, 300000);
     const pick = re => (html.match(re) || [])[1] || '';
@@ -410,12 +414,16 @@ async function entry(env, body) {
 // ---- 記録の保存と再生 ----
 const rid = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), b => 'abcdefghjkmnpqrstuvwxyz23456789'[b % 31]).join('');
 const logMem = new Map();
+// プレイの記録：作ったときに書き込み用の秘密を返し、上書きはその秘密があるときだけ（再生のコードを知っていても書き換えられない）
 async function saveLog(env, body) {
-  const id = body.id && /^[a-z0-9]{8}$/.test(body.id) ? body.id : rid();
+  let id = body.id && /^[a-z0-9]{8}$/.test(body.id) ? body.id : null, key = String(body.key || '');
+  if (id) { const k = env.STORE ? await env.STORE.get(`logkey:${id}`) : logMem.get('k:' + id); if (!k || k !== key) id = null; }
+  const fresh = !id; if (fresh) { id = rid(); key = crypto.randomUUID(); }
   const data = JSON.stringify({ v: 1, savedAt: Date.now(), events: body.events || [], state: body.state || null });
   if (data.length > 900000) return json({ error: '記録が大きすぎます' }, 413);
-  if (env.STORE) await env.STORE.put(`log:${id}`, data, { expirationTtl: 60 * 60 * 24 * 60 }); else logMem.set(id, data);
-  return json({ id });
+  const ttl = { expirationTtl: 60 * 60 * 24 * 60 };
+  if (env.STORE) { await env.STORE.put(`log:${id}`, data, ttl); if (fresh) await env.STORE.put(`logkey:${id}`, key, ttl); } else { logMem.set(id, data); if (fresh) logMem.set('k:' + id, key); }
+  return json({ id, key: fresh ? key : undefined });
 }
 async function loadLog(env, id) {
   const data = env.STORE ? await env.STORE.get(`log:${id}`) : logMem.get(id);
@@ -450,7 +458,7 @@ export default {
       }
       if (req.method !== 'POST') return json({ error: 'method' }, 405);
       const body = await req.json().catch(() => ({}));
-      if (path === '/api/play/start') { const msg = await guard(env, req, 'play'); return msg ? json({ ok: false, message: msg }, 429) : json({ ok: true, playId: rid() }); }
+      if (path === '/api/play/start') { const msg = await guard(env, req, 'play'); if (msg) return json({ ok: false, message: msg }, 429); const playId = rid(); await meterAdd(env, [`play:${playId}`], 0); return json({ ok: true, playId }); }
       if (path === '/api/log') return saveLog(env, body);
       // 担当者の研修（docs/REP_TRAINING.md）：合言葉（Workerの秘密）がある呼び出しだけ。研修中のハーネスを差し替えて試せる。費用は全体の上限に数える
       if (path.startsWith('/api/train/')) {
@@ -463,10 +471,18 @@ export default {
         const usd = out.call?.costUsd || 0; ctx.waitUntil(addUsd(env, usd));
         return json({ ...out, costUsd: usd });
       }
-      const ROLES = { '/api/ai/trade': trade, '/api/ai/hearing': hearing, '/api/ai/myai': myai, '/api/ai/report': report, '/api/ai/staff16': staff16, '/api/ai/entry': entry, '/api/ai/partner': partner, '/api/ai/planner': planner, '/api/ai/rep': rep, '/api/ai/partnerSurvey': partnerSurvey };
+      const ROLES = { '/api/ai/trade': trade, '/api/ai/myai': myai, '/api/ai/report': report, '/api/ai/staff16': staff16, '/api/ai/entry': entry, '/api/ai/partner': partner, '/api/ai/planner': planner, '/api/ai/rep': rep, '/api/ai/partnerSurvey': partnerSurvey };
       const fn = ROLES[path];
       if (!fn) return json({ error: 'not found' }, 404);
-      const limited = await guard(env, req, 'call');
+      // プレイを始めた人だけが呼べる。1プレイの呼び出しにも上限（15回呼ぶ役割は15回と数える）
+      const playId = /^[a-z0-9]{8}$/.test(body.playId || '') ? body.playId : null;
+      const used = playId ? await meterGet(env, `play:${playId}`) : null;
+      if (used == null) return json({ ok: false, message: 'プレイを始めてから、お試しください。' }, 403);
+      const cost = path === '/api/ai/staff16' ? 15 : 1;
+      const n = (await meterAdd(env, [`play:${playId}`], cost))[`play:${playId}`];
+      if (path === '/api/ai/entry' && (body.text || '').match(/https?:\/\//) && (await meterAdd(env, [`url:${playId}`], 1))[`url:${playId}`] > 2) body.text = String(body.text).replace(/https?:\/\/\S+/g, '');
+      let limited = n > +(env.CALLS_PER_PLAY || 90) ? 'このプレイの呼び出しの上限に達しました。代わりの文でお返しします。' : await guard(env, req, 'call');
+      if (!limited && cost > 1) for (let i = 1; i < cost; i++) await bump(env, `c:${ipOf(req)}:${today()}`);
       if (limited) env = { ...env, ANTHROPIC_API_KEY: '' }; // 上限を超えたら、Claudeを呼ばずに代わりの文で返す
       const out = await fn(env, body);
       const usd = (out.call?.costUsd || 0) + (out.calls || []).reduce((a, c) => a + (c.costUsd || 0), 0);

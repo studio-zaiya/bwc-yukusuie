@@ -589,7 +589,9 @@ export const SCENES = {
     const selN = s.treeSel || YOU, sel = all.find(x => x.n === selN) || all.find(x => x.n === YOU);
     const X = k => 120 + k * 235, LY = i => 110 + i * 58, nodeY = (k, j) => { const span = 16 >> k; let a = 0; for (let i = j * span; i < (j + 1) * span; i++) a += LY(i); return a / span; };
     const onPath = (bits, k, j) => (j === parseInt(bits.slice(0, k).join('') || '0', 2));
-    const lab = (k, x) => { const w = x.w; return k === 1 ? Y.COMPANIES[w.company].name : k === 2 ? Y.ROOF_JA[w.spec.roof] : k === 3 ? (w.spec.exterior === 'full' ? '外構まで' : '外構は最小限') : (Y.finishCost(w.finish) ? 'アップグレード' : '標準の仕上げ'); };
+    // 枝の名前は、その世界で実際に選んだ札（自由回答ならその答え）から。屋根の形では付けない（同じ名前の枝が並んでいた）
+    const short = t => String(t || '').replace(/(にする|で進める|を受ける)$/, '').replace(/（.*?）/g, '').slice(0, 11);
+    const lab = (k, x) => { const w = x.w; if (w.third === ['D1', 'D2', 'D3', 'D4'][k - 1]) return '◆' + short(w.labels[k - 1]); return k === 1 ? Y.COMPANIES[w.company].name : k === 2 ? short(w.labels[1]) : k === 3 ? (w.spec.exterior === 'full' ? '外構まで' : '外構は最小限') : (Y.finishCost(w.finish) ? 'アップグレード' : '標準の仕上げ'); };
     let edges = '', labels = '', hi = '';
     for (let k = 1; k <= 4; k++) for (let j = 0; j < (1 << k); j++) {
       const pj = j >> 1, x0 = X(k - 1), y0 = nodeY(k - 1, pj), x1 = X(k), y1 = nodeY(k, j);

@@ -157,19 +157,21 @@ export function emit(type, payload = {}) {
   return e;
 }
 let saveTimer = null;
+// 記録の書き込み用の秘密（出来事の記録には入れない。再生する人には渡らない）
+const LOGKEY = { v: null };
 function autosave() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
     try {
-      const r = await fetch('/api/log', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: S.savedId, events: LOG.map(e => e.type === 'entry' ? { ...e, photos: [] } : e) }) });
-      const j = await r.json(); if (j.id && j.id !== S.savedId) { LOG.push({ type: 'saved', id: j.id, at: Date.now() }); S.savedId = j.id; try { localStorage.setItem('yuku-last', j.id); } catch { } }
+      const r = await fetch('/api/log', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: S.savedId, key: LOGKEY.v, events: LOG.map(e => e.type === 'entry' ? { ...e, photos: [] } : e) }) });
+      const j = await r.json(); if (j.key) LOGKEY.v = j.key; if (j.id && j.id !== S.savedId) { LOG.push({ type: 'saved', id: j.id, at: Date.now() }); S.savedId = j.id; try { localStorage.setItem('yuku-last', j.id); } catch { } }
     } catch { /* 保存に失敗してもプレイは続ける */ }
   }, 600);
 }
 
 // ---- API ----
 export async function api(path, body) {
-  const r = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  const r = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(path.startsWith('/api/ai/') ? { ...body, playId: S.playId } : body) });
   const j = await r.json();
   if (!r.ok) throw new Error(j.message || j.error || r.status);
   return j;
