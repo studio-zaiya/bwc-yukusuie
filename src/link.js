@@ -50,6 +50,8 @@ export class PhoneLink {
 export function linkOpen(env) {
   if (env.PHONE_LINK !== '1') return false;
   const now = Date.now();
+  // 実機での確認のために、一時的に開ける（この時刻を過ぎると自動で閉じる）
+  if (env.PHONE_TEST_UNTIL && now <= Date.parse(env.PHONE_TEST_UNTIL)) return true;
   const from = Date.parse(env.PHONE_FROM || '2026-11-08T20:00:00+09:00'), until = Date.parse(env.PHONE_UNTIL || '2026-11-10T23:59:59+09:00');
   return now >= from && now <= until;
 }
