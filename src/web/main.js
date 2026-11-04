@@ -92,7 +92,7 @@ export function apply(s, e) {
     }
     case 'cancelTrade': s.pendingTrade = null; s.band = null; s.chat.push({ who: 'sys', ch: s.player.company, text: 'この条件では進めないことにした' }); break;
     case 'finish': Object.assign(s.player.finish, e.finish); break;
-    case 'electric': s.player.electric = [...new Set([...s.player.electric, ...e.ids])]; s.player.adds.push(...(e.adj || [])); break;
+    case 'electric': s.player.electric = [...new Set([...s.player.electric, ...e.ids])]; s.player.adds.push(...(e.adj || [])); if (e.contract) s.player.contractOpts = [...new Set([...(s.player.contractOpts || []), ...e.ids])]; break;
     case 'pop': s.pop = e.pop; break;
     case 'lot': s.lot = e.no; break;
     case 'buildAuto': s.buildAuto = true; break;
@@ -158,7 +158,7 @@ export function render() {
   const fn = SCENES[S.scene] || SCENES.start;
   const view = document.getElementById('view');
   const keep = [...view.querySelectorAll('[data-keep]')].map(el => ({ id: el.id, v: el.value }));
-  view.innerHTML = fn(S) + popHTML() + (S.toast ? `<div class="toast">${S.toast}</div>` : '') + (RT.replaying ? `<div class="replaybar">記録の再生中（実際のプレイの記録。Claudeは呼んでいません）</div>` : '') + (REC || RT.replaying || S.scene === 'start' ? '' : `<button class="help" data-act="help" title="操作の案内">？</button>`) + tourHTML(S);
+  view.innerHTML = fn(S) + popHTML() + (S.toast ? `<div class="toast">${S.toast}</div>` : '') + (RT.replaying ? `<div class="replaybar">実際のプレイの記録を再生しています</div>` : '') + (REC || RT.replaying || S.scene === 'start' ? '' : `<button class="help" data-act="help" title="操作の案内">？</button>`) + tourHTML(S);
   for (const k of keep) { const el = document.getElementById(k.id); if (el && !el.value) el.value = k.v; }
   view.querySelectorAll('.chat .log').forEach(log => { log.scrollTop = log.scrollHeight; });
   if (SCENES[S.scene + '_after']) SCENES[S.scene + '_after'](S);

@@ -175,7 +175,7 @@ async function hearing(env, body) {
   const hist = (body.history || []).slice(-8).map(h => `${h.who}：${h.text}`).join('\n');
   const user = `${hist ? `# これまでの会話\n${hist}\n` : ''}# 施主の言葉\n${String(body.text || '').slice(0, 400)}`;
   const fb = { line: body.fallbackLine || 'ありがとうございます。いまのお話、図面に反映できるか確認しますね。', honne: '', heard: [], missed: [] };
-  const r = await callJSON(env, { role: 'hearing', system, user, schema: HEARING_SCHEMA, fallback: fb, maxTokens: 1500, validate: x => newNumbers(x.line, [body.text, ...(body.history || []).map(h => h.text)]).length ? 'せりふに、施主が言っていない数字がある。数字は差し込み記号で書く' : null });
+  const r = await callJSON(env, { role: 'hearing', system, user, schema: HEARING_SCHEMA, fallback: fb, maxTokens: 1500, validate: x => newNumbers(x.line, [body.text, ...(body.history || []).map(h => h.text)]).length || /[一二三四五六七八九十百千]+(万円|円|日|週間|か月|ヶ月|坪)/.test(x.line) ? 'せりふに、施主が言っていない数字がある。数字は差し込み記号で書く' : hasDigits(x.honne) ? '本音のメモに数字' : null });
   if (!r.call.fallback) { r.data.raw = r.data.line; for (const [k, v] of Object.entries(facts)) r.data.line = r.data.line.split(k).join(v); r.data.line = r.data.line.replace(/等級等級/g, '等級').replace(/UA値UA値/g, 'UA値'); }
   return r;
 }
@@ -205,7 +205,7 @@ const REPORT_SCHEMA = {
 };
 // 呼び名・タイトル・教訓の候補（Claudeの生成が確認に通らないときの代わり。data/content/report_phrases.json）
 const tagsOf = w => [w.company, ...(w.labels || []).flatMap(l => [/勾配/.test(l) && 'gable', /箱型/.test(l) && 'box', /外構まで/.test(l) && 'full', /最小限/.test(l) && 'min', /トリプル/.test(l) && 'triple', /アップグレード/.test(l) && 'upgrade', /標準/.test(l) && 'standard']).filter(Boolean)];
-function pickPhrase(list, tags, salt) { const sc = list.map((x, i) => [x.tags.filter(t => tags.includes(t)).length * 10 - ((i + salt) % 7), x]); sc.sort((a, b) => b[0] - a[0]); return sc[0][1].text; }
+function pickPhrase(list, tags, salt) { const sc = list.map((x, i) => [x.tags.filter(t => tags.includes(t)).length * 10 - ((i + salt) % 7), x]); sc.sort((a, b) => b[0] - a[0]); return sc[0][1].text.replace(/^教訓：/, ''); }
 const BANNED = PHRASES.checks.bannedWords;
 const hasBanned = t => BANNED.some(b => String(t).includes(b));
 const lenOK = (t, n) => [...String(t).replace(/[。、「」・\s]/g, '')].length <= n;

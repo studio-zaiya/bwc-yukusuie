@@ -121,7 +121,7 @@ export const ACTIONS = {
     });
   },
   approve() {
-    const t = S.pendingTrade; if (!t) return;
+    const t = S.pendingTrade; if (!t || t.result.verdict === 'いまは難しい') return;
     const dec = Y.decisions(S.pair).find(x => x.id === t.decisionId);
     emit('fork', { decisionId: dec.id, proposal: t.proposal, reason: t.reason, priority: t.priority });
     afterFork(dec);
@@ -136,10 +136,6 @@ export const ACTIONS = {
     const label = add ? `アップグレードを受ける（${[f.wall !== 'std' && '外壁', f.floor !== 'std' && '床', f.inner !== 'vinyl' && '内壁'].filter(Boolean).join('・')}）` : '標準の仕上げのまま';
     emit('fork', { decisionId: dec.id, proposal: { side: add ? 'b' : 'a', finish: f, plain: true, label, spec: {}, borrow: 'cover' }, reason: '', priority: '' });
     goto('electric', 6);
-    const co = S.player.company;
-    const heardText = S.heard.filter(h => h.co === co).map(h => h.text).join(' ');
-    const inc = Y.electricOf(heardText).filter(id => !S.player.electric.includes(id));
-    if (inc.length) emit('electric', { ids: inc, adj: [], contract: true });
   },
   elecTag(d) { const o = Y.ELECTRIC.options.find(x => x.id === d.id); const el = document.getElementById('say'); if (el && o) el.value = `${o.label}をお願いしたい`; },
   async sendElectric() {
@@ -235,9 +231,15 @@ async function reportCall() {
   } catch (e) { S.report = { failed: true }; toast(String(e.message)); }
 }
 function afterFork(dec) {
-  if (dec.id === 'D1') goto('fork', 3);
+  if (dec.id === 'D1') { emit('say', { who: 'sys', ch: S.player.company, text: `${Y.COMPANIES[S.player.company].name}に決めて、土地の売買契約を結んだ（ローン特約の期限は${Y.DEADLINE.loan}日目）` }); goto('fork', 3); }
   else if (dec.id === 'D2') goto('fork', 5);
-  else if (dec.id === 'D3') goto('contract', 5);
+  else if (dec.id === 'D3') {
+    // 契約に入れてあるオプションは、その会社の担当者が聞き取れた（記録した）要望だけ
+    const co = S.player.company;
+    const inc = Y.electricOf(S.heard.filter(h => h.co === co).map(h => h.text).join(' ')).filter(id => !S.player.electric.includes(id));
+    if (inc.length) emit('electric', { ids: inc, adj: [], contract: true });
+    goto('contract', 5);
+  }
 }
 
 // 入口：写真のドロップと、スクショの貼り付け。送る前に長辺1568pxまで縮小（canvasで描き直すので、撮影場所などの埋め込み情報も消える）

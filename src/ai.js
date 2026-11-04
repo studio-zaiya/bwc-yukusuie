@@ -21,7 +21,7 @@ export function modelFor(env, role) {
 }
 
 // 言葉はClaude、数字はコード：Claudeの文に算用数字が入っていたら差し戻す
-export const hasDigits = s => /[0-9０-９]/.test(String(s || ''));
+export const hasDigits = s => /[0-9０-９]|[一二三四五六七八九十百千万]+(万円|円|日|週間|か月|ヶ月|坪|㎡|%|パーセント|割)/.test(String(s || ''));
 export function digitsIn(obj, keys) { return keys.filter(k => { const v = obj?.[k]; return Array.isArray(v) ? v.some(x => hasDigits(typeof x === 'string' ? x : JSON.stringify(x))) : hasDigits(v); }); }
 
 // 料金（ドル／100万トークン。2026-10 時点の公表値。費用の上限の計算に使う）

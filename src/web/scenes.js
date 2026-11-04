@@ -25,15 +25,16 @@ export const coordinator = s => { const cs = DATA.personas?.coordinators || []; 
 function top(s) { return `<div class="top"><div class="logo"><img src="/brand/mark.svg" alt="" style="width:40px;height:40px;vertical-align:-10px;margin-right:4px">ゆくすいえ</div>${P.progress(s.step)}</div>`; }
 function moneyBox(s) {
   const h = H(s);
-  if (!s.player) {
-    return `<div class="moneyc"><div class="hd">まだ会社は決まっていません</div>
+  if (!s.player || s.forkNo === 0) {
+    return `<div class="moneyc"><div class="hd">${s.player ? `${s.pair.map(c => Y.COMPANIES[c].name).join('と')}を見比べ中` : 'まだ会社は決まっていません'}</div>
       <div class="c"><div class="k">借りられそうな額</div><div class="v">${man(Y.loanLimit(h))}<small>万円まで</small></div><div class="sub">審査の目安（返済負担率35%）</div></div>
       <div class="c"><div class="k">土地（区画）</div><div class="v">${man(Y.landCost())}<small>万円</small></div><div class="sub">自己資金 ${man(h.saveHouse)}万円</div></div></div>`;
   }
   const m = Y.money(s.player), co = s.player.company;
-  const k = s.player.contracted ? '総額（土地＋契約＋増工）' : '総額（土地＋建物の見積）';
-  const sub = s.player.contracted ? `土地 ${man(m.land)}＋契約 ${man(m.contract)}＋増工 ${man(m.add)}` : `土地 ${man(m.land)}＋建物 ${man(m.building)}`;
-  return `<div class="moneyc"><div class="hd">${P.coTag(co, 18)}${Y.COMPANIES[co].name}${s.player.contracted ? '　契約済み' : ''}</div>
+  const signed = s.player.contracted && s.scene !== 'contract';
+  const k = signed ? '総額（土地＋契約＋増工）' : '総額（土地＋建物の見積）';
+  const sub = signed ? `土地 ${man(m.land)}＋契約 ${man(m.contract)}＋増工 ${man(m.add)}` : `土地 ${man(m.land)}＋建物 ${man(m.building)}`;
+  return `<div class="moneyc"><div class="hd">${P.coTag(co, 18)}${Y.COMPANIES[co].name}${signed ? '　契約済み' : ''}</div>
     <div class="c"><div class="k">${k}</div><div class="v">${man(m.total)}<small>万円</small></div><div class="sub">${sub}</div></div>
     <div class="c"><div class="k">借入</div><div class="v">${man(m.loan)}<small>万円</small></div><div class="sub">自己資金 ${man(m.self)}万円</div></div></div>`;
 }
@@ -43,8 +44,9 @@ function dayOf(s) { if (s.player) { const d = Y.scheduleOf(s.player); return s.s
 function clocks(s) {
   const day = dayOf(s);
   const out = [`<span class="clk"><b>${day}</b>日目</span>`];
-  if (day < Y.DEADLINE.land) out.push(`<span class="clk soft">土地の契約期限まで ${Y.DEADLINE.land - day}日</span>`);
-  else if (s.step <= 5 && day < Y.DEADLINE.loan) out.push(`<span class="clk soft">ローン特約の期限まで ${Y.DEADLINE.loan - day}日</span>`);
+  const landSigned = s.forkNo >= 1;
+  if (!landSigned) out.push(`<span class="clk soft">土地の契約期限まで ${Math.max(0, Y.DEADLINE.land - day)}日</span>`);
+  else if (s.step <= 5 && day < Y.DEADLINE.loan) out.push(`<span class="clk soft">ローン特約の期限 ${Y.DEADLINE.loan}日目</span>`);
   return `<div class="clks">${out.join('')}</div>`;
 }
 const chrome = s => top(s) + moneyBox(s) + clocks(s);
@@ -108,7 +110,7 @@ function heroHouse(s) {
 }
 function hero(s, extra = '') {
   const w = s.player || Y.newWorld({ household: H(s) });
-  const co = s.player ? `　${P.coTag(w.company, 28)}${Y.COMPANIES[w.company].name}` : (s.cur ? `　${P.coTag(s.cur, 28)}${Y.COMPANIES[s.cur].name}で相談中` : '');
+  const co = s.player && s.forkNo > 0 ? `　${P.coTag(w.company, 28)}${Y.COMPANIES[w.company].name}` : s.player ? '　2社を見比べ中' : (s.cur ? `　${P.coTag(s.cur, 28)}${Y.COMPANIES[s.cur].name}で相談中` : '');
   const roofDecided = s.forkNo >= 2;
   const area = roofDecided ? `${w.spec.tsubo}坪・総二階　${Y.ROOF_JA[w.spec.roof]}` : `広さの目安 ${H(s).area[0]}〜${H(s).area[1]}坪　屋根の形は未定`;
   return `<div class="hero ${tall(s)}"><div class="lab"><span class="no">${pad(YOU)}</span>あなたの家${co}</div>
@@ -201,7 +203,7 @@ export const SCENES = {
   lot(s) {
     const c = Y.coverageCheck(Y.baseSpec(H(s)));
     return `${top(s)}${moneyBox(s)}${clocks(s)}<div class="full" style="padding-top:150px"><div class="h2">分譲地の区画が当たりました。</div><p class="lead">第一希望は外れましたが、第二希望の区画が当たりました。${Y.DEADLINE.land}日以内に土地の契約を結びます。ここから、建物を建てる会社を探します。</p>
-      <dl class="facts" style="max-width:1100px"><dt>広さ</dt><dd>約${Y.SITE.tsubo}坪（${Y.SITE.area}㎡）</dd><dt>用途地域</dt><dd>第一種住居地域</dd><dt>建蔽率／容積率</dt><dd>${Y.SITE.coverage * 100}%／${Y.SITE.far * 100}%</dd><dt>建てられる1階の外形の上限</dt><dd>${c.limit}㎡（カーポート・物置を含む）</dd><dt>土地の代金</dt><dd>${man(Y.SITE.price)}万円（水道の負担金 ${Y.SITE.waterFee}万円）</dd><dt>ローン特約の期限</dt><dd>土地の契約から30日（${Y.DEADLINE.loan}日目まで）</dd></dl>
+      <dl class="facts" style="max-width:1100px"><dt>広さ</dt><dd>約${Y.SITE.tsubo}坪（${Y.SITE.area}㎡）</dd><dt>用途地域</dt><dd>第一種住居地域</dd><dt>建蔽率／容積率</dt><dd>${Y.SITE.coverage * 100}%／${Y.SITE.far * 100}%</dd><dt>建てられる1階の外形の上限</dt><dd>${c.limit}㎡（カーポート・物置を含む）</dd><dt>土地の代金</dt><dd>${man(Y.SITE.price)}万円（水道の負担金 ${Y.SITE.waterFee}万円）</dd><dt>土地の契約の期限</dt><dd>当選から${Y.DEADLINE.land}日以内</dd></dl>
       <div style="margin-top:30px;text-align:right"><button class="big-btn" data-act="toSources">会社を探しはじめる</button></div></div>`;
   },
   sources(s) {
@@ -277,7 +279,7 @@ export const SCENES = {
       <button class="cd" data-act="pickSide" data-side="a"><h4>${esc(lab(d.a, w))}</h4><ul>${facts('a')}</ul></button>
       <button class="cd" data-act="pickSide" data-side="b"><h4>${esc(lab(d.b, w))}</h4><ul>${facts('b')}</ul></button></div></div>`;
     const why = side ? `<div class="fk"><div class="msg"><div class="who"><i class="ci"></i>ゆう</div>「${esc(lab(d[side], w))}」だね。どうしてそっちにしたの？</div></div>` : '';
-    const opts = pend ? `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="approve">この条件で進める</button><button class="opt" data-act="cancelTrade">やめておく</button>`
+    const opts = pend ? (pend.result.verdict === 'いまは難しい' ? `<span class="note" style="align-self:center">この条件では進められません。</span><button class="opt" data-act="cancelTrade">ほかの答えを考える</button>` : `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="approve">この条件で進める</button><button class="opt" data-act="cancelTrade">やめておく</button>`)
       : side ? `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="decideWhy">理由を伝えて決める</button><button class="opt" data-act="decideNoWhy">理由は言わずに決める</button><button class="opt" data-act="unpick">選びなおす</button>` : '';
     const co = w.company;
     const lead = { 0: 'どちらの会社と、家を建てますか。', 1: '間取りと予算の配分を決める段階です。', 2: '契約の前の最終見積と、ローンの本審査です。' }[d.no];
@@ -287,7 +289,7 @@ export const SCENES = {
     const m = Y.money(s.player), co = s.player.company, lc = Y.loanCheck(H(s), m.loan);
     return `${chrome(s)}${hero(s)}<div class="right ${tall(s)}"><div class="chat">${staffHead(co, 'smile')}<div class="log" style="padding:22px">
       <div class="msg"><div class="who">${P.coTag(co, 18)}${STAFFN(co)}</div>請負契約の書類です。図面と見積の内容をご確認ください。</div>
-      <dl class="facts" style="font-size:20px;margin-top:10px"><dt>契約金額（建物）</dt><dd>${man(m.contract)}万円</dd><dt>土地</dt><dd>${man(m.land)}万円</dd><dt>総額</dt><dd>${man(m.total)}万円</dd><dt>借入</dt><dd>${man(m.loan)}万円（返済負担率 ${lc.ratio}%）</dd><dt>月々の返済（変動 ${Y.RATE.variable * 100}%）</dt><dd>約${(Math.round(lc.monthly * 10) / 10).toFixed(1)}万円</dd><dt>選んだ道</dt><dd>${s.player.labels.map(esc).join('<br>')}</dd></dl></div>
+      <dl class="facts" style="font-size:20px;margin-top:10px"><dt>契約金額（建物）</dt><dd>${man(m.contract)}万円</dd><dt>土地</dt><dd>${man(m.land)}万円</dd><dt>総額</dt><dd>${man(m.total)}万円</dd><dt>借入</dt><dd>${man(m.loan)}万円（返済負担率 ${lc.ratio}%）</dd><dt>月々の返済（変動 ${Y.RATE.variable * 100}%）</dt><dd>約${(Math.round(lc.monthly * 100) * 100).toLocaleString('ja-JP')}円</dd><dt>選んだ道</dt><dd>${s.player.labels.map(esc).join('<br>')}</dd></dl></div>
       <div class="opts"><button class="opt" style="background:var(--ink);color:var(--paper)" data-act="toCoord">署名する</button></div>${navs(s)}</div></div>${gallery(s)}`;
   },
   // 第四の分岐点：コーディネートで選んだ結果が、そのまま分岐点の答えになる
@@ -459,7 +461,7 @@ export function worldHTML(s) {
     <div class="body" style="display:grid;grid-template-columns:1.2fr 1fr;gap:28px"><ol class="timeline replay">${rows}${ev}</ol>
     <div><table class="cmp"><tr><th></th><th>この世界</th><th>あなたの世界（${pad(YOU)}）</th></tr>
       ${cmp('総額', man(o.total) + '万円', man(me.total) + '万円')}${cmp('借入', man(o.principal) + '万円', man(me.principal) + '万円')}${cmp('冬の朝', o.warmth.label, me.warmth.label)}${cmp('家計のゆとり', o.slack.label, me.slack.label)}${cmp('引渡し', o.days + '日目', me.days + '日目')}</table>
-      <p class="note" style="margin-top:12px">同じ家族、同じ土地、同じ外の出来事で、決断だけが違う世界です。どちらが正解かは決めません。</p></div></div></div>`;
+      <p class="note" style="margin-top:12px">同じ家族、同じ土地、同じ外の出来事で、決断だけが違う世界です。どちらがよいかは決めません。</p></div></div></div>`;
 }
 
 function honneBody(s) {

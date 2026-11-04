@@ -121,7 +121,7 @@ export function electricCost(ids = []) { return round(ids.reduce((s, id) => s + 
 // ---- 台帳 層①：仕様・数量 ----
 export function baseSpec(h) {
   const tsubo = h ? h.area[1] - 1 : 34;
-  return { tsubo, floor1Tsubo: Math.ceil(tsubo / 2), form: 'box', roof: 'flat', eave: 'south', bigWindow: true, window: 'standard', kitchen: false, exterior: 'full', carport: true, shed: true, aircon: 4 };
+  return { tsubo, floor1Tsubo: Math.ceil(tsubo / 2), form: 'box', roof: 'flat', eave: 'south', bigWindow: true, window: 'standard', kitchen: false, exterior: 'min', carport: true, shed: true, aircon: 4 };
 }
 // 仕様の変更として受け付ける項目（Claude の「変更の提案」はこの範囲だけ）
 export const SPEC_SCHEMA = {
@@ -209,12 +209,13 @@ export const forkWorld = w => clone(w); // 決断の時点で、世界をその�
 export function money(w) {
   const h = householdOf(w), land = landCost();
   const q = quote(w.spec, w.company, true);
-  const add = round(w.adds.reduce((s, a) => s + a.v, 0) + (w.contracted ? finishCost(w.finish) + electricCost(w.electric) : 0), 1);
-  const building = w.contracted ? w.contract : q.real;
+  const inContract = w.contractOpts || [];
+  const add = round(w.adds.reduce((s, a) => s + a.v, 0) + (w.contracted ? finishCost(w.finish) + electricCost(w.electric.filter(id => !inContract.includes(id))) : 0), 1);
+  const building = w.contracted ? w.contract + electricCost(inContract) : q.real;
   const total = round(land + building + add, 1);
   const self = h.saveHouse;
   const loan = round(Math.max(0, total - self), 1);
-  return { land, building, contract: w.contracted ? w.contract : null, add, total, self, loan, quote: q };
+  return { land, building, contract: w.contracted ? building : null, add, total, self, loan, quote: q };
 }
 
 // ---- 4つの分かれ道（名前と順番は固定）。bit=0 が左の札、bit=1 が右の札 ----
@@ -328,7 +329,7 @@ export function simulate(w, d, rawProposal) {
   if (q.diff) conditions.push(`総額 ${q.diff > 0 ? '+' : ''}${R(q.diff)}万円（${R(q.before)} → ${R(q.after)}万円）`);
   if (proposal.borrow === 'cover' && lc.diff > 0) conditions.push(`借入 +${R(lc.diff)}万円（月々 約+${lc.monthlyDiff.toLocaleString()}円、返済負担率 ${lc.ratio}%）`);
   if (fromSavings) conditions.push(`手元に残す分から ${R(fromSavings)}万円を出す`);
-  if (sc.addDays) conditions.push(`本審査のやり直し +${sc.addDays}日（ローン特約の期限まで、残り${sc.loanLeft}日）`);
+  if (sc.addDays) conditions.push(`本審査のやり直し +${sc.addDays}日（契約は${sc.contractDay}日目、ローン特約の期限は${DEADLINE.loan}日目）`);
   if (!cv.ok) conditions.push(`建蔽率の上限を超える（${cv.total}㎡ ／ 上限 ${cv.limit}㎡）`);
   if (!lc.ok) conditions.push(`審査の上限を超える（返済負担率 ${lc.ratio}% ／ 35%まで）`);
   const t = forkWorld(w); choose(t, d, proposal);
@@ -343,6 +344,8 @@ export function outcome(w, opts = {}) {
   const events = [];
   let increase = 0;
   if (w.company === 'A' && skill < 0.45) { increase = 380; events.push('契約後に担当が替わり、頼んだ設備と違うものが入った（+380万円）'); }
+  if (w.company === 'B' && skill < 0.4) { increase = 120; events.push('契約後にオプションを足していったら、思ったより増えた（+120万円）'); }
+  if (w.company === 'C' && skill < 0.4) { w.delay = (w.delay || 0) + 30; events.push('詳細の打ち合わせが長引き、入居がひと月遅れた'); }
   if (w.company === 'D' && skill < 0.35 && !w.electric.includes('tag_tv_wall')) events.push('壁掛けテレビの下地が入っていなかった');
   if (w.spec.exterior !== 'full') events.push('玄関前は砂利のまま。冬の朝、霜取りに5分');
   const wm = warmth(w.spec, w.company);

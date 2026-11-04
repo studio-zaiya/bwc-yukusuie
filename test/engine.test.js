@@ -72,9 +72,9 @@ test('自由回答の取引：借入を少し増やして、南の大きな窓�
   ({ player: p, others: o } = Y.branchAll(p, o, Y.DECISIONS[0], 'a'));
   ({ player: p, others: o } = Y.branchAll(p, o, Y.DECISIONS[1], 'b'));
   const r = Y.simulate(p, Y.DECISIONS[2], { side: 'b', spec: { window: 'triple' }, borrow: 'cover' });
-  const tri = Y.COMPANIES.C.triple;
-  assert.equal(r.quote.diff, tri);
-  assert.equal(r.loan.diff, tri);
+  const tri = Y.COMPANIES.C.triple, ext = Y.COMMON.exterior - Y.COMMON.exteriorMin; // 右の札は外構まで仕上げる
+  assert.equal(r.quote.diff, tri + ext);
+  assert.equal(r.loan.diff, tri + ext);
   assert.equal(r.schedule.addDays, 7);
   assert.equal(r.verdict, '条件付き');
   assert.ok(r.warmthAfter.level > r.warmthBefore.level);

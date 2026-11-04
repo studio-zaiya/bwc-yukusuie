@@ -7,7 +7,5 @@ const copy = (from, to) => { if (existsSync(from)) cpSync(from, `${out}/${to}`, 
 copy('src/web', '.');
 copy('src/engine', 'engine');
 copy('data', 'data');
-// 見本と試作（版の変遷の記録。相対パスのまま開けるように、そのままの位置に置く）
-copy('design', 'design');
-copy('app', 'app');
+// 見本と試作（app/・design/・prototypes/）は版の記録なので公開しない（台本の画面を本物の処理と見せないため）
 console.log('built public/');
