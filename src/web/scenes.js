@@ -110,8 +110,10 @@ function gallery(s) {
   return `<div class="galT"><b>選ばれなかった世界線</b><span>${list.length}</span></div><div class="gal" style="grid-template-columns:repeat(${cols},1fr)">${list.map(w => {
     const st = stepOf(w, s.step), stage = stageOf(st);
     const x = { w: { ...w, no: hb(w) % 8 }, stage, ghost: st >= 2 && st < 7 ? +(0.35 + (st - 2) / 5 * 0.45).toFixed(2) : 0 };
-    const short = full ? Y.worldName(Y.outcome(w)).split('、')[0] : esc(shortName(w));
-    return `<div class="th ${s.newest.includes(w.bits.join('')) ? 'new' : ''}"><div class="thd"><span>${full ? pad(dno(s, w)) : ''}</span>${P.coTag(w.company, 18)}</div>${P.thumb(x)}<div class="tnm big">${short}</div><div class="tnt">${noteOf(w, st)}</div><div class="bar"><i style="width:${Math.round(st / 11 * 100)}%"></i></div></div>`;
+    const short = full ? Y.worldShort(Y.outcome(w)) : esc(shortName(w));
+    // 15枚がそろったら：番号・会社の印・家の絵・ひとことだけ。押すと世界樹で、その世界の経路をたどる
+    if (full) return `<button class="th th15 ${s.newest.includes(w.bits.join('')) ? 'new' : ''}" data-act="toTree" data-no="${dno(s, w)}" title="押すと、この世界の経路を世界樹でたどる"><div class="thd"><span>${pad(dno(s, w))}</span>${P.coTag(w.company, 18)}</div>${P.thumb(x)}<div class="tnm big">${short}</div><div class="bar"><i style="width:${Math.round(st / 11 * 100)}%"></i></div></button>`;
+    return `<div class="th ${s.newest.includes(w.bits.join('')) ? 'new' : ''}"><div class="thd"><span></span>${P.coTag(w.company, 18)}</div>${P.thumb(x)}<div class="tnm big">${short}</div><div class="tnt">${noteOf(w, st)}</div><div class="bar"><i style="width:${Math.round(st / 11 * 100)}%"></i></div></div>`;
   }).join('')}</div>`;
 }
 const tall = s => s.others.length ? '' : 'tall';
@@ -487,7 +489,7 @@ export const SCENES = {
   // S8a：1年後のわが家（リザルト）。選択の結果が絵に出る
   result(s) {
     const o = Y.outcome(s.player);
-    return `${top(s)}${moneyBox(s)}<div class="hero tall res">${lifeSVG(s, o)}</div><div class="card"><h3>${pad(YOU)}　あなたの家の、1年後</h3>
+    return `${top(s)}${moneyBox(s)}<div class="hero tall res paperwrap"><iframe src="/paper.html?from=2.2&st=${encodeURIComponent(JSON.stringify(paperState(s, { staff: false })))}" title="1年後のわが家（切り絵）" tabindex="-1"></iframe><div class="pcap">${s.player.spec.exterior !== 'full' ? '玄関の前は、まだ砂利のまま' : '庭の緑が、少しずつ育ってきた'}</div></div><div class="card"><h3>${pad(YOU)}　あなたの家の、1年後</h3>
       <dl><dt>冬の朝</dt><dd>${o.warmth.label}</dd><dt>家計のゆとり</dt><dd>${o.slack.label}</dd><dt>総額</dt><dd>${man(o.total)}万円</dd><dt>借入</dt><dd>${man(o.principal)}万円</dd></dl>
       <div style="font-size:16px;color:var(--ink2);font-weight:700">この1年の出来事</div><ul class="ev">${(o.events.length ? o.events : ['大きな出来事はなかった']).slice(0, 3).map(e => `<li>${esc(e)}</li>`).join('')}</ul>
       <div style="font-size:16px;color:var(--ink2);font-weight:700;margin-top:14px">一つだけ選択が違う世界</div>

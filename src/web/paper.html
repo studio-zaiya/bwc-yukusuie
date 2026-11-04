@@ -328,7 +328,7 @@ function fallers(t){
 window.render=render;
 
 // ---------- 再生まわり：一度だけ再生して、完成の絵で止まる（?t=秒で静止。動画の書き出し用に window.render(t) と READY）----------
-const still=qs.has('t');let t=parseFloat(qs.get('t')||'0'),last=null;const END=Math.min(DUR,parseFloat(qs.get('end')||'7.2'));
+const still=qs.has('t');let t=parseFloat(qs.get('t')||qs.get('from')||'0'),last=null;const END=Math.min(DUR,parseFloat(qs.get('end')||'7.2'));
 prep();
 function loop(now){if(last!=null)t=Math.min(END,t+(now-last)/1000);last=now;try{render(t)}catch(e){console.error(e)}if(t<END)requestAnimationFrame(loop)}
 function fit(){const s=Math.min(innerWidth/W,innerHeight/H);document.getElementById('stage').style.transform=`translate(-50%,-50%) scale(${s})`}

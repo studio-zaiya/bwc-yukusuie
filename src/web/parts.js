@@ -1,8 +1,14 @@
 /* ゆくすいえ　画面の部品（design/v3 の見本から移植：アバター、夫婦の顔、家の絵、選ばれなかった世界線のサムネイル、16区画）
  * 描画は画像生成を使わず、座標からコードで描く（app/iso.js の window.ISO を使う） */
-import { COMPANIES, STEPS } from './engine/engine.js';
+import { COMPANIES, STEPS, FINISH as YFIN } from './engine/engine.js';
 const I = window.ISO;
 let YOU = 7;
+// その世界で選んだ外壁の色（仕上げが決まる前は、番号ごとの見本の色）
+export function finOf(w, fallbackNo) {
+  const f = w.finish; if (!f || !f.decided && !f.wall) return I.FINISH[((fallbackNo ?? w.no) * 5) % 8];
+  const wall = YFIN.wall.find(x => x.id === f.wall) || YFIN.wall[0]; const col = (wall.colors[f.color || 0] || wall.colors[0])[1];
+  return { wall: col, roof: f.wall === 'galva' ? col : '#4A4F57' };
+}
 export const setYou = n => { YOU = n; };
 export const STAFF = {
     A: { id: 'takahashi', co: 'A', role: '営業', name: '高橋', tone: 'きっちり', suit: '#2F3B4A', shirt: '#FFFFFF', tie: '#B48A5A', hair: 'bob', hairC: '#1E2B36',
@@ -71,7 +77,7 @@ export function thumb(x, o = {}) {
     const w = x.w, stage = x.stage, P = I.P; let s = '';
     s += I.poly([P(-10, -8), P(60, -8), P(60, 54), P(-10, 54)], stage >= 4 && w.spec.exterior !== 'full' ? '#E7E0D2' : '#F3E7CF', '#9BD27A', 1.6);
     if (stage === 0 && x.ghost) s += `<g opacity="${x.ghost}">` + I.house({ x: 0, y: 0, w: 40, d: 34, h: 36, roof: w.spec.roof, fin: I.FINISH[0], stage: 3 }) + '</g>';
-    else s += I.house({ x: 0, y: 0, w: 40, d: 34, h: 36, roof: w.spec.roof, fin: I.FINISH[(w.no * 5) % 8], stage });
+    else s += I.house({ x: 0, y: 0, w: 40, d: 34, h: 36, roof: w.spec.roof, fin: stage >= 4 ? finOf(w) : I.FINISH[(w.no * 5) % 8], stage });
     const minX = P(-10, 54)[0] - 4, maxX = P(60, -8)[0] + 4, minY = P(-10, -8)[1] - 60, maxY = P(60, 54)[1] + 4;
     return `<svg viewBox="${minX} ${minY} ${maxX - minX} ${maxY - minY}" style="${o.style || ''}">${s}</svg>`;
   }
@@ -85,8 +91,8 @@ export function estate2(list, o = {}) {
       const r = Math.floor(i / 4), c = i % 4, X = c * (Lz + gap), Yy = r * (Lz + gap), w = x.w, you = w.no === YOU, hi = o.hi && o.hi.includes(w.no);
       s += I.poly([P(X, Yy), P(X + Lz, Yy), P(X + Lz, Yy + Lz), P(X, Yy + Lz)], x.stage >= 4 && w.spec.exterior !== 'full' ? '#E7E0D2' : '#F3E7CF', you ? '#1E2B36' : hi ? '#C99A00' : '#9BD27A', you ? 3.4 : hi ? 3 : 2.2, hi && !you ? 'stroke-dasharray="7 4"' : '');
       if (x.stage === 0 && x.ghost) s += `<g opacity="${x.ghost}">` + I.house({ x: X + 10, y: Yy + 8, roof: w.spec.roof, fin: I.FINISH[0], stage: 3 }) + '</g>';
-      else s += I.house({ x: X + 10, y: Yy + 8, roof: w.spec.roof, fin: I.FINISH[(w.no * 5) % 8], stage: x.stage, third: !!w.third && you && x.stage >= 4 });
-      const t = P(X + Lz - 4, Yy + Lz - 4);
+      else s += I.house({ x: X + 10, y: Yy + 8, roof: w.spec.roof, fin: x.stage >= 4 ? finOf(w) : I.FINISH[(w.no * 5) % 8], stage: x.stage, third: !!w.third && you && x.stage >= 4 });
+      const t = P(X + 33, Yy + 27, 66); // 番号札は、その区画の家の真上に（手前の区画の家と取り違えない）
       tags += `<g transform="translate(${t[0]},${t[1] + 4})"><rect x="-17" y="-12" width="34" height="22" rx="5" fill="${you ? '#1E2B36' : '#FFFAF0'}" stroke="#1E2B36" stroke-width="1.2"/><text x="0" y="4" text-anchor="middle" font-size="13" font-weight="700" fill="${you ? '#FFFAF0' : '#1E2B36'}">${String(w.no).padStart(2, '0')}</text></g>`;
       if (o.notes && x.note && (o.notes === true || o.notes.includes(w.no))) { const m = P(X + Lz / 2, Yy + Lz / 2, 74); const tw = x.note.length * 11 + 18; tags += `<g transform="translate(${m[0]},${m[1]})"><rect x="${-tw / 2}" y="-13" width="${tw}" height="22" rx="11" fill="rgba(255,250,240,.94)" stroke="rgba(30,43,54,.3)"/><text x="0" y="3" text-anchor="middle" font-size="11" fill="#1E2B36">${x.note}</text></g>`; }
     });

@@ -439,6 +439,11 @@ export function worldName(o) {
   const adj = full && up ? '庭も仕上げも整えた' : full ? '庭から先に整えた' : up ? '庭より仕上げを選んだ' : '身軽に建てた';
   return `${adj}、${CO_PRE[o.company] || ''}${ROOF_NOUN[o.spec.roof] || '家'}。`;
 }
+// 世界線のカードのひとこと（8字前後）：詳しい経路は、押したときの世界樹で
+export function worldShort(o) {
+  const full = o.spec.exterior === 'full', up = finishCost(o.finish) > 0;
+  return full && up ? '庭も仕上げも' : full ? '庭から整えた' : up ? '仕上げを選んだ' : '身軽に建てた';
+}
 export function worldLesson(o, me) {
   if (!me || o.no === me.no) return 'あなたが選んだ世界';
   if ((o.causes || []).length && o.causes[0].lesson) return o.causes[0].lesson;

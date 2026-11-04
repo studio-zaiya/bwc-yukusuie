@@ -473,3 +473,5 @@ button.rt-card:active{transform:translateY(1px)}
 .keys table{width:100%;border-collapse:collapse;font-size:20px;font-variant-numeric:tabular-nums}.keys td{padding:6px 2px;border-bottom:1px solid rgba(30,43,54,.08)}.keys td+td{text-align:right;font-weight:700}
 .late2{opacity:0;pointer-events:none;animation:late .6s 5.4s forwards}
 .w4 ~ .galT{top:872px}.w4 ~ .gal{top:898px;height:166px}
+button.th.th15{font:inherit;color:inherit;text-align:center;cursor:pointer;border:inherit}button.th.th15:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(30,43,54,.14)}.th.th15 .tnm.big{font-size:17px;line-height:1.3;white-space:nowrap}.th.th15 .thd span{font-size:18px;font-weight:900}
+.paperwrap{overflow:hidden}.paperwrap iframe{position:absolute;left:-220px;top:0;width:1920px;height:1080px;border:0;transform:scale(.815);transform-origin:0 0;pointer-events:none}.paperwrap .pcap{position:absolute;left:24px;bottom:22px;font-size:22px;font-weight:700;background:rgba(255,250,240,.92);border-radius:12px;padding:8px 16px}
