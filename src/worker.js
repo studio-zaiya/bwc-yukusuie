@@ -132,12 +132,21 @@ async function trade(env, body) {
 }
 
 // ---- 担当者（ヒアリング・場面ごとのせりふ）----
+// 担当者の人格と、聞き方の深さ（会社の型と担当者の力量。聞き漏れは記録として残し、後の工程で効かせる）
 const STAFF_TONE = {
-  A: 'Aハウス（大手ハウスメーカー）の営業・高橋。きっちりした敬語。段取りがよく、契約を急ぎがち。性能と保証に自信がある',
-  B: 'Bハウス（ローコスト・規格）の営業・小林。元気で明るい。標準仕様の安さを推す。オプションの説明は後回しになりがち',
-  C: 'Cデザイン（作り込み型の工務店）の設計・佐々木。丁寧で寡黙。暮らし方をよく聞く。見積は総額で出すが時間がかかる',
-  D: 'D工務店（身軽型の工務店）の社長・森。気さくで話が早い。口約束が多く、記録を取らないことがある',
+  A: 'Aハウス（大手ハウスメーカー）の営業・高橋。きっちりした敬語。段取りがよく、予算と入居の時期を先に詰める。性能と保証の話が得意。暮らし方の細かいことは、設計の打ち合わせに回しがち。契約を急ぎがち',
+  B: 'Bハウス（ローコスト・規格）の営業・小林。元気で明るい。規格プランの選択肢を見せて、どれが近いかを聞く。標準仕様の安さを推す。オプションや電気の細かい話は後回しにしがち',
+  C: 'Cデザイン（作り込み型の工務店）の設計・佐々木。丁寧で寡黙。家族の一日の時間帯、収納の量、家事の動線、将来の変化まで、ひとつずつ深く聞く。聞き漏れは少ないが、見積が出るまで時間がかかる',
+  D: 'D工務店（身軽型の工務店）の社長・森。気さくで話が早い。「全部できますよ」と受け止めるが、細かいことはメモを取らずに流しがち。口約束が多い',
 };
+// 担当者が数字を言うときは、この差し込み記号を書く。値はエンジンが入れる（Claudeは数字を作らない）
+function staffFacts(co) {
+  const c = Y.COMPANIES[co], spec = Y.baseSpec(Y.HOUSEHOLDS.t2), q = Y.quote(spec, co, false);
+  return {
+    '{{断熱等級}}': `等級${c.insul}`, '{{UA値}}': `${Y.UA[c.insul]}`, '{{見積の表紙}}': `${Math.round(q.cover).toLocaleString()}万円`,
+    '{{坪単価}}': `${c.tsubo}万円`, '{{延床の目安}}': `${spec.tsubo}坪`, '{{地盤調査}}': c.groundTiming, '{{見積の見せ方}}': q.label,
+  };
+}
 const HEARING_SCHEMA = {
   type: 'object', additionalProperties: false, required: ['line', 'honne', 'heard', 'missed'],
   properties: {
@@ -149,11 +158,15 @@ const HEARING_SCHEMA = {
 async function hearing(env, body) {
   const co = body.company in STAFF_TONE ? body.company : 'C';
   const p = PROMPTS.hearing;
-  const system = p.body.replace('{{STAFF}}', STAFF_TONE[co]).replace('{{SCENE}}', String(body.scene || '初回打ち合わせ').slice(0, 400));
+  const facts = staffFacts(co);
+  const factList = Object.entries(facts).map(([k, v]) => `- ${k}（${k.replace(/[{}]/g, '')}。画面では「${v}」に置き換わる）`).join('\n');
+  const system = p.body.replace('{{STAFF}}', STAFF_TONE[co]).replace('{{SCENE}}', String(body.scene || '初回打ち合わせ').slice(0, 600)).replace('{{FACTS}}', factList);
   const hist = (body.history || []).slice(-8).map(h => `${h.who}：${h.text}`).join('\n');
   const user = `${hist ? `# これまでの会話\n${hist}\n` : ''}# 施主の言葉\n${String(body.text || '').slice(0, 400)}`;
   const fb = { line: body.fallbackLine || 'ありがとうございます。いまのお話、図面に反映できるか確認しますね。', honne: '', heard: [], missed: [] };
-  return callJSON(env, { role: 'hearing', system, user, schema: HEARING_SCHEMA, fallback: fb, validate: x => digitsIn(x, ['line']).length ? 'せりふに数字' : null });
+  const r = await callJSON(env, { role: 'hearing', system, user, schema: HEARING_SCHEMA, fallback: fb, maxTokens: 1500, validate: x => digitsIn(x, ['line']).length ? 'せりふに算用数字。数字は差し込み記号で書く' : null });
+  if (!r.call.fallback) { r.data.raw = r.data.line; for (const [k, v] of Object.entries(facts)) r.data.line = r.data.line.split(k).join(v); }
+  return r;
 }
 
 // ---- 自分のAI（1ターン1回、短い回答を1回だけ。最も安価なモデル）----

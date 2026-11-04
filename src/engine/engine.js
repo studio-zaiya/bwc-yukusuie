@@ -3,7 +3,7 @@
  * 単位：金額は万円、面積は㎡（坪は 3.30579㎡）、日数は日。
  * 数字はすべて仮置き（docs/06_engine.md に準拠）。app/engine.js（試作 v0.1）からの移植と拡張。
  */
-export const VERSION = 'engine-0.3';
+export const VERSION = 'engine-0.4';
 export const TSUBO = 3.30579;
 export const round = (v, d = 0) => { const k = 10 ** d; return Math.round(v * k) / k; };
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -36,7 +36,8 @@ export function loanLimit(h, ratio = 0.35) { // 審査の上限（返済負担�
 export function loanCheck(h, principal) {
   const yearly = payment(principal, RATE.screen) * 12;
   const ratio = yearly / h.income;
-  return { principal: Math.round(principal), ratio: round(ratio * 100, 1), ok: ratio <= 0.35, limit: loanLimit(h), monthly: round(payment(principal, RATE.variable), 2) };
+  const limit = loanLimit(h);
+  return { principal: Math.round(principal), ratio: round(ratio * 100, 1), ok: Math.round(principal) <= limit, limit, monthly: round(payment(principal, RATE.variable), 2) };
 }
 
 // ---- 敷地 ----
@@ -60,6 +61,8 @@ export const COMPANIES = {
   C: { id: 'C', name: 'Cデザイン', shape: 'circle', kind: '作り込み型の工務店', staff: '佐々木', staffRole: '設計', tsubo: 84, futai: 250, kitchen: 70, triple: 58, insul: 6, equip: 0, style: 'total', groundTiming: '契約前', speed: 1.3, gable: 55 },
   D: { id: 'D', name: 'D工務店', shape: 'hex', kind: '身軽型の工務店', staff: '森', staffRole: '社長', tsubo: 75, futai: 200, kitchen: 60, triple: 64, insul: 5, equip: 0, style: 'lump', groundTiming: '曖昧', speed: 0.9, gable: 50 },
 };
+// 断熱等級ごとの外皮平均熱貫流率（UA値、W/㎡K、6地域の基準値の目安）
+export const UA = { 4: 0.87, 5: 0.6, 6: 0.46, 7: 0.26 };
 export const COMMON = { exterior: 180, exteriorMin: 40, lighting: 60, aircon: 50, ground: 120, ground_range: [80, 150], misc: 250 };
 
 // ---- 仕上げ（コーディネート）と電気の単価（仮置き。design/v3/parts/P4a・P4b と同じ値）----
@@ -79,11 +82,22 @@ export const ELECTRIC = {
     { id: 'lan_bed', label: '寝室のLAN', v: 2.5, issue: 'LAN_BEDROOM' },
     { id: 'outlet_out', label: '外部コンセント（防水）', v: 1.6, issue: 'OUTLET_OUTSIDE' },
     { id: 'ev', label: '電気自動車の充電用コンセント', v: 9.5, issue: 'EV_OUTLET' },
+    { id: 'aircon_louver', label: 'エアコンを隠すルーバー（リビング）', v: 6.5, issue: 'AIRCON_HIDE' },
   ],
 };
 export function finishCost(f = {}) {
   const pick = (k, id) => (FINISH[k].find(x => x.id === id) || FINISH[k][0]);
   return pick('wall', f.wall).v + pick('floor', f.floor).v + pick('inner', f.inner).v;
+}
+// 電気の要望の言葉 → 項目（コード）
+export const ELECTRIC_WORDS = { tv_wall: /テレビ|壁掛け/, lan_bed: /LAN|有線|ネット/, outlet_out: /外.*コンセント|防水|屋外/, ev: /充電|EV|電気自動車/, aircon_louver: /エアコン.*(隠|ルーバー|見えな)|ルーバー/ };
+export const electricOf = text => Object.entries(ELECTRIC_WORDS).filter(([, re]) => re.test(String(text))).map(([id]) => id);
+// 伝えていたのに入っていなかったとき、会社と担当者の力量で扱いが分かれる（議事録の有無が効く）
+export function missedPolicy(coId, skill = 0.5) {
+  if (coId === 'C') return { kind: 'free', rate: 0, label: '伝えていただいていたのに、反映できていませんでした。こちらで直します（無償）' };
+  if (coId === 'A') return { kind: 'half', rate: 0.5, label: '記録を確認しました。差額は半分、こちらで持ちます' };
+  if (coId === 'D' && skill < 0.5) return { kind: 'add', rate: 1, label: '記録が残っていないので、追加になってしまいます' };
+  return { kind: 'add', rate: 1, label: '打ち合わせの記録に残っていなかったので、追加になります' };
 }
 export function electricCost(ids = []) { return round(ids.reduce((s, id) => s + (ELECTRIC.options.find(o => o.id === id)?.v || 0), 0), 1); }
 
@@ -199,10 +213,18 @@ export function decisions(pair = ['C', 'A']) {
 }
 export const DECISIONS = decisions();
 
+// 審査の上限を超えるなら、延床の目安の下限まで1坪ずつ小さくした「この予算に合わせた案」にする
+export function fitBudget(w) {
+  const h = householdOf(w);
+  let n = 0;
+  while (!loanCheck(h, money(w).loan).ok && w.spec.tsubo > h.area[0]) { w.spec.tsubo -= 1; w.spec.floor1Tsubo = Math.ceil(w.spec.tsubo / 2); n++; }
+  if (n) w.fitted = (w.fitted || 0) + n;
+  return n;
+}
 function applyPatch(w, p) {
-  if (p.company) w.company = p.company;
+  if (p.company) { w.company = p.company; fitBudget(w); }
   if (p.spec) for (const [k, v] of Object.entries(p.spec)) {
-    if (k === 'tsubo') { w.spec.tsubo = baseSpec(householdOf(w)).tsubo + v; w.spec.floor1Tsubo = Math.ceil(w.spec.tsubo / 2); }
+    if (k === 'tsubo') { w.spec.tsubo = baseSpec(householdOf(w)).tsubo - (w.fitted || 0) + v; w.spec.floor1Tsubo = Math.ceil(w.spec.tsubo / 2); }
     else w.spec[k] = v;
   }
   if (p.finish) w.finish = { ...w.finish, ...p.finish };
@@ -213,7 +235,7 @@ export function choose(w, d, opt, extra = {}) {
   const side = typeof opt === 'string' ? opt : opt.side;
   const base = d[side];
   applyPatch(w, base.patch);
-  if (typeof opt === 'object') { applyPatch(w, { spec: opt.spec || {}, finish: opt.finish, electric: opt.electric }); w.third = d.id; }
+  if (typeof opt === 'object') { applyPatch(w, { spec: opt.spec || {}, finish: opt.finish, electric: opt.electric }); if (!opt.plain) w.third = d.id; }
   w.bits.push(side === 'a' ? 0 : 1);
   w.labels.push(typeof opt === 'object' ? (opt.label || base.label) : base.label);
   if (extra.reason || extra.priority) w.memory.push({ decisionId: d.id, action: w.labels.at(-1), reason: extra.reason || '', priority: extra.priority || '' });
@@ -248,6 +270,7 @@ export function normalizeProposal(p = {}) {
   for (const id of p.electric || []) { if (ELECTRIC.options.some(o => o.id === id)) out.electric.push(id); else errors.push(`電気の項目「${id}」はありません`); }
   if (p.finish) { out.finish = {}; for (const k of ['wall', 'floor', 'inner']) if (p.finish[k] && FINISH[k].some(x => x.id === p.finish[k])) out.finish[k] = p.finish[k]; }
   if (p.label) out.label = String(p.label).slice(0, 40);
+  if (p.plain) out.plain = true;
   return { proposal: out, errors };
 }
 
@@ -282,9 +305,10 @@ export function simulate(w, d, rawProposal) {
   else if (fromSavings > h.saveKeep * 0.5 || errors.length) verdict = '確認が足りない';
   else if (sc.addDays > 0 || lc.diff > 0) verdict = '条件付き';
   const conditions = [];
-  if (q.diff) conditions.push(`総額 ${q.diff > 0 ? '+' : ''}${q.diff}万円（${q.before.toLocaleString()} → ${q.after.toLocaleString()}万円）`);
-  if (proposal.borrow === 'cover' && lc.diff > 0) conditions.push(`借入 +${lc.diff}万円（月々 約+${lc.monthlyDiff.toLocaleString()}円、返済負担率 ${lc.ratio}%）`);
-  if (fromSavings) conditions.push(`手元に残す分から ${fromSavings}万円を出す`);
+  const R = v => Math.round(v).toLocaleString();
+  if (q.diff) conditions.push(`総額 ${q.diff > 0 ? '+' : ''}${R(q.diff)}万円（${R(q.before)} → ${R(q.after)}万円）`);
+  if (proposal.borrow === 'cover' && lc.diff > 0) conditions.push(`借入 +${R(lc.diff)}万円（月々 約+${lc.monthlyDiff.toLocaleString()}円、返済負担率 ${lc.ratio}%）`);
+  if (fromSavings) conditions.push(`手元に残す分から ${R(fromSavings)}万円を出す`);
   if (sc.addDays) conditions.push(`本審査のやり直し +${sc.addDays}日（ローン特約の期限まで、残り${sc.loanLeft}日）`);
   if (!cv.ok) conditions.push(`建蔽率の上限を超える（${cv.total}㎡ ／ 上限 ${cv.limit}㎡）`);
   if (!lc.ok) conditions.push(`審査の上限を超える（返済負担率 ${lc.ratio}% ／ 35%まで）`);
@@ -338,5 +362,5 @@ export function createLog(seed = []) {
   };
 }
 
-export const YKS = { VERSION, TSUBO, HOUSEHOLDS, monthlyTakeHome, RATE, payment, loanLimit, loanCheck, SITE, landCost, coverageCheck, COMPANIES, COMMON, FINISH, ELECTRIC, finishCost, electricCost, baseSpec, SPEC_SCHEMA, quote, warmth, slack, DEADLINE, STEPS, scheduleOf, schedule, newWorld, forkWorld, money, FORKS, decisions, DECISIONS, choose, contract, branchAll, worldNo, normalizeProposal, TOOLS, simulate, outcome, allWorlds, createLog, rng, round, hashStr };
+export const YKS = { UA, ELECTRIC_WORDS, electricOf, missedPolicy, fitBudget, VERSION, TSUBO, HOUSEHOLDS, monthlyTakeHome, RATE, payment, loanLimit, loanCheck, SITE, landCost, coverageCheck, COMPANIES, COMMON, FINISH, ELECTRIC, finishCost, electricCost, baseSpec, SPEC_SCHEMA, quote, warmth, slack, DEADLINE, STEPS, scheduleOf, schedule, newWorld, forkWorld, money, FORKS, decisions, DECISIONS, choose, contract, branchAll, worldNo, normalizeProposal, TOOLS, simulate, outcome, allWorlds, createLog, rng, round, hashStr };
 export default YKS;

@@ -7,9 +7,9 @@ export const setYou = n => { YOU = n; };
 export const STAFF = {
     A: { id: 'takahashi', co: 'A', role: '営業', name: '高橋', tone: 'きっちり', suit: '#2F3B4A', shirt: '#FFFFFF', tie: '#B48A5A', hair: 'neat', hairC: '#1E2B36',
       line: '本日はご来場ありがとうございます。弊社の標準仕様で、性能面はご安心いただけます。ご予算の目安から伺ってもよろしいでしょうか。' },
-    B: { id: 'kobayashi', co: 'B', role: '営業', name: '小林', tone: '元気', suit: '#3C79B5', shirt: '#FFFFFF', tie: null, hair: 'up', hairC: '#2B2B2B', badge: true,
+    B: { id: 'kobayashi', co: 'B', role: '営業', name: '小林', tone: '元気', suit: '#3C79B5', shirt: '#FFFFFF', tie: null, hair: 'bob', hairC: '#2B2B2B', badge: true,
       line: 'いらっしゃいませ！規格プランなら、迷わずにすぐ建ちますよ。まずは、どの間取りが気になりましたか？' },
-    C: { id: 'sasaki', co: 'C', role: '設計', name: '佐々木', tone: '丁寧で寡黙', suit: '#7E8F80', shirt: '#F4EFE6', tie: null, hair: 'side', hairC: '#3A322C', glasses: true, knit: true,
+    C: { id: 'sasaki', co: 'C', role: '設計', name: '佐々木', tone: '丁寧で寡黙', suit: '#7E8F80', shirt: '#F4EFE6', tie: null, hair: 'bob', hairC: '#6B4A35', glasses: true, knit: true,
       line: '……はい。まず、今の暮らしで困っていることから、伺ってもいいですか。' },
     D: { id: 'mori', co: 'D', role: '社長', name: '森', tone: '気さく', suit: '#A08A68', shirt: '#E9E4DA', tie: null, hair: 'thin', hairC: '#9A948C', vest: true, wrinkle: true,
       line: 'おう、よく来てくれたね。要望は全部言ってよ。なんとかするから。' },
@@ -55,8 +55,8 @@ export function bigHouse(w, stage, o = {}) {
     const lot = [P(-20, -16), P(96, -16), P(96, 92), P(-20, 92)];
     s += I.poly(lot, stage >= 4 && w.spec.exterior !== 'full' ? '#E7E0D2' : '#F3E7CF', '#9BD27A', 2.4);
     if (stage === 0) s += I.poly([P(-6, -4), P(60, -4), P(60, 50), P(-6, 50)], 'none', '#1E2B36', 1.4, 'stroke-dasharray="5 4"');
-    if (stage === 0 && o.ghost) s += `<g opacity="${o.ghost}">` + I.house({ x: 0, y: 0, w: 52, d: 44, h: 46, roof: w.spec.roof, fin: I.FINISH[0], stage: 3 }) + '</g>';
-    else s += I.house({ x: 0, y: 0, w: 52, d: 44, h: 46, roof: w.spec.roof, fin: I.FINISH[(w.no * 5) % 8], stage: stage === 0 ? 0 : stage, third: !!w.third && stage >= 4 });
+    if (stage === 0 && o.ghost) s += `<g opacity="${o.ghost}">` + I.house({ x: 0, y: 0, w: 52, d: 44, h: 46, roof: o.roof || w.spec.roof, fin: I.FINISH[0], stage: 3 }) + '</g>';
+    else s += I.house({ x: 0, y: 0, w: 52, d: 44, h: 46, roof: w.spec.roof, fin: o.fin || I.FINISH[(w.no * 5) % 8], stage: stage === 0 ? 0 : stage, third: !!w.third && stage >= 4 });
     if (stage >= 4) {
       const cp = (x, y) => { let t = ''; [[0,0],[24,0],[0,22],[24,22]].forEach(([a,b]) => { const q = P(x+a, y+b, 0), r = P(x+a, y+b, 20); t += `<line x1="${q[0]}" y1="${q[1]}" x2="${r[0]}" y2="${r[1]}" stroke="#8A8F96" stroke-width="1.6"/>`; }); t += I.poly([[0,0],[24,0],[24,22],[0,22]].map(([a,b]) => P(x+a, y+b, 20)), 'rgba(220,230,236,.85)', '#8A8F96', 1.2); return t; };
       s += cp(64, 56);
