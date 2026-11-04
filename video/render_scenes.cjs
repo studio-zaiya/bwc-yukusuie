@@ -24,6 +24,9 @@ const SCENES = [
   { id: 'photo-sketch', url: P('photo-sub.html?kind=sketch&t=0'), dur: 5 },
   { id: 'photo-hands', url: P('photo-sub.html?kind=hands&t=0'), dur: 5 },
   { id: 'photo-handover', url: P('photo-sub.html?kind=handover&t=0'), dur: 8 },
+  // 手渡しの場面（前振り⑧と同じ絵柄）と、担当者の研修の前後（実際の記録の値）
+  { id: 'handover', url: P('handover.html?t=0'), dur: 8 },
+  { id: 'training', url: P('training.html?t=0'), dur: 6 },
 ];
 
 (async () => {
