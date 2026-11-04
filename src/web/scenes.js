@@ -351,7 +351,7 @@ export const SCENES = {
   fork(s) {
     const d = Y.decisions(s.pair)[s.forkNo];
     if (!d && !FORK_DONE.on) return chrome(s) + hero(s) + gallery(s);
-    if (FORK_DONE.on) return `${chrome(s)}${hero(s)}<div class="ritual done"><div class="rt-band">${esc(FORK_DONE.text)}</div><div class="rt-light"></div></div>${gallery(s)}`;
+    if (FORK_DONE.on) return `${chrome(s)}${hero(s)}<div class="ritual done"><div class="rt-band">${esc(FORK_DONE.text)}</div><svg class="rt-lot" viewBox="0 0 1860 676" aria-hidden="true"><polygon points="560,284 848,448 580,601 292,438" pathLength="100"/></svg></div>${gallery(s)}`;
     const w = s.player;
     const card = side => { const t = Y.forkWorld(w); Y.choose(t, d, side); const m = Y.money(t), m0 = Y.money(w); const df = m.total - m0.total, mo = Y.payment(m.loan, Y.RATE.variable) - Y.payment(m0.loan, Y.RATE.variable); const lc = Y.loanCheck(H(s), m.loan);
       const co = Y.COMPANIES[t.company];

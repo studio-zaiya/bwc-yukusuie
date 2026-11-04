@@ -422,7 +422,7 @@ button.rt-card:active{transform:translateY(1px)}
 .rt-why{width:100%;margin-top:14px}.rt-why .msg{max-width:none;font-size:22px}
 .rt-trade{width:100%;overflow:auto}.rt-trade .msg{max-width:none}.rt-trade .band{position:static;margin-top:10px}
 .rt-acts{display:flex;gap:14px;justify-content:center;margin-top:14px;align-items:center}
-.ritual.done{justify-content:center;background:rgba(255,250,240,.9)}
+.ritual.done{justify-content:center;background:rgba(255,250,240,.5)}
 .rt-band{font-family:var(--fr);font-weight:900;font-size:36px;background:#fff;border:2px solid var(--ink);border-radius:999px;padding:16px 40px;animation:rtin .4s ease-out both}
 .rt-light{position:absolute;left:10%;right:10%;top:62%;height:3px;background:linear-gradient(90deg,transparent,#F2C230,transparent);animation:light 1.2s ease-out forwards;opacity:0}
 @keyframes light{0%{opacity:0;transform:scaleX(.1)}40%{opacity:1}100%{opacity:0;transform:scaleX(1)}}
@@ -433,3 +433,9 @@ button.rt-card:active{transform:translateY(1px)}
 .rt-house{position:relative;align-self:stretch;display:flex;align-items:center;justify-content:center}.rt-house>svg{width:100%;max-height:330px}.rt-house>.co{position:absolute;top:0;right:0}
 .rt-cards.picked{position:relative}.rt-cards.picked .rt-card.fly{position:absolute;right:0;top:0;width:calc(50% - 15px);pointer-events:none}
 .rt-cards.picked .rt-card.on{grid-column:1/2}
+
+/* 分岐点の終わり：家の区画の輪郭を、金の光がひとまわりなぞる */
+.rt-lot{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+.rt-lot polygon{fill:none;stroke:#F2C230;stroke-width:6;stroke-linejoin:round;stroke-dasharray:100;stroke-dashoffset:100;filter:drop-shadow(0 0 6px rgba(242,194,48,.8));animation:lotlight 1.2s .15s ease-out forwards}
+@keyframes lotlight{70%{stroke-dashoffset:0;opacity:1}to{stroke-dashoffset:0;opacity:.35}}
+.ritual.done .rt-band{position:relative;z-index:1;margin-top:-260px}
