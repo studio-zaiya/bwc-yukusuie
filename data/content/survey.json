@@ -1,0 +1,657 @@
+{
+ "version": "survey-v1",
+ "note": "初回の来場者アンケート（HEARING_v2.md）。1画面1問、選ぶとすぐ次へ。上に『あと〇問』と進み具合。各問に『こだわらない』。multi=trueは複数選べて『つぎへ』で進む。engineKey／engineはエンジンにそのまま渡す値（面積・見積・希望の上限）。Claudeは使わない（文章から読み取らない）。ひとりプレイでは、AIのパートナーも同じ問いに答え（パートナーの人格から。数字の選択肢は選択肢のidで返す）、答えが分かれた問いに『ふたりの意見が違う』の印を付ける。2社目はこの答えを使い回す。",
+ "sections": [
+  {
+   "id": "site",
+   "label": "外まわり"
+  },
+  {
+   "id": "ldk",
+   "label": "LDK"
+  },
+  {
+   "id": "water",
+   "label": "水まわり・収納"
+  },
+  {
+   "id": "private",
+   "label": "個室"
+  },
+  {
+   "id": "special",
+   "label": "そのほか"
+  },
+  {
+   "id": "taste",
+   "label": "雰囲気・お金"
+  }
+ ],
+ "questions": [
+  {
+   "id": "cars",
+   "section": "site",
+   "text": "車は何台停めたいですか？",
+   "multi": false,
+   "choices": [
+    {
+     "id": "c1",
+     "label": "1台",
+     "engine": {
+      "parking": 1
+     }
+    },
+    {
+     "id": "c2",
+     "label": "2台",
+     "engine": {
+      "parking": 2
+     }
+    },
+    {
+     "id": "c3",
+     "label": "3台以上",
+     "engine": {
+      "parking": 3
+     }
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "parking"
+  },
+  {
+   "id": "carport",
+   "section": "site",
+   "text": "カーポートはほしいですか？",
+   "multi": false,
+   "choices": [
+    {
+     "id": "yes",
+     "label": "ほしい",
+     "engine": {
+      "carport": true
+     }
+    },
+    {
+     "id": "later",
+     "label": "あとで考える",
+     "engine": {
+      "carport": "later"
+     }
+    },
+    {
+     "id": "no",
+     "label": "いらない",
+     "engine": {
+      "carport": false
+     }
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "carport"
+  },
+  {
+   "id": "outside",
+   "section": "site",
+   "text": "外にほしいものは？（いくつでも）",
+   "multi": true,
+   "choices": [
+    {
+     "id": "shed",
+     "label": "物置"
+    },
+    {
+     "id": "garden",
+     "label": "庭で遊べる芝生"
+    },
+    {
+     "id": "veg",
+     "label": "家庭菜園"
+    },
+    {
+     "id": "deck",
+     "label": "ウッドデッキ"
+    },
+    {
+     "id": "bike",
+     "label": "自転車置き場"
+    },
+    {
+     "id": "ev",
+     "label": "電気自動車の充電"
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "exteriorWants"
+  },
+  {
+   "id": "ldk_size",
+   "section": "ldk",
+   "text": "LDKの広さのイメージは？",
+   "multi": false,
+   "choices": [
+    {
+     "id": "s",
+     "label": "18帖くらいまで",
+     "engine": {
+      "ldkJo": 18
+     }
+    },
+    {
+     "id": "m",
+     "label": "20帖くらい",
+     "engine": {
+      "ldkJo": 20
+     }
+    },
+    {
+     "id": "l",
+     "label": "24帖以上",
+     "engine": {
+      "ldkJo": 24
+     }
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "ldkJo"
+  },
+  {
+   "id": "kitchen",
+   "section": "ldk",
+   "text": "キッチンの形は？",
+   "multi": false,
+   "choices": [
+    {
+     "id": "face_hide",
+     "label": "対面（手元を隠す）"
+    },
+    {
+     "id": "face_open",
+     "label": "対面（オープン）"
+    },
+    {
+     "id": "ii",
+     "label": "II型"
+    },
+    {
+     "id": "wall",
+     "label": "壁付け"
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "kitchenType"
+  },
+  {
+   "id": "dining",
+   "section": "ldk",
+   "text": "ダイニングテーブルの置き方は？",
+   "multi": false,
+   "choices": [
+    {
+     "id": "side",
+     "label": "キッチンの横に並べる"
+    },
+    {
+     "id": "front",
+     "label": "キッチンと向かい合わせ"
+    },
+    {
+     "id": "sep",
+     "label": "少し離して落ち着いて"
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "diningLayout"
+  },
+  {
+   "id": "tv",
+   "section": "ldk",
+   "text": "テレビは？",
+   "multi": false,
+   "choices": [
+    {
+     "id": "wall",
+     "label": "壁掛け"
+    },
+    {
+     "id": "board",
+     "label": "テレビ台に置く"
+    },
+    {
+     "id": "notv",
+     "label": "置かない"
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "tv",
+   "note": "壁掛けは電気の打ち合わせで下地と配線が要る（伝え漏れの種）"
+  },
+  {
+   "id": "ldk_feel",
+   "section": "ldk",
+   "text": "LDKでほしいものは？（いくつでも）",
+   "multi": true,
+   "choices": [
+    {
+     "id": "fukinuke",
+     "label": "吹き抜け"
+    },
+    {
+     "id": "tatami",
+     "label": "畳コーナー"
+    },
+    {
+     "id": "study",
+     "label": "スタディコーナー"
+    },
+    {
+     "id": "sofa",
+     "label": "大きなソファ"
+    },
+    {
+     "id": "view",
+     "label": "庭が見える大きな窓"
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "ldkWants"
+  },
+  {
+   "id": "entry",
+   "section": "water",
+   "text": "帰ってきたときの動きで、ほしいものは？（いくつでも）",
+   "multi": true,
+   "choices": [
+    {
+     "id": "wash",
+     "label": "玄関の近くに手洗い"
+    },
+    {
+     "id": "shoes",
+     "label": "大きな土間収納"
+    },
+    {
+     "id": "path",
+     "label": "玄関から洗面・台所へ抜けられる"
+    },
+    {
+     "id": "coat",
+     "label": "上着をしまう場所"
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "entryWants"
+  },
+  {
+   "id": "laundry",
+   "section": "water",
+   "text": "洗濯物は、どこで干しますか？",
+   "multi": false,
+   "choices": [
+    {
+     "id": "out",
+     "label": "外に干す"
+    },
+    {
+     "id": "in",
+     "label": "室内に干す（専用の場所）"
+    },
+    {
+     "id": "dryer",
+     "label": "乾燥機にまかせる"
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "laundry"
+  },
+  {
+   "id": "bath",
+   "section": "water",
+   "text": "洗面と脱衣所は？",
+   "multi": false,
+   "choices": [
+    {
+     "id": "sep",
+     "label": "分けたい（入浴中も洗面を使える）"
+    },
+    {
+     "id": "one",
+     "label": "一緒でいい"
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "bathSplit"
+  },
+  {
+   "id": "storage",
+   "section": "water",
+   "text": "収納でほしいものは？（いくつでも）",
+   "multi": true,
+   "choices": [
+    {
+     "id": "pantry",
+     "label": "パントリー"
+    },
+    {
+     "id": "wic",
+     "label": "ウォークインクローゼット"
+    },
+    {
+     "id": "family",
+     "label": "家族みんなの収納（ファミリークローゼット）"
+    },
+    {
+     "id": "attic",
+     "label": "小屋裏収納"
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "storageWants"
+  },
+  {
+   "id": "kids",
+   "section": "private",
+   "text": "子ども部屋は？",
+   "multi": false,
+   "choices": [
+    {
+     "id": "two",
+     "label": "最初から2部屋"
+    },
+    {
+     "id": "split",
+     "label": "最初は1部屋、あとで分ける"
+    },
+    {
+     "id": "later",
+     "label": "まだ決めていない"
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "kidsRooms"
+  },
+  {
+   "id": "bedroom",
+   "section": "private",
+   "text": "寝室の広さは？",
+   "multi": false,
+   "choices": [
+    {
+     "id": "s",
+     "label": "寝るだけ（6帖くらい）",
+     "engine": {
+      "bedJo": 6
+     }
+    },
+    {
+     "id": "m",
+     "label": "ゆったり（8帖くらい）",
+     "engine": {
+      "bedJo": 8
+     }
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "bedJo"
+  },
+  {
+   "id": "work",
+   "section": "special",
+   "text": "家で仕事をしますか？",
+   "multi": false,
+   "choices": [
+    {
+     "id": "room",
+     "label": "個室がほしい"
+    },
+    {
+     "id": "corner",
+     "label": "コーナーで十分"
+    },
+    {
+     "id": "no",
+     "label": "しない"
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "workSpace"
+  },
+  {
+   "id": "extra",
+   "section": "special",
+   "text": "ほかに、あるとうれしいものは？（いくつでも）",
+   "multi": true,
+   "choices": [
+    {
+     "id": "guest",
+     "label": "客間・和室"
+    },
+    {
+     "id": "pet",
+     "label": "ペットと暮らす工夫"
+    },
+    {
+     "id": "plants",
+     "label": "植物を置く場所"
+    },
+    {
+     "id": "hobby",
+     "label": "趣味の部屋"
+    },
+    {
+     "id": "butsudan",
+     "label": "仏壇を置く場所"
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "extraWants"
+  },
+  {
+   "id": "style",
+   "section": "taste",
+   "text": "外観の雰囲気は？",
+   "multi": false,
+   "choices": [
+    {
+     "id": "simple",
+     "label": "シンプル・モダン"
+    },
+    {
+     "id": "natural",
+     "label": "木の、ナチュラル"
+    },
+    {
+     "id": "classic",
+     "label": "落ち着いた、和の感じ"
+    },
+    {
+     "id": "cool",
+     "label": "かっこいい、黒っぽい"
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "style"
+  },
+  {
+   "id": "roof",
+   "section": "taste",
+   "text": "屋根の形の好みは？",
+   "multi": false,
+   "choices": [
+    {
+     "id": "flat",
+     "label": "四角い箱（軒が少ない）"
+    },
+    {
+     "id": "gable",
+     "label": "三角屋根（切妻）"
+    },
+    {
+     "id": "hip",
+     "label": "寄棟"
+    },
+    {
+     "id": "mono",
+     "label": "片流れ"
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "roofPref"
+  },
+  {
+   "id": "warm",
+   "section": "taste",
+   "text": "冬の暖かさは、どれくらい大事ですか？",
+   "multi": false,
+   "choices": [
+    {
+     "id": "top",
+     "label": "いちばん大事"
+    },
+    {
+     "id": "mid",
+     "label": "大事だけど、ほかとのバランスで"
+    },
+    {
+     "id": "low",
+     "label": "ふつうでいい"
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "warmPriority"
+  },
+  {
+   "id": "budget_total",
+   "section": "taste",
+   "text": "土地と建物を合わせた総額は、どれくらいまでが安心ですか？",
+   "multi": false,
+   "choices": [
+    {
+     "id": "b45",
+     "label": "4,500万円くらいまで",
+     "engine": {
+      "budgetTotalMan": 4500
+     }
+    },
+    {
+     "id": "b50",
+     "label": "5,000万円くらいまで",
+     "engine": {
+      "budgetTotalMan": 5000
+     }
+    },
+    {
+     "id": "b55",
+     "label": "5,500万円くらいまで",
+     "engine": {
+      "budgetTotalMan": 5500
+     }
+    },
+    {
+     "id": "b60",
+     "label": "それ以上でも、よければ",
+     "engine": {
+      "budgetTotalMan": 6000
+     }
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "budgetTotalMan",
+   "note": "IMPL_REVIEW_2の1：希望の上限として台帳に保存"
+  },
+  {
+   "id": "budget_month",
+   "section": "taste",
+   "text": "月々の返済は、どれくらいまでが安心ですか？",
+   "multi": false,
+   "choices": [
+    {
+     "id": "m10",
+     "label": "10万円くらいまで",
+     "engine": {
+      "monthlyMan": 10
+     }
+    },
+    {
+     "id": "m12",
+     "label": "12万円くらいまで",
+     "engine": {
+      "monthlyMan": 12
+     }
+    },
+    {
+     "id": "m14",
+     "label": "14万円くらいまで",
+     "engine": {
+      "monthlyMan": 14
+     }
+    },
+    {
+     "id": "none",
+     "label": "こだわらない"
+    }
+   ],
+   "engineKey": "monthlyMan"
+  }
+ ]
+}

@@ -1,0 +1,63 @@
+{
+ "version": "memory-v1",
+ "note": "要望の全体の記憶（HEARING_v2.md）。1つの家族に1つ。世界ごとに複製し、その世界の担当者に何が伝わったかを分けて持つ（伝わったかどうかが世界で違う＝伝え漏れの種）。見積・提案（Opus）・担当者の会話・電気・レポートは、すべてここを読む。Claudeが書けるのは text と summary だけで、値（engine）はエンジンかアンケートから。",
+ "shape": {
+  "survey": {
+   "<questionId>": {
+    "p1": "<choiceId or [..]>",
+    "p2": "<choiceId or [..]>",
+    "differs": "bool"
+   }
+  },
+  "items": [
+   {
+    "id": "req-001",
+    "text": "玄関から洗面へ抜けたい",
+    "area": "water",
+    "who": "p1|p2|both",
+    "source": "survey|summary|followUp|message|partner",
+    "priority": "must|want|nice",
+    "engine": {
+     "<key>": "<value>"
+    },
+    "conflictsWith": [
+     "req-xxx"
+    ],
+    "deliveredTo": {
+     "A": "told|missed|deferred",
+     "C": "told"
+    },
+    "turn": "第何工程で伝えたか"
+   }
+  ],
+  "limits": {
+   "budgetTotalMan": 5000,
+   "monthlyMan": 10,
+   "sizeFlexible": "bool",
+   "warmPriority": "top|mid|low"
+  },
+  "summaryByCompany": {
+   "C": "担当者が総括した2〜3文（Claude、数字なし）"
+  },
+  "deferred": [
+   {
+    "text": "ランドセルの置き場",
+    "by": "C",
+    "line": "メモしておきます"
+   }
+  ],
+  "messages": [
+   {
+    "to": "C",
+    "text": "畳スペースに仏壇も置きたい",
+    "day": 7
+   }
+  ]
+ },
+ "rules": [
+  "同じ意味の要望は1件にまとめ、言い直しは source を追記するだけ（付箋の重複をなくす）",
+  "differs=true の問いは、追加の質問の第一候補",
+  "deferred に入れたものは、提案（Opus）で扱うか、扱えない理由を1行で残す",
+  "deliveredTo が missed のものから、のちの出来事（伝え漏れ）を起こす。根拠として source を画面に出す（『アンケートに書いたのに』『帰り道に送ったのに』）"
+ ]
+}

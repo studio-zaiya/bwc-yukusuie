@@ -27,18 +27,25 @@ const OUT = process.env.OUT || 'out/shots';
     await click('[data-act=openPop][data-pop=flyers]'); await shot('flyers'); await click('.close');
     for (const id of ['showroom', 'friend', 'sns']) await click(`[data-act=source][data-id=${id}]`).catch(() => {});
     await click('[data-act=pickVisit][data-co=C]'); await click('[data-act=pickVisit][data-co=A]'); await shot('sources');
-    await click('[data-act=toVisit]'); await p.fill('#sv_yuu', 'キッチンは家族の顔が見えるように'); await shot('survey');
-    await click('[data-act=submitSurvey]');
+    await click('[data-act=toVisit]'); await p.waitForSelector('.sv-q'); await shot('survey');
+    // 来場者アンケート：1画面1問。複数選べる問いは最初の札と「つぎへ」、ほかは最初の札
+    for (let k = 0; k < 30 && await p.evaluate(() => YUKU.state.scene === 'survey'); k++) {
+      if (k === 5) await shot('survey-mid');
+      if (await p.$('[data-act=svNext]')) { await p.click('.sv-o:not(.nopref)'); await p.click('[data-act=svNext]'); } else { await p.click('.sv-o:not(.nopref)'); await p.waitForTimeout(260); }
+      await p.waitForTimeout(120);
+    }
+    await idle(); await p.waitForTimeout(300); await shot('summary');
     await say('平日は二人とも18時ごろ帰ってきます。朝は慌ただしいです。', 'send');
-    await say('収納は多めにほしいです。外観はミニマルに。', 'send');
     await click('[data-act=openShow]'); await p.fill('#showText', 'リビングのエアコンは見えないようにしたい。こんな外観が好きです'); await shot('show'); await click('[data-act=doShow]'); await idle(); await p.waitForTimeout(400);
     await say('テレビは壁掛けにしたいです。断熱の等級はどれくらいですか？', 'send'); await shot('hearing');
+    if (await p.$('[data-act=endMeeting]')) await click('[data-act=endMeeting]');
     await click('[data-act=toForgot]');
     await p.fill('#say', '寝室にもLANがほしいって言い忘れた'); await click('[data-act=sayPartner]'); await shot('forgot');
     await click('[data-act=sendForgot]'); await idle(); await p.waitForTimeout(500); await shot('reply');
-    await click('[data-act=toSecond]');
+    await click('[data-act=toSecond]'); await idle(); await p.waitForTimeout(300); await shot('summary2');
     await say('予算はできるだけ抑えたいです。', 'send');
     await say('性能はどのくらいですか？', 'send'); await shot('hearing2');
+    if (await p.$('[data-act=endMeeting]')) await click('[data-act=endMeeting]');
     await click('[data-act=toCompare]'); await shot('compare');
     await click('[data-act=tab][data-co=A]'); await shot('compare-A');
     await click('[data-act=toFork1]'); await p.waitForTimeout(300); await shot('fork1-intro'); await p.waitForTimeout(1500); await shot('fork1');

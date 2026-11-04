@@ -4,6 +4,10 @@ import { callJSON, callTools, PROMPTS, modelFor, hasDigits, digitsIn } from './a
 import PERSONAS from '../data/content/personas.json';
 import TOPICS from '../data/content/hearing_topics.json';
 import PHRASES from '../data/content/report_phrases.json';
+import HARNESS from '../data/content/rep_harness.json';
+import SURVEY from '../data/content/survey.json';
+import BROCHURES from '../data/content/brochures.json';
+import { REP_SCHEMA, buildRepSystem, checkRep, stockReply, fillSlots, PHASES } from './rep.js';
 import { PhoneLink, linkOpen, newCode } from './link.js';
 export { PhoneLink };
 
@@ -188,6 +192,38 @@ async function hearing(env, body) {
   r.data.heard = (r.data.heard || []).map(h => ({ ...h, who: WHO[h.who] || h.who }));
   r.data.choices = (r.data.choices || []).slice(0, 4);
   if (!r.call.fallback) { r.data.raw = r.data.line; for (const [k, v] of Object.entries(facts)) r.data.line = r.data.line.split(k).join(v); r.data.line = r.data.line.replace(/等級等級/g, '等級').replace(/UA値UA値/g, 'UA値'); }
+  return r;
+}
+
+// ---- 担当者（v2のハーネス）：場面ごとに役割を分ける（HEARING_v2.md の3、受け入れ基準3）----
+PROMPTS.rep = { meta: { version: HARNESS.version, model: 'REP_MODEL' }, body: '' };
+PROMPTS.partnerSurvey = { meta: { version: 'partner-survey-v1', model: 'MODEL_PARTNER' }, body: '' };
+const STAFF_OF = Object.fromEntries((PERSONAS.staff || []).map(p => [p.company, p]));
+async function rep(env, body) {
+  const co = ['A', 'B', 'C', 'D'].includes(body.company) ? body.company : 'C';
+  const phase = PHASES.includes(body.phase) ? body.phase : 'followUp';
+  const specs = (BROCHURES.brochures[co]?.standard || []).map(t => t.replace('（エンジンの値）', `${Y.COMPANIES[co].insul}`));
+  const system = buildRepSystem(HARNESS, { company: co, phase, staff: STAFF_OF[co], specs, memory: String(body.memory || '').slice(0, 2400), names: body.names || {}, extra: String(body.extra || '').slice(0, 600) });
+  const hist = (body.history || []).slice(-8).map(h => `${h.who}：${h.text}`).join('\n');
+  const user = `${hist ? `# これまでの会話\n${hist}\n` : ''}# ${phase === 'summary' ? 'アンケートを書き終えたところ' : 'お客様の言葉'}\n${String(body.text || '').slice(0, 400)}`;
+  const r = await callJSON(env, { role: 'rep', system, user, schema: REP_SCHEMA, fallback: stockReply(HARNESS, co, phase), maxTokens: 900, tries: 3, validate: x => checkRep(x, { phase, company: co }) });
+  if (r.call.fallback && !r.data.stock) r.data = stockReply(HARNESS, co, phase);
+  const vals = body.slotValues || {};
+  r.data.say = fillSlots(r.data.say, vals); r.data.ask = r.data.ask ? fillSlots(r.data.ask, vals) : null;
+  r.data.line = [r.data.say, r.data.ask].filter(Boolean).join('');
+  r.data.notes = (r.data.notes || []).slice(0, 4).map(t => String(t).slice(0, 30));
+  r.data.deferred = (r.data.deferred || []).slice(0, 3).map(t => String(t).slice(0, 30));
+  return r;
+}
+// ひとりプレイ：AIのパートナーが、同じアンケートに答える（パートナーの人格から。答えは選択肢のidだけ）
+const PS_SCHEMA = { type: 'object', additionalProperties: false, required: ['answers'], properties: { answers: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['q', 'choices'], properties: { q: { type: 'string' }, choices: { type: 'array', items: { type: 'string' } } } } } } };
+async function partnerSurvey(env, body) {
+  const B = String(body.names?.b || 'パートナー').slice(0, 8);
+  const qs = SURVEY.questions.map(q => `- ${q.id}${q.multi ? '（複数可）' : ''}：${q.text}　${q.choices.map(c => `${c.id}=${c.label}`).join(' / ')}`).join('\n');
+  const system = `あなたは、家づくりの体験ゲームの中で、共働きの夫婦の妻（呼び名：${B}）を演じています。子ども二人の家族。仕事は忙しいが、家事の動線と家族の時間を大事にし、予算には少し慎重。住宅会社の来場者アンケートに、自分の考えで答えてください。夫と同じ答えに合わせる必要はありません。答えは選択肢のidだけで返します。`;
+  const fb = { answers: SURVEY.questions.map((q, i) => ({ q: q.id, choices: [q.choices[(i * 7 + 3) % Math.max(1, q.choices.length - 1)].id] })) };
+  const r = await callJSON(env, { role: 'partnerSurvey', system, user: `# アンケート\n${qs}`, schema: PS_SCHEMA, fallback: fb, maxTokens: 1500,
+    validate: x => x.answers.some(a => { const q = SURVEY.questions.find(y => y.id === a.q); return !q || !a.choices.length || a.choices.some(c => !q.choices.some(y => y.id === c)); }) ? '選択肢のidが合わない' : null });
   return r;
 }
 
@@ -403,7 +439,7 @@ export default {
       const body = await req.json().catch(() => ({}));
       if (path === '/api/play/start') { const msg = await guard(env, req, 'play'); return msg ? json({ ok: false, message: msg }, 429) : json({ ok: true, playId: rid() }); }
       if (path === '/api/log') return saveLog(env, body);
-      const ROLES = { '/api/ai/trade': trade, '/api/ai/hearing': hearing, '/api/ai/myai': myai, '/api/ai/report': report, '/api/ai/staff16': staff16, '/api/ai/entry': entry, '/api/ai/partner': partner, '/api/ai/planner': planner };
+      const ROLES = { '/api/ai/trade': trade, '/api/ai/hearing': hearing, '/api/ai/myai': myai, '/api/ai/report': report, '/api/ai/staff16': staff16, '/api/ai/entry': entry, '/api/ai/partner': partner, '/api/ai/planner': planner, '/api/ai/rep': rep, '/api/ai/partnerSurvey': partnerSurvey };
       const fn = ROLES[path];
       if (!fn) return json({ error: 'not found' }, 404);
       const limited = await guard(env, req, 'call');

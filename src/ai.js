@@ -19,7 +19,7 @@ export const PROMPTS = Object.fromEntries(Object.entries({ trade: tradeMd, heari
 
 export function modelFor(env, role) {
   const tier = PROMPTS[role]?.meta.model || 'MODEL_MID';
-  return env[tier] || { MODEL_TOP: 'claude-sonnet-5-5', MODEL_MID: 'claude-sonnet-5-5', MODEL_LIGHT: 'claude-haiku-5-5', MODEL_PARTNER: 'claude-sonnet-5-5', MODEL_PLANNER: 'claude-opus-5-5' }[tier];
+  return env[tier] || { MODEL_TOP: 'claude-sonnet-5-5', MODEL_MID: 'claude-sonnet-5-5', MODEL_LIGHT: 'claude-haiku-5-5', MODEL_PARTNER: 'claude-sonnet-5-5', MODEL_PLANNER: 'claude-opus-5-5', REP_MODEL: 'claude-sonnet-5-5' }[tier];
 }
 
 // 言葉はClaude、数字はコード：Claudeの文に算用数字が入っていたら差し戻す
@@ -50,14 +50,14 @@ async function create(c, params, { useFallback }) {
 const textOf = msg => (msg.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
 
 // 構造化出力（JSON）で1回だけ答えさせる。検証に落ちたら1回だけ再試行し、だめなら代わりの文を返す
-export async function callJSON(env, { role, user, schema, system, validate, fallback, effort = 'low', maxTokens = 2000 }) {
+export async function callJSON(env, { role, user, schema, system, validate, fallback, effort = 'low', maxTokens = 2000, tries = 2 }) {
   const p = PROMPTS[role];
   const model = modelFor(env, role);
   const rec = { role, model, promptVersion: p.meta.version, input: { system: system || p.body, user }, attempts: [], fallback: false };
   const c = client(env);
   const t0 = Date.now();
   if (!c) { rec.fallback = true; rec.reason = env.AI_MODE === 'mock' ? '代わりの処理（mock）' : 'APIキー未設定'; rec.output = fallback; rec.ms = 0; return { data: fallback, call: rec }; }
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < tries; i++) {
     try {
       const msg = await create(c, {
         model, max_tokens: maxTokens, system: system || p.body,

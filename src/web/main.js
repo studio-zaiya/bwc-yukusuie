@@ -5,6 +5,7 @@ import * as Y from './engine/engine.js';
 import { SCENES, snsHTML, myaiHTML, worldHTML, flyersHTML, phoneHTML, showHTML, setWho, setNames, MODE } from './scenes.js';
 import { ACTIONS } from './actions.js';
 import { tourAfterRender, tourHTML } from './tour.js';
+import { addNotes, syncHeard, wishesOf } from './memory.js';
 
 const Q = new URLSearchParams(location.search);
 export const REC = Q.has('rec');
@@ -23,6 +24,7 @@ export function initialState() {
     forkNo: 0, pendingSide: null, pendingTrade: null, band: null, calls: [], failed: null,
     aiLeft: {}, pop: null, myai: null, report: null, staff16: null, tab: null,
     lot: null, savedId: null, toast: null, buildAuto: false, rtab: 'home', plan: null, planRound: 0,
+    memory: null, sv: { i: 0, who: 'p1', p1: {}, p2: {}, last: null }, partnerAns: null, meet: {},
   };
 }
 export let S = initialState();
@@ -68,10 +70,16 @@ export function apply(s, e) {
         s.missed.push(...(e.data.missed || []).map(h => ({ ...h, co: e.co })));
         s.turns[e.ch || e.co] = (s.turns[e.ch || e.co] || 0) + 1;
       }
+      if (e.role === 'rep') {
+        s.chat.push({ who: 'staff', co: e.co, ch: e.ch || e.co, text: e.data.line, mock, flag: e.flag, stock: !!e.data.stock });
+        if (s.memory && e.phase !== 'confirm') { addNotes(s.memory, e.co, e.data.notes || [], e.phase === 'summary' ? 'summary' : 'followUp'); for (const d of e.data.deferred || []) if (!s.memory.deferred.some(x => x.text === d)) s.memory.deferred.push({ text: d, by: e.co, line: 'メモしておきます' }); if (e.phase === 'summary') s.memory.summaryByCompany[e.co] = e.data.say; syncHeard(s); }
+        s.turns[e.ch || e.co] = (s.turns[e.ch || e.co] || 0) + 1;
+      }
+      if (e.role === 'partnerSurvey') s.partnerAns = Object.fromEntries((e.data.answers || []).map(a => [a.q, a.choices]));
       if (e.role === 'myai') { s.myai = { q: e.q, scene: e.scene, mock, ...e.data }; s.aiLeft[s.scene] = 0; }
       if (e.role === 'report') s.report = { ...e.data, mock };
-      if (e.role === 'partner') { s.chat.push({ who: 'yuu', ch: e.ch, text: e.data.line, ai: true }); s.heard.push(...(e.data.wishes || []).map(x => ({ tag: x.tag, who: 'ゆう', text: x.text, co: e.co }))); }
-      if (e.role === 'entry') { s.entryRead = e.data; s.heard.push(...(e.data.elements || []).map(x => ({ tag: x.tag, who: 'ふたり', text: x.text, from: x.from }))); }
+      if (e.role === 'partner') { s.chat.push({ who: 'yuu', ch: e.ch, text: e.data.line, ai: true }); if (s.memory && e.co) { addNotes(s.memory, e.co, (e.data.wishes || []).map(x => x.text), 'partner', 'p2'); syncHeard(s); } else s.heard.push(...(e.data.wishes || []).map(x => ({ tag: x.tag, who: 'ゆう', text: x.text, co: e.co, keep: true }))); }
+      if (e.role === 'entry') { s.entryRead = e.data; if (s.memory && s.cur) { addNotes(s.memory, s.cur, (e.data.elements || []).map(x => x.text), 'show'); syncHeard(s); } else s.heard.push(...(e.data.elements || []).map(x => ({ tag: x.tag, who: 'ふたり', text: x.text, from: x.from, keep: true }))); }
       if (e.role === 'staff16') s.staff16 = e.data;
       if (e.role === 'trade') {
         s.pendingTrade = { decisionId: e.data.decisionId, text: e.text, ...e.data };
@@ -96,6 +104,11 @@ export function apply(s, e) {
     }
     case 'cancelTrade': s.pendingTrade = null; s.band = null; s.chat.push({ who: 'sys', ch: s.player.company, text: 'この条件では進めないことにした' }); break;
     case 'finish': Object.assign(s.player.finish, e.finish); break;
+    // v2：来場者アンケートと、要望の全体の記憶（HEARING_v2.md）
+    case 'svAns': s.sv[e.who][e.q] = e.ids; s.sv.last = { q: e.q, who: e.who }; break;
+    case 'svGo': s.sv.i = e.i; s.sv.who = e.who || 'p1'; break;
+    case 'mem': s.memory = structuredClone(e.memory); syncHeard(s); for (const w of wishesOf(s.memory)) { const i = s.wishes.findIndex(x => x.kind === w.kind); if (i >= 0) s.wishes[i] = w; else s.wishes.push(w); } break;
+    case 'meet': s.meet[e.co] = { ...(s.meet[e.co] || {}), ...e.data }; break;
     case 'electric': s.elecFresh = e.contract ? [] : e.ids; s.player.electric = [...new Set([...s.player.electric, ...e.ids])]; s.player.adds.push(...(e.adj || [])); if (e.contract) s.player.contractOpts = [...new Set([...(s.player.contractOpts || []), ...e.ids])]; break;
     case 'pop': s.pop = e.pop; break;
     case 'lot': s.lot = e.no; break;

@@ -1,6 +1,7 @@
 /* ゆくすいえ　場面ごとの描画。数字はすべてエンジン（engine.js）から。仕組みの名前は画面に出さない */
 import * as Y from './engine/engine.js';
 import * as P from './parts.js';
+import { buildMemory, SRC_LABEL } from './memory.js';
 
 // 金額の表示は万円単位の整数（計算の内部は小数のまま）
 const man = n => Math.round(Number(n)).toLocaleString('ja-JP');
@@ -15,9 +16,12 @@ const lab = (o, w) => typeof o.label === 'function' ? o.label(w) : o.label;
 const chOf = s => s.player ? s.player.company : s.cur;
 
 // ---- データ（情報収集、SNS）----
-export const DATA = { sources: null, sns: null, personas: null, electrical: null, ai: null, brochures: null };
+// アンケートの、確定前の選択（複数選べる問い）と、押した札の沈み（0.2秒）
+export const SV = { sel: [], pressed: null };
+export const DATA = { sources: null, sns: null, personas: null, electrical: null, ai: null, brochures: null, survey: null, harness: null };
 // 中身の素材集（data/content。期間中に claude.ai で作成）
-for (const [k, f] of [['sources', 'info_sources'], ['sns', 'sns_posts'], ['personas', 'personas'], ['electrical', 'electrical'], ['ai', 'ai_assistant'], ['brochures', 'brochures']]) fetch(`/data/content/${f}.json`).then(r => r.json()).then(j => { DATA[k] = j; }).catch(() => {});
+for (const [k, f] of [['sources', 'info_sources'], ['sns', 'sns_posts'], ['personas', 'personas'], ['electrical', 'electrical'], ['ai', 'ai_assistant'], ['brochures', 'brochures'], ['survey', 'survey'], ['harness', 'rep_harness']]) fetch(`/data/content/${f}.json`).then(r => r.json()).then(j => { DATA[k] = j; }).catch(() => {});
+export const dataReady = () => new Promise(res => { const t0 = Date.now(); const tick = () => (DATA.survey && DATA.harness && DATA.personas) || Date.now() - t0 > 5000 ? res() : setTimeout(tick, 50); tick(); });
 export const persona = co => DATA.personas?.staff.find(p => p.company === co);
 export const coordinator = s => { const cs = DATA.personas?.coordinators || []; return cs[(s.seed + (s.player ? Y.worldNo(s.player.bits.concat([0, 0, 0, 0]).slice(0, 4)) : 0)) % (cs.length || 1)]; };
 
@@ -179,10 +183,15 @@ export function wishLine(ch) {
 // 希望のボード：わかった希望（付箋）・まだ決まっていないこと・次に決めること
 const WISH_TXT = w => ({ totalMax: `総額 ${man(w.value)}万円以内`, monthlyMax: `月々 ${man(w.value)}万円以内`, areaMax: `${w.value}坪まで`, areaMin: `${w.value}坪は欲しい` }[w.kind] || w.text);
 function boardHTML(s) {
-  const st = s.heard.slice(-14);
+  // 付箋は要望の記憶から（同じ意味は1枚。出どころの印つき）。記憶がまだないときは、聞き取った言葉から
+  const items = s.memory ? s.memory.items.filter(x => x.deliveredTo[s.cur] !== undefined || !s.cur).slice(-14) : [];
+  const seen = new Set();
+  const old = s.memory ? [] : s.heard.filter(h => { const k = h.text; if (seen.has(k)) return false; seen.add(k); return true; }).slice(-14);
   const undecided = [!s.player || s.forkNo === 0 ? '建てる会社' : '', s.forkNo < 2 ? '屋根の形と広さ' : '', !s.wishes.some(w => w.kind === 'totalMax' || w.kind === 'monthlyMax') ? '予算の上限' : '', s.forkNo < 3 ? '外構をどこまで' : '', s.forkNo < 4 ? '外壁と床の仕上げ' : ''].filter(Boolean);
   const next = { hearing: s.visit[1] === s.cur ? '2社の提案を見比べる' : '帰り道に、伝え忘れを確かめる', forgot: '2社目を訪ねる', reply: '2社目を訪ねる' }[s.scene] || '';
-  return `<div class="board"><div class="bcol"><h4>わかった希望</h4><div class="bst">${st.length || s.wishes.length ? s.wishes.filter(w => w.kind !== 'priority').map(w => `<span class="sticky wish">${esc(WISH_TXT(w))}</span>`).join('') + st.map((h, i) => `<span class="sticky ${h.who === 'ゆう' ? 'yu' : h.who === 'かず' ? '' : 'both'}" style="--r:${(i * 37) % 7 - 3}deg">${esc(h.text.slice(0, 16))}</span>`).join('') : '<p class="note">担当者に話すと、ここに付箋がたまります。</p>'}</div></div>
+  const stick = (text, who, src, i) => `<span class="sticky ${who === 'p2' || who === 'ゆう' ? 'yu' : who === 'both' || who === 'ふたり' ? 'both' : ''}" style="--r:${(i * 37) % 7 - 3}deg">${src ? `<small>${SRC_LABEL[src] || src}</small>` : ''}${esc(String(text).slice(0, 16))}</span>`;
+  const body = items.length ? items.map((x, i) => stick(x.text, x.who, x.source, i)).join('') : old.length ? old.map((h, i) => stick(h.text, h.who, h.src || '', i)).join('') : '<p class="note">担当者に話すと、ここに付箋がたまります。</p>';
+  return `<div class="board"><div class="bcol"><h4>わかった希望</h4><div class="bst">${body}</div></div>
     <div class="bcol small"><h4>まだ決まっていないこと</h4><ul>${undecided.map(t => `<li>${t}</li>`).join('')}</ul><h4>次に決めること</h4><p>${next}</p></div></div>`;
 }
 
@@ -308,29 +317,48 @@ export const SCENES = {
         <div class="visitpick"><div style="font-weight:700;margin-bottom:8px">実際に訪ねる2社（${pick.length}/2）</div><div class="vp">${'ABCD'.split('').map(co => `<button class="vbtn" data-act="pickVisit" data-co="${co}" aria-pressed="${pick.includes(co)}">${P.coTag(co, 26)}${Y.COMPANIES[co].name}<small>${Y.COMPANIES[co].kind}</small></button>`).join('')}</div>
         <div style="text-align:right;margin-top:12px"><button class="big-btn" data-act="toVisit" ${pick.length === 2 ? '' : 'disabled'}>この2社を訪ねる</button></div></div></div></div>`;
   },
+  // v2：来場者アンケート（1画面1問、選ぶとすぐ次へ。上に「あと〇問」と進み具合。段が変わるとき軽く横にすべる）
   survey(s) {
-    const co = s.cur, h = H(s);
-    const title = { A: '来場者アンケート', B: 'かんたんアンケート', C: 'はじめに、少しだけ教えてください', D: 'ご相談シート' }[co];
-    return `${top(s)}${moneyBox(s)}<form class="sv ${co}" onsubmit="return false">
-      <h3>${P.coTag(co, 40)}${Y.COMPANIES[co].name}　${title}</h3><div class="sub">Tabで次へ。Ctrl＋Enterで記入を終えて、担当者のところへ。</div>
-      <div class="row"><div><label>家族構成</label><input id="sv_fam" value="夫婦と子ども2人"></div><div><label>いまの住まい</label><input id="sv_now" value="賃貸のアパート"></div></div>
-      <div class="row"><div><label>ご予算の目安（総額）</label><input id="sv_budget" placeholder="わからなければ空欄で"></div><div><label>入居したい時期</label><input id="sv_when" value="来年の春ごろ"></div></div>
-      <label><i class="sq"></i> ${esc(NAMES.kazu)} の要望</label><textarea id="sv_kazu">${esc(s.entry.text ? s.entry.text.slice(0, 80) : '')}</textarea>
-      <label><i class="ci"></i> ${esc(NAMES.yuu)} の要望</label><textarea id="sv_yuu"></textarea>
-      <label>気になっていること</label><textarea id="sv_worry" placeholder="例：お金のこと、性能のこと、間取りのこと"></textarea>
-      <div style="margin-top:18px;text-align:right"><button class="btn" data-act="submitSurvey">書き終えた</button></div></form>
-      <div class="svside">${P.avatar(co, 200, 'smile')}<p class="lead" style="margin-top:14px">${Y.COMPANIES[co].name}（${Y.COMPANIES[co].kind}）<br>${STAFFN(co)}</p>
-      ${s.entryRead?.elements?.length ? `<p class="note" style="font-weight:700;margin-top:10px">入口で読み取った要望</p><div class="chips2">${s.entryRead.elements.map(e => `<span>${esc(e.text)}<small>${esc(e.from)}</small></span>`).join('')}</div>` : ''}
-      <p class="note">世帯年収 ${man(h.income)}万円／借りられそうな額 ${man(Y.loanLimit(h))}万円までは、アンケートには書かなくても大丈夫です。</p></div>`;
+    const SVY = DATA.survey, co = s.cur;
+    if (!SVY) return `${top(s)}<div class="center"><p class="lead">アンケートを用意しています……</p></div>`;
+    const qs = SVY.questions, i = Math.min(s.sv.i, qs.length - 1), q = qs[i], who = s.sv.who;
+    const sec = SVY.sections.find(x => x.id === q.section), prevSec = i > 0 ? qs[i - 1].section : null;
+    const left = qs.length - i, pct = Math.round(i / qs.length * 100);
+    const cur = s.sv[who][q.id], sel = q.multi ? SV.sel : [];
+    const on = id => q.multi ? sel.includes(id) : (SV.pressed === id || cur === id);
+    // 前の問いの、パートナーの答え（ひとりプレイ）。違えば「ふたりの意見が違う」の印（金の破線◆）
+    let pa = '';
+    const lq = s.sv.last && qs.find(x => x.id === s.sv.last.q);
+    if (s.mode === 'solo' && lq && s.partnerAns?.[lq.id]) {
+      const mine = [].concat(s.sv.p1[lq.id] || []).filter(x => x !== 'none'), hers = s.partnerAns[lq.id].filter(x => x !== 'none');
+      const differs = mine.length && hers.length && !(mine.length === hers.length && mine.every(x => hers.includes(x)));
+      pa = `<div class="sv-pa ${differs ? 'diff' : ''}"><i class="ci"></i>${esc(NAMES.yuu)}は「${esc(hers.map(id => lq.choices.find(c => c.id === id)?.label || '').join('、') || 'こだわらない')}」${differs ? '<b>◆ ふたりの意見が違う</b>' : ''}<small>（${esc(lq.text.replace(/（.*?）/g, ''))}）</small></div>`;
+    }
+    const preview = buildMemory(SVY, s.sv.p1, s.mode === 'duo' ? s.sv.p2 : {});
+    const lastQ = s.sv.last?.q;
+    const stickies = preview.items.slice(-16).map((x, k) => `<span class="sticky ${x.who === 'p2' ? 'yu' : x.who === 'both' ? 'both' : ''} ${x.q === lastQ ? 'fly' : ''}" style="--r:${(k * 37) % 7 - 3}deg">${esc(x.text)}</span>`).join('');
+    return `${top(s)}<div class="svy">
+      <div class="sv-hd">${P.coTag(co, 30)}<b>${Y.COMPANIES[co].name}　来場者アンケート</b><span class="sv-left">あと${left}問</span><div class="sv-bar"><i style="width:${pct}%"></i></div></div>
+      <div class="sv-card ${prevSec && prevSec !== q.section ? 'slide' : ''}" data-i="${i}">
+        <div class="sv-sec">${esc(sec?.label || '')}${s.mode === 'duo' ? `　<span class="sv-who"><i class="${who === 'p1' ? 'sq' : 'ci'}"></i>${esc(who === 'p1' ? NAMES.kazu : NAMES.yuu)}の番</span>` : ''}</div>
+        <h2 class="sv-q">${esc(q.text)}</h2>
+        <div class="sv-ch ${q.choices.length > 5 ? 'many' : ''}">${q.choices.map(c => `<button class="sv-o ${on(c.id) ? 'on' : ''} ${c.id === 'none' ? 'nopref' : ''}" data-act="svPick" data-id="${c.id}" aria-pressed="${on(c.id)}">${esc(c.label)}</button>`).join('')}</div>
+        <div class="sv-nav">${i > 0 || who === 'p2' ? '<button class="sv-back" data-act="svBack" aria-label="前の問いに戻る">＜</button>' : '<span></span>'}${q.multi ? `<button class="big-btn" data-act="svNext">${sel.length ? 'つぎへ' : 'こだわらない（つぎへ）'}</button>` : '<span class="note">選ぶと、次の問いへ進みます</span>'}</div>
+        ${pa}
+      </div>
+      <div class="sv-board"><h4>わかった希望</h4><div class="bst">${stickies || '<p class="note">答えると、ここに付箋がたまります。</p>'}</div>
+        <div class="svside2">${P.avatar(co, 120, 'smile')}<p>${Y.COMPANIES[co].name}・${STAFFN(co)}<br><span class="note">選ぶだけ、2分ほどです。</span></p></div></div>
+    </div>`;
   },
+  // 総括 → 追加の質問と補足（2〜4往復）→ 時間が来たら担当者が区切る（初回打ち合わせは60分の枠）
   hearing(s) {
-    const co = s.cur, n = s.chat.filter(m => m.ch === co && (m.who === 'kazu' || m.who === 'yuu') && !m.ai).length, second = s.visit[1] === co;
-    const need = second ? 2 : 3, left = Math.max(0, need - n);
-    const last = [...s.chat].reverse().find(m => m.ch === co && m.who === 'staff');
-    const choices = !busy.on && last?.choices?.length ? last.choices.map(c => `<button class="opt ch" data-act="choose" data-t="${esc(c)}">${esc(c)}</button>`).join('') + `<button class="opt ch" data-act="choose" data-t="おまかせします">おまかせ</button>` : '';
-    const end = left === 0 ? `<button class="opt" data-act="${second ? 'toCompare' : 'toForgot'}" ${busy.on ? 'disabled' : ''}>${second ? 'ヒアリングを終えて、提案を待つ' : 'ヒアリングを終えて、帰宅する'}</button>` : `<span class="note" style="align-self:center">あと${left}回答えると、${second ? '提案を待てます' : '帰宅できます'}</span>`;
-    const show = `<button class="opt" data-act="openShow">写真やURLを見せる</button>`;
-    return `${chrome(s)}${hero(s, boardHTML(s), 'withboard')}<div class="right ${tall(s)}">${chat(s, { ch: co, head: staffHead(co, busy.on ? 'think' : 'idle', second ? '2社目' : '1社目'), opts: choices + end + show, thinking: busy.on, placeholder: '担当者の質問に答える・自由に伝える（選択肢を押してもかまいません）' })}</div>${gallery(s)}`;
+    const co = s.cur, second = s.visit[1] === co, mt = s.meet[co] || { rounds: 0, min: 0 };
+    const canEnd = (mt.rounds >= 2 || mt.ended) && !busy.on;
+    const clock = `<div class="meetclk"><b>打ち合わせ ${Math.min(60, mt.min)}分</b>／60分<span>追加の質問 ${mt.rounds}往復（2〜4往復）</span><div class="mbar"><i style="width:${Math.min(100, mt.min / 60 * 100)}%"></i></div></div>`;
+    const quick = !busy.on && !mt.ended ? ['おまかせします', 'あとで考えます'].map(t => `<button class="opt ch" data-act="choose" data-t="${t}">${t}</button>`).join('') + `<button class="opt" data-act="openShow">写真やURLを見せる</button>` : '';
+    const end = mt.ended ? `<button class="opt" style="background:var(--ink);color:var(--paper)" data-act="${second ? 'toCompare' : 'toForgot'}" ${busy.on ? 'disabled' : ''}>${second ? '打ち合わせを終えて、提案を待つ' : '打ち合わせを終えて、帰宅する'}</button>`
+      : canEnd ? `<button class="opt" data-act="endMeeting">今日はこのあたりで</button>` : `<span class="note" style="align-self:center">${busy.on ? '担当者の返事を待っています' : `あと${Math.max(0, 2 - mt.rounds)}往復で、区切れます`}</span>`;
+    return `${chrome(s)}${hero(s, boardHTML(s), 'withboard')}<div class="right ${tall(s)}">${chat(s, { ch: co, head: staffHead(co, busy.on ? 'think' : 'idle', second ? '2社目' : '1社目') + clock, opts: quick + end, thinking: busy.on, placeholder: mt.ended ? '今日の打ち合わせは終わりました' : '担当者に答える・補足する' })}</div>${gallery(s)}`;
   },
   forgot(s) {
     const co = s.visit[0];

@@ -2,7 +2,8 @@
  * Claudeが応答できなかったときは、代わりの文で成功したように見せず、「応答できませんでした（もう一度）」を出す */
 import * as Y from './engine/engine.js';
 import { S, emit, api, render } from './main.js';
-import { busy, setWho, getWho, persona, DATA, PHONE, SHOW, NAMES, unkept, FORK_DONE } from './scenes.js';
+import { busy, setWho, getWho, persona, DATA, PHONE, SHOW, NAMES, unkept, FORK_DONE, dataReady, SV } from './scenes.js';
+import { buildMemory, deliver, addItem, memoryText, conflictsOf } from './memory.js';
 import { setFace } from './parts.js';
 import { tourNext, tourSkip, tourHelp } from './tour.js';
 
@@ -22,13 +23,18 @@ const nameOf = w => w === 'yuu' ? NAMES.yuu : NAMES.kazu;
 let lastSend = null; // 応答できなかったときに、もう一度送るため
 
 // 担当者に送る（ヒアリング・返信・質問・電気で共通）
-async function askStaff({ co, ch, scene, text, flag, history = true }) {
-  lastSend = { co, ch, scene, text, flag, history };
+// 担当者は、場面ごとに役割を分けたハーネス（rep_harness.json）で話す。phase：summary／followUp／proposal／adjust／confirm
+const PHASE_OF = { hearing: 'followUp', reply: 'followUp', forgot: 'followUp', compare: 'proposal', plan: 'proposal', contract: 'proposal', electric: 'confirm', coord: 'confirm' };
+async function askStaff({ co, ch, scene, text, flag, history = true, phase }) {
+  lastSend = { co, ch, scene, text, flag, history, phase };
+  const ph = phase || PHASE_OF[S.scene] || 'proposal';
   await withBusy(async () => {
-    const hist = history ? S.chat.filter(m => m.ch === ch && m.who !== 'sys').map(m => ({ who: m.who === 'staff' ? '担当者' : m.who === 'partner' ? 'ゆう' : nameOf(m.who), text: m.text })) : [];
-    const r = await api('/api/ai/hearing', { company: co, scene, history: hist, text, names: S.names });
-    if (isRealFail(r.call)) { emit('fail', { role: 'hearing', ch, call: r.call }); return; }
-    emit('ai', { role: 'hearing', co, ch, data: r.data, call: r.call, flag });
+    const hist = history ? S.chat.filter(m => m.ch === ch && m.who !== 'sys').map(m => ({ who: m.who === 'staff' ? '担当者' : nameOf(m.who === 'partner' ? 'yuu' : m.who), text: m.text })) : [];
+    const memory = S.memory && DATA.survey ? memoryText(DATA.survey, S.memory, co, S.names) : requests();
+    let r = await api('/api/ai/rep', { company: co, phase: ph, history: hist, text, names: S.names, memory, extra: scene || '' });
+    // 応答できなかったときは、自動で1回だけ送り直す（受け入れ基準0-5）。それでもだめなら、決まり文句で続ける（Worker側）
+    if (isRealFail(r.call)) r = await api('/api/ai/rep', { company: co, phase: ph, history: hist, text, names: S.names, memory, extra: scene || '' });
+    emit('ai', { role: 'rep', co, ch, phase: ph, data: r.data, call: r.call, flag });
     faceTalk();
   });
 }
@@ -44,12 +50,20 @@ export const ACTIONS = {
   async continueStart() {
     let playId = null;
     try { const r = await api('/api/play/start', {}); playId = r.playId; } catch (e) { toast(String(e.message)); return; }
+    await dataReady();
     emit('start', { seed: 7, playId }); emit('mode', { mode: 'solo' }); emit('names', { a: 'あなた', b: 'パートナー' });
     emit('visit', { cos: ['C', 'A'] });
-    const said = [['C', 'kazu', '外観はシンプルで、箱っぽい家が好きです。'], ['C', 'yuu', '台所と洗面を近くして、朝の家事を楽にしたい。'], ['C', 'kazu', '冬でも暖かい家にしたい。予算は総額5100万円まで、月々は13万円くらいまでにしたいです。'], ['C', 'yuu', 'テレビは壁掛けにしたいな。'], ['C', 'yuu', 'リビングのエアコンは、見えないようにしたいです。'], ['A', 'kazu', '性能はどのくらいですか？']];
-    for (const [co, who, text] of said) emit('say', { who, ch: co, text });
-    const heard = [['C', 'かず', '外観はシンプルな箱型'], ['C', 'ゆう', '台所と洗面を近く'], ['C', 'かず', '冬でも暖かい家'], ['C', 'ゆう', 'テレビは壁掛け'], ['A', 'かず', '性能の確かさ']];
-    emit('ai', { role: 'hearing', co: 'C', ch: 'C', data: { line: 'ありがとうございます。いただいたご要望で、プランと総額の見積をお出しします。', honne: '', heard: heard.map(([co, who, text]) => ({ tag: text, who, text, co })), missed: [], choices: [], wishes: [{ kind: 'totalMax', value: 5100, text: '総額5100万円まで' }, { kind: 'monthlyMax', value: 13, text: '月々13万円くらいまで' }, { kind: 'priority', value: null, text: '冬の暖かさ' }] }, call: { role: 'preset', reason: 'preset（続きから遊ぶ）' } });
+    // 打ち合わせ済みの家族：来場者アンケートの答え（ふたり分）から、要望の記憶を作る【Claudeが決めた仮の答え】
+    const p1 = { cars: 'c2', carport: 'yes', outside: ['shed', 'bike'], ldk_size: 'm', kitchen: 'face_open', dining: 'side', tv: 'wall', ldk_feel: ['view'], entry: ['path', 'shoes'], laundry: 'in', bath: 'sep', storage: ['pantry', 'family'], kids: 'split', bedroom: 's', work: 'corner', extra: ['none'], style: 'simple', roof: 'flat', warm: 'top', budget_total: 'b50', budget_month: 'm14' };
+    const p2 = { ...p1, roof: 'gable', ldk_feel: ['tatami'], laundry: 'dryer', budget_month: 'm12' };
+    for (const [q, ids] of Object.entries(p1)) emit('svAns', { q, who: 'p1', ids });
+    const m = buildMemory(DATA.survey, p1, p2);
+    deliver(m, 'C', DATA.harness.companies.C.oftenMiss, 7);
+    // 打ち合わせで話したのに、担当者の記録に入らなかったこと（電気の打ち合わせで、伝え漏れに気づく種）
+    addItem(m, { text: 'リビングのエアコンは見えないように', who: 'p2', source: 'followUp', co: 'C', delivered: 'missed' });
+    deliver(m, 'A', DATA.harness.companies.A.oftenMiss, 7);
+    emit('mem', { memory: m });
+    for (const [co, who, text] of [['C', 'staff', 'ご記入ありがとうございます。外まわりまで目の届く、すっきりした箱の家で、冬でも暖かい暮らしがご希望なのですね。屋根の形はおふたりで好みが分かれているようなので、外観と一緒に考えましょう。'], ['C', 'yuu', 'リビングのエアコンは、見えないようにしたいです。'], ['C', 'staff', '承知しました。メモしておきますので、全体の計画の中で調整しましょう。'], ['A', 'staff', '本日はご来場ありがとうございます。いただいたアンケート、拝見しました。性能と資金計画の両方から、ご提案をお持ちします。']]) emit('say', who === 'staff' ? { who, co, ch: co, text } : { who, ch: co, text });
     emit('say', { who: 'sys', ch: 'C', text: '（ここまでの打ち合わせは、済ませてあります）' });
     emit('pair', { pair: ['C', 'A'] }); emit('world', {}); goto('fork', 2);
   },
@@ -88,26 +102,34 @@ export const ACTIONS = {
     const v = S.visit.includes(d.co) ? S.visit.filter(x => x !== d.co) : [...S.visit, d.co].slice(-2);
     emit('visit', { cos: v });
   },
-  toVisit() { if (S.visit.length !== 2) return; emit('cur', { co: S.visit[0] }); goto('survey', 1); },
-  submitSurvey() {
-    const a = { fam: val('sv_fam'), now: val('sv_now'), budget: val('sv_budget'), when: val('sv_when'), kazu: val('sv_kazu'), yuu: val('sv_yuu'), worry: val('sv_worry') };
-    emit('survey', { answers: a });
-    const co = S.cur;
-    const open = [S.entryRead?.aside, persona(co)?.tone[0] || 'ご来場ありがとうございます。まずは、おふたりの理想を聞かせてください。'].filter(Boolean).join('');
-    goto('hearing', 1);
-    emit('say', { who: 'staff', co, ch: co, text: open });
+  // v2：来場者アンケート（1画面1問）。ひとりプレイでは、AIのパートナーも同じ問いに答える（先に答えをもらっておく）
+  async toVisit() {
+    if (S.visit.length !== 2) return;
+    await dataReady();
+    emit('cur', { co: S.visit[0] }); emit('svGo', { i: 0, who: 'p1' }); goto('survey', 1);
+    if (S.mode === 'solo' && !S.partnerAns) { try { const r = await api('/api/ai/partnerSurvey', { names: S.names }); if (!isRealFail(r.call)) emit('ai', { role: 'partnerSurvey', data: r.data, call: r.call }); } catch { /* パートナーの答えがなくても進める */ } }
   },
+  svPick(d) {
+    const q = DATA.survey.questions[S.sv.i]; if (!q) return;
+    if (q.multi) { const cur = SV.sel; if (d.id === 'none') SV.sel = ['none']; else { const x = cur.filter(v => v !== 'none'); SV.sel = x.includes(d.id) ? x.filter(v => v !== d.id) : [...x, d.id]; } render(); return; }
+    SV.pressed = d.id; render();
+    setTimeout(() => { SV.pressed = null; svCommit(q, [d.id]); }, 200);
+  },
+  svNext() { const q = DATA.survey.questions[S.sv.i]; if (!q) return; svCommit(q, SV.sel.length ? SV.sel : ['none']); },
+  svBack() { SV.sel = []; if (S.sv.who === 'p2') emit('svGo', { i: S.sv.i, who: 'p1' }); else if (S.sv.i > 0) emit('svGo', { i: S.sv.i - 1, who: S.mode === 'duo' ? 'p2' : 'p1' }); },
   who(d) { setWho(d.w); render(); },
+  // 追加の質問と補足（2〜4往復）。往復ごとに打ち合わせの時計が進み、残りが15分を切るか4往復で、担当者が区切る
   async send() {
     const text = val('say'); if (!text) return; clear('say');
-    const who = getWho(), co = S.cur, second = S.visit[1] === co;
+    const who = getWho(), co = S.cur, mt = S.meet[co] || { rounds: 0, min: 15 };
+    if (mt.ended) return;
     emit('say', { who, ch: co, text });
-    const scene = second
-      ? `2社目の初回打ち合わせ。施主は前の会社と同じ要望を伝えている（${requests()}）。この会社の視点で、質問や助言をする。`
-      : `1社目の初回打ち合わせ（ヒアリング）。${requests()}。ご主人（かず）と奥様（ゆう）の両方に聞く。話題：暮らし方と家族の時間帯、収納と家事の動線、予算と資金、土地、性能、デザイン、将来の変化。`;
-    await askStaff({ co, ch: co, scene, text: `${nameOf(who)}：${text}` });
-    await partnerAnswers(co, scene);
+    emit('meet', { co, data: { rounds: mt.rounds + 1, min: mt.min + 10 } });
+    await askStaff({ co, ch: co, phase: 'followUp', text: `${nameOf(who)}：${text}`, scene: S.visit[1] === co ? '2社目の初回打ち合わせ。アンケートの答えは1社目と同じ。' : '1社目の初回打ち合わせ。' });
+    await partnerAnswers(co);
+    maybeEndMeeting(co);
   },
+  endMeeting() { closeMeeting(S.cur); },
   async retry() { if (lastSend) await askStaff(lastSend); },
   async toForgot() {
     goto('forgot', 1);
@@ -115,20 +137,34 @@ export const ACTIONS = {
     // ひとりプレイ：パートナーも、自分が伝え忘れたことを一つ言う（その言葉も担当者に送れる）
     if (S.mode === 'solo') await partnerSays('partner', `帰り道。${Y.COMPANIES[S.visit[0]].name}の打ち合わせのあと。担当者に伝え忘れたことを、自分の分を一つだけ言い、夫にも聞く。`, '伝え忘れたこと、ある？', true);
   },
+  // 帰り道の「これだけは！」は1〜2個まで
   sayPartner() {
-    const text = val('say'); if (!text) return; clear('say');
+    const text = val('say'); if (!text) return;
+    if (S.chat.filter(m => m.ch === 'partner' && m.forgot && !m.byPartner).length >= 2) { toast('送れるのは、2つまでです'); return; }
+    clear('say');
     emit('say', { who: 'kazu', ch: 'partner', text, forgot: true });
     emit('say', { who: 'partner', ch: 'partner', text: `それ、${Y.COMPANIES[S.visit[0]].staff}さんに送っておこうよ。` });
   },
   async sendForgot() {
     const co = S.visit[0];
-    const text = S.chat.filter(m => m.ch === 'partner' && m.forgot).map(m => (m.byPartner ? NAMES.yuu + '：' : '') + m.text).join('\n');
+    const lines = S.chat.filter(m => m.ch === 'partner' && m.forgot).slice(-3);
+    const text = lines.map(m => (m.byPartner ? NAMES.yuu + '：' : '') + m.text).join('\n');
+    // 帰り道に送ったことも、要望の記憶に（出どころ：メッセージ。この会社には伝わった）
+    if (S.memory) { const m = structuredClone(S.memory); for (const l of lines) { m.messages.push({ to: co, text: l.text, day: 7 }); addItem(m, { text: l.text.slice(0, 30), who: l.byPartner ? 'p2' : 'p1', source: 'message', co }); } emit('mem', { memory: m }); }
     goto('reply', 1);
     emit('say', { who: 'kazu', ch: 'msg', text });
     await new Promise(r => setTimeout(r, 1500)); // 返信は少し時間をおいて届く
-    await askStaff({ co, ch: 'msg', scene: '帰宅後、施主からメッセージアプリで届いた「伝え忘れたこと」への、翌日の返信。短く。', text, flag: 'forgot', history: false });
+    await askStaff({ co, ch: 'msg', phase: 'followUp', scene: '帰宅後、施主からメッセージアプリで届いた「伝え忘れたこと」への、翌日の返信。受け止めて、どう扱うかを短く。質問はしない。', text, flag: 'forgot', history: false });
   },
-  toSecond() { emit('cur', { co: S.visit[1] }); goto('hearing', 1); emit('say', { who: 'sys', ch: S.visit[1], text: `${Y.COMPANIES[S.visit[0]].name}と同じ要望を伝えた` }); emit('say', { who: 'staff', co: S.visit[1], ch: S.visit[1], text: secondOpening(S.visit[1]) }); },
+  // 2社目：同じアンケートの答えを使い回す（総括の切り口だけが会社で違う）
+  async toSecond() {
+    const co = S.visit[1];
+    emit('cur', { co });
+    if (S.memory) { const m = structuredClone(S.memory); deliver(m, co, DATA.harness.companies[co].oftenMiss, S.seed); emit('mem', { memory: m }); }
+    goto('hearing', 1);
+    emit('say', { who: 'sys', ch: co, text: `${Y.COMPANIES[S.visit[0]].name}で書いたアンケートを、そのまま渡した` });
+    await startMeeting(co);
+  },
   toCompare() { emit('tab', { co: S.visit[0] }); goto('compare', 2); },
   tab(d) { emit('tab', { co: d.co }); },
   async askCompare() {
@@ -182,7 +218,8 @@ export const ACTIONS = {
     const inList = Y.electricOf(text).filter(id => S.player.electric.includes(id));
     if (!ids.length && inList.length) { emit('say', { who: 'staff', co, ch: 'elec', text: `${inList.map(id => Y.ELECTRIC.options.find(o => o.id === id).label).join('、')}は、図面に入っています（左の一覧）。ほかに気になるところはありますか？` }); faceTalk(); return; }
     if (!ids.length) { await askStaff({ co, ch: 'elec', scene: '契約後の電気の打ち合わせ。施主の指摘が、電気の項目に当たらない。確認して次回お返事すると、ていねいに伝える（金額は言わない）。', text, flag: 'electric', history: false }); return; }
-    const before = [...words().filter(m => m.ch !== 'elec'), { text: S.entry.text || '' }, { text: Object.values(S.survey || {}).join(' ') }];
+    const memItems = S.memory?.items || [];
+    const before = [...words().filter(m => m.ch !== 'elec'), { text: S.entry.text || '' }, ...memItems.map(x => ({ text: x.text }))];
     const told = ids.filter(id => before.some(m => Y.ELECTRIC_WORDS[id].test(m.text)));
     const pol = Y.missedPolicy(co, Y.outcome(S.player).skill);
     const adj = told.map(id => { const o = Y.ELECTRIC.options.find(x => x.id === id); return { label: `伝え漏れの扱い：${o.label}`, v: -Math.round(o.v * (1 - pol.rate) * 10) / 10 }; }).filter(a => a.v);
@@ -195,6 +232,9 @@ export const ACTIONS = {
     busy.on = false;
     emit('say', { who: 'staff', co, ch: 'elec', text: lines.filter(Boolean).join('') || '承知しました。' });
     emit('electric', { ids, adj, told, policy: told.length ? pol.kind : null });
+    // 根拠：いつ、どこで伝えていたか（アンケートに書いたのに／帰り道に送ったのに）
+    const ev = told.map(id => memItems.find(x => Y.ELECTRIC_WORDS[id].test(x.text))).filter(Boolean);
+    if (ev.length) emit('say', { who: 'sys', ch: 'elec', text: `根拠：${ev.map(x => `「${x.text}」は${{ survey: 'アンケートに書いていた', message: '帰り道にメッセージで送っていた', followUp: '打ち合わせで話していた', partner: '打ち合わせで話していた', summary: '打ち合わせで話していた', show: '写真で見せていた' }[x.source] || '伝えていた'}`).join('／')}` });
     faceTalk();
   },
   toBuild() { goto('build', 7); },
@@ -367,20 +407,52 @@ function saveNames() {
   if (a || b) emit('names', { a: (a?.value || '').trim() || 'あなた', b: (b?.value || '').trim() || 'パートナー' });
 }
 // ひとりプレイ：担当者が妻に聞いたとき、パートナー（AI）が答え、担当者がそれを受ける（1往復だけ）
-async function partnerAnswers(co, scene) {
+async function partnerAnswers(co) {
   if (S.mode !== 'solo') return;
   const last = [...S.chat].reverse().find(m => m.ch === co && m.who === 'staff');
-  if (!last || !new RegExp(`奥様|奥さま|${NAMES.yuu}さん|おふたり|お二人`).test(last.text)) return;
+  if (!last || !new RegExp(`奥様|奥さま|${NAMES.yuu}さん|おふたり|お二人`).test(last.text) || !/[？?]/.test(last.text)) return;
   await withBusy(async () => {
     const hist = S.chat.filter(m => m.ch === co && m.who !== 'sys').slice(-8).map(m => ({ who: m.who === 'staff' ? '担当者' : nameOf(m.who), text: m.text }));
-    const r = await api('/api/ai/partner', { names: S.names, scene: '住宅会社の初回打ち合わせ。担当者に聞かれたことに答える。', history: hist, ask: last.text });
+    const r = await api('/api/ai/partner', { names: S.names, scene: '住宅会社の初回打ち合わせ。担当者に聞かれたことに、短く答える。', history: hist, ask: last.text });
     if (isRealFail(r.call)) return;
     emit('ai', { role: 'partner', co, ch: co, data: r.data, call: r.call });
   });
-  const said = [...S.chat].reverse().find(m => m.ch === co && m.who === 'yuu' && m.ai);
-  if (said) await askStaff({ co, ch: co, scene, text: `${NAMES.yuu}：${said.text}` });
 }
-
+// アンケートの1問を確定して、次の問いへ（ふたりで遊ぶときは、同じ問いに交互に答える）
+function svCommit(q, ids) {
+  SV.sel = [];
+  const who = S.sv.who;
+  emit('svAns', { q: q.id, who, ids: q.multi ? ids : ids[0] });
+  const n = DATA.survey.questions.length;
+  if (S.mode === 'duo' && who === 'p1') { emit('svGo', { i: S.sv.i, who: 'p2' }); return; }
+  if (S.sv.i + 1 < n) emit('svGo', { i: S.sv.i + 1, who: 'p1' }); else finishSurvey();
+}
+// アンケートを書き終えた：記憶を作り、その会社に伝わったものを決め、担当者が総括する
+async function finishSurvey() {
+  const p2 = S.mode === 'duo' ? S.sv.p2 : (S.partnerAns ? Object.fromEntries(Object.entries(S.partnerAns).map(([k, v]) => { const q = DATA.survey.questions.find(x => x.id === k); return [k, q?.multi ? v : v[0]]; })) : {});
+  const m = buildMemory(DATA.survey, S.sv.p1, p2);
+  deliver(m, S.cur, DATA.harness.companies[S.cur].oftenMiss, S.seed);
+  emit('mem', { memory: m });
+  goto('hearing', 1);
+  await startMeeting(S.cur);
+}
+async function startMeeting(co) {
+  emit('meet', { co, data: { rounds: 0, min: 15, ended: false } });
+  const cf = conflictsOf(S.memory);
+  await askStaff({ co, ch: co, phase: 'summary', history: false, text: '（アンケートを書き終えて、担当者に渡した）', scene: `${S.visit[1] === co ? '2社目。1社目と同じアンケートの答えを受け取った。総括の切り口は、あなたの会社の個性で。' : '1社目。'}${cf.length ? `両立が難しそうな組み合わせのうち、言うのは一つだけ：${cf[0]}` : ''}` });
+}
+// 区切り：4往復か、残りが15分を切ったとき（2往復を終えていて担当者が区切ってよいと判断したときも）
+function maybeEndMeeting(co) {
+  const mt = S.meet[co]; if (!mt || mt.ended) return;
+  const last = [...S.chat].reverse().find(m => m.ch === co && m.who === 'staff');
+  if (mt.rounds >= 4 || mt.min >= 45) closeMeeting(co);
+  else if (mt.rounds >= 2 && last && /このあたりにしましょう/.test(last.text)) emit('meet', { co, data: { ended: true } });
+}
+function closeMeeting(co) {
+  if (S.meet[co]?.ended) return;
+  emit('say', { who: 'staff', co, ch: co, text: '今日はこのあたりにしましょうか。次回までに、ラフなプランと概算をお持ちします。' });
+  emit('meet', { co, data: { ended: true } });
+}
 function secondOpening(co) {
   const got = S.heard.slice(-3).map(h => h.text).join('、');
   const by = { A: '弊社の標準仕様で、どこまで叶うか確かめさせてください。', B: '規格プランのどれが近いか、一緒に見ていきましょう！', C: 'いくつか、詳しく伺ってもいいですか。', D: 'だいたいできますよ。気になってることから聞かせてください。' }[co];
@@ -391,7 +463,7 @@ function secondOpening(co) {
 async function planCall(text) {
   await withBusy(async () => {
     const cur = S.plan ? (S.plan.view != null ? S.plan.options[S.plan.view].plan : S.plan.main) : null;
-    const r = await api('/api/ai/planner', { world: S.player, wishes: S.wishes, heard: S.heard.map(h => ({ who: nameOf(h.who === 'ゆう' ? 'yuu' : 'kazu'), text: h.text })), current: cur, text, round: (S.planRound || 0) + 1 });
+    const r = await api('/api/ai/planner', { world: S.player, wishes: S.wishes, heard: [...S.heard.filter(h => !h.co || h.co === S.player.company).map(h => ({ who: h.who === 'ふたり' ? 'ふたり' : nameOf(h.who === 'ゆう' ? 'yuu' : 'kazu'), text: h.text })), ...(S.memory?.deferred || []).filter(d => d.by === S.player.company).map(d => ({ who: '担当者が預かった', text: d.text }))], current: cur, text, round: (S.planRound || 0) + 1 });
     if (!r.ok) { emit('fail', { role: 'planner', ch: 'plan', call: r.call }); return; }
     emit('planGot', { data: { intro: r.intro, main: r.main, mainM: r.mainM, options: r.options, altIndex: r.altIndex, fallback: !!r.fallback }, round: !!text, call: r.call });
   });
