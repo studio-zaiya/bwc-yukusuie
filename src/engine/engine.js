@@ -251,7 +251,8 @@ export function scheduleOf(world) {
   return days;
 }
 export function schedule(world, addDays = 0) {
-  const d = scheduleOf(world), contractDay = d[5] + (world.delay || 0) + addDays;
+  // 契約の日は、画面の契約の場面と同じ値（scheduleOf の4番目。監査11/6：条件は82日目、画面は62日目と食い違っていた）
+  const d = scheduleOf(world), contractDay = d[4] + (world.delay || 0) + addDays;
   return { contractDay, loanLeft: DEADLINE.loan - contractDay - (world.loanReview || 0), handover: d[10] + addDays, ok: contractDay <= DEADLINE.loan };
 }
 
@@ -403,7 +404,7 @@ export function simulate(w, d, rawProposal) {
   const conditions = [];
   const R = v => Math.round(v).toLocaleString();
   if (q.diff) conditions.push(`総額 ${q.diff > 0 ? '+' : ''}${R(q.diff)}万円（${R(q.before)} → ${R(q.after)}万円）`);
-  if (proposal.borrow === 'cover' && lc.diff > 0) conditions.push(`借入 +${R(lc.diff)}万円（月々 約+${lc.monthlyDiff.toLocaleString()}円、返済負担率 ${lc.ratio}%）`);
+  if (proposal.borrow === 'cover' && lc.diff > 0) conditions.push(`借入 +${R(lc.diff)}万円（月々 約+${(Math.round(lc.monthlyDiff / 1000) / 10).toFixed(1)}万円、返済負担率 ${lc.ratio}%）`);
   if (fromSavings) conditions.push(`手元に残す分から ${R(fromSavings)}万円を出す`);
   if (sc.addDays) conditions.push(`本審査のやり直し +${sc.addDays}日（契約は${sc.contractDay}日目、ローン特約の期限は${DEADLINE.loan}日目）`);
   if (!cv.ok) conditions.push(`建蔽率の上限を超える（${cv.total}㎡ ／ 上限 ${cv.limit}㎡）`);

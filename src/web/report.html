@@ -115,10 +115,11 @@ const protectedOf = i => {
   const memo = (D.player.memory || []).find(m => m.decisionId === `D${i + 1}`);
   if (memo?.reason) return { t: memo.reason, by: '自由回答' };
   const o2 = sib(i); if (!o2) return { t: '—', by: '選んだ札' };
-  if (warmTop && !warmUsed && me.warmth.level > o2.warmth.level) { warmUsed = true; return { t: '冬の暖かさ（いちばん大事と答えた）', by: 'アンケート' }; }
+  if (i > 0 && warmTop && !warmUsed && me.warmth.level > o2.warmth.level) { warmUsed = true; return { t: '冬の暖かさ（いちばん大事と答えた）', by: 'アンケート' }; }
   if (me.choiceTotal < o2.choiceTotal - 5) return { t: `総額を抑えること（もう一方より ${man(o2.choiceTotal - me.choiceTotal)}万円低い）`, by: '選んだ札' };
   if (i === 0) return { t: `${Y.COMPANIES[me.company].kind}の${Y.COMPANIES[me.company].name}と建てること`, by: '選んだ札' };
-  return { t: `${String(me.labels[i]).replace(/(にする|で進める|を受ける)$/, '')}の暮らし（もう一方より ${man(me.choiceTotal - o2.choiceTotal)}万円高い）`, by: '選んだ札' };
+  const dif = me.warmth.level > o2.warmth.level ? `冬の暖かさ（もう一方は「${o2.warmth.label}」）` : me.spec.tsubo > o2.spec.tsubo ? `広さ（もう一方より ${me.spec.tsubo - o2.spec.tsubo}坪広い）` : me.spec.exterior === 'full' && o2.spec.exterior !== 'full' ? '入居の日から整った外まわり' : Y.finishCost(me.finish) > Y.finishCost(o2.finish) ? '外壁や床の見た目の仕上がり' : me.days < o2.days ? `早い引渡し（もう一方より ${o2.days - me.days}日早い）` : '';
+  return dif ? { t: `${dif}　もう一方より ${man(me.choiceTotal - o2.choiceTotal)}万円高い`, by: '選んだ札' } : { t: `もう一方との差は小さい（${sgn(me.choiceTotal - o2.choiceTotal)}万円）`, by: '選んだ札' };
 };
 const decs = me.labels.map((l, i) => { const p = protectedOf(i); return `<div class="dec"><span class="q">${Y.FORKS[i]}　${esc(Y.DECISIONS[i].q)}</span><b>${esc(l)}</b><span class="why">守ろうとしたもの：${esc(p.t)}　<span class="tag">${p.by}</span></span></div>`; }).join('');
 // 希望と、1年後の結果（16区画のカードと同じ outcome の値から）
@@ -151,10 +152,12 @@ const p2 = `<div class="page">${head}
 const items = (D.memory?.items || []);
 const whoOf = t => { const n = String(t); let best = null, sc = 0; for (const it of items) { const a = it.text.replace(/[、。・\s]/g, ''); let k = 0; for (let i = 0; i < a.length - 1; i++) if (n.includes(a.slice(i, i + 2))) k++; if (k > sc) { sc = k; best = it; } } return sc >= 2 ? best.who : 'both'; };
 const WHOC = { p1: 'sq', p2: 'ci', both: 'bo' };
-const tell = [...new Set((R.tellFirst || []).map(t => String(t).trim()).filter(Boolean))].slice(0, 7);
-const tellList = tell.length ? tell : items.filter(x => x.priority === 'must' || x.who === 'both').slice(0, 6).map(x => x.text);
+const GENERIC = /^(いちばん大切にしたいこと|予算の上限と、その理由|後から変えにくいところ)/;
+const tell = [...new Set((R.tellFirst || []).map(t => String(t).trim()).filter(t => t && !GENERIC.test(t)))].slice(0, 7);
+const memTell = items.filter(x => !/^(総額|月々)/.test(x.text)).sort((a, b) => (b.priority === 'must') - (a.priority === 'must') || (b.who === 'both') - (a.who === 'both') || (b.sources.length - a.sources.length)).slice(0, 7).map(x => x.text);
+const tellList = tell.length >= 4 ? tell : [...tell, ...memTell.filter(t => !tell.includes(t))].slice(0, 7);
 const SV = D.survey;
-const splits = SV && D.memory ? differsOf(SV, D.memory).slice(0, 3).map(q => { const lab = ids => [].concat(ids || []).map(id => q.choices.find(c => c.id === id)?.label).filter(Boolean).join('・') || 'こだわらない'; const s0 = D.memory.survey[q.id]; const short = q.text.replace(/[？?].*$/, '').replace(/（.*?）/g, ''); const res = q.id === 'roof' ? `${Y.ROOF_JA[w.spec.roof]}にした` : 'これから相談'; return `<li><b>${esc(short)}</b>：<span class="sq">${esc(lab(s0.p1))}</span>　<span class="ci">${esc(lab(s0.p2))}</span> → ${esc(res)}</li>`; }) : [];
+const splits = SV && D.memory ? differsOf(SV, D.memory).filter(q => !q.multi).slice(0, 3).map(q => { const lab = ids => [].concat(ids || []).map(id => q.choices.find(c => c.id === id)?.label).filter(Boolean).join('・') || 'こだわらない'; const s0 = D.memory.survey[q.id]; const short = q.text.replace(/[？?].*$/, '').replace(/（.*?）/g, ''); const res = q.id === 'roof' ? `${Y.ROOF_JA[w.spec.roof]}にした` : 'これから相談'; return `<li><b>${esc(short)}</b>：<span class="sq">${esc(lab(s0.p1))}</span>　<span class="ci">${esc(lab(s0.p2))}</span> → ${esc(res)}</li>`; }) : [];
 const ASK = ['地盤の調査は、契約の前ですか、後ですか。改良が要るときの費用の目安は', '見積の「別途」の項目を、全部教えてください', '標準の仕様と、オプションの境目はどこですか', '契約のあと、担当の方は替わりますか', '引渡しの時期の目安と、遅れたときの扱いは'];
 const mine = new Set(me.events), other = [...new Set(all.filter(x => x.o.no !== me.no).flatMap(x => x.o.events))].filter(e => !mine.has(e));
 const care = [...me.events.slice(0, 3).map(e => `<li><span class="tag">この世界で起きた</span>${esc(e)}</li>`), ...other.slice(0, 3).map(e => `<li><span class="tag">別の世界で起きた</span>${esc(e)}</li>`)].join('');

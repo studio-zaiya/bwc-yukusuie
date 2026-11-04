@@ -113,7 +113,7 @@ export function estate2(list, o = {}) {
       const t = P(X + 33, Yy + 27, 66); // 番号札は、その区画の家の真上に（手前の区画の家と取り違えない）
       if (you) { // 「あなた」の札：墨の地に白字、橙の■。ゆっくり上下に揺れる。寄った最初の数秒だけ、薄い光の柱
         const g0 = P(X + Lz / 2, Yy + Lz / 2, 0);
-        tags += `<g class="youbeam"><polygon points="${g0[0] - 34},${g0[1]} ${g0[0] + 34},${g0[1]} ${g0[0] + 22},${g0[1] - 260} ${g0[0] - 22},${g0[1] - 260}" fill="url(#yb)"/></g>`;
+        void g0; // 光の柱は家の上に色が重なりくすんで見えるため、やめた（フレンドリー監査11/6。CLAUDE.md「家がくすむ演出」）
         tags += `<g transform="translate(${t[0]},${t[1] - 6})"><g class="youtag"><rect x="-44" y="-17" width="88" height="30" rx="7" fill="#1E2B36"/><rect x="-36" y="-7" width="10" height="10" fill="#E8701F"/><text x="8" y="5" text-anchor="middle" font-size="15" font-weight="700" fill="#FFFAF0">${String(w.no).padStart(2, '0')} あなた</text></g></g>`;
       } else tags += `<g transform="translate(${t[0]},${t[1] + 4})"><rect x="-17" y="-12" width="34" height="22" rx="5" fill="#FFFAF0" stroke="#1E2B36" stroke-width="1.2"/><text x="0" y="4" text-anchor="middle" font-size="13" font-weight="700" fill="#1E2B36">${String(w.no).padStart(2, '0')}</text></g>`;
       if (o.notes && x.note && (o.notes === true || o.notes.includes(w.no))) { const m = P(X + Lz / 2, Yy + Lz / 2, 74); const fs = o.noteFs || 11, tw = x.note.length * fs * 0.62 + fs * 1.4; tags += `<g transform="translate(${m[0]},${m[1]})"><rect x="${-tw / 2}" y="${-fs * 1.15}" width="${tw}" height="${fs * 2}" rx="${fs}" fill="rgba(255,250,240,.94)" stroke="rgba(30,43,54,.3)"/><text x="0" y="${fs * 0.3}" text-anchor="middle" font-size="${fs}" font-weight="700" fill="#1E2B36">${x.note}</text></g>`; }
@@ -126,5 +126,5 @@ export const setFace = (el, s) => { if (el) el.setAttribute('data-s', s); };
 export function coTag(id, s = 30) { const sh = COMPANIES[id].shape; return `<span class="co ${sh}" style="width:${s}px;height:${s}px;font-size:${Math.round(s * .5)}px">${id}</span>`; }
 // 工程の線は10段階（FLOW_v3 の2。設計申込・ショールームはなくした）。画面の中の工程の番号（0〜11）は変えず、表示だけを対応させる
 export const STEPS_S = ['見学・相談', '初回打ち合わせ', 'プラン提案・見積', '契約', '色決め・電気', '着工', '上棟', '施主検査', '引渡し', '1年後'];
-const STEP_TO_BAR = [0, 1, 2, 2, 2, 3, 4, 5, 6, 7, 8, 9];
+export const STEP_TO_BAR = [0, 1, 2, 2, 2, 3, 4, 5, 6, 7, 8, 9];
 export const progress = now => { const b = STEP_TO_BAR[now] ?? 0; return `<ol class="pbar" aria-label="家づくりの進み具合：${STEPS_S[b]}">${STEPS_S.map((s, i) => `<li class="${i < b ? 'done' : i === b ? 'now' : ''}"><i></i><span>${s}</span></li>`).join('')}</ol>`; };

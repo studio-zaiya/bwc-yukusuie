@@ -118,7 +118,7 @@ function noteOf(w, st) {
   return pool[(hb(w) + band) % pool.length];
 }
 function gallery(s) {
-  if (!s.others.length) return ['hearing', 'forgot', 'reply'].includes(s.scene) ? '<div class="galT solo"><b>選ばれなかった世界線</b><span>まだ分岐していません</span></div>' : '';
+  if (!s.others.length) return false ? '' : '';
   const full = s.others.length === 15;
   const list = [...s.others].sort((a, b) => full ? dno(s, a) - dno(s, b) : a.bits.join('').localeCompare(b.bits.join('')));
   const cols = Math.max(list.length, 5);
@@ -153,7 +153,7 @@ function hero(s, extra = '', cls = '') {
   const roofDecided = s.forkNo >= 2;
   const area = roofDecided || w.plan ? `${w.spec.tsubo}坪・${w.plan?.shape?.form || '総二階'}　${Y.ROOF_JA[w.spec.roof]}` : "間取りと屋根の形は、これから";
   return `<div class="hero ${tall(s)} ${cls}"><div class="lab"><span class="no">${pad(YOU)}</span>あなたの家${co}</div>
-    <div class="ph">${Y.STEPS[s.step]}<br><span style="font-size:15px">${area}${w.fitted ? `（予算に合わせて${w.fitted}坪小さく）` : ''}</span></div>${heroHouse(s)}${extra}</div>`;
+    <div class="ph">${P.STEPS_S?.[P.STEP_TO_BAR?.[s.step] ?? 0] || ''}<br><span style="font-size:15px">${area}${w.fitted ? `（予算に合わせて${w.fitted}坪小さく）` : ''}</span></div>${heroHouse(s)}${extra}</div>`;
 }
 
 // いちばん近い世界：直前の分岐点だけ逆を選んだ世界を、1枚だけ大きく出す（数字はエンジン）
@@ -439,7 +439,7 @@ export const SCENES = {
       const co = Y.COMPANIES[t.company];
       const life = (w.company !== t.company || d.id === 'D1' ? `${co.kind}。担当は${co.staffRole}の${co.staff}さん、${Y.ROOF_JA[t.spec.roof]}の家` : diffWords(w, t)[0]) || '暮らしは大きくは変わらない';
       const mon = Y.payment(m.loan, Y.RATE.variable);
-      return `<div class="rt-body"><div class="rt-name">${esc(lab(d[side], w))}</div><div class="rt-num">総額 ${man(m.total)}<small>万円</small>${Math.round(df) ? `<em>${df > 0 ? '+' : '−'}${man(Math.abs(df))}</em>` : ''}</div><div class="rt-sub">月々 約${mon.toFixed(1)}万円${Math.abs(mo) >= 0.05 ? `（${mo > 0 ? '+' : '−'}${Math.abs(mo).toFixed(1)}）` : ''}${lc.ok ? '' : '　審査の上限を超える'}${t.fitted && !w.fitted ? `　予算に合わせた案（${t.spec.tsubo}坪）` : ''}</div><div class="rt-life">${esc(life)}</div>${d.id === 'D1' && DATA.brochures?.brochures?.[t.company]?.catch ? `<div class="rt-catch">チラシの一行：「${esc(DATA.brochures.brochures[t.company].catch)}」</div>` : ''}<ul class="wbox">${wishLine(Y.checkWishes(t, s.wishes), { hideNg: !!commonNg })}</ul></div><div class="rt-house">${P.coTag(t.company, 26)}${P.bigHouse(t, d.id === 'D3' || d.id === 'D4' ? 4 : 3, d.id === 'D4' ? { fin: P.finOf(t) } : {})}</div>`; };
+      return `<div class="rt-body"><div class="rt-name">${esc(lab(d[side], w))}</div><div class="rt-num">総額 ${man(m.total)}<small>万円</small>${Math.round(df) && d.id !== 'D1' ? `<em>${df > 0 ? '+' : '−'}${man(Math.abs(df))}</em>` : ''}</div><div class="rt-sub">月々 約${mon.toFixed(1)}万円${Math.abs(mo) >= 0.05 ? `（${mo > 0 ? '+' : '−'}${Math.abs(mo).toFixed(1)}）` : ''}${lc.ok ? '' : '　審査の上限を超える'}${t.fitted && !w.fitted ? `　予算に合わせた案（${t.spec.tsubo}坪）` : ''}</div><div class="rt-life">${esc(life)}</div>${d.id === 'D1' && DATA.brochures?.brochures?.[t.company]?.catch ? `<div class="rt-catch">チラシの一行：「${esc(DATA.brochures.brochures[t.company].catch)}」</div>` : ''}<ul class="wbox">${wishLine(Y.checkWishes(t, s.wishes), { hideNg: !!commonNg })}</ul></div><div class="rt-house">${P.coTag(t.company, 26)}${P.bigHouse(t, d.id === 'D3' || d.id === 'D4' ? 4 : 3, d.id === 'D4' ? { fin: P.finOf(t) } : {})}</div>`; };
     const pend = s.pendingTrade, side = s.pendingSide;
     const intro = INTRO.has(`${s.playId}-${d.no}`) ? '' : 'intro';
     let body;
@@ -468,7 +468,7 @@ export const SCENES = {
     const m = Y.money(s.player), co = s.player.company, lc = Y.loanCheck(H(s), m.loan);
     return `${chrome(s)}${hero(s, nearestCard(s))}<div class="right ${tall(s)}"><div class="chat">${staffHead(co, 'smile')}<div class="log" data-top style="padding:22px">
       <div class="msg"><div class="who">${P.coTag(co, 18)}${STAFFN(co)}</div>請負契約の書類です。図面と見積の内容をご確認ください。</div>
-      <dl class="facts" style="font-size:20px;margin-top:10px"><dt>契約金額（建物）</dt><dd>${man(m.contract)}万円</dd><dt>土地</dt><dd>${man(m.land)}万円</dd><dt>総額</dt><dd>${man(m.total)}万円</dd><dt>借入</dt><dd>${man(m.loan)}万円（返済負担率 ${lc.ratio}%）</dd><dt>月々の返済（変動 ${Y.RATE.variable * 100}%）</dt><dd>約${(Math.round(lc.monthly * 100) * 100).toLocaleString('ja-JP')}円</dd><dt>選んだ道</dt><dd>${s.player.labels.map(esc).join('<br>')}</dd></dl></div>${navs(s)}</div></div>${gallery(s)}`;
+      <dl class="facts" style="font-size:20px;margin-top:10px"><dt>契約金額（建物）</dt><dd>${man(m.contract)}万円</dd><dt>土地</dt><dd>${man(m.land)}万円</dd><dt>総額</dt><dd>${man(m.total)}万円</dd><dt>借入</dt><dd>${man(m.loan)}万円（返済負担率 ${lc.ratio}%）</dd><dt>月々の返済（変動 ${Y.RATE.variable * 100}%）</dt><dd>約${lc.monthly.toFixed(1)}万円</dd><dt>選んだ道</dt><dd>${s.player.labels.map(esc).join('<br>')}</dd></dl></div>${navs(s)}</div></div>${gallery(s)}`;
   },
   // 設計申込・詳細打ち合わせ：設計担当と、間取りの骨組みと予算を確定させる（第二の分岐点の手前）
   plan(s) {
@@ -731,7 +731,7 @@ export function navOf(s) {
     case 'plan': return { todo: '間取りの骨組みを確かめましょう', go: g('planConfirm', 'この案で進める ▶', busy.on || !s.plan ? off('図面に落としています') : {}) };
     case 'coord': return { todo: '色を選んで、仕上げを確定しましょう', go: g('decideCoord', '仕上げを確定する ▶') };
     case 'electric': return { todo: '電気の図面を確かめましょう', go: g('toBuild', '着工へ ▶', busy.on ? off('担当者が確認しています') : s.elecOk ? { ready: true } : off('左の内容を確かめて「この内容でOK」を押してください')) };
-    case 'build': return { todo: '着工して、工事を見守りましょう', go: g('startBuild', '着工する ▶', s.buildAuto ? off('工事が進んでいます') : {}) };
+    case 'build': return s.buildAuto ? { todo: '工事を見守っています。引渡しまで、自動で進みます', go: g('toHandover', '引渡しへ ▶', off('工事が終わると、引渡しへ進みます')) } : { todo: '着工して、工事を見守りましょう', go: g('startBuild', '着工する ▶') };
     case 'handover': return { todo: '鍵を受け取りました', go: g('toSeasons', '1年後へ ▶') };
     case 'result': return { todo: '1年後のわが家を見てみましょう', go: g('toYear', '16の区画を見る ▶') };
     case 'year': return { todo: '16の区画を押して、ほかの世界を見てみましょう', go: g('toReport', 'レポートを受け取る ▶') };
