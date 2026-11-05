@@ -60,7 +60,12 @@ let pendingRefuse = null;
 // 断られた：ナレーションの帯 → すでにある別の世界線へ移る。第一の分岐点の前なら、もう1社と進む
 async function refuseAndSwitch(co, kind) {
   await new Promise(r => setTimeout(r, 1400));
-  SWITCH.on = true; SWITCH.lines = ['この世界では、話はここで終わりました。', 'そのころ、別の世界では——']; SWITCH.i = 0; render();
+  // 移る先は、一つ前の分岐点で、選ばなかったほうを選んだ世界（人間の回答11/6）。メイン画面の世界と、下の一覧のその世界を入れ替える
+  // ただし断った会社と建てる世界には移らない（さかのぼって、会社が違う世界の、いちばん近い分岐点へ）
+  const sibAt = k => S.others.find(o => !o.unbuilt && o.bits.length === S.player.bits.length && o.bits.every((b, i) => i === k ? b !== S.player.bits[i] : b === S.player.bits[i]));
+  let k0 = (S.player?.bits.length || 0) - 1, sib = null;
+  for (let k = k0; k >= 0; k--) { const c = sibAt(k); if (c && c.company !== co) { k0 = k; sib = c; break; } }
+  SWITCH.on = true; SWITCH.lines = ['この世界では、話はここで終わりました。', sib ? `そのころ、${Y.FORKS[k0]}で「${sib.labels[k0]}」を選んだ世界では——` : 'そのころ、別の世界では——']; SWITCH.i = 0; render();
   await new Promise(r => setTimeout(r, 1900)); SWITCH.i = 1; render();
   await new Promise(r => setTimeout(r, 1900)); SWITCH.on = false;
   if (!S.player || !S.others.length) {
@@ -72,12 +77,12 @@ async function refuseAndSwitch(co, kind) {
     else render();
     return;
   }
-  const to = Y.switchTarget(S.player, S.others, kind);
+  const to = sib || Y.switchTarget(S.player, S.others, kind);
   if (!to) { emit('refused', { co, kind }); render(); return; }
   // 空へ上がり、光る線を伝って、移る先の区画へ降りる（WORLD_SWITCH の5）
   { let idx = parseInt(to.bits.join('').padEnd(4, '0'), 2); if (idx === 6) idx = 9; await new Promise(r => { Object.assign(PEEK, { on: true, mode: 'switch', from: 6, to: idx, no: null, t0: performance.now(), done: r }); render(); }); PEEK.on = false; }
   emit('jump', { to: to.bits.join(''), kind });
-  emit('say', { who: 'sys', ch: S.player.company, text: `${Y.COMPANIES[S.player.company].name}と建てている世界で、続きから` });
+  emit('say', { who: 'sys', ch: S.scene === 'electric' ? 'elec' : S.player.company, text: sib ? `${Y.FORKS[k0]}で「${sib.labels[k0]}」を選んでいた世界へ移った。この世界でも、家づくりはここまで並んで進んでいた（${Y.COMPANIES[S.player.company].name}と建てている）。もとの世界は、下の一覧に「家は建ちませんでした」として残る` : `${Y.COMPANIES[S.player.company].name}と建てている世界で、続きから` });
   if (S.scene === 'plan') { emit('planReset', {}); await planCall(''); } else render();
 }
 const requests = () => [S.survey ? `アンケート：${JSON.stringify(S.survey)}` : '', S.entry.text ? `最初に書いた思い：${S.entry.text}` : '', S.entryRead?.summary ? `入口で読み取った要望：${S.entryRead.summary}` : ''].filter(Boolean).join('。');
@@ -497,9 +502,7 @@ function afterFork(dec) {
   else if (dec.id === 'D2') { const d2 = Y.scheduleOf(S.player); connector(`${Math.max(1, (d2[4] || 0) - (d2[2] || 0))}日後——契約の前の、最終のお見積り`, () => goto('fork', 5)); }
   else if (dec.id === 'D4') {
     goto('electric', 6);
-    // 伝わらなかった電気の要望があれば、パートナーが気づくきっかけを置く（言うのは要望の言葉だけ。気づいて伝えるのはプレイヤー）
-    const co = S.player.company, miss = (S.memory?.items || []).find(x => x.deliveredTo?.[co] === 'missed' && Y.electricOf(x.text).length);
-    if (miss) emit('say', S.mode === 'solo' ? { who: 'partner', ch: 'elec', text: `あれ、「${miss.text}」って伝えてたよね。左の一覧にある？` } : { who: 'sys', ch: 'elec', text: 'アンケートや打ち合わせで伝えた要望と、左の一覧を見比べてみましょう' });
+    // 伝わらなかった要望に、プレイヤーが気づかなければ、そのまま進む（それも持ち帰ってほしい経験。人間の回答11/6）
   }
   else if (dec.id === 'D3') {
     // 契約に入れてあるオプションは、その会社の担当者が聞き取れた（記録した）要望だけ

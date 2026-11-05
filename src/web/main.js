@@ -124,7 +124,7 @@ export function apply(s, e) {
     case 'jump': {
       const i = s.others.findIndex(w => w.bits.join('') === e.to); if (i < 0) break;
       const old = s.player; old.unbuilt = { kind: e.kind, co: old.company, step: s.step };
-      s.player = s.others[i]; s.others[i] = old; s.switched = { from: old.bits.join(''), to: e.to, kind: e.kind, co: old.company, step: s.step };
+      s.player = s.others[i]; s.others[i] = old; s.chat = s.chat.filter(m => m.ch !== 'elec'); // 電気の打ち合わせの会話は、移った先の世界のものから s.switched = { from: old.bits.join(''), to: e.to, kind: e.kind, co: old.company, step: s.step };
       break;
     }
     case 'meet': s.meet[e.co] = { ...(s.meet[e.co] || {}), ...e.data }; break;
