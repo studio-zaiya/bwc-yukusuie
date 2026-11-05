@@ -407,7 +407,7 @@ function render(tt){
   camAt(tt);if(window.CAMHOOK)window.CAMHOOK(tt);composer.render();
 
   VE.style.opacity=1-ss(0,.5,tt);
-  TIT.style.opacity=ss(9.4,9.4+.8,tt);TIT.style.transform=`translateY(${(1-ss(9.4,9.4+1,tt))*18}px)`;
+  TIT.style.opacity=(new URLSearchParams(location.search).get('notitle')?0:ss(9.4,9.4+.8,tt)); // notitle=1：締めの題名は、明るい地のロゴのカード（opening.html?mode=light）に任せるTIT.style.transform=`translateY(${(1-ss(9.4,9.4+1,tt))*18}px)`;
   {const k=ss(0.2,1.0,tt)*(1-ss(4.2,6.2,tt));PILLAR.g.visible=k>.005;PILLAR.mats.forEach((m,i)=>m.opacity=PILLAR.base[i]*k*(0.9+0.1*Math.sin(tt*3)));PILLAR.ring.material.opacity=.35*k;}
   NOTE.style.opacity=0; // 注記は、最後のスタッフロールの黒画面に移す
 }

@@ -12,6 +12,11 @@ const FONT_DIR = process.env.FONT_DIR || '';
 const P = rel => 'file://' + path.join(ROOT, 'video', 'scenes', rel);
 
 const SCENES = [
+  { id: 'training-log', url: P('training-log.html?t=0'), dur: 6 },
+  { id: 'skills', url: P('skills.html?t=0'), dur: 6 },
+  { id: 'opening', url: P('opening.html?t=0'), dur: 4 },
+  { id: 'closing', url: P('opening.html?t=0&mode=light&dur=3'), dur: 3 },
+  { id: 'ending-EA-notitle', url: P('ending-EA.html?t=0&notitle=1'), dur: 13 },
   { id: 'intro-c', url: P('intro-c.html?t=0'), dur: 35.3 },
   { id: 'title-card', url: P('title-card.html'), dur: 5 },
   { id: 'hero', url: P('hero.html?t=0'), dur: 12 },
@@ -19,16 +24,11 @@ const SCENES = [
   { id: 'arch', url: P('arch.html?t=0'), dur: 12.5 },
   { id: 'ending-EA', url: P('ending-EA.html?t=0'), dur: 13 },
   { id: 'credits', url: P('credits.html?t=0'), dur: 5 },
-  // 実写の代用（線画の額）。人間の写真が間に合えば差し替える
-  { id: 'photo-table', url: P('photo-sub.html?kind=table&t=0'), dur: 5 },
-  { id: 'photo-sketch', url: P('photo-sub.html?kind=sketch&t=0'), dur: 5 },
-  { id: 'photo-hands', url: P('photo-sub.html?kind=hands&t=0'), dur: 5 },
-  { id: 'photo-handover', url: P('photo-sub.html?kind=handover&t=0'), dur: 8 },
-  // 手渡しの場面（前振り⑧と同じ絵柄）と、担当者の研修の前後（実際の記録の値）
+  // 動画担当が足した場面（11/5の上書きのあとに戻した）
   { id: 'handover', url: P('handover.html?t=0'), dur: 8 },
   { id: 'training', url: P('training.html?t=0'), dur: 6 },
-  // 実機の印刷用レポートの4ページ（out/rec/report-p1〜4.png）をめくる
-  { id: 'report-pages', url: P('report-pages.html?t=0'), dur: 8 },
+  { id: 'report-pages', url: P('report-pages.html?t=0&dur=12'), dur: 12 },
+  { id: 'photo-handover', url: P('photo-sub.html?kind=handover&t=0'), dur: 8 },
 ];
 
 (async () => {

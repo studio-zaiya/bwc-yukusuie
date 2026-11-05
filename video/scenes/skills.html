@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>ゆくすいえ — 自作の点検スキル</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#FFFAF0;color:#1E2B36;font-family:"Hiragino Sans","BIZ UDPGothic",sans-serif}
+body{background-image:linear-gradient(rgba(28,141,204,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(28,141,204,.06) 1px,transparent 1px);background-size:32px 32px}
+h1{position:absolute;left:160px;top:120px;font-family:"Hiragino Maru Gothic ProN","Zen Maru Gothic",sans-serif;font-size:64px;font-weight:900}
+.sub{position:absolute;left:162px;top:212px;font-size:28px;color:#4a5560}
+#g{position:absolute;left:160px;top:300px;width:1600px;display:grid;grid-template-columns:repeat(4,1fr);gap:28px}
+.c{background:#fff;border:2px solid #1E2B36;border-radius:20px;padding:30px 28px;height:330px;opacity:0}
+.c .k{font-family:"Hiragino Maru Gothic ProN","Zen Maru Gothic",sans-serif;font-size:44px;font-weight:900}
+.c .n{font-family:ui-monospace,monospace;font-size:20px;color:#6b7680;margin-top:6px}
+.c ul{margin-top:26px;list-style:none;display:grid;gap:14px;font-size:25px;line-height:1.4}
+.c li::before{content:"■ ";color:#E8701F;font-size:18px;vertical-align:3px}
+#f{position:absolute;left:160px;top:700px;font-size:30px;opacity:0}
+#f b{font-weight:700}
+</style></head><body>
+<h1>点検も、Claudeに。</h1>
+<div class="sub">このプロジェクトのために作った4つのスキル（.claude/skills/）</div>
+<div id="g">
+ <div class="c"><div class="k">守り</div><div class="n">yukusuie-audit</div><ul><li>公開物のルール</li><li>数字の出どころ</li><li>家づくりの実務</li></ul></div>
+ <div class="c"><div class="k">攻め</div><div class="n">yukusuie-review</div><ul><li>複数の立場で辛口に</li><li>面白さと論理の破綻</li><li>直す順番</li></ul></div>
+ <div class="c"><div class="k">初めての人</div><div class="n">yukusuie-friendly</div><ul><li>画面を1枚ずつたどる</li><li>重なり・字の大きさを測る</li><li>レポートの読みやすさ</li></ul></div>
+ <div class="c"><div class="k">一貫性</div><div class="n">yukusuie-consistency</div><ul><li>動画の言葉 ↔ 実機</li><li>レポート ↔ プレイ</li><li>約束の表で照合</li></ul></div>
+</div>
+<div id="f">スクリーンショットに ○／× を付け、<b>×が残るうちは「できた」と言わない</b>。</div>
+<script>
+const DUR=6;window.DUR=DUR;const cl=v=>Math.max(0,Math.min(1,v)),eo=v=>1-Math.pow(1-cl(v),3);
+const cs=[...document.querySelectorAll('.c')],f=document.getElementById('f');
+window.render=t=>{cs.forEach((c,i)=>{const a=eo((t-0.3-i*0.25)/0.5);c.style.opacity=a.toFixed(3);c.style.transform=`translateY(${((1-a)*24).toFixed(1)}px)`});
+ const a=eo((t-1.8)/0.6);f.style.opacity=a.toFixed(3);};
+render(+(new URLSearchParams(location.search).get('t')||DUR));window.READY=true;
+</script></body></html>
