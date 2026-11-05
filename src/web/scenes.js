@@ -545,7 +545,7 @@ export const SCENES = {
     const tick = () => {
       const el = document.getElementById('banim'), cap = document.getElementById('bcap'); if (!el || BUILD.t0 == null) return;
       const t = Math.min(DUR, (performance.now() - BUILD.t0) / 1000);
-      el.innerHTML = drawBuild(s.player, t, fin, reduce);
+      el.innerHTML = drawBuild({ ...s.player, form: P.formOf(s.player) }, t, fin, reduce);
       const k = phaseAt(t); if (cap && cap.dataset.k !== String(k)) { cap.dataset.k = k; cap.textContent = PHASES[k][1]; }
       if (t < DUR) BUILD.raf = requestAnimationFrame(tick);
     };

@@ -154,7 +154,7 @@ export function drawBuild(w, t, fin, reduce = false) {
   if (t >= 5.8 && wallP < 1) mid += `<g transform="translate(0,-3)">${frame(W, D, H - 3, roof, fp)}</g>`;
   // 外壁：下から張られていく（選んだ色）。家の絵は完成形を、画面の下から上へ切り抜いて見せる
   if (wallP > 0) {
-    const full = I.house({ x: 0, y: 0, w: W, d: D, h: H, roof, fin, stage: 4 });
+    const full = I.house({ x: 0, y: 0, w: W, d: D, h: H, roof, fin, stage: 4, form: w.form || 'full' });
     const yTop = P(0, 0, H + 20)[1], yBot = P(W, D, 0)[1] + 2, yc = yBot - (yBot - yTop) * ease(wallP);
     mid += `<clipPath id="wallclip"><rect x="-200" y="${f1(yc)}" width="400" height="${f1(yBot - yc + 4)}"/></clipPath><g clip-path="url(#wallclip)">${full}</g>`;
   }

@@ -4,6 +4,14 @@ import { COMPANIES, STEPS, FINISH as YFIN } from './engine/engine.js';
 const I = window.ISO;
 let YOU = 7;
 // その世界で選んだ外壁の色（仕上げが決まる前は、番号ごとの見本の色）
+// 家の形：プランの形から（部分二階／1階が2階より小さい箱／総二階）。プランが決まる前は総二階
+export function formOf(w) {
+  const pl = w?.plan, form = pl?.shape?.form || '';
+  if (/部分二階/.test(form)) return 'partial';
+  const t = w?.spec?.tsubo, f1 = w?.spec?.floor1Tsubo;
+  if (pl && t && f1 && f1 < (t - f1) * 0.95) return 'overhang';
+  return 'full';
+}
 export function finOf(w, fallbackNo) {
   const f = w.finish; if (!f || !f.decided && !f.wall) return I.FINISH[((fallbackNo ?? w.no) * 5) % 8];
   const wall = YFIN.wall.find(x => x.id === f.wall) || YFIN.wall[0]; const col = (wall.colors[f.color || 0] || wall.colors[0])[1];
@@ -63,7 +71,7 @@ export function bigHouse(w, stage, o = {}) {
     s += I.poly(lot, stage >= 4 && w.spec.exterior !== 'full' ? '#E7E0D2' : '#F3E7CF', '#9BD27A', 2.4);
     if (stage === 0) s += I.poly([P(-6, -4), P(60, -4), P(60, 50), P(-6, 50)], 'none', '#1E2B36', 1.4, 'stroke-dasharray="5 4"');
     if (stage === 0 && o.ghost) s += `<g opacity="${o.ghost}">` + I.house({ x: 0, y: 0, w: 52, d: 44, h: 46, roof: o.roof || w.spec.roof, fin: I.FINISH[0], stage: 3 }) + '</g>';
-    else s += I.house({ x: 0, y: 0, w: 52, d: 44, h: 46, roof: w.spec.roof, fin: o.fin || I.FINISH[(w.no * 5) % 8], stage: stage === 0 ? 0 : stage, third: !!w.third && stage >= 4 });
+    else s += I.house({ x: 0, y: 0, w: 52, d: 44, h: 46, roof: w.spec.roof, form: formOf(w), fin: o.fin || I.FINISH[(w.no * 5) % 8], stage: stage === 0 ? 0 : stage, third: !!w.third && stage >= 4 });
     if (stage >= 4) {
       const cp = (x, y) => { let t = ''; [[0,0],[24,0],[0,22],[24,22]].forEach(([a,b]) => { const q = P(x+a, y+b, 0), r = P(x+a, y+b, 20); t += `<line x1="${q[0]}" y1="${q[1]}" x2="${r[0]}" y2="${r[1]}" stroke="#8A8F96" stroke-width="1.6"/>`; }); t += I.poly([[0,0],[24,0],[24,22],[0,22]].map(([a,b]) => P(x+a, y+b, 20)), 'rgba(220,230,236,.85)', '#8A8F96', 1.2); return t; };
       s += cp(64, 56);
@@ -84,8 +92,8 @@ export function bigHouse(w, stage, o = {}) {
 export function thumb(x, o = {}) {
     const w = x.w, stage = x.stage, P = I.P; let s = '';
     s += I.poly([P(-10, -8), P(60, -8), P(60, 54), P(-10, 54)], stage >= 4 && w.spec.exterior !== 'full' ? '#E7E0D2' : '#F3E7CF', '#9BD27A', 1.6);
-    if (stage === 0 && x.ghost) s += `<g opacity="${x.ghost}">` + I.house({ x: 0, y: 0, w: 40, d: 34, h: 36, roof: w.spec.roof, fin: I.FINISH[0], stage: 3 }) + '</g>';
-    else s += I.house({ x: 0, y: 0, w: 40, d: 34, h: 36, roof: w.spec.roof, fin: stage >= 4 ? finOf(w) : I.FINISH[(w.no * 5) % 8], stage });
+    if (stage === 0 && x.ghost) s += `<g opacity="${x.ghost}">` + I.house({ x: 0, y: 0, w: 40, d: 34, h: 36, roof: w.spec.roof, form: formOf(w), fin: I.FINISH[0], stage: 3 }) + '</g>';
+    else s += I.house({ x: 0, y: 0, w: 40, d: 34, h: 36, roof: w.spec.roof, form: formOf(w), fin: stage >= 4 ? finOf(w) : I.FINISH[(w.no * 5) % 8], stage });
     const minX = P(-10, 54)[0] - 4, maxX = P(60, -8)[0] + 4, minY = P(-10, -8)[1] - 60, maxY = P(60, 54)[1] + 4;
     return `<svg viewBox="${minX} ${minY} ${maxX - minX} ${maxY - minY}" style="${o.style || ''}">${s}</svg>`;
   }
@@ -104,10 +112,10 @@ export function estate2(list, o = {}) {
     });
     order.forEach(([x, i]) => {
       const r = Math.floor(i / 4), c = i % 4, X = c * (Lz + gap), Yy = r * (Lz + gap), w = x.w, you = w.no === YOU && YOU > 0;
-      if (x.stage === 0 && x.ghost) s += `<g opacity="${x.ghost}">` + I.house({ x: X + 10, y: Yy + 8, roof: w.spec.roof, fin: I.FINISH[0], stage: 3 }) + '</g>';
+      if (x.stage === 0 && x.ghost) s += `<g opacity="${x.ghost}">` + I.house({ x: X + 10, y: Yy + 8, roof: w.spec.roof, form: formOf(w), fin: I.FINISH[0], stage: 3 }) + '</g>';
       else { // 各世界の案のデータから描き分ける：延床で大きさ、外構まで整えた世界は庭木（TESTPLAY T13）
         const k = Math.sqrt(Math.max(28, Math.min(44, w.spec.tsubo || 34)) / 34);
-        s += I.house({ x: X + 10, y: Yy + 8, w: Math.round(46 * k), d: Math.round(38 * k), roof: w.spec.roof, fin: x.stage >= 4 ? finOf(w) : I.FINISH[(w.no * 5) % 8], stage: x.stage, third: !!w.third && you && x.stage >= 4 });
+        s += I.house({ x: X + 10, y: Yy + 8, w: Math.round(46 * k), d: Math.round(38 * k), roof: w.spec.roof, form: formOf(w), fin: x.stage >= 4 ? finOf(w) : I.FINISH[(w.no * 5) % 8], stage: x.stage, third: !!w.third && you && x.stage >= 4 });
         if (x.stage >= 4 && w.spec.exterior === 'full') [[X + 84, Yy + 14, 1], [X + 12, Yy + 84, .8]].forEach(([tx, ty, kk]) => { const a0 = P(tx, ty, 0), b0 = P(tx, ty, 14 * kk); s += `<ellipse cx="${a0[0]}" cy="${a0[1]}" rx="${9 * kk}" ry="${4 * kk}" fill="rgba(30,43,54,.12)"/><line x1="${a0[0]}" y1="${a0[1]}" x2="${b0[0]}" y2="${b0[1]}" stroke="#7A5A3A" stroke-width="2.4"/><circle cx="${b0[0]}" cy="${b0[1] - 8 * kk}" r="${12 * kk}" fill="#7DBF62" stroke="#1E2B36" stroke-width="1.2"/>`; });
       }
       const t = P(X + 33, Yy + 27, 66); // 番号札は、その区画の家の真上に（手前の区画の家と取り違えない）
