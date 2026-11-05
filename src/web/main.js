@@ -207,8 +207,21 @@ export function render() {
   // 会話の欄は最新が見えるよう下へ。フォームや書類の欄（data-top）は上から（人間の指摘11/5：入力画面が一番下から始まっていた）
   view.querySelectorAll('.chat .log:not([data-top]), .el-right .log').forEach(log => { log.scrollTop = log.scrollHeight; });
   countUp(view);
+  glossify(view);
   navBand();
   if (SCENES[S.scene + '_after']) SCENES[S.scene + '_after'](S);
+}
+// 家づくりの言葉の短い説明（フレンドリー監査11/6）：画面ごとに、各語の最初の1か所だけに点線を付け、指を乗せると説明が出る
+const GLOSS = { '建蔽率': '敷地の広さに対して、建物を建ててよい面積の割合', '容積率': '敷地の広さに対して、延床面積の合計の上限の割合', 'ローン特約': '住宅ローンの本審査に通らなければ、土地の契約を白紙に戻せる約束。期限がある', '外構': '門・駐車場・庭・塀など、家の外まわりの工事', '返済負担率': '年収に対する、年間の返済額の割合', '本審査': '契約の内容で、金融機関が正式に融資を決める審査', '増工': '契約のあとで、工事を足して増えた金額', '施主支給': '照明や設備を、施主が自分で買って用意すること', 'つなぎ融資': '家の完成前の支払い（着工金など）のために、一時的に借りるお金', '別途': '見積の金額に入っていない項目。あとで足される', '延床': '1階と2階の床面積の合計', '部分二階': '1階の一部の上にだけ2階がある形', '総二階': '1階と2階がほぼ同じ大きさの形', '施主検査': '引渡しの前に、頼んだとおりか施主が確かめる検査', '上棟': '柱・梁・屋根の骨組みが組み上がること' };
+function glossify(root) {
+  const seen = new Set(), re = new RegExp(Object.keys(GLOSS).join('|'));
+  const wk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentElement && !n.parentElement.closest('textarea,script,style,.pbar,abbr,svg,.notice,.toast') && re.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT });
+  const nodes = []; while (wk.nextNode()) nodes.push(wk.currentNode);
+  for (const n of nodes) {
+    const m = n.nodeValue.match(re); if (!m || seen.has(m[0])) continue; seen.add(m[0]);
+    const i = m.index, t = n.nodeValue, ab = document.createElement('abbr'); ab.className = 'term'; ab.title = GLOSS[m[0]]; ab.textContent = m[0];
+    const after = document.createTextNode(t.slice(i + m[0].length)); n.nodeValue = t.slice(0, i); n.after(ab, after);
+  }
 }
 // 進行の帯（UI_NAV_SYSTEM）：右下に固定。「進む」は1つだけ。押せるようになった瞬間に一度だけ脈打つ
 const NAVPREV = { key: '', off: true };

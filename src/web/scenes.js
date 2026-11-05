@@ -3,6 +3,7 @@ import * as Y from './engine/engine.js';
 import { drawBuild, BUILD, DUR, PHASES, phaseAt } from './buildanim.js';
 import * as P from './parts.js';
 import { buildMemory, SRC_LABEL } from './memory.js';
+import { protectedReasons } from './reasons.js';
 
 // 金額の表示は万円単位の整数（計算の内部は小数のまま）
 const man = n => Math.round(Number(n)).toLocaleString('ja-JP');
@@ -421,7 +422,7 @@ export const SCENES = {
           <div><span>総額（土地と建物）</span><b>${man(m.total)}万円</b></div><div><span>月々の返済</span><b>約${m.monthly.toFixed(1)}万円</b></div></div></div>${wl}</section>`;
     };
     const ready = cos.every(co => s.proposals[co]);
-    return `${chrome(s)}<div class="pp-band">2週間後——提案の日</div><div class="pp-wrap">${cos.map(col).join('')}</div>`;
+    return `${chrome(s)}<div class="pp-band">${(() => { const d = Y.scheduleOf(Y.newWorld({ household: H(s), company: s.visit[0] || 'C' })); return `初回の打ち合わせから${Math.max(1, d[1] - d[0])}日後——提案の日`; })()}</div><div class="pp-wrap">${cos.map(col).join('')}</div>`;
   },
   // 分岐点：儀式にする。暗くなって札の名前と問いが大きく出て、2枚の札がメインの領域いっぱいに並ぶ。担当者は出てこない
   fork(s) {
@@ -432,11 +433,13 @@ export const SCENES = {
     // 2枚とも同じ「守れない希望」なら、札の上に1行だけ（攻めのレビュー11/5：同じ行が両方の札に出て、判断の材料にならなかった）
     const ngOf = side => { const t = Y.forkWorld(w); Y.choose(t, d, side); if (d.id === 'D1' && s.proposals?.[t.company]) Y.applyPlan(t, s.proposals[t.company].main); return Y.checkWishes(t, s.wishes).filter(c => !c.ok).map(c => c.label).join('、'); };
     const ngA = ngOf('a'), ngB = ngOf('b'), commonNg = ngA && ngA === ngB ? ngA : '';
-    const card = side => { const t = Y.forkWorld(w); Y.choose(t, d, side); if (d.id === 'D1' && s.proposals?.[t.company]) Y.applyPlan(t, s.proposals[t.company].main); const m = Y.money(t), m0 = Y.money(w); const df = m.total - m0.total, mo = Y.payment(m.loan, Y.RATE.variable) - Y.payment(m0.loan, Y.RATE.variable); const lc = Y.loanCheck(H(s), m.loan);
+    // 第四の分岐点が自動で出るとき、選ばれる札は色決めで実際に選んだ中身で作る（監査11/6：「外壁と床」と出るのに外壁だけ、を避ける）
+    const autoLab = f => `グレードアップして仕上げた（${[f.wall !== 'std' && '外壁', f.floor !== 'std' && '床', f.inner !== 'vinyl' && '内壁'].filter(Boolean).join('・')}）`;
+    const card = side => { const t = Y.forkWorld(w); Y.choose(t, d, side); if (d.id === 'D4' && s.autoFork === side && Y.finishCost(w.finish)) t.finish = { ...w.finish }; if (d.id === 'D1' && s.proposals?.[t.company]) Y.applyPlan(t, s.proposals[t.company].main); const m = Y.money(t), m0 = Y.money(w); const df = m.total - m0.total, mo = Y.payment(m.loan, Y.RATE.variable) - Y.payment(m0.loan, Y.RATE.variable); const lc = Y.loanCheck(H(s), m.loan);
       const co = Y.COMPANIES[t.company];
       const life = (w.company !== t.company || d.id === 'D1' ? `${co.kind}。担当は${co.staffRole}の${co.staff}さん、${Y.ROOF_JA[t.spec.roof]}の家` : diffWords(w, t)[0]) || '暮らしは大きくは変わらない';
       const mon = Y.payment(m.loan, Y.RATE.variable);
-      return `<div class="rt-body"><div class="rt-name">${esc(lab(d[side], w))}</div><div class="rt-num">総額 ${man(m.total)}<small>万円</small>${Math.round(df) && d.id !== 'D1' ? `<em>${df > 0 ? '+' : '−'}${man(Math.abs(df))}</em>` : ''}</div><div class="rt-sub">月々 約${mon.toFixed(1)}万円${Math.abs(mo) >= 0.05 ? `（${mo > 0 ? '+' : '−'}${Math.abs(mo).toFixed(1)}）` : ''}${lc.ok ? '' : '　審査の上限を超える'}${t.fitted && !w.fitted ? `　予算に合わせた案（${t.spec.tsubo}坪）` : ''}</div><div class="rt-life">${esc(life)}</div>${d.id === 'D1' && DATA.brochures?.brochures?.[t.company]?.catch ? `<div class="rt-catch">チラシの一行：「${esc(DATA.brochures.brochures[t.company].catch)}」</div>` : ''}<ul class="wbox">${wishLine(Y.checkWishes(t, s.wishes), { hideNg: !!commonNg })}</ul></div><div class="rt-house">${P.coTag(t.company, 26)}${P.bigHouse(t, d.id === 'D3' || d.id === 'D4' ? 4 : 3, d.id === 'D4' ? { fin: P.finOf(t) } : {})}</div>`; };
+      return `<div class="rt-body"><div class="rt-name">${esc(d.id === 'D4' && s.autoFork === side && Y.finishCost(w.finish) ? autoLab(w.finish) : lab(d[side], w))}</div><div class="rt-num">総額 ${man(m.total)}<small>万円</small>${Math.round(df) && d.id !== 'D1' ? `<em>${df > 0 ? '+' : '−'}${man(Math.abs(df))}</em>` : ''}</div><div class="rt-sub">月々 約${mon.toFixed(1)}万円${Math.abs(mo) >= 0.05 ? `（${mo > 0 ? '+' : '−'}${Math.abs(mo).toFixed(1)}）` : ''}${lc.ok ? '' : '　審査の上限を超える'}${t.fitted && !w.fitted ? `　予算に合わせた案（${t.spec.tsubo}坪）` : ''}</div><div class="rt-life">${esc(life)}</div>${d.id === 'D1' && DATA.brochures?.brochures?.[t.company]?.catch ? `<div class="rt-catch">チラシの一行：「${esc(DATA.brochures.brochures[t.company].catch)}」</div>` : ''}<ul class="wbox">${wishLine(Y.checkWishes(t, s.wishes), { hideNg: !!commonNg })}</ul></div><div class="rt-house">${P.coTag(t.company, 26)}${P.bigHouse(t, d.id === 'D3' || d.id === 'D4' ? 4 : 3, d.id === 'D4' ? { fin: P.finOf(t) } : {})}</div>`; };
     const pend = s.pendingTrade, side = s.pendingSide;
     const intro = INTRO.has(`${s.playId}-${d.no}`) ? '' : 'intro';
     let body;
@@ -627,7 +630,7 @@ export const SCENES = {
           <div class="rp-title"><div class="k">わが家の、ちょうどいいバランス</div><h2>${esc(r.title)}</h2><p class="lead">${esc(r.closing)}</p>
             <div class="rp-bal"><div class="k">悩んだら、これを優先する</div>${r.balance.slice(0, 3).map((x, i) => `<div class="rk"><span class="no">${i + 1}</span><b>${esc(x)}</b></div>`).join('')}</div></div></div>
         <div class="rp-row">
-          <section class="box"><h3>分岐点で、守ろうとしたもの</h3><div class="rp-radar">${radarSVG(s, 230)}</div><ul class="mem">${r.memories.map((x, i) => `<li><b>${Y.FORKS[i] || ''}</b>${esc(x)}</li>`).join('')}</ul></section>
+          <section class="box"><h3>分岐点で、守ろうとしたもの</h3><div class="rp-radar">${radarSVG(s, 230)}</div><ul class="mem">${protectedReasons(s.player, s.others, s.memory).map((x, i) => `<li><b>${Y.FORKS[i] || ''}　${esc(s.player.labels[i] || '')}</b>${esc(x.t)}<span class="mk">${x.by}</span></li>`).join('')}</ul></section>
           <section class="box"><h3>本物の打ち合わせで、先に伝えておきたいこと</h3><ol>${r.tellFirst.map(x => `<li>${esc(x)}</li>`).join('')}</ol>${keptHTML(s)}</section>
           <section class="box"><h3>1年後のあなたの家</h3><dl class="facts rp-facts"><dt>総額</dt><dd>${man(o.total)}万円</dd><dt>借入</dt><dd>${man(o.principal)}万円</dd><dt>月々の返済</dt><dd>約${Y.payment(o.principal, Y.RATE.variable).toFixed(1)}万円</dd><dt>冬の朝</dt><dd>${o.warmth.label}</dd><dt>家計のゆとり</dt><dd>${o.slack.label}</dd></dl>
             ${r.couple ? `<h3>ふたりの傾向</h3><p class="lead">${esc(r.couple)}</p>` : ''}<p class="note" style="margin-top:14px">印刷用（PDF）は、右上のボタンから。</p></section>

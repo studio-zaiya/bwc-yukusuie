@@ -271,6 +271,7 @@ async function planner(env, body) {
   if (ck && env.STORE && out.ok && !out.fallback) await env.STORE.put(ck, JSON.stringify({ ...out, call: undefined }), { expirationTtl: 60 * 60 * 24 * 30 });
   return out;
 }
+const ROOFS = ['cube', 'hip', 'gable', 'mane', 'flat'];
 async function plannerRun(env, body) {
   const world = body.world;
   const co = Y.COMPANIES[world.company];
@@ -287,11 +288,12 @@ async function plannerRun(env, body) {
     `# 要望の台帳（ヒアリングで聞き取ったこと）\n${(body.heard || []).slice(0, 30).map(h => `- ${h.who}：${h.text}`).join('\n') || 'なし'}`,
     `# 希望の条件\n${wishes.map(w => `- ${w.text}`).join('\n') || 'なし'}`,
     body.current ? `# いまの骨組み\n${JSON.stringify(body.current)}` : '',
+    ROOFS.includes(body.roof) && !body.current ? `# この案の屋根：${body.roof}（${Y.ROOF_JA[body.roof]}）。${String(body.roofWhy || '').slice(0, 60)}。本案（main）はこの屋根で組む。会社のふだんの外形と違うなら、intro にその理由を一言` : '',
     body.text ? `# 施主の指示（これを反映して組み直す。調整の回数：${body.round || 1}回目）\n${String(body.text).slice(0, 300)}` : '',
   ].filter(Boolean).join('\n');
   const { submit, call } = body.fallbackOnly ? { submit: null, call: { role: 'planner', fallback: true } } : await callTools(env, {
     role: 'planner', user, tools, submitName: 'submit_plan', effort: 'low', maxTurns: 4,
-    validateSubmit: x => (!x.main || !Array.isArray(x.options) ? 'main と options（二つか三つ）を入れてください' : null) || planErr(x.main) || x.options.map(o => planErr(o?.plan)).find(Boolean) || (digitsIn(x, ['intro']).length || x.options.some(o => hasDigits(o.effect)) ? '文に算用数字' : null),
+    validateSubmit: x => (!x.main || !Array.isArray(x.options) ? 'main と options（二つか三つ）を入れてください' : null) || (ROOFS.includes(body.roof) && !body.current && x.main?.shape?.roof !== body.roof ? `本案の屋根は ${body.roof} にしてください` : null) || planErr(x.main) || x.options.map(o => planErr(o?.plan)).find(Boolean) || (digitsIn(x, ['intro']).length || x.options.some(o => hasDigits(o.effect)) ? '文に算用数字' : null),
   });
   if (!submit) {
     // 代わりの処理：決まった型の骨組みと調整の案（画面には「代わりの処理」と出す）
@@ -306,11 +308,11 @@ async function plannerRun(env, body) {
     // ふたりの好みが分かれていれば、会社によってどちらの好みから組むかが変わる（理由は intro に一言）。形は会社の性格から
     const RP = [['屋根は四角い箱', 'cube'], ['屋根は三角屋根', 'gable'], ['屋根は寄棟', 'hip'], ['屋根は片流れ', 'mane']].filter(([k]) => said.includes(k)).map(([, v]) => v);
     const second = ['A', 'D'].includes(world.company);
-    const pref = RP.length ? RP[second && RP.length > 1 ? 1 : 0] : co.roof;
+    const pref = ROOFS.includes(body.roof) ? body.roof : RP.length ? RP[second && RP.length > 1 ? 1 : 0] : co.roof;
     const form = ['A', 'B'].includes(world.company) ? '総二階' : '部分二階';
     const shape = { form, roof: pref };
     const main = { title: 'いただいた要望をそのまま入れた案', rooms: form === '総二階' ? base.map(r => r.name === 'ファミリー収納' ? { ...r, floor: 2 } : r) : base, shape };
-    const why = RP.length > 1 ? `屋根は、おふたりの好みが分かれていたので、${Y.ROOF_JA[pref]}で描いてみました。` : '';
+    const why = body.roofWhy ? `屋根は、${String(body.roofWhy).slice(0, 40)}、${Y.ROOF_JA[pref]}で描いてみました。` : RP.length > 1 ? `屋根は、おふたりの好みが分かれていたので、${Y.ROOF_JA[pref]}で描いてみました。` : '';
     const opts = [
       { plan: { title: '総二階に寄せた案', rooms: base.map(r => r.name === 'ファミリー収納' ? { ...r, floor: 2 } : r), shape: { form: '総二階', roof: pref } }, effect: '一階と二階の形がそろい、基礎と屋根が減る' },
       { plan: { title: '子ども部屋をひとまわり小さくした案', rooms: base.map(r => r.name === '子ども部屋' ? { ...r, size: 4.5 } : r), shape }, effect: '子ども部屋は寝て勉強する広さに絞り、過ごすのはリビングで' },

@@ -628,3 +628,5 @@ body.rec .youtag{animation:none}
 /* お知らせはポップアップより下に（閉じるボタンを覆っていた） */
 .notice{z-index:25}
 .pop{z-index:50}
+abbr.term{text-decoration:underline dotted rgba(30,43,54,.55);text-underline-offset:4px;cursor:help}
+.log.coord{padding-bottom:40px !important}

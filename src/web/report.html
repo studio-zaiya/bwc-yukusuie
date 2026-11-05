@@ -73,6 +73,7 @@ import * as Y from '/engine/engine.js';
 import * as P from '/parts.js';
 import { zoningSVG } from '/scenes.js';
 import { differsOf } from '/memory.js';
+import { protectedReasons } from '/reasons.js';
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 let D = null; try { D = JSON.parse(localStorage.getItem('yuku-report') || 'null'); } catch { }
 const root = document.getElementById('root');
@@ -110,10 +111,7 @@ const zone = w.plan ? zoningSVG(w.plan, { stack: true }) : '';
 const facts = [['延床', `${w.spec.tsubo}坪`], ['形と屋根', `${w.plan?.shape?.form || '総二階'}・${Y.ROOF_JA[w.spec.roof] || ''}`], ['外壁', `${wall.label.replace('（標準）', '')}（${wallCol[0]}）`], ['床', floor.label.replace('（標準）', '')], ['外構', w.spec.exterior === 'full' ? '入居の時に、外まわりまで整えた' : '最小限（あとから少しずつ）']];
 // 守ろうとしたもの：根拠（自由回答・アンケート・選んだ札）のあるものだけ。作り話の理由は書かない
 const sib = i => all.find(x => x.o.bits.length === me.bits.length && x.o.bits.every((b, k) => k === i ? b !== me.bits[k] : b === me.bits[k]))?.o;
-const warmTop = D.memory?.limits?.warmPriority === 'top'; let warmUsed = false;
-const protectedOf = i => {
-  const memo = (D.player.memory || []).find(m => m.decisionId === `D${i + 1}`);
-  if (memo?.reason) return { t: memo.reason, by: '自由回答' };
+const PR = protectedReasons(D.player, D.others, D.memory), protectedOf = i => PR[i];
   const o2 = sib(i); if (!o2) return { t: '—', by: '選んだ札' };
   if (i > 0 && warmTop && !warmUsed && me.warmth.level > o2.warmth.level) { warmUsed = true; return { t: '冬の暖かさ（いちばん大事と答えた）', by: 'アンケート' }; }
   if (me.choiceTotal < o2.choiceTotal - 5) return { t: `総額を抑えること（もう一方より ${man(o2.choiceTotal - me.choiceTotal)}万円低い）`, by: '選んだ札' };

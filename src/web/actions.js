@@ -312,7 +312,7 @@ export const ACTIONS = {
     emit('electric', { ids, adj, told, policy: told.length ? pol.kind : null });
     // 根拠：いつ、どこで伝えていたか（アンケートに書いたのに／帰り道に送ったのに）
     const ev = told.map(id => memItems.find(x => Y.ELECTRIC_WORDS[id].test(x.text))).filter(Boolean);
-    if (ev.length) emit('say', { who: 'sys', ch: 'elec', text: `根拠：${ev.map(x => `「${x.text}」は${{ survey: 'アンケートに書いていた', message: '帰り道にメッセージで送っていた', followUp: '打ち合わせで話していた', partner: '打ち合わせで話していた', summary: '打ち合わせで話していた', show: '写真で見せていた' }[x.source] || '伝えていた'}`).join('／')}` });
+    if (ev.length) emit('say', { who: 'sys', ch: 'elec', text: `根拠：${ev.map(x => `「${x.text}」は${{ survey: 'アンケートに書いていた', message: '帰り道にメッセージで送っていた', followUp: '打ち合わせで話していた', partner: '打ち合わせで話していた', summary: '打ち合わせで話していた', show: '写真で見せていた' }[['survey', 'message', 'followUp', 'partner', 'summary', 'show'].find(k => (x.sources || []).includes(k)) || x.source] || '伝えていた'}`).join('／')}` });
     faceTalk();
   },
   elecOk() { emit('elecOk', {}); },
@@ -410,12 +410,24 @@ function decide(side, reason) {
 // 分岐点どうしの短いつなぎ（FLOW_v3 の3）
 function connector(text, then) { SWITCH.on = true; SWITCH.lines = [text]; SWITCH.i = 0; SWITCH.soft = true; render(); setTimeout(() => { SWITCH.on = false; SWITCH.soft = false; then(); }, 1500); }
 // 2社分の提案を同時に作る（設計担当。数字はエンジン）。続きから遊ぶ道は、取っておいた提案を使う（cache）
+// 2社の提案の屋根：1社目は1人目の好み、2社目は2人目の好み（同じなら、2社目は会社のふだんの形）。2社の家が同じ形にならないように（監査11/6）
+const ROOF_OF_SV = { flat: 'cube', gable: 'gable', hip: 'hip', mono: 'mane' };
+function roofHints(cos) {
+  const sv = S.memory?.survey?.roof || {}, a = ROOF_OF_SV[sv.p1], b = ROOF_OF_SV[sv.p2] || (S.partnerAns?.roof ? ROOF_OF_SV[S.partnerAns.roof[0]] : null);
+  const [c1, c2] = cos, out = {};
+  if (a) out[c1] = { roof: a, why: `${NAMES.kazu}さんの好みに合わせて` };
+  else if (b) out[c1] = { roof: b, why: `${NAMES.yuu}さんの好みに合わせて` };
+  const r1 = out[c1]?.roof || Y.COMPANIES[c1].roof;
+  if (c2) { if (a && b && b !== a) out[c2] = { roof: b, why: `${NAMES.yuu}さんの好みに合わせて` }; else { const r = Y.COMPANIES[c2].roof !== r1 ? Y.COMPANIES[c2].roof : Y.COMPANIES[c2].altRoof; if (r && r !== r1) out[c2] = { roof: r, why: '弊社がふだんお勧めしている形で' }; } }
+  return out;
+}
 async function startProposals(cos, cache) {
   await dataReady();
   await Promise.all(cos.filter(co => !S.proposals[co]).map(async co => {
     const w = Y.newWorld({ household: Y.HOUSEHOLDS[S.household] || Y.HOUSEHOLDS.t2, company: co });
+    const rh = roofHints(cos)[co] || {};
     // 失敗したら、決まった型の案で必ず続ける（提案の日で止まらない）
-    try { const body = { ...planBody(w, '', null), cache: cache ? `${cache}-${co}` : undefined }; let r; try { r = await api('/api/ai/planner', body); } catch { r = null; } if (!r || !r.ok) r = await api('/api/ai/planner', { ...body, fallbackOnly: true }); if (r.ok) emit('proposal', { co, data: { intro: r.intro, main: r.main, mainM: r.mainM, options: r.options, altIndex: r.altIndex, fallback: !!r.fallback }, call: r.call }); } catch (e) { toast(String(e.message || e)); }
+    try { const body = { ...planBody(w, '', null), roof: rh.roof, roofWhy: rh.why, cache: cache ? `${cache}-${co}` : undefined }; let r; try { r = await api('/api/ai/planner', body); } catch { r = null; } if (!r || !r.ok) r = await api('/api/ai/planner', { ...body, fallbackOnly: true }); if (r.ok) emit('proposal', { co, data: { intro: r.intro, main: r.main, mainM: r.mainM, options: r.options, altIndex: r.altIndex, fallback: !!r.fallback }, call: r.call }); } catch (e) { toast(String(e.message || e)); }
   }));
 }
 function closeFork(dec, then) {
@@ -467,9 +479,9 @@ function afterFork(dec) {
     emit('say', { who: 'sys', ch: co, text: `${Y.COMPANIES[co].name}に決めて、土地の売買契約を結んだ（ローン特約の期限は${Y.DEADLINE.loan}日目）` });
     if (p) { const q = fitProposal(p); if (q !== p) emit('say', { who: 'sys', ch: co, text: `敷地に建てられる大きさ（建蔽率）に収めるため、「${q.main.title || '調整の案'}」を本体の案にした` }); emit('planGot', { data: { ...q, view: null } }); emit('planConfirm', {}); }
     emit('planOthers', { byCo: Object.fromEntries(Object.entries(S.proposals).map(([c, x0]) => { const x = fitProposal(x0); return [c, { main: x.main, alt: x.options?.[x.altIndex || 0]?.plan || null }]; })) });
-    connector('そのまま、予算の相談へ', () => { goto('fork', 3); emit('notice', { text: `土地の売買契約を結びました（${dd[1] || ''}日目）。住宅ローンの本審査は、ローン特約の期限（${Y.DEADLINE.loan}日目）までに通す必要があります。` }); });
+    connector(`${Math.max(1, (dd[2] || 0) - (dd[1] || 0))}日後——予算の相談`, () => { goto('fork', 3); emit('notice', { text: `土地の売買契約を結びました（${dd[1] || ''}日目）。住宅ローンの本審査は、ローン特約の期限（${Y.DEADLINE.loan}日目）までに通す必要があります。` }); });
   }
-  else if (dec.id === 'D2') connector('契約の前に、最終のお見積りです', () => goto('fork', 5));
+  else if (dec.id === 'D2') { const d2 = Y.scheduleOf(S.player); connector(`${Math.max(1, (d2[4] || 0) - (d2[2] || 0))}日後——契約の前の、最終のお見積り`, () => goto('fork', 5)); }
   else if (dec.id === 'D4') goto('electric', 6);
   else if (dec.id === 'D3') {
     // 契約に入れてあるオプションは、その会社の担当者が聞き取れた（記録した）要望だけ
