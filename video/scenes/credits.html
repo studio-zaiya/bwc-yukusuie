@@ -34,7 +34,7 @@ const W=document.getElementById('w');
 // 動画に入れる正式のクレジット（作り手の名前・後援）は、リポジトリに入れない手元のファイル credits.local.json から差し込む（人間の決定 11/5）。
 // 例：{"producer":"…","sponsor":"…"}。ファイルがなければ、リポジトリの表記（KT（Studio ZaiYa）、後援なし）のまま
 window.READY=false;
-fetch('credits.local.json').then(r=>r.ok?r.json():null).catch(()=>null).then(j=>{
+(window.CREDITS_LOCAL?Promise.resolve(window.CREDITS_LOCAL):fetch('credits.local.json').then(r=>r.ok?r.json():null).catch(()=>null)).then(j=>{
   if(j){if(j.producer)document.querySelector('[data-local=producer]').textContent=j.producer;
     if(j.sponsor){const d=document.querySelector('[data-local=sponsor]');d.textContent=j.sponsor;d.hidden=false;document.querySelector('[data-local=sponsorLabel]').hidden=false;}}
   window.READY=true;});

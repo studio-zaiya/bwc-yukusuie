@@ -47,6 +47,9 @@ const SCENES = [
   const ctx = await b.newContext({ viewport: { width: 1920, height: 1080 }, locale: 'ja-JP' });
   await ctx.route(/cdn\.jsdelivr\.net\/npm\/three@0\.160\.0\/(.*)/, (route, req) => route.fulfill({ path: path.join(THREE, req.url().split('three@0.160.0/')[1]), contentType: 'application/javascript' }));
   if (FONT_DIR) await ctx.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
+  // 正式のクレジット（コミットしない手元のファイル）を、file:// でも読めるようにページへ渡す
+  const LOCAL = path.join(ROOT, 'video', 'scenes', 'credits.local.json');
+  if (fs.existsSync(LOCAL)) await ctx.addInitScript(j => { window.CREDITS_LOCAL = j; }, JSON.parse(fs.readFileSync(LOCAL, 'utf8')));
   for (const s of SCENES) {
     if (ONLY && !ONLY.includes(s.id)) continue;
     const dir = path.join(OUT, '_frames_' + s.id); fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
