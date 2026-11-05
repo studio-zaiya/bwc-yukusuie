@@ -5,6 +5,10 @@
   const P = (x, y, z = 0) => [(x - y) * C30, (x + y) * S30 - z];
   const pts = a => a.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ');
   const poly = (a, fill, stroke = '#1E2B36', sw = 1.4, extra = '') => `<polygon points="${pts(a)}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round" ${extra}/>`;
+  // 暗い外壁（黒・チャコールなど）は、輪郭が線と同化しないよう、面を明るめにする（人間の回答11/6）
+  const lum = hex => { const n = parseInt(String(hex).slice(1), 16); return ((n >> 16) * .299 + (n >> 8 & 255) * .587 + (n & 255) * .114) / 255; };
+  const liftDark = hex => /^#[0-9a-fA-F]{6}$/.test(hex || '') && lum(hex) < 0.3 ? mix(hex, '#FFFFFF', 0.32) : hex;
+  function mix(a, b, t) { const p = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; const x = p(a), y = p(b); return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join(''); }
   function shade(hex, k) { const n = parseInt(hex.slice(1), 16); let r = n >> 16, g = n >> 8 & 255, b = n & 255; const f = v => Math.max(0, Math.min(255, Math.round(v * k))); return '#' + [f(r), f(g), f(b)].map(v => v.toString(16).padStart(2, '0')).join(''); }
 
   const FINISH = [
@@ -34,7 +38,7 @@
       return s;
     }
     const white = stage === 3;
-    const wall = white ? '#FFFFFF' : fin.wall, rf = white ? '#F1EEE8' : fin.roof;
+    const wall = white ? '#FFFFFF' : liftDark(fin.wall), rf = white ? '#F1EEE8' : liftDark(fin.roof);
     // 見える面：南（y=d）と東（x=w）
     const wallH = roof === 'shed' ? h : h;
     s += poly(g([[0, d, 3], [w, d, 3], [w, d, h], [0, d, h]]), wall);
@@ -90,7 +94,7 @@
 
   function formHouse(o) {
     const { x = 0, y = 0, w = 46, d = 38, h = 40, roof = 'flat', fin = FINISH[0], stage = 4, lamp = false, form } = o;
-    const white = stage === 3, wall = white ? '#FFFFFF' : fin.wall, rf = white ? '#F1EEE8' : fin.roof;
+    const white = stage === 3, wall = white ? '#FFFFFF' : liftDark(fin.wall), rf = white ? '#F1EEE8' : liftDark(fin.roof);
     const g = a => a.map(([px, py, pz]) => P(x + px, y + py, pz));
     const h1 = Math.round(h * 0.5);
     let s = '';
