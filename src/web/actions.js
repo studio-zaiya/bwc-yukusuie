@@ -149,7 +149,14 @@ export const ACTIONS = {
     // ことば・写真・URLから、要望の要素を読み取る（1回だけ）。画像そのものは記録に残さない
     try { const r = await api('/api/ai/entry', { text, photos: S.entry.photos }); if (!isRealFail(r.call)) emit('ai', { role: 'entry', data: r.data, call: r.call }); } catch { /* 読み取れなくても進める */ }
   },
-  toSources() { goto('sources', 0); },
+  // 情報収集 v3：分譲地から「家づくりをはじめる ▶」で、全画面のシートが開く
+  toSources() { emit('gStep', { step: 'flyer' }); goto('gather', 0); },
+  gRank(d) { emit('gRank', { co: d.co }); },
+  gSns() { if ((S.gather?.rank || []).length < 3) return; emit('gStep', { step: 'sns' }); },
+  gBack() { emit('gStep', { step: 'flyer' }); },
+  gTab(d) { emit('gTab', { i: +d.i }); },
+  gSave(d) { emit('gSave', { tab: S.gather?.tab || 0, i: +d.i }); },
+  gPick() { emit('gStep', { step: 'pick' }); const r = S.gather?.rank || []; if (S.visit.length === 0 && r.length >= 2) emit('visit', { cos: [r[0], r[1]] }); },
   source(d) { emit('source', { id: d.id }); },
   pickVisit(d) {
     const v = S.visit.includes(d.co) ? S.visit.filter(x => x !== d.co) : [...S.visit, d.co].slice(-2);

@@ -25,9 +25,10 @@ const OUT = process.env.OUT || 'out/shots';
     for (let i = 0; i < 4; i++) await click('[data-act=howtoNext]');
     await shot('family'); await click('[data-act=toLotNoEntry]'); await shot('lot');
     await click('[data-act=toSources]');
-    await click('[data-act=openPop][data-pop=flyers]'); await shot('flyers'); await click('.close');
-    for (const id of ['showroom', 'friend', 'sns']) await click(`[data-act=source][data-id=${id}]`).catch(() => {});
-    await click('[data-act=pickVisit][data-co=C]'); await click('[data-act=pickVisit][data-co=A]'); await shot('sources');
+    // 情報収集 v3：チラシに1〜3位 → SNSで各タブ1つ保存 → 2社を選ぶ（1位・2位が最初から選ばれている）
+    await shot('gather-flyer0'); for (const co of ['C', 'A', 'D']) await click(`[data-act=gRank][data-co=${co}]`); await shot('gather-flyer');
+    await click('[data-act=gSns]'); for (const i of [0, 1, 2]) { await click(`[data-act=gTab][data-i="${i}"]`); await click(`[data-act=gSave][data-i="${i === 1 ? 1 : 3}"]`); } await shot('gather-sns');
+    await click('[data-act=gPick]'); await shot('sources'); console.log('選ばれた2社', await p.evaluate(() => YUKU.state.visit));
     await click('[data-act=toVisit]'); await p.waitForSelector('.sv-q'); await shot('survey');
     // 来場者アンケート：1画面1問。複数選べる問いは最初の札と「つぎへ」、ほかは最初の札
     for (let k = 0; k < 30 && await p.evaluate(() => YUKU.state.scene === 'survey'); k++) {

@@ -51,6 +51,11 @@ export function apply(s, e) {
     case 'mode': s.mode = e.mode; break;
     case 'entry': s.entry = { text: e.text, photos: e.photos || [] }; break;
     case 'source': if (!s.sources.includes(e.id)) s.sources.push(e.id); break;
+    // 情報収集 v3：チラシの順位と、保存した投稿（出来事の記録には残すが、要望の記憶・エンジンには入れない）
+    case 'gStep': s.gather = { ...(s.gather || { rank: [], saved: {}, tab: 0 }), step: e.step }; break;
+    case 'gRank': { const g = s.gather || { step: 'flyer', rank: [], saved: {}, tab: 0 }; const r = g.rank.includes(e.co) ? g.rank.filter(x => x !== e.co) : g.rank.length < 3 ? [...g.rank, e.co] : g.rank; s.gather = { ...g, rank: r }; break; }
+    case 'gTab': s.gather = { ...s.gather, tab: e.i }; break;
+    case 'gSave': { const g = s.gather, cur = g.saved[e.tab] || []; const nx = cur.includes(e.i) ? cur.filter(x => x !== e.i) : cur.length < 2 ? [...cur, e.i] : [cur[1], e.i]; s.gather = { ...g, saved: { ...g.saved, [e.tab]: nx } }; break; }
     case 'visit': s.visit = e.cos; s.pair = [...e.cos]; break;
     case 'pair': s.pair = [...e.pair]; break;
     case 'cur': s.cur = e.co; s.tab = e.co; break;

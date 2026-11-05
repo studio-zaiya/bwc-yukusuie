@@ -23,9 +23,9 @@ const chOf = s => s.player ? s.player.company : s.cur;
 export const SV = { sel: [], pressed: null };
 // 断られたあとのナレーションの帯（WORLD_SWITCH.md の5）
 export const SWITCH = { on: false, lines: [], i: 0, soft: false };
-export const DATA = { sources: null, sns: null, personas: null, electrical: null, ai: null, brochures: null, survey: null, harness: null };
+export const DATA = { sources: null, sns: null, personas: null, electrical: null, ai: null, brochures: null, survey: null, harness: null, specs: null, snsSearch: null };
 // 中身の素材集（data/content。期間中に claude.ai で作成）
-for (const [k, f] of [['sources', 'info_sources'], ['sns', 'sns_posts'], ['personas', 'personas'], ['electrical', 'electrical'], ['ai', 'ai_assistant'], ['brochures', 'brochures'], ['survey', 'survey'], ['harness', 'rep_harness']]) fetch(`/data/content/${f}.json`).then(r => r.json()).then(j => { DATA[k] = j; }).catch(() => {});
+for (const [k, f] of [['sources', 'info_sources'], ['sns', 'sns_posts'], ['personas', 'personas'], ['electrical', 'electrical'], ['ai', 'ai_assistant'], ['brochures', 'brochures'], ['survey', 'survey'], ['harness', 'rep_harness'], ['specs', 'standard_specs'], ['snsSearch', 'sns_search']]) fetch(`/data/content/${f}.json`).then(r => r.json()).then(j => { DATA[k] = j; }).catch(() => {});
 export const dataReady = () => new Promise(res => { const t0 = Date.now(); const tick = () => (DATA.survey && DATA.harness && DATA.personas) || Date.now() - t0 > 5000 ? res() : setTimeout(tick, 50); tick(); });
 export const persona = co => DATA.personas?.staff.find(p => p.company === co);
 export const coordinator = s => { const cs = DATA.personas?.coordinators || []; return cs[(s.seed + (s.player ? Y.worldNo(s.player.bits.concat([0, 0, 0, 0]).slice(0, 4)) : 0)) % (cs.length || 1)]; };
@@ -333,6 +333,35 @@ export const SCENES = {
         <div class="srcs">${src.map(x => `<button class="src" data-act="source" data-id="${x.id}" aria-pressed="${s.sources.includes(x.id)}"><b>${x.label}</b><span>${s.sources.includes(x.id) ? '開いた' : '開いてみる'}</span></button>`).join('')}</div></div>
       <div><div class="memo">${opened.length ? opened.map(x => `<div class="memo-s"><h4>${x.label}</h4>${'ABCD'.split('').map(co => (x.items[co] || []).map(n => `<p>${P.coTag(co, 18)}${esc(n.text)}</p>`).join('')).join('')}</div>`).join('') : '<p class="lead">入口を開くと、ここにメモがたまります。</p>'}</div>
         <div class="visitpick"><div style="font-weight:700;margin-bottom:8px">実際に訪ねる2社（${pick.length}/2）</div><div class="vp">${'ABCD'.split('').map(co => `<button class="vbtn" data-act="pickVisit" data-co="${co}" aria-pressed="${pick.includes(co)}">${P.coTag(co, 26)}${Y.COMPANIES[co].name}<small>${Y.COMPANIES[co].kind}</small></button>`).join('')}</div></div></div></div>`;
+  },
+  // 情報収集 v3（INFO_GATHER_v3）：全画面のシートで、4社のチラシに1〜3位 → SNSで検索ワードごとに保存 → 見に行く2社を選ぶ。メモは次へ進むと消える
+  gather(s) {
+    const g = s.gather || { step: 'flyer', rank: [], saved: {}, tab: 0 };
+    const B = DATA.brochures?.brochures || {}, ICON = DATA.specs?.chirashiIcons || {}, h = Y.HOUSEHOLDS[s.household];
+    const head = n => `<div class="g-hd"><span class="g-step ${n === 1 ? 'on' : ''}">1／2 チラシを見比べる</span><span class="g-step ${n === 2 ? 'on' : ''}">2／2 SNSを見る</span></div>`;
+    if (g.step === 'flyer') {
+      const card = co => { const b = B[co] || {}, c = Y.COMPANIES[co], r = g.rank.indexOf(co);
+        const img = P.thumb({ w: { no: b.style?.finish || 1, spec: { roof: c.roof, exterior: 'full' }, company: co, bits: [] }, stage: 4, ghost: 0 }, { style: 'width:100%;height:100%' });
+        return `<div class="g-card ${r >= 0 ? 'on' : ''}"><button class="g-hit" data-act="gRank" data-co="${co}" aria-pressed="${r >= 0}"><div class="g-img">${img}</div><div class="g-body"><div class="g-co">${P.coTag(co, 26)}<b>${c.name}</b><small>${esc(b.medium || 'チラシ')}</small></div>
+          <div class="g-catch">${esc(b.catch || '')}</div><div class="g-icons">${(ICON[co] || []).map(([k, v]) => `<span><small>${esc(k)}</small>${esc(v)}</span>`).join('')}</div>
+          <div class="g-price">本体価格 ${man(c.tsubo * h.area[0])}万円〜<small>（${h.area[0]}坪の例）</small></div><div class="g-small">${esc(b.small || '')}</div></div>${r >= 0 ? `<span class="g-rank">${r + 1}</span>` : ''}</button>
+          <button class="opt g-more" data-act="openPop" data-pop="flyers">くわしく見る ＋</button></div>`; };
+      return `<div class="gsheet">${head(1)}<h2 class="g-h">気になる順に、1位から3位まで押してみましょう</h2><p class="g-sub">宣伝の言葉です。どの会社も、自分をよく見せています。押し直すと外れます。</p><div class="g-grid">${'ABCD'.split('').map(card).join('')}</div></div>`;
+    }
+    if (g.step === 'sns') {
+      const S2 = DATA.snsSearch?.searches || [], t = Math.min(g.tab || 0, S2.length - 1), cur = S2[t] || { posts: [] }, sv = g.saved || {};
+      const tabs = S2.map((x, i) => `<button class="g-tab" data-act="gTab" data-i="${i}" aria-pressed="${i === t}">${esc(x.word)}<small>${(sv[i] || []).length ? `保存 ${(sv[i] || []).length}` : ''}</small></button>`).join('');
+      const posts = cur.posts.map((p, k) => { const on = (sv[t] || []).includes(k); return `<div class="g-post"><div class="g-by">${esc(p.by)}</div><p>${esc(p.text)}</p><button class="g-save ${on ? 'on' : ''}" data-act="gSave" data-i="${k}" aria-pressed="${on}"><svg viewBox="0 0 14 18" width="14" height="18"><path d="M1 1h12v16l-6-4-6 4z" fill="${on ? '#1E2B36' : 'none'}" stroke="#1E2B36" stroke-width="1.6"/></svg>${on ? '保存した' : '保存'}</button></div>`; }).join('');
+      return `<div class="gsheet">${head(2)}<div class="g-sns"><div class="g-phone"><div class="g-bar">検索</div><div class="g-tabs">${tabs}</div><div class="g-posts">${posts}</div></div>
+        <div class="g-side"><h2 class="g-h">各タブで、気になる投稿を1〜2個保存しましょう</h2><p class="g-sub">だれかの体験の一面です。食い違う話もあります。</p><ul class="g-cnt">${S2.map((x, i) => `<li class="${(sv[i] || []).length ? 'ok' : ''}">${esc(x.word)}：${(sv[i] || []).length}／2</li>`).join('')}</ul></div></div></div>`;
+    }
+    // 見に行く2社を選ぶ：チラシの1位・2位が最初から選ばれている。集めた情報のメモは、この画面だけ
+    const S2 = DATA.snsSearch?.searches || [], memo = co => { const r = g.rank.indexOf(co); const ps = []; S2.forEach((x, i) => (g.saved?.[i] || []).forEach(k => { if (x.posts[k]?.company === co) ps.push(x.posts[k].text); }));
+      return `<div class="g-memo-co">${P.coTag(co, 20)}<b>${Y.COMPANIES[co].name}</b>${r >= 0 ? `<span class="g-r">チラシ ${r + 1}位</span>` : ''}${ps.map(t => `<p>「${esc(t)}」</p>`).join('')}</div>`; };
+    const gen = []; S2.forEach((x, i) => (g.saved?.[i] || []).forEach(k => { if (!x.posts[k]?.company) gen.push(x.posts[k].text); }));
+    return `${top(s)}${moneyBox(s)}${clocks(s)}<div class="g-pick"><div><h2 class="g-h">見に行く会社を、2つ選びましょう</h2><p class="g-sub">チラシで1位・2位をつけた会社が選ばれています。変えてもかまいません。</p>
+      <div class="vp g-vp">${'ABCD'.split('').map(co => `<button class="vbtn" data-act="pickVisit" data-co="${co}" aria-pressed="${s.visit.includes(co)}">${P.coTag(co, 30)}${Y.COMPANIES[co].name}<small>${Y.COMPANIES[co].kind}</small></button>`).join('')}</div></div>
+      <aside class="g-memo"><h4>集めた情報のメモ</h4><p class="note">このメモは、次へ進むと消えます。担当者には伝わっていません。</p>${'ABCD'.split('').map(memo).join('')}${gen.length ? `<div class="g-memo-co"><b>会社の名前が出ない投稿</b>${gen.map(t => `<p>「${esc(t)}」</p>`).join('')}</div>` : ''}</aside></div>`;
   },
   // v2：来場者アンケート（1画面1問、選ぶとすぐ次へ。上に「あと〇問」と進み具合。段が変わるとき軽く横にすべる）
   survey(s) {
@@ -708,6 +737,10 @@ export function navOf(s) {
     case 'family': return { todo: '家族の条件を確かめましょう', go: g('toLotNoEntry', '区画へ ▶') };
     case 'entry': return { todo: '思いや理想を書いてみましょう', go: g('toLot', 'つぎへ ▶') };
     case 'lot': return { todo: '当たった区画を確かめましょう', go: g('toSources', '家づくりをはじめる ▶') };
+    case 'gather': { const g = s.gather || { step: 'flyer', rank: [], saved: {} };
+      if (g.step === 'flyer') return { todo: '気になる順に、1位から3位まで押してみましょう', go: g.rank.length >= 3 ? { act: 'gSns', label: 'SNSも見てみる ▶', ready: true } : { act: 'gSns', label: 'SNSも見てみる ▶', off: true, why: `あと${3 - g.rank.length}社に順位をつけてください` } };
+      if (g.step === 'sns') { const n = (DATA.snsSearch?.searches || []).filter((_, i) => (g.saved?.[i] || []).length).length, all = (DATA.snsSearch?.searches || []).length || 3; return { todo: '各タブで、気になる投稿を1〜2個保存しましょう', back: { act: 'gBack', label: '＜ チラシへ' }, go: n >= all ? { act: 'gPick', label: '見に行く会社を選ぶ ▶', ready: true } : { act: 'gPick', label: '見に行く会社を選ぶ ▶', off: true, why: `まだ保存していないタブがあります（${n}／${all}）` } }; }
+      return { todo: '見に行く会社を2つ選びましょう', go: s.visit.length === 2 ? { act: 'toVisit', label: 'この2社を訪ねる ▶', ready: true } : { act: 'toVisit', label: 'この2社を訪ねる ▶', off: true, why: `訪ねる会社を選んでください（${s.visit.length}/2）` } }; }
     case 'sources': return { todo: '入口を開いて、訪ねる2社を選びましょう', go: g('toVisit', 'この2社を訪ねる ▶', s.visit.length === 2 ? { ready: true } : off(`訪ねる会社を選んでください（${s.visit.length}/2）`)) };
     case 'survey': { const qs = DATA.survey?.questions || [], i = Math.min(s.sv.i, Math.max(0, qs.length - 1)), q = qs[i];
       const back = i > 0 || s.sv.who === 'p2' ? { act: 'svBack', label: '＜ 戻る' } : null;
