@@ -98,7 +98,7 @@ function stepOf(w, p) {
   return Math.max(0, Math.min(11, v));
 }
 const stageOf = st => st < 7 ? 0 : st < 8 ? 1 : st < 9 ? 2 : st < 9.6 ? 3 : 4;
-const SHORT = [w => Y.COMPANIES[w.company].name, b => b ? '外形を変えた' : '提案の外形', b => b ? '外構まで' : '外構は最小限', b => b ? 'アップグレード' : '標準の仕上げ'];
+const SHORT = [w => Y.COMPANIES[w.company].name, b => b ? '外形を変えた' : '提案の外形', b => b ? '外構まで' : '外構は最小限', b => b ? 'グレードアップ' : '標準の仕上げ'];
 const shortName = w => w.bits.map((b, i) => i === 0 ? w.company : i === 1 ? Y.ROOF_JA[w.spec.roof] : SHORT[i](b)).join('・');
 const NOTES = [
   ['見積の表紙が届いた', '「別途」の行を数えた', '担当者に質問を送った', '総額で見積が届いた'],
@@ -170,7 +170,7 @@ function diffWords(me, w) {
   if (me.spec.exterior !== w.spec.exterior) out.push(w.spec.exterior === 'full' ? '入居の日から玄関前と庭が整う' : '玄関前は砂利のまま、外構はあとから');
   if (me.spec.window !== w.spec.window) out.push(w.spec.window === 'triple' ? '南の窓がトリプルガラス' : '南の窓は標準のガラス');
   if (me.spec.tsubo !== w.spec.tsubo) out.push(`広さは${w.spec.tsubo}坪になる`);
-  if (Y.finishCost(me.finish) !== Y.finishCost(w.finish)) out.push(Y.finishCost(w.finish) ? '外壁や床をアップグレード' : '標準の仕上げ');
+  if (Y.finishCost(me.finish) !== Y.finishCost(w.finish)) out.push(Y.finishCost(w.finish) ? '外壁や床をグレードアップ' : '標準の仕上げ');
   const wa = Y.warmth(me.spec, me.company), wb = Y.warmth(w.spec, w.company);
   if (wa.level !== wb.level) out.push(`冬の朝は「${wb.label}」`);
   return out;
@@ -340,13 +340,13 @@ export const SCENES = {
     const left = qs.length - i, pct = Math.round(i / qs.length * 100);
     const cur = s.sv[who][q.id], sel = q.multi ? SV.sel : [];
     const on = id => q.multi ? sel.includes(id) : (SV.pressed === id || cur === id);
-    // 前の問いの、パートナーの答え（ひとりプレイ）。違えば「ふたりの意見が違う」の印（金の破線◆）
+    // 前の問いの、パートナーの答え（ひとりプレイ）。違えば「ふたりの答えが違う」と添える（◆と金の破線は、2択の外の答えの印として残す。人間の回答15→Claudeの判断）
     let pa = '';
     const lq = s.sv.last && qs.find(x => x.id === s.sv.last.q);
     if (s.mode === 'solo' && lq && s.partnerAns?.[lq.id]) {
       const mine = [].concat(s.sv.p1[lq.id] || []).filter(x => x !== 'none'), hers = s.partnerAns[lq.id].filter(x => x !== 'none');
       const differs = mine.length && hers.length && !(mine.length === hers.length && mine.every(x => hers.includes(x)));
-      pa = `<div class="sv-pa ${differs ? 'diff' : ''}"><i class="ci"></i>${esc(NAMES.yuu)}は「${esc(hers.map(id => lq.choices.find(c => c.id === id)?.label || '').join('、') || 'こだわらない')}」${differs ? '<b>◆ ふたりの意見が違う</b>' : ''}<small>（${esc(lq.text.replace(/（.*?）/g, ''))}）</small></div>`;
+      pa = `<div class="sv-pa ${differs ? 'diff' : ''}"><i class="ci"></i>${esc(NAMES.yuu)}は「${esc(hers.map(id => lq.choices.find(c => c.id === id)?.label || '').join('、') || 'こだわらない')}」${differs ? '<b>ふたりの答えが違う</b>' : ''}<small>（${esc(lq.text.replace(/（.*?）/g, ''))}）</small></div>`;
     }
     const preview = buildMemory(SVY, s.sv.p1, s.mode === 'duo' ? s.sv.p2 : {});
     const lastQ = s.sv.last?.q;
@@ -651,7 +651,7 @@ export const SCENES = {
     const onPath = (bits, k, j) => (j === parseInt(bits.slice(0, k).join('') || '0', 2));
     // 枝の名前は、その世界で実際に選んだ札（自由回答ならその答え）から。屋根の形では付けない（同じ名前の枝が並んでいた）
     const short = t => String(t || '').replace(/(にする|で進める|を受ける)$/, '').replace(/（.*?）/g, '').slice(0, 11);
-    const lab = (k, x) => { const w = x.w; if (w.third === ['D1', 'D2', 'D3', 'D4'][k - 1]) return '◆' + short(w.labels[k - 1]); return k === 1 ? Y.COMPANIES[w.company].name : k === 2 ? short(w.labels[1]) : k === 3 ? (w.spec.exterior === 'full' ? '外構まで' : '外構は最小限') : (Y.finishCost(w.finish) ? 'アップグレード' : '標準の仕上げ'); };
+    const lab = (k, x) => { const w = x.w; if (w.third === ['D1', 'D2', 'D3', 'D4'][k - 1]) return '◆' + short(w.labels[k - 1]); return k === 1 ? Y.COMPANIES[w.company].name : k === 2 ? short(w.labels[1]) : k === 3 ? (w.spec.exterior === 'full' ? '外構まで' : '外構は最小限') : (Y.finishCost(w.finish) ? 'グレードアップ' : '標準の仕上げ'); };
     let edges = '', labels = '', hi = '';
     for (let k = 1; k <= 4; k++) for (let j = 0; j < (1 << k); j++) {
       const pj = j >> 1, x0 = X(k - 1), y0 = nodeY(k - 1, pj), x1 = X(k), y1 = nodeY(k, j);

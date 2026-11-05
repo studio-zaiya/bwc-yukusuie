@@ -416,7 +416,7 @@ button.rt-card:active{transform:translateY(1px)}
 .rt-card .wbox li.wl{font-size:18px;line-height:1.55}
 .rt-in{display:flex;gap:12px;width:100%;margin-top:14px;align-items:center}.rt-in textarea{flex:1;font:19px/1.5 var(--f);padding:10px 14px;border:1.5px solid rgba(30,43,54,.35);border-radius:12px;background:#fff;resize:none}
 .rt-cards.picked{grid-template-columns:1fr 1fr;flex:0 0 auto}
-.rt-card.on{border:3px solid #C99A00;box-shadow:0 0 0 5px rgba(242,194,48,.35);cursor:default}
+.rt-card.on{border:3px solid var(--ink);box-shadow:0 0 0 5px rgba(30,43,54,.14);cursor:default}
 .rt-card.fly{animation:fly .9s ease-in forwards}
 @keyframes fly{to{transform:translate(-40%,620px) scale(.2);opacity:0}}
 .rt-why{width:100%;margin-top:14px}.rt-why .msg{max-width:none;font-size:22px}
@@ -511,7 +511,7 @@ button.th.th15{font:inherit;color:inherit;text-align:center;cursor:pointer;borde
 .sv-o:hover{border-color:var(--ink)}.sv-o.on{background:#FDE3CC;border-color:#E8701F;transform:translateY(2px)}.sv-o.nopref{color:var(--ink2);font-weight:500}
 .sv-nav{display:flex;justify-content:space-between;align-items:center;margin-top:auto}
 .sv-back{font:900 30px var(--fr);width:60px;height:60px;border-radius:50%;border:2px solid var(--ink);background:#fff;cursor:pointer}
-.sv-pa{font-size:18px;padding:10px 14px;border-radius:12px;background:#F4F1EA}.sv-pa.diff{outline:2px dashed #C99A00;outline-offset:-2px;background:#FFF8DD}.sv-pa b{margin-left:10px;color:#8C6A00}.sv-pa small{color:var(--ink2);margin-left:8px}
+.sv-pa{font-size:18px;padding:10px 14px;border-radius:12px;background:#F4F1EA}.sv-pa.diff{outline:2px solid var(--ink);outline-offset:-2px}.sv-pa b{margin-left:10px;color:var(--ink)}.sv-pa small{color:var(--ink2);margin-left:8px}
 .sv-board{background:#fff;border-radius:24px;padding:20px 22px;display:flex;flex-direction:column;min-height:0}.sv-board h4{font-family:var(--fr);font-size:22px;margin:0 0 8px}
 .sv-board .bst{flex:1;display:flex;flex-wrap:wrap;align-content:flex-start;gap:8px;overflow:hidden}
 .sticky.fly{animation:stfly .5s ease-out}@keyframes stfly{from{transform:translate(-160px,40px) rotate(-12deg);opacity:0}}
@@ -533,7 +533,7 @@ button.th.th15{font:inherit;color:inherit;text-align:center;cursor:pointer;borde
 .th.unbuilt{border:1.5px dashed #1E2B36;background:#F7F3EA}.th.unbuilt .tnm{color:var(--ink2)}
 .rt-card.off{opacity:.55;cursor:not-allowed;position:relative}.rt-off{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--fr);font-weight:900;font-size:26px;background:#fff;border:2px solid var(--ink);border-radius:999px;padding:10px 26px;white-space:nowrap}
 @media (prefers-reduced-motion:reduce){.wswitch,.wswitch p{animation:none}}
-.colors.big{display:flex;gap:14px;flex-wrap:wrap}.colors.big button{width:120px;height:90px;border-radius:14px;border:2px solid rgba(30,43,54,.25);position:relative}.colors.big button[aria-pressed=true]{outline:4px solid #F2C230;outline-offset:2px}.colors.big button span{position:absolute;left:0;right:0;bottom:-26px;font-size:16px;color:var(--ink)}
+.colors.big{display:flex;gap:14px;flex-wrap:wrap}.colors.big button{width:120px;height:90px;border-radius:14px;border:2px solid rgba(30,43,54,.25);position:relative}.colors.big button[aria-pressed=true]{outline:4px solid var(--ink);outline-offset:2px}.colors.big button span{position:absolute;left:0;right:0;bottom:-26px;font-size:16px;color:var(--ink)}
 /* 手続きの通知の箱（人間の回答11/5：独立の場面にせず、起きたときに知らせる） */
 .notice{position:absolute;right:30px;top:116px;width:500px;z-index:40;background:#fff;border:2px solid var(--ink);border-radius:14px;padding:12px 18px;font-size:17px;line-height:1.6;box-shadow:0 10px 24px rgba(30,43,54,.15);animation:rtin .4s ease-out,ntout .6s 6s forwards}@keyframes ntout{to{opacity:0;visibility:hidden}}.notice b{display:block;font-size:14px;color:var(--ink2)}
 .colors.big{margin-bottom:34px}
@@ -600,7 +600,7 @@ button.th.th15{font:inherit;color:inherit;text-align:center;cursor:pointer;borde
 .hasnav .w4 ~ .galT{top:auto;bottom:200px}.hasnav .w4 ~ .gal{top:auto;bottom:12px;height:180px}
 .hasnav .pp-wrap{bottom:16px}
 .hasnav .tpanel{bottom:16px}
-.rt-card.sel{outline:4px solid var(--gold);outline-offset:3px;transform:translateY(-4px)}
+.rt-card.sel{outline:4px solid var(--ink);outline-offset:3px;transform:translateY(-4px)}
 .hasnav .w4{width:1156px;height:650px}.hasnav .w4 iframe{transform:scale(.60208)}
 .hasnav .w4side{left:1212px;width:678px;height:650px}
 .hasnav .ritual{height:660px}

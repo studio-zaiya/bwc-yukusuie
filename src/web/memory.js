@@ -51,6 +51,8 @@ export function deliver(m, co, oftenMiss = [], seed = 7) {
     const cat = x.q ? QCAT[x.q] : '';
     x.deliveredTo[co] = cat && oftenMiss.includes(cat) && hash(`${seed}-${x.id}-${co}`) < 500 ? 'missed' : 'told';
   }
+  // 聞き漏らしやすい話題の要望があれば、少なくとも1件は伝わらない（「全部伝えたのに」の場面が、どのプレイでも起きるように。監査11/6）
+  if (!m.items.some(x => x.deliveredTo[co] === 'missed')) { const c = m.items.find(x => x.q && oftenMiss.includes(QCAT[x.q])); if (c) c.deliveredTo[co] = 'missed'; }
   return m;
 }
 // 担当者の返事の notes（要望の言葉）を記憶に入れる

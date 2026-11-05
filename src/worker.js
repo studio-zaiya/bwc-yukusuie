@@ -361,7 +361,7 @@ const REPORT_SCHEMA = {
   },
 };
 // 呼び名・タイトル・教訓の候補（Claudeの生成が確認に通らないときの代わり。data/content/report_phrases.json）
-const tagsOf = w => [w.company, ...(w.labels || []).flatMap(l => [/勾配/.test(l) && 'gable', /箱型/.test(l) && 'box', /外構まで/.test(l) && 'full', /最小限/.test(l) && 'min', /トリプル/.test(l) && 'triple', /アップグレード/.test(l) && 'upgrade', /標準/.test(l) && 'standard']).filter(Boolean)];
+const tagsOf = w => [w.company, ...(w.labels || []).flatMap(l => [/勾配/.test(l) && 'gable', /箱型/.test(l) && 'box', /外構まで/.test(l) && 'full', /最小限/.test(l) && 'min', /トリプル/.test(l) && 'triple', /グレードアップ|アップグレード/.test(l) && 'upgrade', /標準/.test(l) && 'standard']).filter(Boolean)];
 function pickPhrase(list, tags, salt) { const sc = list.map((x, i) => [x.tags.filter(t => tags.includes(t)).length * 10 - ((i + salt) % 7), x]); sc.sort((a, b) => b[0] - a[0]); return sc[0][1].text.replace(/^教訓：/, ''); }
 const BANNED = PHRASES.checks.bannedWords;
 const hasBanned = t => BANNED.some(b => String(t).includes(b));

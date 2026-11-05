@@ -291,7 +291,7 @@ export function decisions(pair = ['C', 'A']) {
     { id: 'D1', no: 0, q: 'だれと建てる？', step: 2, a: { label: `${COMPANIES[x].name}と建てる`, patch: { company: x } }, b: { label: `${COMPANIES[y].name}と建てる`, patch: { company: y } } },
     { id: 'D2', no: 1, q: 'なにを優先する？', step: 3, a: { label: w => w.plan ? verbL(w.plan.title || '確定した骨組み', 'で進める') : `提案の外形（${ROOF_JA[w.spec.roof]}）のまま、広さを優先する`, patch: { plan: 'main' } }, b: { label: w => w.plan?.alt ? verbL(w.plan.alt.title || 'もう一つの案', 'にする') : `${ROOF_JA[COMPANIES[w.company].altRoof]}に変えて、総二階に寄せる（ひとまわり小さく）`, patch: { spec: { roof: '@alt', tsubo: -1 }, plan: 'alt' } } },
     { id: 'D3', no: 2, q: 'いくらまでかける？', step: 5, a: { label: '外構は最小限で進める', patch: { spec: { exterior: 'min' } } }, b: { label: '借入を増やして、外構まで仕上げる', patch: { spec: { exterior: 'full' } } } },
-    { id: 'D4', no: 3, q: 'どう仕上げる？', step: 6, a: { label: '標準の仕上げのまま', patch: { finish: { wall: 'std', floor: 'std', inner: 'vinyl' } } }, b: { label: 'アップグレードを受ける（外壁と床）', patch: { finish: { wall: 'galva', floor: 'oak' } } } },
+    { id: 'D4', no: 3, q: 'どう仕上げる？', step: 6, a: { label: '標準の仕上げのまま', patch: { finish: { wall: 'std', floor: 'std', inner: 'vinyl' } } }, b: { label: 'グレードアップを受ける（外壁と床）', patch: { finish: { wall: 'galva', floor: 'oak' } } } },
   ];
 }
 export const DECISIONS = decisions();
@@ -422,7 +422,7 @@ export function incidents(w) {
   const out = [];
   // 会社の過失は、どの会社でも会社の負担（人間の回答11/5）：交換は会社持ちで、遅れだけが残る
   if (w.company === 'A' && changedAfter && skill < 0.45) out.push({ text: '契約後に担当が替わり、頼んだ設備と違うものが入った。交換は会社の負担で、引渡しが3週間遅れた', delay: 21, cause: '契約のあとで変更が重なり、引き継ぎの記録が追いつかなかった', lesson: '契約のあとの変更は、記録を残して引き継いでもらう' });
-  if (w.company === 'B' && w.bits[3] === 1 && skill < 0.4) out.push({ text: '契約後にオプションを足していったら、思ったより増えた', amount: 120, cause: '標準仕様が最低限で、仕上げのアップグレードを重ねた', lesson: '標準仕様で足りるかを、契約の前に確かめる' });
+  if (w.company === 'B' && w.bits[3] === 1 && skill < 0.4) out.push({ text: '契約後にオプションを足していったら、思ったより増えた', amount: 120, cause: '標準仕様が最低限で、仕上げのグレードアップを重ねた', lesson: '標準仕様で足りるかを、契約の前に確かめる' });
   if (w.company === 'C' && w.bits[1] === 1 && skill < 0.4) out.push({ text: '詳細の打ち合わせが長引き、入居がひと月遅れた', delay: 30, cause: '設計の途中で間取りの案を切り替え、図面を描き直した', lesson: '案を切り替えるなら、早いうちに決める' });
   // 地盤：調査が契約の後になる会社では、契約のあとで地盤改良が追加になることがある（会社の過失ではないので施主の負担）
   if (COMPANIES[w.company].groundTiming !== '契約前' && rng((w.seed ?? 7) * 17 + no)() < (COMPANIES[w.company].groundTiming === '曖昧' ? 0.4 : 0.3)) out.push({ text: '契約のあとの地盤調査で、地盤改良の追加が必要になった', amount: 80, cause: '地盤の調査が、建物の契約の後だった', lesson: '地盤の調査を、契約の前にするか確かめる' });
