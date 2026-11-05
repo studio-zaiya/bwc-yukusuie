@@ -90,7 +90,7 @@ const pad = n => String(n).padStart(2, '0');
 const monthly = o => Y.payment(o.principal, Y.RATE.variable);
 const fam = `${esc(NA)} と ${esc(NB)}`;
 const date = new Date(D.date || Date.now()); const ds = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
-const head = `<div class="top"><div class="logo">ゆくすいえ</div><div class="meta">${fam} の家づくり<br>入居から1年後のレポート</div></div>`;
+const head = `<div class="top"><div class="logo">ゆくす<span style="color:#E8701F">い</span>え</div><div class="meta">${fam} の家づくり<br>入居から1年後のレポート</div></div>`;
 const NOTICE = '本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。実際の家づくりでは、地域・金融機関・住宅会社によって異なります。登場する住宅会社・人物・団体はすべて架空です。';
 const foot = n => `<div class="foot"><span>${NOTICE}</span><span>${n} / 4</span></div>`;
 

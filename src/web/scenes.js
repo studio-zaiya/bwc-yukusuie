@@ -43,7 +43,7 @@ const EICON = {
   sun: EI('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/>'),
 };
 // ---- 上の帯・お金の札・時計 ----
-function top(s) { return `<div class="top"><div class="logo"><img src="/brand/mark.svg" alt="" style="width:40px;height:40px;vertical-align:-10px;margin-right:4px">ゆくすいえ</div>${P.progress(s.step)}</div>`; }
+function top(s) { return `<div class="top"><div class="logo"><img src="/brand/mark.svg" alt="" style="width:40px;height:40px;vertical-align:-10px;margin-right:4px">ゆくす<span class="logo-i">い</span>え</div>${P.progress(s.step)}</div>`; }
 function moneyBox(s) {
   const h = H(s);
   // 間取りの調整のあいだは、上の札もいま見ている案の値（攻めのレビュー11/5：同じ画面に総額が2つ出ていた）
@@ -271,6 +271,7 @@ export const SCENES = {
     return `<div class="startbg">${P.estate2(list, {})}</div><div class="center" style="text-align:center;width:1500px">
       <h1 style="margin:0"><img src="/brand/lockup-horizontal.svg" alt="ゆくすいえ　YUKUSUIE 16 unbuilt futures" style="width:820px"></h1>
       <div class="catch">16回目の、マイホームへ。</div>
+      <div class="beta"><span class="beta-tag">ベータ版</span>ベータ版です。金額や担当者の応答は、まだ開発中です。</div>
     </div><div class="disc">${NOTICE}</div>`;
   },
   howto(s) {

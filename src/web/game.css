@@ -656,3 +656,8 @@ body.rec .eanim{display:none}
 .pk-ev ul{margin:6px 0 0 1.2em;font-size:18px;line-height:1.7}
 .peek.switch .pk-panel{display:none}
 .peek.land .pk-stage{opacity:.18;transition:opacity .5s}
+/* ロゴの「い」だけ橙（マークの07と同じ。人間の決定 N2-A） */
+.logo-i{color:#E8701F}
+/* ベータ版の札（N1） */
+.beta{margin-top:18px;font-size:16px;color:var(--ink2);display:flex;align-items:center;justify-content:center;gap:10px}
+.beta-tag{font-size:15px;font-weight:700;color:var(--ink);border:1.5px solid var(--ink);border-radius:8px;padding:2px 10px;background:var(--paper)}
