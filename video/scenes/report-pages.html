@@ -1,11 +1,13 @@
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><title>ゆくすいえ — レポートの4ページ</title>
-<!-- 実機の印刷用レポート（/report.html）を撮った4ページを、順にめくる【構成：Claude】。
+<!-- 12秒版：めくる → 3ページ目に寄る → 3ページ目が、実機の担当者の札（out/rec/staff-badge.png、録画から切り出し）の方へすべる。
+     実機の印刷用レポート（/report.html）を撮った4ページを、順にめくる【構成：Claude】。
      画像は out/rec/report-p1〜4.png（実機の再生モードから撮ったもの。台本の画面ではない）。?img=画像のフォルダ
      決定論的：window.render(t)、DUR、READY、?t=秒 -->
 <style>
 html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:#FFFAF0}
 body{background-image:linear-gradient(rgba(28,141,204,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(28,141,204,.06) 1px,transparent 1px);background-size:32px 32px}
+.badge{position:absolute;left:1150px;top:440px;width:460px;opacity:0;background:#fff;border-radius:16px;box-shadow:0 12px 30px rgba(30,43,54,.16);padding:12px}
 .pg{position:absolute;left:50%;top:50%;height:940px;width:auto;transform-origin:50% 50%;box-shadow:0 18px 40px rgba(30,43,54,.18),0 2px 6px rgba(30,43,54,.12);border-radius:4px;opacity:0;background:#fff}
 </style></head><body>
 <script>
@@ -13,6 +15,7 @@ const q=new URLSearchParams(location.search);
 const IMG=q.get('img')||'../../out/rec';
 const DUR=+(q.get('dur')||8);window.DUR=DUR;
 const cl=v=>Math.max(0,Math.min(1,v)),eio=v=>{v=cl(v);return v<.5?4*v*v*v:1-Math.pow(-2*v+2,3)/2},lerp=(a,b,k)=>a+(b-a)*k;
+const badge=new Image();badge.className='badge';badge.src=`${IMG}/staff-badge.png`;document.body.appendChild(badge);
 const pages=[1,2,3,4].map(i=>{const im=new Image();im.className='pg';im.src=`${IMG}/report-p${i}.png`;document.body.appendChild(im);return im});
 // 各ページの登場（秒）。表紙 → 2 → 3 → 4、最後に3ページ目（先に伝えておきたいこと）へ寄る
 const T=[0.0,1.6,3.0,4.2];
@@ -30,9 +33,13 @@ window.render=t=>{
     let x=x0+xc,y=lerp(40,0,a),rot=lerp(6,[-3,-1,1,3][i]*settled,a),sc=lerp(1,.48,settled);
     if(zoom>0){ if(i===2){x=lerp(x,0,zoom);sc=lerp(sc,1.05,zoom);rot=lerp(rot,0,zoom);y=lerp(y,30,zoom)} else {im.style.opacity=(1-zoom*.75).toFixed(3)} }
     if(!(zoom>0&&i!==2)) im.style.opacity=a.toFixed(3);
+    // 3ページ目が担当者の札の方へすべる（7.6秒〜）
+    const give=eio((t-7.6)/1.6);
+    if(give>0){ if(i===2){x=lerp(x,-160,give);y=lerp(y,20,give);sc=lerp(sc,.56,give);rot=lerp(rot,-3,give)} else im.style.opacity=((1-zoom*.75)*(1-give)).toFixed(3); }
     im.style.zIndex=i===2&&zoom>0?10:i;
     im.style.transform=`translate(-50%,-50%) translate(${x.toFixed(1)}px,${y.toFixed(1)}px) rotate(${rot.toFixed(2)}deg) scale(${sc.toFixed(3)})`;
   });
+  const ba=eio((t-7.2)/0.6);badge.style.opacity=ba.toFixed(3);badge.style.transform=`translateX(${((1-ba)*40).toFixed(1)}px)`;
 };
-Promise.all(pages.map(im=>im.decode().catch(()=>{}))).then(()=>{render(q.has('t')?+q.get('t'):DUR);window.READY=true});
+Promise.all([...pages,badge].map(im=>im.decode().catch(()=>{}))).then(()=>{render(q.has('t')?+q.get('t'):DUR);window.READY=true});
 </script></body></html>

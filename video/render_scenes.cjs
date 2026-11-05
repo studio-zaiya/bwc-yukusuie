@@ -29,6 +29,9 @@ const SCENES = [
   { id: 'training', url: P('training.html?t=0'), dur: 6 },
   { id: 'report-pages', url: P('report-pages.html?t=0&dur=12'), dur: 12 },
   { id: 'photo-handover', url: P('photo-sub.html?kind=handover&t=0'), dur: 8 },
+  // 実際に走らせた点検の結果（video/checks/run_checks.py の出力）
+  { id: 'check-audit', url: P('check-table.html?t=0&kind=audit&dur=2.8'), dur: 2.8 },
+  { id: 'check-consistency', url: P('check-table.html?t=0&kind=consistency&dur=6.3'), dur: 6.3 },
 ];
 
 (async () => {

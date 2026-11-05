@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>ゆくすいえ — 点検の結果</title>
+<!-- 実際に走らせた点検（video/checks/run_checks.py）の出力 out/checks/*.js をそのまま表にする。台本の表ではない。
+     ?kind=audit（守りの監査）｜consistency（約束の表の照合。証拠のコマを右に）。決定論的：window.render(t)、DUR、READY、?t=秒 -->
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#FFFAF0;color:#1E2B36;font-family:"Hiragino Sans","BIZ UDPGothic",sans-serif}
+body{background-image:linear-gradient(rgba(28,141,204,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(28,141,204,.06) 1px,transparent 1px);background-size:32px 32px}
+#h{position:absolute;left:110px;top:70px;font-size:50px;font-weight:700}
+#s{position:absolute;left:112px;top:142px;font-size:24px;color:#6B6358;font-family:ui-monospace,Menlo,monospace}
+#tb{position:absolute;left:110px;top:200px;width:1700px;border-collapse:collapse;font-size:25px}
+#tb.c{width:1080px;font-size:22px}
+#tb.c td{padding:6px 12px}
+#tb td{padding:9px 14px;border-bottom:1px solid #E3DCCD;vertical-align:top;opacity:0}
+#tb td.m{width:150px;white-space:nowrap;text-align:center;font-weight:700;font-size:30px}
+#tb td.d{color:#6B6358;font-size:20px}
+#tb tr.hd td{opacity:1;font-size:19px;color:#6B6358;border-bottom:2px solid #1E2B36}
+#ev{position:absolute;left:1240px;top:210px;width:600px;height:400px}
+#ev img{position:absolute;left:0;top:0;width:600px;height:400px;object-fit:contain;object-position:left top;border-radius:10px;box-shadow:0 10px 30px rgba(30,43,54,.18);opacity:0}
+#evc{position:absolute;left:1240px;top:640px;width:600px;font-size:22px;line-height:1.5}
+#evc b{display:block;font-size:20px;color:#6B6358;font-weight:400;margin-bottom:6px;font-family:ui-monospace,Menlo,monospace}
+</style></head><body>
+<div id="h"></div><div id="s"></div><table id="tb"></table><div id="ev"></div><div id="evc"></div>
+<script>
+const q=new URLSearchParams(location.search),KIND=q.get('kind')||'audit',DIR=q.get('dir')||'../../out/checks';
+const DUR=+(q.get('dur')||(KIND==='audit'?2.5:6));window.DUR=DUR;
+const cl=v=>Math.max(0,Math.min(1,v));
+const sc=document.createElement('script');sc.src=`${DIR}/${KIND}.js`;document.head.appendChild(sc);
+sc.onload=()=>{
+  const D=KIND==='audit'?window.CHECK_AUDIT:window.CHECK_CONSISTENCY;const tb=document.getElementById('tb');
+  const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  let rows,evs=[];
+  if(KIND==='audit'){
+    document.getElementById('h').textContent='守りの監査：字幕と、動画に出る文字';
+    rows=D.rows.map(r=>[r['結果'],r['項目'],r['詳細']]);
+    tb.innerHTML='<tr class="hd"><td>結果</td><td>項目</td><td>詳細</td></tr>'+rows.map(r=>`<tr><td class="m">${esc(r[0])}</td><td>${esc(r[1])}</td><td class="d">${esc(r[2]).slice(0,90)}</td></tr>`).join('');
+  }else{
+    document.getElementById('h').textContent='約束の表：動画の言葉 ↔ 実機の画面';tb.className='c';
+    rows=D.rows.map(r=>[r['状態'],r['約束（動画の言葉）'],r['証拠']]);
+    tb.innerHTML='<tr class="hd"><td>状態</td><td>動画の言葉</td></tr>'+rows.map(r=>`<tr><td class="m">${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`).join('');
+    evs=D.rows.map((r,i)=>({i,img:r['コマ'],src:r['証拠'],memo:r['メモ']})).filter(e=>e.img);
+    document.getElementById('ev').innerHTML=evs.map(e=>`<img src="${DIR.replace('checks','rec')}/../checks/${e.img}" onerror="this.src='${DIR.replace('checks','rec')}/${e.img}'">`).join('');
+  }
+  document.getElementById('s').textContent=`video/checks/run_checks.py　${D.at}　○ ${rows.filter(r=>r[0]==='○').length}　△ ${rows.filter(r=>r[0]==='△').length}　× ${rows.filter(r=>r[0]==='×').length}　未確認 ${rows.filter(r=>r[0]==='未確認').length}`;
+  const trs=[...tb.querySelectorAll('tr')].slice(1),imgs=[...document.querySelectorAll('#ev img')];
+  window.render=t=>{
+    const span=DUR*0.7;
+    trs.forEach((tr,i)=>{const a=cl((t-0.2-i*span/trs.length)/0.25);tr.querySelectorAll('td').forEach(td=>td.style.opacity=a.toFixed(3))});
+    if(imgs.length){const k=Math.min(imgs.length-1,Math.floor(cl((t-0.3)/(DUR-0.8))*imgs.length));
+      imgs.forEach((im,j)=>im.style.opacity=j===k?1:0);const e=evs[k];
+      document.getElementById('evc').innerHTML=`<b>${esc(e.src)}</b>${esc(e.memo)}`;
+      trs.forEach((tr,i)=>tr.style.background=i===e.i?'rgba(232,112,31,.10)':'');}
+  };
+  Promise.all(imgs.map(im=>im.decode().catch(()=>{}))).then(()=>{render(q.has('t')?+q.get('t'):DUR);window.READY=true});
+};
+</script></body></html>

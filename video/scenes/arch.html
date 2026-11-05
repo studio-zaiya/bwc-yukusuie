@@ -128,9 +128,9 @@ function drawEngine(t,a){
  LATE.push(()=>BLK.forEach(b=>{const L=M(i,b.u+.06,.84,.75);X.font=`700 22px ${F}`;const tw=X.measureText(b.label).width;rr(L[0]-tw/2-10,L[1]-56,tw+20,34,8);X.fillStyle='rgba(255,255,255,.96)';X.fill();X.strokeStyle=K.ink;X.lineWidth=1.5;X.stroke();txt(b.label,L[0],L[1]-32,22,{al:'center'})}));
  // 計算の結果：この層でだけ出る
  const r=eo((t-6.1)/.4)*(1-eo((t-9.6)/.6));
- if(r>0)LATE.push(()=>{const P=M(i,.97,.86,.2);X.save();X.globalAlpha=r;X.font=`900 30px ${F}`;const s1='＋60万円',s2='＋7日（再審査）';const w=Math.max(X.measureText(s1).width,X.measureText(s2).width)+36;
+ if(r>0)LATE.push(()=>{const P=M(i,.97,.86,.2);X.save();X.globalAlpha=r;X.font=`900 30px ${F}`;const s1='＋58万円',s2='＋7日（再審査）';const w=Math.max(X.measureText(s1).width,X.measureText(s2).width)+36;
   rr(P[0]+18,P[1]-62,w,96,14);X.fillStyle='#fff';X.fill();X.lineWidth=3;X.strokeStyle=K.ink;X.stroke();X.restore();
-  txt('＋60万円',P[0]+36,P[1]-22,30,{w:900,a:r});txt('＋7日（再審査）',P[0]+36,P[1]+18,26,{w:700,a:r})});
+  txt('＋58万円',P[0]+36,P[1]-22,30,{w:900,a:r});txt('＋7日（再審査）',P[0]+36,P[1]+18,26,{w:700,a:r})});
  X.restore();
 }
 // ---------- 層3：Claude ----------
@@ -164,7 +164,7 @@ function drawGround(t,a){
 // ---------- 記録の背骨（左に1本） ----------
 function spineX(){return 220}
 function layerY(i){return iso(0,1,zOf(i))[1]}
-const NOTCH=[[3,4.6,'ふたりの一言'],[2,5.4,'読み替え・2択'],[1,6.3,'＋60万円／＋7日'],[0,9.4,'07の枝と家']];
+const NOTCH=[[3,4.6,'ふたりの一言'],[2,5.4,'読み替え・2択'],[1,6.3,'＋58万円／＋7日'],[0,9.4,'07の枝と家']];
 function drawSpine(t){
  const a=eo((t-3.4)/.6);if(a<=0)return;const x=spineX(),y0=layerY(3)+40,y1=layerY(0)-60;
  X.save();X.globalAlpha=a;X.fillStyle='#fff';X.strokeStyle=K.ink;X.lineWidth=2;rr(x-9,y1,18,y0-y1,9);X.fill();X.stroke();
