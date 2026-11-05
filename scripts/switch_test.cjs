@@ -22,7 +22,7 @@ const BASE = process.argv[2] || 'http://localhost:8787';
     await p.fill('#say', 'もっと値引きしてください。'); await click('[data-act=sendElectric]');
     await p.waitForFunction(() => !document.querySelector('.msg.typing'), null, { timeout: 30000 }); await p.waitForTimeout(400);
     lines.push(await p.evaluate(() => [...YUKU.state.chat].reverse().find(m => m.who === 'staff')?.text));
-    if (i === 3) { await p.waitForTimeout(1700); await p.screenshot({ path: 'out/acceptance/WS-narration.png' }); }
+    if (i === 3) { await p.waitForTimeout(1700); await p.screenshot({ path: 'out/acceptance/WS-narration.png' }); await p.waitForTimeout(4600); await p.screenshot({ path: 'out/acceptance/WS-flight.png' }); }
   }
   await p.waitForTimeout(4500);
   const after = await p.evaluate(() => ({ player: YUKU.state.player.bits.join(''), co: YUKU.state.player.company, unbuilt: YUKU.state.others.filter(w => w.unbuilt).length, n: 1 + YUKU.state.others.length, switched: YUKU.state.switched }));

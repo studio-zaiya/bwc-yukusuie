@@ -2,7 +2,7 @@
  * 出来事の記録（イベント）を基本にする：操作もClaudeの応答も1件のイベントとして積み、状態はイベントから組み立てる。
  * 再生（?replay=記録ID）は、同じイベントを順に当て直すだけ。Claudeは呼ばない。 */
 import * as Y from './engine/engine.js';
-import { SCENES, snsHTML, myaiHTML, worldHTML, flyersHTML, phoneHTML, showHTML, setWho, setNames, MODE, SWITCH, navOf } from './scenes.js';
+import { SCENES, snsHTML, myaiHTML, worldHTML, flyersHTML, phoneHTML, showHTML, setWho, setNames, MODE, SWITCH, navOf, PEEK, peekHTML, peekAnim } from './scenes.js';
 import { ACTIONS } from './actions.js';
 import { addNotes, syncHeard, wishesOf } from './memory.js';
 
@@ -202,13 +202,14 @@ export function render() {
   const fn = SCENES[S.scene] || SCENES.start;
   const view = document.getElementById('view');
   const keep = [...view.querySelectorAll('[data-keep]')].map(el => ({ id: el.id, v: el.value }));
-  view.innerHTML = fn(S) + (S.notice && S.notice.step === S.step && S.notice.scene === S.scene ? `<div class="notice" role="status"><b>お知らせ</b>${S.notice.text}</div>` : '') + (SWITCH.on ? `<div class="wswitch ${SWITCH.soft ? 'soft' : ''}"><p>${SWITCH.lines[SWITCH.i] || ''}</p></div>` : '') + popHTML() + (S.toast ? `<div class="toast">${S.toast}</div>` : '') + (RT.replaying ? `<div class="replaybar">実際のプレイの記録を再生しています</div>` : '');
+  view.innerHTML = fn(S) + (S.notice && S.notice.step === S.step && S.notice.scene === S.scene ? `<div class="notice" role="status"><b>お知らせ</b>${S.notice.text}</div>` : '') + (SWITCH.on ? `<div class="wswitch ${SWITCH.soft ? 'soft' : ''}"><p>${SWITCH.lines[SWITCH.i] || ''}</p></div>` : '') + popHTML() + peekHTML(S) + (S.toast ? `<div class="toast">${S.toast}</div>` : '') + (RT.replaying ? `<div class="replaybar">実際のプレイの記録を再生しています</div>` : '');
   for (const k of keep) { const el = document.getElementById(k.id); if (el && !el.value) el.value = k.v; }
   // 会話の欄は最新が見えるよう下へ。フォームや書類の欄（data-top）は上から（人間の指摘11/5：入力画面が一番下から始まっていた）
   view.querySelectorAll('.chat .log:not([data-top]), .el-right .log').forEach(log => { log.scrollTop = log.scrollHeight; });
   countUp(view);
   glossify(view);
   navBand();
+  peekAnim();
   if (SCENES[S.scene + '_after']) SCENES[S.scene + '_after'](S);
 }
 // 家づくりの言葉の短い説明（フレンドリー監査11/6）：画面ごとに、各語の最初の1か所だけに点線を付け、指を乗せると説明が出る

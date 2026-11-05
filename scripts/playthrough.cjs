@@ -63,7 +63,7 @@ const OUT = process.env.OUT || 'out/shots';
     await p.waitForFunction(() => YUKU.state.scene === 'handover', null, { timeout: 15000 }); await p.waitForTimeout(400); await shot('handover-fade'); await p.waitForTimeout(3800); await shot('handover');
     await click('[data-act=toSeasons]'); await p.waitForTimeout(2200); await shot('seasons'); await p.waitForFunction(() => YUKU.state.scene === 'result', null, { timeout: 8000 }); await shot('result');
     await click('[data-act=toYear]'); await p.waitForTimeout(1200); await shot('year');
-    await p.mouse.click(222, 560); await p.waitForTimeout(300); console.log('区画を押した →', await p.evaluate(() => YUKU.state.lot)); await shot('year-lot');
+    await p.mouse.click(222, 560); await p.waitForTimeout(300); console.log('区画を押した →', await p.evaluate(() => YUKU.state.lot)); await shot('year-lot'); if (await p.$('.card [data-act=peek]')) { await p.click('.card [data-act=peek]'); await p.waitForTimeout(1300); await shot('peek-fly'); await p.waitForTimeout(3000); await shot('peek'); await p.click('[data-act=peekClose]'); await p.waitForTimeout(300); }
     await click('[data-act=toTree]'); await p.waitForTimeout(2500); await shot('tree'); await click('[data-act=treeSel][data-no="13"]'); await p.waitForTimeout(1500); await shot('tree-13'); await click('[data-act=treeBack]');
     await click('[data-act=toReport]'); await p.waitForSelector('.rep', { timeout: 90000 }); await p.waitForTimeout(800); await shot('report');
     await click('[data-act=rtab][data-k=worlds]'); await shot('report-worlds'); await click('[data-act=rtab][data-k=honne]'); await shot('report-honne'); await click('[data-act=rtab][data-k=home]');

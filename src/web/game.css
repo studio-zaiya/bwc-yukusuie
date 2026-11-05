@@ -638,3 +638,21 @@ abbr.term{text-decoration:underline dotted rgba(30,43,54,.55);text-underline-off
 .treesvg .edge.sel{stroke:#1E2B36;stroke-width:6;filter:none}
 .leaf.on{border:2.5px solid var(--ink);box-shadow:0 0 0 4px rgba(30,43,54,.15)}
 .ei.add{background:#FFFFFF;outline:2px dashed var(--ink);outline-offset:-2px}
+.eanim.sway{animation:sway 2.6s ease-in-out infinite}
+@keyframes sway{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+@media (prefers-reduced-motion:reduce){.eanim{display:none}}
+body.rec .eanim{display:none}
+/* 世界線を覗くビュー */
+.peek{position:absolute;inset:0;z-index:45;background:var(--paper);overflow:hidden}
+.pk-stage{position:absolute;left:0;top:0;transform-origin:0 0}.pk-stage>svg{position:absolute;inset:0;width:100%;height:100%}
+.pk-lines{opacity:0;pointer-events:none;filter:drop-shadow(0 0 6px #fff)}
+.pk-sky{position:absolute;inset:0;background:linear-gradient(#BFE3F7,#EAF6FD 60%,#FFFAF0);opacity:0}
+.pk-panel{position:absolute;inset:30px 30px 30px 30px;display:grid;grid-template-columns:1fr 760px;gap:26px;opacity:0;transform:translateY(16px);transition:opacity .5s,transform .5s;pointer-events:none}
+.peek.land .pk-panel{opacity:1;transform:none;pointer-events:auto}
+.pk-house{background:linear-gradient(#DDF0FA,#F4FAFD 52%,#F3E7CF 52.1%);border-radius:22px;padding:30px}.pk-house svg{width:100%;height:100%}
+.pk-info{background:#fff;border:1.5px solid rgba(30,43,54,.2);border-radius:18px;padding:22px 28px;overflow:auto}
+.pk-k{font-size:16px;color:var(--ink2);font-weight:700}.pk-info h3{display:flex;align-items:center;gap:10px;font-family:var(--fr);font-size:28px;margin:8px 0 12px}
+.pk-tl{list-style:none;margin:0 0 12px}.pk-tl li{display:grid;grid-template-columns:150px 1fr auto;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:18px}.pk-tl li.dv{border-left:4px solid var(--ink);padding-left:10px}.pk-tl em{font-style:normal;color:var(--ink2);font-size:15px}
+.pk-ev ul{margin:6px 0 0 1.2em;font-size:18px;line-height:1.7}
+.peek.switch .pk-panel{display:none}
+.peek.land .pk-stage{opacity:.18;transition:opacity .5s}

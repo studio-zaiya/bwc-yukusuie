@@ -2,7 +2,7 @@
  * Claudeが応答できなかったときは、代わりの文で成功したように見せず、「応答できませんでした（もう一度）」を出す */
 import * as Y from './engine/engine.js';
 import { S, emit, api, render } from './main.js';
-import { busy, setWho, getWho, persona, DATA, PHONE, SHOW, NAMES, unkept, FORK_DONE, dataReady, SV, SWITCH, PICK, pickKey } from './scenes.js';
+import { busy, setWho, getWho, persona, DATA, PHONE, SHOW, NAMES, unkept, FORK_DONE, dataReady, SV, SWITCH, PICK, pickKey, PEEK } from './scenes.js';
 import { buildMemory, deliver, addItem, memoryText, conflictsOf, slotValuesOf } from './memory.js';
 import { setFace } from './parts.js';
 import { BUILD } from './buildanim.js';
@@ -74,6 +74,8 @@ async function refuseAndSwitch(co, kind) {
   }
   const to = Y.switchTarget(S.player, S.others, kind);
   if (!to) { emit('refused', { co, kind }); render(); return; }
+  // 空へ上がり、光る線を伝って、移る先の区画へ降りる（WORLD_SWITCH の5）
+  { let idx = parseInt(to.bits.join('').padEnd(4, '0'), 2); if (idx === 6) idx = 9; await new Promise(r => { Object.assign(PEEK, { on: true, mode: 'switch', from: 6, to: idx, no: null, t0: performance.now(), done: r }); render(); }); PEEK.on = false; }
   emit('jump', { to: to.bits.join(''), kind });
   emit('say', { who: 'sys', ch: S.player.company, text: `${Y.COMPANIES[S.player.company].name}と建てている世界で、続きから` });
   if (S.scene === 'plan') { emit('planReset', {}); await planCall(''); } else render();
@@ -81,6 +83,9 @@ async function refuseAndSwitch(co, kind) {
 const requests = () => [S.survey ? `アンケート：${JSON.stringify(S.survey)}` : '', S.entry.text ? `最初に書いた思い：${S.entry.text}` : '', S.entryRead?.summary ? `入口で読み取った要望：${S.entryRead.summary}` : ''].filter(Boolean).join('。');
 
 export const ACTIONS = {
+  // 世界線を覗く：空へ上がって、選んだ区画へ降りる（操作の対象は自分の世界のまま）
+  peek(d) { const no = +d.no; if (!no || no === 7) return; Object.assign(PEEK, { on: true, mode: 'peek', from: 6, to: no - 1, no, t0: performance.now(), done: null }); render(); },
+  peekClose() { if (PEEK.mode === 'switch') return; PEEK.on = false; render(); },
   async start() {
     let playId = null;
     try { const r = await api('/api/play/start', {}); playId = r.playId; } catch (e) { toast(String(e.message)); return; }
@@ -267,7 +272,7 @@ export const ACTIONS = {
   },
   cancelTrade() { emit('cancelTrade', {}); },
   // 契約のあと：第四の分岐点「どう仕上げる？」を、ほかと同じ2枚の札の儀式で（人間の回答11/5）。そのあと、選んだ仕上げの中で色を決める
-  toCoord() { goto('coord', 6); },
+  toCoord() { const dd = Y.scheduleOf(S.player), ok = Math.min((dd[4] || 0) + 7, Y.DEADLINE.loan); goto('coord', 6); emit('notice', { text: `請負契約を結びました（${dd[4] || ''}日目）。住宅ローンの本審査が承認されました（${ok}日目、ローン特約の期限の${Y.DEADLINE.loan}日目までに）。` }); },
   finish(d) { emit('finish', { finish: { [d.k]: d.k === 'color' ? +d.v : d.v, ...(d.k === 'wall' ? { color: 0 } : {}) } }); },
   // 色決め：第四の分岐点で選んだ仕上げの中で、外壁の色だけを選ぶ（金額は変わらない）
   // 仕上げを確定したら、第四の分岐点の札が自動で出て、選んだ内容に合うほうが自動で選ばれる（押させない。FLOW_v3 の3.5）
@@ -495,7 +500,8 @@ function afterFork(dec) {
     const inc = Y.electricOf(S.heard.filter(h => h.co === co).map(h => h.text).join(' ')).filter(id => !S.player.electric.includes(id));
     if (inc.length) emit('electric', { ids: inc, adj: [], contract: true });
     goto('contract', 5);
-    const dd = Y.scheduleOf(S.player); emit('notice', { text: `住宅ローンの本審査が承認されました（${dd[4] || ''}日目）。建物の請負契約に進みます。` });
+    // 本審査は、請負契約を結んでから（人間の回答13を受けた実務の順：請負契約 → 本審査の申し込み → 承認）
+    emit('notice', { text: `建物の請負契約です。契約を結んだら、その契約書で住宅ローンの本審査を申し込みます（ローン特約の期限は${Y.DEADLINE.loan}日目）。` });
   }
 }
 

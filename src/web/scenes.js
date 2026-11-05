@@ -128,7 +128,7 @@ function gallery(s) {
     const x = { w: { ...w, no: hb(w) % 8 }, stage, ghost: w.unbuilt ? 0 : st >= 2 && st < 7 ? +(0.35 + (st - 2) / 5 * 0.45).toFixed(2) : 0 };
     const short = full ? Y.worldShort(Y.outcome(w)) : esc(shortName(w));
     // 15枚がそろったら：番号・会社の印・家の絵・ひとことだけ。押すと世界樹で、その世界の経路をたどる
-    if (full) return `<button class="th th15 ${w.unbuilt ? 'unbuilt' : ''} ${s.newest.includes(w.bits.join('')) ? 'new' : ''}" data-act="toTree" data-no="${dno(s, w)}" title="押すと、この世界の経路を世界樹でたどる"><div class="thd"><span>${pad(dno(s, w))}</span>${P.coTag(w.company, 18)}</div>${P.thumb(x)}<div class="tnm big">${short}</div><div class="bar"><i style="width:${Math.round(st / 11 * 100)}%"></i></div></button>`;
+    if (full) return `<button class="th th15 ${w.unbuilt ? 'unbuilt' : ''} ${s.newest.includes(w.bits.join('')) ? 'new' : ''}" data-act="peek" data-no="${dno(s, w)}" title="押すと、この世界線を覗く"><div class="thd"><span>${pad(dno(s, w))}</span>${P.coTag(w.company, 18)}</div>${P.thumb(x)}<div class="tnm big">${short}</div><div class="bar"><i style="width:${Math.round(st / 11 * 100)}%"></i></div></button>`;
     return `<div class="th ${w.unbuilt ? 'unbuilt' : ''} ${s.newest.includes(w.bits.join('')) ? 'new' : ''}"><div class="thd"><span></span>${P.coTag(w.company, 18)}</div>${P.thumb(x)}<div class="tnm big">${short}</div><div class="tnt">${noteOf(w, st)}</div><div class="bar"><i style="width:${Math.round(st / 11 * 100)}%"></i></div></div>`;
   }).join('')}</div>`;
 }
@@ -600,7 +600,7 @@ export const SCENES = {
       <dl><dt>総額</dt><dd>${man(o.total)}万円</dd><dt>借入</dt><dd>${man(o.principal)}万円</dd><dt>冬の朝</dt><dd>${o.warmth.label}</dd><dt>家計のゆとり</dt><dd>${o.slack.label}</dd><dt>引渡し</dt><dd>${o.days}日目</dd></dl>
       <div style="font-size:16px;color:var(--ink2);font-weight:700">この1年の出来事</div><ul class="ev">${(o.events.length ? o.events : ['大きな出来事はなかった']).map(e => `<li>${esc(e)}</li>`).join('')}</ul>
       ${line ? `<div class="ln">${P.coTag(o.company, 18)} ${STAFFN(o.company)}：${esc(line)}</div>` : ''}
-      <div class="acts"><button class="btn ghost" data-act="toTree" data-no="${sel.n}">世界樹で、この世界をたどる</button></div></div>`;
+      <div class="acts">${mine ? '' : `<button class="btn" data-act="peek" data-no="${sel.n}">この世界線を覗く</button>`}<button class="btn ghost" data-act="toTree" data-no="${sel.n}">世界樹で、この世界をたどる</button></div></div>`;
   },
   // 区画を押す：押した位置をアイソメの逆算で区画に直す（16区画は表示の番号順に並ぶ）
   year_after() {
@@ -698,6 +698,7 @@ export const pickKey = s => `${s.playId}-${s.forkNo}`;
 export function navOf(s) {
   const g = (act, label, o = {}) => ({ act, label, ...o });
   const off = (why) => ({ off: true, why });
+  if (PEEK.on) return PEEK.mode === 'switch' ? { todo: 'そのころ、別の世界では——', go: g('peekClose', '自分の世界へ戻る ▶', off('別の世界線へ移っています')) } : { todo: '別の世界線を覗いています。操作は、あなたの世界のまま', go: g('peekClose', '自分の世界へ戻る ▶') };
   switch (s.scene) {
     case 'start': return { todo: '初めて家を建てる夫婦になって、家づくりを体験します', go: { act: 'start', label: '家づくりを体験する ▶' } };
     case 'seasons': return null;
@@ -968,4 +969,54 @@ export function zoningSVG(plan, { stack = false } = {}) {
   g += wrap(gf, fi);
   });
   return `<svg viewBox="0 0 ${stack ? W : W * 2 + gap} ${stack ? H * 2 + 90 : H + 40}" class="zsvg">${g}</svg>`;
+}
+
+// ---- 世界線を覗くビュー（人間の案 IMPL_REVIEW_2 の12）と、世界線を移るときの飛行（WORLD_SWITCH の5）----
+// 空へ飛び上がり、光る世界線の根元を抜けて、別の区画へ降りる（約3.6秒）。覗くだけで、操作の対象は自分の世界のまま
+export const PEEK = { on: false, mode: 'peek', from: 6, to: 0, no: null, t0: 0, raf: 0, done: null };
+const EST = (() => { const Lz = 96, gap = 18, W4 = 4 * (Lz + gap), Pp = (x, y, z = 0) => [(x - y) * Math.cos(Math.PI / 6), (x + y) * 0.5 - z]; const minX = Pp(0, W4)[0] - 40, maxX = Pp(W4, 0)[0] + 40, minY = -120, maxY = Pp(W4, W4)[1] + 30; return { Lz, gap, Pp, minX, minY, w: maxX - minX, h: maxY - minY, c: i => { const r = Math.floor(i / 4), c = i % 4; return Pp(c * (Lz + gap) + Lz / 2, r * (Lz + gap) + Lz / 2, 30); } }; })();
+function peekList(s) {
+  const all = [s.player, ...s.others];
+  if (s.player.bits.length === 4) return all.map(w => ({ w: { ...w, no: dno(s, w) }, stage: w.unbuilt ? 0 : 4, ghost: 0, note: '' })).sort((a, b) => a.w.no - b.w.no);
+  return Array.from({ length: 16 }, (_, i) => { const w = all[i % all.length]; return { w: { ...w, no: i + 1 }, stage: w ? stageOf(stepOf(w, s.step)) : 0, ghost: 0, note: '' }; });
+}
+export function peekHTML(s) {
+  if (!PEEK.on) return '';
+  const CW = 1920, CH = Math.round(CW * EST.h / EST.w);
+  const lines = Array.from({ length: 16 }, (_, i) => { const c = EST.c(i); return `<line x1="${c[0].toFixed(1)}" y1="${c[1].toFixed(1)}" x2="${c[0].toFixed(1)}" y2="${(c[1] - 420).toFixed(1)}" stroke="url(#pkg)" stroke-width="${i === PEEK.to ? 7 : 3}"/>`; }).join('');
+  let panel = '';
+  if (PEEK.mode === 'peek') {
+    const all = [s.player, ...s.others], w = all.find(x => dno(s, x) === PEEK.no) || s.player, o = Y.outcome(w), me = Y.outcome(s.player), pd = Y.scheduleOf(s.player), at = [pd[1], pd[2], pd[4], pd[5]];
+    const div = o.bits.findIndex((b, i) => b !== me.bits[i]);
+    panel = `<div class="pk-panel"><div class="pk-house">${P.bigHouse({ ...w, no: PEEK.no }, w.unbuilt ? 0 : 4, w.unbuilt ? {} : { fin: P.finOf(w) })}</div>
+      <div class="pk-info"><div class="pk-k">別の世界線を覗いています（操作は、あなたの世界のまま）</div><h3><span class="no2">${pad(PEEK.no)}</span>${P.coTag(o.company, 26)}${esc(Y.worldName(o))}</h3>
+        <ol class="pk-tl">${o.labels.map((l, i) => `<li class="${i === div ? 'dv' : ''}"><b>${Y.FORKS[i]}</b><span>${esc(l)}</span><em>${at[i]}日目${i === div ? '　ここで、あなたと分かれた' : ''}</em></li>`).join('')}</ol>
+        <dl class="facts"><dt>総額</dt><dd>${o.unbuilt ? '—' : man(o.total) + '万円（あなたと ' + (Math.round(o.total) - Math.round(me.total) > 0 ? '+' : '') + man(Math.round(o.total) - Math.round(me.total)) + '）'}</dd><dt>冬の朝</dt><dd>${o.unbuilt ? '—' : o.warmth.label}</dd><dt>家計のゆとり</dt><dd>${o.unbuilt ? '—' : o.slack.label}</dd></dl>
+        <div class="pk-ev"><b>この1年の出来事</b><ul>${(o.events.length ? o.events : ['大きな出来事はなかった']).slice(0, 4).map(e => `<li>${esc(e)}</li>`).join('')}</ul></div></div></div>`;
+  }
+  return `<div class="peek ${PEEK.mode}" id="peek"><div class="pk-sky" id="pkSky"></div><div class="pk-stage" id="pkStage" style="width:${CW}px;height:${CH}px">${P.estate2(peekList(s), { hi: PEEK.mode === 'peek' ? [PEEK.no] : [] })}<svg class="pk-lines" id="pkLines" viewBox="${EST.minX} ${EST.minY} ${EST.w} ${EST.h}"><defs><linearGradient id="pkg" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".95"/><stop offset="1" stop-color="#CFE9F7" stop-opacity="0"/></linearGradient></defs>${lines}</svg></div>${panel}</div>`;
+}
+const easeIO = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+export function peekAnim() {
+  const st = document.getElementById('pkStage'); if (!PEEK.on || !st) return;
+  cancelAnimationFrame(PEEK.raf);
+  const CW = 1920, CH = Math.round(CW * EST.h / EST.w), VW = 1920, VH = 992;
+  const pt = i => { const c = EST.c(i); return [(c[0] - EST.minX) / EST.w * CW, (c[1] - EST.minY) / EST.h * CH]; };
+  const A = pt(PEEK.from), B = pt(PEEK.to), M = [CW / 2, CH / 2];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, DURF = reduce ? 0.01 : 3.6;
+  const sky = document.getElementById('pkSky'), ln = document.getElementById('pkLines'), pk = document.getElementById('peek');
+  const tick = () => {
+    const t = Math.min(DURF, (performance.now() - PEEK.t0) / 1000), u = t / DURF;
+    let c, s;
+    if (u < 0.22) { const k = easeIO(u / 0.22); c = [A[0] + (M[0] - A[0]) * k, A[1] + (M[1] - A[1]) * k]; s = 2.6 + (1 - 2.6) * k; }
+    else if (u < 0.45) { const k = easeIO((u - 0.22) / 0.23); c = [M[0], M[1] - 160 * k]; s = 1 - 0.45 * k; }
+    else if (u < 0.8) { const k = easeIO((u - 0.45) / 0.35); c = [M[0] + (B[0] - M[0]) * k, M[1] - 160 + (B[1] - M[1] + 160) * k]; s = 0.55 + (2.6 - 0.55) * k; }
+    else { c = B; s = 2.6; }
+    st.style.transform = `translate(${(VW / 2 - c[0] * s).toFixed(1)}px,${(VH / 2 - c[1] * s).toFixed(1)}px) scale(${s.toFixed(3)})`;
+    const up = u < 0.22 ? 0 : u < 0.45 ? (u - 0.22) / 0.23 : u < 0.8 ? 1 - (u - 0.45) / 0.35 : 0;
+    if (sky) sky.style.opacity = up.toFixed(2); if (ln) ln.style.opacity = Math.min(1, up * 1.4).toFixed(2);
+    if (u >= 0.82 && pk && !pk.classList.contains('land')) pk.classList.add('land');
+    if (t < DURF) PEEK.raf = requestAnimationFrame(tick); else if (PEEK.done) { const f = PEEK.done; PEEK.done = null; f(); }
+  };
+  tick();
 }

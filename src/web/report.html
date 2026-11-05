@@ -180,7 +180,7 @@ P.setYou(7);
 const WS = all.map(x => x.o).sort((a, b) => DN(a) - DN(b));
 const WM = { 'とても暖かい': '◎', '暖かい': '○', 'ふつう': '△', 'やや寒い': '▽' };
 const list = WS.map(o => { const x = all.find(a => a.o.no === o.no); return { w: { ...x.w, no: DN(o) }, stage: o.unbuilt ? 0 : 4, ghost: 0, note: o.unbuilt ? '建たず' : `${man(o.total)}${WM[o.warmth.label] || ''}` }; });
-const map = P.estate2(list, { notes: true, noteFs: 22 });
+const map = P.estate2(list, { notes: true, noteFs: 22, anim: false });
 const p4 = `<div class="page">${head}
   <h2>選ばなかった世界線から</h2>
   <p>同じ家族、同じ土地で、分岐点を一つだけ違えた4つの世界です。どちらがよいかは決めません。</p>
