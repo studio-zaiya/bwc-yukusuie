@@ -13,6 +13,11 @@ export const NOTICE = '本作の制度・手続き・金額・期間などの設
 const H = s => Y.HOUSEHOLDS[s.household];
 const STAFFN = co => `${Y.COMPANIES[co].staffRole}・${Y.COMPANIES[co].staff}`;
 const YOU = 7;
+// 情報収集の画面で、最後に登場の動きをつけた段
+const GATHER_SHOWN = { step: null };
+// 付箋の「ぽん」と出る動きは、初めて出たときだけ。会話のたびに描き直すので、毎回つけると全部の付箋がちらつく
+const STICK_SEEN = new Set();
+const stickNew = k => STICK_SEEN.has(k) ? '' : (STICK_SEEN.add(k), ' new');
 const pad = n => String(n).padStart(2, '0');
 function dno(s, w) { if (!s.player || s.player.bits.length < 4 || w.bits.length < 4) return null; const pn = Y.worldNo(s.player.bits), n = Y.worldNo(w.bits); return n === pn ? YOU : n === YOU ? pn : n; }
 const lab = (o, w) => typeof o.label === 'function' ? o.label(w) : o.label;
@@ -202,7 +207,7 @@ function boardHTML(s) {
   const old = s.memory ? [] : s.heard.filter(h => { const k = h.text; if (seen.has(k)) return false; seen.add(k); return true; }).slice(-14);
   const undecided = [!s.player || s.forkNo === 0 ? '建てる会社' : '', s.forkNo < 2 ? '屋根の形と広さ' : '', !s.wishes.some(w => w.kind === 'totalMax' || w.kind === 'monthlyMax') ? '予算の上限' : '', s.forkNo < 3 ? '外構をどこまで' : '', s.forkNo < 4 ? '外壁と床の仕上げ' : ''].filter(Boolean);
   const next = { hearing: s.visit[1] === s.cur ? '2社の提案を見比べる' : '帰り道に、伝え忘れを確かめる', forgot: '2社目を訪ねる', reply: '2社目を訪ねる' }[s.scene] || '';
-  const stick = (text, who, src, i) => `<span class="sticky ${who === 'p2' || who === 'ゆう' ? 'yu' : who === 'both' || who === 'ふたり' ? 'both' : ''}" style="--r:${(i * 37) % 7 - 3}deg">${src ? `<small>${SRC_LABEL[src] || src}</small>` : ''}${esc(String(text).length > 16 ? String(text).slice(0, 15) + '…' : text)}</span>`;
+  const stick = (text, who, src, i) => `<span class="sticky ${who === 'p2' || who === 'ゆう' ? 'yu' : who === 'both' || who === 'ふたり' ? 'both' : ''}${stickNew(who + '|' + text)}" style="--r:${(i * 37) % 7 - 3}deg">${src ? `<small>${SRC_LABEL[src] || src}</small>` : ''}${esc(String(text).length > 16 ? String(text).slice(0, 15) + '…' : text)}</span>`;
   const body = items.length ? items.map((x, i) => stick(x.text, x.who, x.source, i)).join('') : old.length ? old.map((h, i) => stick(h.text, h.who, h.src || '', i)).join('') : '<p class="note">担当者に話すと、ここに付箋がたまります。</p>';
   return `<div class="board"><div class="bcol"><h4>わかった希望</h4><div class="bst">${body}</div></div>
     <div class="bcol small"><h4>まだ決まっていないこと</h4><ul>${undecided.map(t => `<li>${t}</li>`).join('')}</ul><h4>次に決めること</h4><p>${next}</p></div></div>`;
@@ -312,7 +317,7 @@ export const SCENES = {
     const draw = () => {
       const parts = ta.value.split(/[。\n！？!?]+/).map(t => t.trim()).filter(t => t.length >= 3).slice(0, 12);
       const have = [...box.children].map(el => el.dataset.t);
-      parts.forEach((t, i) => { if (!have.includes(t)) { const el = document.createElement('span'); el.className = 'sticky'; el.dataset.t = t; el.textContent = t.length > 18 ? t.slice(0, 18) + '…' : t; el.style.setProperty('--r', ((i * 37) % 7 - 3) + 'deg'); box.appendChild(el); } });
+      parts.forEach((t, i) => { if (!have.includes(t)) { const el = document.createElement('span'); el.className = 'sticky new'; el.dataset.t = t; el.textContent = t.length > 18 ? t.slice(0, 18) + '…' : t; el.style.setProperty('--r', ((i * 37) % 7 - 3) + 'deg'); box.appendChild(el); } });
       [...box.children].forEach(el => { if (!parts.includes(el.dataset.t)) el.remove(); });
     };
     ta.addEventListener('input', draw); draw();
@@ -337,6 +342,8 @@ export const SCENES = {
   // 情報収集 v3（INFO_GATHER_v3）：全画面のシートで、4社のチラシに1〜3位 → SNSで検索ワードごとに保存 → 見に行く2社を選ぶ。メモは次へ進むと消える
   gather(s) {
     const g = s.gather || { step: 'flyer', rank: [], saved: {}, tab: 0 };
+    // 登場の動きは、段（チラシ／SNS／2社を選ぶ）が変わったときだけ。押すたびに描き直すので、毎回つけると画面が上下に揺れる
+    const enter = GATHER_SHOWN.step !== g.step ? ' g-in' : ''; GATHER_SHOWN.step = g.step;
     const B = DATA.brochures?.brochures || {}, ICON = DATA.specs?.chirashiIcons || {}, h = Y.HOUSEHOLDS[s.household];
     const head = n => `<div class="g-hd"><span class="g-step ${n === 1 ? 'on' : ''}">1／2 チラシを見比べる</span><span class="g-step ${n === 2 ? 'on' : ''}">2／2 SNSを見る</span></div>`;
     if (g.step === 'flyer') {
@@ -346,13 +353,13 @@ export const SCENES = {
           <div class="g-catch">${esc(b.catch || '')}</div><div class="g-icons">${(ICON[co] || []).map(([k, v]) => `<span><small>${esc(k)}</small>${esc(v)}</span>`).join('')}</div>
           <div class="g-price">本体価格 ${man(c.tsubo * h.area[0])}万円〜<small>（${h.area[0]}坪の例）</small></div><div class="g-small">${esc(b.small || '')}</div></div>${r >= 0 ? `<span class="g-rank">${r + 1}</span>` : ''}</button>
           <button class="opt g-more" data-act="openPop" data-pop="flyers">くわしく見る ＋</button></div>`; };
-      return `<div class="gsheet">${head(1)}<h2 class="g-h">気になる順に、1位から3位まで押してみましょう</h2><p class="g-sub">宣伝の言葉です。どの会社も、自分をよく見せています。押し直すと外れます。</p><div class="g-grid">${'ABCD'.split('').map(card).join('')}</div></div>`;
+      return `<div class="gsheet${enter}">${head(1)}<h2 class="g-h">気になる順に、1位から3位まで押してみましょう</h2><p class="g-sub">宣伝の言葉です。どの会社も、自分をよく見せています。押し直すと外れます。</p><div class="g-grid">${'ABCD'.split('').map(card).join('')}</div></div>`;
     }
     if (g.step === 'sns') {
       const S2 = DATA.snsSearch?.searches || [], t = Math.min(g.tab || 0, S2.length - 1), cur = S2[t] || { posts: [] }, sv = g.saved || {};
       const tabs = S2.map((x, i) => `<button class="g-tab" data-act="gTab" data-i="${i}" aria-pressed="${i === t}">${esc(x.word)}<small>${(sv[i] || []).length ? `保存 ${(sv[i] || []).length}` : ''}</small></button>`).join('');
       const posts = cur.posts.map((p, k) => { const on = (sv[t] || []).includes(k); return `<div class="g-post"><div class="g-by">${esc(p.by)}</div><p>${esc(p.text)}</p><button class="g-save ${on ? 'on' : ''}" data-act="gSave" data-i="${k}" aria-pressed="${on}"><svg viewBox="0 0 14 18" width="14" height="18"><path d="M1 1h12v16l-6-4-6 4z" fill="${on ? '#1E2B36' : 'none'}" stroke="#1E2B36" stroke-width="1.6"/></svg>${on ? '保存した' : '保存'}</button></div>`; }).join('');
-      return `<div class="gsheet">${head(2)}<div class="g-sns"><div class="g-phone"><div class="g-bar">検索</div><div class="g-tabs">${tabs}</div><div class="g-posts">${posts}</div></div>
+      return `<div class="gsheet${enter}">${head(2)}<div class="g-sns"><div class="g-phone"><div class="g-bar">検索</div><div class="g-tabs">${tabs}</div><div class="g-posts">${posts}</div></div>
         <div class="g-side"><h2 class="g-h">各タブで、気になる投稿を1〜2個保存しましょう</h2><p class="g-sub">だれかの体験の一面です。食い違う話もあります。</p><ul class="g-cnt">${S2.map((x, i) => `<li class="${(sv[i] || []).length ? 'ok' : ''}">${esc(x.word)}：${(sv[i] || []).length}／2</li>`).join('')}</ul></div></div></div>`;
     }
     // 見に行く2社を選ぶ：チラシの1位・2位が最初から選ばれている。集めた情報のメモは、この画面だけ
@@ -361,7 +368,7 @@ export const SCENES = {
     const gen = []; S2.forEach((x, i) => (g.saved?.[i] || []).forEach(k => { if (!x.posts[k]?.company) gen.push(x.posts[k].text); }));
     return `${top(s)}${moneyBox(s)}${clocks(s)}<div class="g-pick"><div><h2 class="g-h">見に行く会社を、2つ選びましょう</h2><p class="g-sub">チラシで1位・2位をつけた会社が選ばれています。変えてもかまいません。</p>
       <div class="vp g-vp">${'ABCD'.split('').map(co => `<button class="vbtn" data-act="pickVisit" data-co="${co}" aria-pressed="${s.visit.includes(co)}">${P.coTag(co, 30)}${Y.COMPANIES[co].name}<small>${Y.COMPANIES[co].kind}</small></button>`).join('')}</div></div>
-      <aside class="g-memo"><h4>集めた情報のメモ</h4><p class="note">このメモは、次へ進むと消えます。担当者には伝わっていません。</p>${'ABCD'.split('').map(memo).join('')}${gen.length ? `<div class="g-memo-co"><b>会社の名前が出ない投稿</b>${gen.map(t => `<p>「${esc(t)}」</p>`).join('')}</div>` : ''}</aside></div>`;
+      <aside class="g-memo${enter}"><h4>集めた情報のメモ</h4><p class="note">このメモは、次へ進むと消えます。担当者には伝わっていません。</p>${'ABCD'.split('').map(memo).join('')}${gen.length ? `<div class="g-memo-co"><b>会社の名前が出ない投稿</b>${gen.map(t => `<p>「${esc(t)}」</p>`).join('')}</div>` : ''}</aside></div>`;
   },
   // v2：来場者アンケート（1画面1問、選ぶとすぐ次へ。上に「あと〇問」と進み具合。段が変わるとき軽く横にすべる）
   survey(s) {
@@ -382,7 +389,7 @@ export const SCENES = {
     }
     const preview = buildMemory(SVY, s.sv.p1, s.mode === 'duo' ? s.sv.p2 : {});
     const lastQ = s.sv.last?.q;
-    const stickies = preview.items.slice(-16).map((x, k) => `<span class="sticky ${x.who === 'p2' ? 'yu' : x.who === 'both' ? 'both' : ''} ${x.q === lastQ ? 'fly' : ''}" style="--r:${(k * 37) % 7 - 3}deg">${esc(x.text)}</span>`).join('');
+    const stickies = preview.items.slice(-16).map((x, k) => `<span class="sticky ${x.who === 'p2' ? 'yu' : x.who === 'both' ? 'both' : ''} ${x.q === lastQ && stickNew('sv|' + x.who + '|' + x.text) ? 'fly' : ''}" style="--r:${(k * 37) % 7 - 3}deg">${esc(x.text)}</span>`).join('');
     return `${top(s)}<div class="svy">
       <div class="sv-hd">${P.coTag(co, 30)}<b>${Y.COMPANIES[co].name}　来場者アンケート</b><span class="sv-left">あと${left}問</span><div class="sv-bar"><i style="width:${pct}%"></i></div></div>
       <div class="sv-card ${prevSec && prevSec !== q.section ? 'slide' : ''}" data-i="${i}">
