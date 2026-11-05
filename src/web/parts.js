@@ -14,6 +14,8 @@ export function formOf(w) {
   if (f1 < f2 * 0.95) return 'overhang';
   return 'full';
 }
+// 形の札の言葉も、絵と同じ床面積の比から（守りの監査11/5：札は総二階、絵は部分二階、と食い違っていた）
+export const formLabel = w => ({ partial: '部分二階', overhang: '総二階（1階を少し引っ込める）', full: '総二階' })[formOf(w)];
 export function finOf(w, fallbackNo) {
   const f = w.finish; if (!f || !f.decided && !f.wall) return I.FINISH[((fallbackNo ?? w.no) * 5) % 8];
   const wall = YFIN.wall.find(x => x.id === f.wall) || YFIN.wall[0]; const col = (wall.colors[f.color || 0] || wall.colors[0])[1];

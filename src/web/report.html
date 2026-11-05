@@ -99,7 +99,7 @@ const w = D.player, f = w.finish || {};
 const wall = Y.FINISH.wall.find(x => x.id === f.wall) || Y.FINISH.wall[0], wallCol = (wall.colors[f.color || 0] || wall.colors[0]);
 const floor = Y.FINISH.floor.find(x => x.id === f.floor) || Y.FINISH.floor[0];
 const ROOF_WC = { gable: '切妻', hip: '寄棟', mane: '片流れ', cube: '陸屋根', flat: '陸屋根' };
-const wcq = new URLSearchParams({ roof: ROOF_WC[w.spec.roof] || '陸屋根', form: w.plan?.shape?.form || '総二階', finish: f.wall === 'galva' ? 'ガルバリウム' : '塗り壁', wall: wallCol[1], time: me.warmth.level >= 3 ? '夕方' : '昼', season: '春', carport: '2', tree: w.spec.exterior === 'full' ? '落葉樹' : 'なし', seed: '7' });
+const wcq = new URLSearchParams({ roof: ROOF_WC[w.spec.roof] || '陸屋根', form: P.formOf(w) === 'partial' ? '1階が大きい' : '総二階', finish: f.wall === 'galva' ? 'ガルバリウム' : '塗り壁', wall: wallCol[1], time: me.warmth.level >= 3 ? '夕方' : '昼', season: '春', carport: '2', tree: w.spec.exterior === 'full' ? '落葉樹' : 'なし', seed: '7' });
 const p1 = `<div class="page cover"><img class="cv-logo" src="/brand/lockup-vertical.svg" alt="ゆくすいえ">
   <div class="cv-k">わが家の、ちょうどいいバランス</div><div class="cv-title">${esc(R.title || 'わが家の1年後')}</div>
   <iframe class="cv-wc" id="wc" src="/watercolor.html?${wcq}" title="わが家の水彩"></iframe>
@@ -108,7 +108,7 @@ const p1 = `<div class="page cover"><img class="cv-logo" src="/brand/lockup-vert
 
 // ---- 2ページ目 わが家の答え ----
 const zone = w.plan ? zoningSVG(w.plan, { stack: true }) : '';
-const facts = [['延床', `${w.spec.tsubo}坪`], ['形と屋根', `${w.plan?.shape?.form || '総二階'}・${Y.ROOF_JA[w.spec.roof] || ''}`], ['外壁', `${wall.label.replace('（標準）', '')}（${wallCol[0]}）`], ['床', floor.label.replace('（標準）', '')], ['外構', w.spec.exterior === 'full' ? '入居の時に、外まわりまで整えた' : '最小限（あとから少しずつ）']];
+const facts = [['延床', `${w.spec.tsubo}坪`], ['形と屋根', `${P.formLabel(w)}・${Y.ROOF_JA[w.spec.roof] || ''}`], ['外壁', `${wall.label.replace('（標準）', '')}（${wallCol[0]}）`], ['床', floor.label.replace('（標準）', '')], ['外構', w.spec.exterior === 'full' ? '入居の時に、外まわりまで整えた' : '最小限（あとから少しずつ）']];
 // 守ろうとしたもの：根拠（自由回答・アンケート・選んだ札）のあるものだけ。作り話の理由は書かない
 const sib = i => all.find(x => x.o.bits.length === me.bits.length && x.o.bits.every((b, k) => k === i ? b !== me.bits[k] : b === me.bits[k]))?.o;
 const PR = protectedReasons(D.player, D.others, D.memory), protectedOf = i => PR[i];

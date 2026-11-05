@@ -153,7 +153,7 @@ function hero(s, extra = '', cls = '') {
   const w = s.player || Y.newWorld({ household: H(s) });
   const co = s.player && s.forkNo > 0 ? `　${P.coTag(w.company, 28)}${Y.COMPANIES[w.company].name}` : s.player ? '　2社を見比べ中' : (s.cur ? `　${P.coTag(s.cur, 28)}${Y.COMPANIES[s.cur].name}で相談中` : '');
   const roofDecided = s.forkNo >= 2;
-  const area = roofDecided || w.plan ? `${w.spec.tsubo}坪・${w.plan?.shape?.form || '総二階'}　${Y.ROOF_JA[w.spec.roof]}` : "間取りと屋根の形は、これから";
+  const area = roofDecided || w.plan ? `${w.spec.tsubo}坪・${P.formLabel(w)}　${Y.ROOF_JA[w.spec.roof]}` : "間取りと屋根の形は、これから";
   return `<div class="hero ${tall(s)} ${cls}"><div class="lab"><span class="no">${pad(YOU)}</span>あなたの家${co}</div>
     <div class="ph">${P.STEPS_S?.[P.STEP_TO_BAR?.[s.step] ?? 0] || ''}<br><span style="font-size:15px">${area}${w.fitted ? `（予算に合わせて${w.fitted}坪小さく）` : ''}</span></div>${heroHouse(s)}${extra}</div>`;
 }
@@ -448,7 +448,7 @@ export const SCENES = {
       return `<section class="pp-col"><div class="pp-hd">${P.coTag(co, 34)}<b>${C.name}</b><span>${STAFFN(co)}${p.fallback ? '<span class="mk">代わりの処理</span>' : ''}</span></div>
         <p class="pp-intro">${esc(p.intro || '')}</p>
         <div class="pp-zone">${zoningSVG(plan)}</div>
-        <div class="pp-low"><div class="pp-house">${house}</div><div class="pp-facts"><div><span>延床と形</span><b>${m.tsubo}坪・${esc(plan.shape?.form || '総二階')}・${Y.ROOF_JA[plan.shape?.roof] || ''}</b></div>
+        <div class="pp-low"><div class="pp-house">${house}</div><div class="pp-facts"><div><span>延床と形</span><b>${m.tsubo}坪・${esc(P.formLabel(w))}・${Y.ROOF_JA[plan.shape?.roof] || ''}</b></div>
           <div><span>見積の表紙（${esc(q.label)}）</span><b>${man(q.cover)}万円</b></div>
           <div><span>総額（土地と建物）</span><b>${man(m.total)}万円</b></div><div><span>月々の返済</span><b>約${m.monthly.toFixed(1)}万円</b></div></div></div>${wl}</section>`;
     };
@@ -477,8 +477,12 @@ export const SCENES = {
     if (pend) {
       // 自由回答：承認する前に、その答えを当てたときの家と、変わるところを見せる（答えが家を変えることを、画面で）
       let pv = '';
-      if (pend.proposal) { const t = Y.forkWorld(w); try { Y.choose(t, d, pend.proposal); } catch { } const ch = diffWords(w, t).slice(0, 3); pv = `<div class="rt-pv">${P.bigHouse(t, 4, { fin: P.finOf(t) })}<ul>${(ch.length ? ch : ['見た目は変わらない']).map(x => `<li>◆ ${esc(x)}</li>`).join('')}</ul></div>`; }
-      body = `<div class="rt-tw">${pv}<div class="rt-trade"><div class="msg"><div class="who">${P.coTag(w.company, 18)}${Y.COMPANIES[w.company].name}・${STAFFN(w.company)}${pend.call?.fallback ? '<span class="mk">代わりの処理</span>' : ''}</div>${esc(pend.message)}<div class="cond">${pend.result.conditions.map(c => '・' + esc(c)).join('<br>')}</div></div>
+      const tw = Y.forkWorld(w); if (d.id === 'D1') tw.proposalPlans = Object.fromEntries(Object.entries(s.proposals || {}).map(([c, x]) => [c, fitProposalW({ ...x, co: c }, { household: s.household, wishes: s.wishes, co: c }).main])); try { if (pend.proposal) Y.choose(tw, d, pend.proposal); } catch { }
+      const spk = d.id === 'D1' ? tw.company : w.company; // 第一の分岐点では、選んだ会社の担当者が答える
+      // 変わるところは、札に出していた同じ会社の提案と比べる（第一の分岐点）
+      const cw = d.id === 'D1' ? (() => { const c = Y.forkWorld(w); c.proposalPlans = tw.proposalPlans; try { Y.choose(c, d, pend.proposal?.side || 'a'); } catch { } return c; })() : w;
+      if (pend.proposal) { const t = tw; const ch = diffWords(cw, t).slice(0, 3); pv = `<div class="rt-pv">${P.bigHouse(t, 4, { fin: P.finOf(t) })}<ul>${(ch.length ? ch : ['見た目は変わらない']).map(x => `<li>◆ ${esc(x)}</li>`).join('')}</ul></div>`; }
+      body = `<div class="rt-tw">${pv}<div class="rt-trade"><div class="msg"><div class="who">${P.coTag(spk, 18)}${Y.COMPANIES[spk].name}・${STAFFN(spk)}${pend.call?.fallback ? '<span class="mk">代わりの処理</span>' : ''}</div>${esc(pend.message)}<div class="cond">${pend.result.conditions.map(c => '・' + esc(c)).join('<br>')}</div></div>
         ${pend.result.wishCheck?.length ? `<ul class="wbox">${wishLine(pend.result.wishCheck)}</ul>` : ''}${band(s)}
         <div class="rt-acts">${pend.result.verdict === 'いまは難しい' ? '<span class="note">この条件では進められません。</span><button class="opt" data-act="cancelTrade">ほかの答えを考える</button>' : '<button class="opt" data-act="cancelTrade">やめておく</button>'}</div></div></div>`;
     } else if (side) {

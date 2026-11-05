@@ -691,3 +691,5 @@ body.rec .eanim{display:none}
 .g-vp{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}.g-vp .vbtn{font-size:24px;padding:22px}
 .g-memo{background:#fff;border:1.5px dashed rgba(30,43,54,.35);border-radius:18px;padding:18px 22px;overflow:auto;animation:rtin .4s ease-out}.g-memo h4{font-size:20px;margin:0}
 .g-memo-co{margin-top:12px}.g-memo-co b{font-size:18px;margin-left:6px}.g-memo-co .g-r{margin-left:10px;font-size:15px;border:1.5px solid var(--ink);border-radius:999px;padding:1px 10px}.g-memo-co p{font-size:16px;line-height:1.55;margin:4px 0 0 8px;color:var(--ink)}
+.ritual .rt-navs{left:40px;right:auto}
+.moneyc .v.counting{color:var(--ink)}

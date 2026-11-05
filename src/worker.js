@@ -111,7 +111,11 @@ function fallbackProposal(text, d, world) {
   if (/テレビ|壁掛け/.test(t)) electric.push('tag_tv_wall');
   if (/LAN|有線/.test(t)) electric.push('tag_lan');
   const borrow = /借入|借り|ローン/.test(t) && !/増やさ|減ら/.test(t) ? 'cover' : 'keep';
-  const side = d.id === 'D3' ? (borrow === 'cover' ? 'b' : 'a') : (spec.roof === 'gable' || spec.kitchen ? 'b' : 'a');
+  // 第一の分岐点：文中の会社名で札を選ぶ（広さや屋根の形は、ここでは受けない）
+  const coName = c => Y.COMPANIES[c]?.name || '';
+  const d1side = d.id === 'D1' ? (t.includes(coName(d.b.patch?.company)) ? 'b' : t.includes(coName(d.a.patch?.company)) ? 'a' : null) : null;
+  if (d.id === 'D1') { delete spec.roof; }
+  const side = d1side || (d.id === 'D3' ? (borrow === 'cover' ? 'b' : 'a') : (spec.roof === 'gable' || spec.kitchen ? 'b' : 'a'));
   const words = [spec.window === 'triple' && '南の窓をトリプルに', spec.kitchen === true && '造作キッチン', spec.exterior === 'full' && '外構まで', spec.exterior === 'min' && '外構は最小限', spec.roof && spec.roof !== 'flat' && Y.ROOF_JA[spec.roof], electric.length && '電気の追加'].filter(Boolean);
   return { side, spec, borrow, electric, label: (words.join('・') || (typeof d[side].label === 'function' ? d[side].label(world) : d[side].label)) + (borrow === 'cover' ? '（借入で）' : '') };
 }
