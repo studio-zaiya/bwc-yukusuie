@@ -246,13 +246,15 @@ export function scheduleOf(world) {
   const late = (world.delay || 0) + (world.bits && world.bits.length === 4 ? eventDelay(world) : 0);
   const coord = Math.round(80 * (0.9 + 0.1 * k)), start = Math.round(100 * (0.9 + 0.1 * k));
   const jotou = start + Math.round(35 * k), kensa = jotou + Math.round(110 * k), hand = kensa + 10;
-  const days = [...pre.map(d => Math.round(d * (d > 10 ? k : 1))), coord + late, start + late, jotou + late, kensa + late, hand + late, hand + late];
+  const lr = world.loanReview || 0;
+  const days = [...pre.map((d, i) => Math.round(d * (d > 10 ? k : 1)) + (i >= 4 ? lr : 0)), coord + late + lr, start + late + lr, jotou + late + lr, kensa + late + lr, hand + late + lr, hand + late + lr];
   days.push(days[10] + 365);
   return days;
 }
 export function schedule(world, addDays = 0) {
-  const d = scheduleOf(world), contractDay = d[5] + (world.delay || 0) + addDays;
-  return { contractDay, loanLeft: DEADLINE.loan - contractDay - (world.loanReview || 0), handover: d[10] + addDays, ok: contractDay <= DEADLINE.loan };
+  // 契約の日は、画面の契約の場面と同じ値（scheduleOf の4番目。監査11/5：条件は82日目、画面は62日目と食い違っていた）
+  const d = scheduleOf(world), contractDay = d[4] + (world.delay || 0) + addDays;
+  return { contractDay, loanLeft: DEADLINE.loan - contractDay, handover: d[10] + addDays, ok: contractDay <= DEADLINE.loan };
 }
 
 // ---- 世界（1つの家づくりの状態）----
@@ -282,13 +284,15 @@ export function money(w) {
 
 // ---- 4つの分かれ道（名前と順番は固定）。bit=0 が左の札、bit=1 が右の札 ----
 export const FORKS = ['第一の分岐点', '第二の分岐点', '第三の分岐点', '第四の分岐点'];
+// 案の名前が「〜まとめる」のように動詞で終わるときは、そのまま札の名前にする（「まとめるで進める」を避ける。TESTPLAY T9）
+const verbL = (t, tail) => /(る|た|う|く|す)$/.test(t) ? t : /に$/.test(t) && tail === 'にする' ? t + 'する' : t + tail;
 export function decisions(pair = ['C', 'A']) {
   const [x, y] = pair;
   return [
     { id: 'D1', no: 0, q: 'だれと建てる？', step: 2, a: { label: `${COMPANIES[x].name}と建てる`, patch: { company: x } }, b: { label: `${COMPANIES[y].name}と建てる`, patch: { company: y } } },
-    { id: 'D2', no: 1, q: 'なにを優先する？', step: 3, a: { label: w => w.plan ? `${w.plan.title || '確定した骨組み'}で進める` : `提案の外形（${ROOF_JA[w.spec.roof]}）のまま、広さを優先する`, patch: { plan: 'main' } }, b: { label: w => w.plan?.alt ? `${w.plan.alt.title || 'もう一つの案'}にする` : `${ROOF_JA[COMPANIES[w.company].altRoof]}に変えて、総二階に寄せる（ひとまわり小さく）`, patch: { spec: { roof: '@alt', tsubo: -1 }, plan: 'alt' } } },
+    { id: 'D2', no: 1, q: 'なにを優先する？', step: 3, a: { label: w => w.plan ? verbL(w.plan.title || '確定した骨組み', 'で進める') : `提案の外形（${ROOF_JA[w.spec.roof]}）のまま、広さを優先する`, patch: { plan: 'main' } }, b: { label: w => w.plan?.alt ? verbL(w.plan.alt.title || 'もう一つの案', 'にする') : `${ROOF_JA[COMPANIES[w.company].altRoof]}に変えて、総二階に寄せる（ひとまわり小さく）`, patch: { spec: { roof: '@alt', tsubo: -1 }, plan: 'alt' } } },
     { id: 'D3', no: 2, q: 'いくらまでかける？', step: 5, a: { label: '外構は最小限で進める', patch: { spec: { exterior: 'min' } } }, b: { label: '借入を増やして、外構まで仕上げる', patch: { spec: { exterior: 'full' } } } },
-    { id: 'D4', no: 3, q: 'どう仕上げる？', step: 6, a: { label: '標準の仕上げのまま', patch: { finish: { wall: 'std', floor: 'std', inner: 'vinyl' } } }, b: { label: 'アップグレードを受ける（外壁と床）', patch: { finish: { wall: 'galva', floor: 'oak' } } } },
+    { id: 'D4', no: 3, q: 'どう仕上げる？', step: 6, a: { label: '標準の仕上げのまま', patch: { finish: { wall: 'std', floor: 'std', inner: 'vinyl' } } }, b: { label: 'グレードアップを受ける（外壁と床）', patch: { finish: { wall: 'galva', floor: 'oak' } } } },
   ];
 }
 export const DECISIONS = decisions();
@@ -327,7 +331,12 @@ export function choose(w, d, opt, extra = {}) {
   // 仕様はプレイヤーの答えを読み替えたものだけを当てる（攻めのレビュー11/5：「トリプルに」と答えたのに外構が入っていた）
   if (typeof opt === 'object') applyPatch(w, { company: base.patch.company, plan: base.patch.plan });
   else applyPatch(w, base.patch);
+  // 第一の分岐点：その会社の提案の案（画面の札と同じ）を当てる（自由入力の試算の基準を、直前に見せた提案にそろえる。INFO_GATHER_v2 の1）
+  if (d.id === 'D1' && w.proposalPlans?.[w.company]) applyPlan(w, w.proposalPlans[w.company]);
+  const loan0 = money(w).loan;
   if (typeof opt === 'object') { applyPatch(w, { spec: opt.spec || {}, finish: opt.finish, electric: opt.electric }); if (!opt.plain) w.third = d.id; }
+  // 借入を増やした自由回答は、本審査のやり直しで契約が延びる（条件に出した日数と、契約の日をそろえる。守りの監査11/5）
+  if (typeof opt === 'object' && opt.borrow === 'cover' && d.id === 'D3' && money(w).loan > loan0 + 0.5) w.loanReview = 7;
   w.bits.push(side === 'a' ? 0 : 1);
   w.labels.push(typeof opt === 'object' ? (opt.label || baseLabel) : baseLabel);
   if (extra.reason || extra.priority) w.memory.push({ decisionId: d.id, action: w.labels.at(-1), reason: extra.reason || '', priority: extra.priority || '' });
@@ -351,16 +360,16 @@ export const worldNo = bits => bits.reduce((n, b, i) => n + (b << (bits.length -
 
 // ---- 自由な答えの取引：読み替え → 仮計算 → 条件 → 承認 → 確定 ----
 // proposal は Claude が入力文から作る「変更の提案」。数字は入れない（借入は「増やす／増やさない」だけ）
-export function normalizeProposal(p = {}) {
+export function normalizeProposal(p = {}, opts = {}) {
   const out = { side: p.side === 'a' ? 'a' : 'b', spec: {}, borrow: p.borrow === 'keep' ? 'keep' : 'cover', electric: [], finish: undefined };
   const errors = [];
   for (const [k, v] of Object.entries(p.spec || {})) {
-    if (k === 'tsubo') continue;
+    if (k === 'tsubo' || (opts.d1 && ['roof', 'form'].includes(k))) continue;
     if (!(k in SPEC_SCHEMA)) { errors.push(`仕様の項目「${k}」は扱えません`); continue; }
     if (!SPEC_SCHEMA[k].includes(v)) { errors.push(`「${k}」に「${v}」は選べません`); continue; }
     out.spec[k] = v;
   }
-  if (p.spec && p.spec.tsubo != null) { const t = Math.round(+p.spec.tsubo); if (t >= 24 && t <= 40) out.spec.tsuboAbs = t; else errors.push('広さは24〜40坪の範囲で扱います'); }
+  if (p.spec && p.spec.tsubo != null && !opts.d1) { const t = Math.round(+p.spec.tsubo); if (t >= 24 && t <= 40) out.spec.tsuboAbs = t; else errors.push('広さは24〜40坪の範囲で扱います'); }
   for (const id of p.electric || []) { if (ELECTRIC.options.some(o => o.id === id)) out.electric.push(id); else errors.push(`電気の項目「${id}」はありません`); }
   if (p.finish) { out.finish = {}; for (const k of ['wall', 'floor', 'inner']) if (p.finish[k] && FINISH[k].some(x => x.id === p.finish[k])) out.finish[k] = p.finish[k]; }
   if (p.label) out.label = String(p.label).slice(0, 40);
@@ -369,16 +378,18 @@ export function normalizeProposal(p = {}) {
 }
 
 // tool use でClaudeが呼ぶ道具（すべて「仮に」計算するだけで、世界は変えない）
+// 第一の分岐点の「変更前」は、その札に出している提案（会社と案）の世界
+const cardWorld = (w, d, proposal) => { const b = forkWorld(w); choose(b, d, proposal.side || 'a'); return b; };
 export const TOOLS = {
   quote(w, d, proposal) {
-    const t = forkWorld(w); const before = money(t);
+    const t = forkWorld(w); const before = money(d.id === 'D1' ? cardWorld(w, d, proposal) : t);
     choose(t, d, proposal); const after = money(t);
     return { before: before.total, after: after.total, diff: round(after.total - before.total, 1), lines: after.quote.lines.filter(l => !before.quote.lines.some(b => b.key === l.key && b.v === l.v)).map(l => ({ label: l.label, v: l.v })) };
   },
   loanCheck(w, d, proposal) {
     const t = forkWorld(w); choose(t, d, proposal); const m = money(t);
     const lc = loanCheck(householdOf(t), m.loan);
-    const before = money(w).loan;
+    const before = money(d.id === 'D1' ? cardWorld(w, d, proposal) : w).loan;
     return { ...lc, before, diff: round(m.loan - before, 1), monthlyDiff: Math.round((payment(m.loan, RATE.variable) - payment(before, RATE.variable)) * 10000) };
   },
   schedule(w, d, proposal) {
@@ -389,7 +400,7 @@ export const TOOLS = {
 };
 
 export function simulate(w, d, rawProposal) {
-  const { proposal, errors } = normalizeProposal(rawProposal);
+  const { proposal, errors } = normalizeProposal(rawProposal, { d1: d.id === 'D1' });
   const q = TOOLS.quote(w, d, proposal), lc = TOOLS.loanCheck(w, d, proposal), sc = TOOLS.schedule(w, d, proposal), cv = TOOLS.coverageCheck(w, d, proposal);
   // 借入を増やさない場合、増額は手元に残す分から出すことになる
   const h = householdOf(w);
@@ -401,7 +412,7 @@ export function simulate(w, d, rawProposal) {
   const conditions = [];
   const R = v => Math.round(v).toLocaleString();
   if (q.diff) conditions.push(`総額 ${q.diff > 0 ? '+' : ''}${R(q.diff)}万円（${R(q.before)} → ${R(q.after)}万円）`);
-  if (proposal.borrow === 'cover' && lc.diff > 0) conditions.push(`借入 +${R(lc.diff)}万円（月々 約+${lc.monthlyDiff.toLocaleString()}円、返済負担率 ${lc.ratio}%）`);
+  if (proposal.borrow === 'cover' && lc.diff > 0) conditions.push(`借入 +${R(lc.diff)}万円（月々 約+${(Math.round(lc.monthlyDiff / 1000) / 10).toFixed(1)}万円、返済負担率 ${lc.ratio}%）`);
   if (fromSavings) conditions.push(`手元に残す分から ${R(fromSavings)}万円を出す`);
   if (sc.addDays) conditions.push(`本審査のやり直し +${sc.addDays}日（契約は${sc.contractDay}日目、ローン特約の期限は${DEADLINE.loan}日目）`);
   if (!cv.ok) conditions.push(`建蔽率の上限を超える（${cv.total}㎡ ／ 上限 ${cv.limit}㎡）`);
@@ -419,10 +430,12 @@ export function incidents(w) {
   const out = [];
   // 会社の過失は、どの会社でも会社の負担（人間の回答11/5）：交換は会社持ちで、遅れだけが残る
   if (w.company === 'A' && changedAfter && skill < 0.45) out.push({ text: '契約後に担当が替わり、頼んだ設備と違うものが入った。交換は会社の負担で、引渡しが3週間遅れた', delay: 21, cause: '契約のあとで変更が重なり、引き継ぎの記録が追いつかなかった', lesson: '契約のあとの変更は、記録を残して引き継いでもらう' });
-  if (w.company === 'B' && w.bits[3] === 1 && skill < 0.4) out.push({ text: '契約後にオプションを足していったら、思ったより増えた', amount: 120, cause: '標準仕様が最低限で、仕上げのアップグレードを重ねた', lesson: '標準仕様で足りるかを、契約の前に確かめる' });
+  if (w.company === 'B' && w.bits[3] === 1 && skill < 0.4) out.push({ text: '契約後にオプションを足していったら、思ったより増えた', amount: 120, cause: '標準仕様が最低限で、仕上げのグレードアップを重ねた', lesson: '標準仕様で足りるかを、契約の前に確かめる' });
   if (w.company === 'C' && w.bits[1] === 1 && skill < 0.4) out.push({ text: '詳細の打ち合わせが長引き、入居がひと月遅れた', delay: 30, cause: '設計の途中で間取りの案を切り替え、図面を描き直した', lesson: '案を切り替えるなら、早いうちに決める' });
   // 地盤：調査が契約の後になる会社では、契約のあとで地盤改良が追加になることがある（会社の過失ではないので施主の負担）
   if (COMPANIES[w.company].groundTiming !== '契約前' && rng((w.seed ?? 7) * 17 + no)() < (COMPANIES[w.company].groundTiming === '曖昧' ? 0.4 : 0.3)) out.push({ text: '契約のあとの地盤調査で、地盤改良の追加が必要になった', amount: 80, cause: '地盤の調査が、建物の契約の後だった', lesson: '地盤の調査を、契約の前にするか確かめる' });
+  // 大きな出来事の世界（13番。CLAUDE.md の詳しく描く4世界）：会社の過失ではない天候の出来事で、上棟が延びる
+  if (no === 13 && !out.length) out.push({ text: '台風が続いて、上棟が2週間延びた', delay: 14, cause: '工程に、天候の余裕を見ていなかった', lesson: '工程には、天候の余裕を見ておく' });
   if (w.company === 'D' && skill < 0.35 && !w.electric.includes('tag_tv_wall')) out.push({ text: '壁掛けテレビの下地が入っていなかった', cause: '打ち合わせの記録を残していなかった', lesson: '打ち合わせの記録は、自分たちでも残す' });
   return out;
 }
@@ -440,6 +453,12 @@ export function outcome(w, opts = {}) {
   if (wm.level >= 3 && w.spec.window === 'triple') events.push('南の窓辺が、冬でもいちばんの居場所');
   const m = money({ ...w, adds: [...w.adds, ...(increase ? [{ label: '契約後の増額', v: increase }] : [])] });
   const sl = slack(h, m.loan);
+  // 予算や借入の上限を超えた世界には、暮らしのひとことだけ添える（計算は変えない。人間の回答11/5）
+  if (!w.unbuilt) {
+    const over = m.loan - loanLimit(h);
+    if (over > 0) events.push(['借りられる額を超えた分は、NISAと学資の積み立てを崩して払った', '借りられる額を超えた分を、知り合いに頼んで少し借りた', '足りない分は、子どもの学資の積み立てを取り崩した'][no % 3]);
+    else if (sl.level === 0) events.push(['月々の返済が重く、外食と旅行をしばらくやめた', 'ボーナスは、ほとんど返済に消えた', '毎月の家計簿を見るたびに、ため息が出る'][no % 3]);
+  }
   const days = scheduleOf(w)[10];
   return { no, bits: w.bits, labels: w.labels, company: w.company, spec: w.spec, finish: w.finish, money: m, total: m.total, principal: m.loan, increase, choiceTotal: round(m.total - increase, 1), causes: inc, warmth: wm, slack: sl, days, events, unbuilt: w.unbuilt || null, third: w.third, skill: round(skill, 2) };
 }

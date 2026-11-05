@@ -5,6 +5,10 @@
   const P = (x, y, z = 0) => [(x - y) * C30, (x + y) * S30 - z];
   const pts = a => a.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ');
   const poly = (a, fill, stroke = '#1E2B36', sw = 1.4, extra = '') => `<polygon points="${pts(a)}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round" ${extra}/>`;
+  // 暗い外壁（黒・チャコールなど）は、輪郭が線と同化しないよう、面を明るめにする（人間の回答11/5）
+  const lum = hex => { const n = parseInt(String(hex).slice(1), 16); return ((n >> 16) * .299 + (n >> 8 & 255) * .587 + (n & 255) * .114) / 255; };
+  const liftDark = hex => /^#[0-9a-fA-F]{6}$/.test(hex || '') && lum(hex) < 0.3 ? mix(hex, '#FFFFFF', 0.32) : hex;
+  function mix(a, b, t) { const p = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; const x = p(a), y = p(b); return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join(''); }
   function shade(hex, k) { const n = parseInt(hex.slice(1), 16); let r = n >> 16, g = n >> 8 & 255, b = n & 255; const f = v => Math.max(0, Math.min(255, Math.round(v * k))); return '#' + [f(r), f(g), f(b)].map(v => v.toString(16).padStart(2, '0')).join(''); }
 
   const FINISH = [
@@ -14,17 +18,18 @@
 
   // 1軒：原点(ox,oy)に、幅w×奥行きd×高さh。stage: 0 地縄 / 1 基礎 / 2 骨組み / 3 白い下地 / 4 完成 / -1 工事中止
   function house(o) {
-    const { x = 0, y = 0, w = 46, d = 38, h = 40, roof = 'flat', fin = FINISH[0], stage = 4, lamp = false, eave = true, third = false } = o;
+    const { x = 0, y = 0, w = 46, d = 38, h = 40, roof = 'flat', fin = FINISH[0], stage = 4, lamp = false, eave = true, third = false, z0 = 0, form = 'full' } = o;
+    // 家の形（人間の回答11/5）：総二階／部分二階（1階は総二階と同じ大きさ、2階を半分ほどにして、1階に下屋）／1階を少し引っ込めた箱（2階は総二階と同じ大きさ）
+    if (form !== 'full' && stage >= 3 && !z0) return formHouse(o);
     let s = '';
-    const g = (a) => a.map(([px, py, pz]) => { const q = P(x + px, y + py, pz); return q; });
+    const g = (a) => a.map(([px, py, pz]) => { const q = P(x + px, y + py, pz + z0); return q; });
     if (stage <= 0) {
       s += poly(g([[0, 0, 0], [w, 0, 0], [w, d, 0], [0, d, 0]]), 'none', '#1E2B36', 1.2, 'stroke-dasharray="4 4" opacity=".7"');
       if (stage === -1) s += poly(g([[-4, -4, 0], [w + 4, -4, 0], [w + 4, d + 4, 0], [-4, d + 4, 0]]), '#D9CDB4', '#8A8478', 1, 'opacity=".9"');
       return s;
     }
-    // 基礎
-    s += poly(g([[0, 0, 0], [w, 0, 0], [w, 0, 3], [0, 0, 3]]), '#CFCBC3');
-    s += poly(g([[w, 0, 0], [w, d, 0], [w, d, 3], [w, 0, 3]]), '#BDB8AF');
+    // 基礎（2階だけの箱には描かない）
+    if (!z0) { s += poly(g([[0, d, 0], [w, d, 0], [w, d, 3], [0, d, 3]]), '#CFCBC3'); s += poly(g([[w, 0, 0], [w, d, 0], [w, d, 3], [w, 0, 3]]), '#BDB8AF'); }
     if (stage === 1) { s += poly(g([[0, 0, 3], [w, 0, 3], [w, d, 3], [0, d, 3]]), '#E3DFD6'); return s; }
     if (stage === 2) { // 骨組み
       const cols = [[0, 0], [w, 0], [w, d], [0, d], [w / 2, 0], [w, d / 2]];
@@ -33,7 +38,7 @@
       return s;
     }
     const white = stage === 3;
-    const wall = white ? '#FFFFFF' : fin.wall, rf = white ? '#F1EEE8' : fin.roof;
+    const wall = white ? '#FFFFFF' : liftDark(fin.wall), rf = white ? '#F1EEE8' : liftDark(fin.roof);
     // 見える面：南（y=d）と東（x=w）
     const wallH = roof === 'shed' ? h : h;
     s += poly(g([[0, d, 3], [w, d, 3], [w, d, h], [0, d, h]]), wall);
@@ -84,6 +89,38 @@
       s += poly(g([[w, 0, h], [w, d, h], [w, 0, h + r]]), shade(wall, .86));
       s += poly(g([[-2, -2, h + r], [w + 2, -2, h + r], [w + 2, d + 3, h - 1], [-2, d + 3, h - 1]]), rf);
     }
+    return s;
+  }
+
+  function formHouse(o) {
+    const { x = 0, y = 0, w = 46, d = 38, h = 40, roof = 'flat', fin = FINISH[0], stage = 4, lamp = false, form } = o;
+    const white = stage === 3, wall = white ? '#FFFFFF' : liftDark(fin.wall), rf = white ? '#F1EEE8' : liftDark(fin.roof);
+    const g = a => a.map(([px, py, pz]) => P(x + px, y + py, pz));
+    const h1 = Math.round(h * 0.5);
+    let s = '';
+    const win = (face, a0, z, ww, hh, X0 = w, D0 = d) => poly(face === 's' ? g([[a0, D0, z], [a0 + ww, D0, z], [a0 + ww, D0, z + hh], [a0, D0, z + hh]]) : g([[X0, a0, z], [X0, a0 + ww, z], [X0, a0 + ww, z + hh], [X0, a0, z + hh]]), lamp ? '#FFD98A' : (white ? '#E8EEF2' : '#A9C9DB'), '#1E2B36', 1);
+    if (form === 'partial') {
+      // 1階：総二階と同じ大きさ。2階は奥の右側に半分ほど。1階の残りに下屋（片流れの屋根）
+      const x2 = Math.round(w * 0.38), d2 = Math.round(d * 0.58);
+      s += poly(g([[0, d, 0], [w, d, 0], [w, d, 3], [0, d, 3]]), '#CFCBC3') + poly(g([[w, 0, 0], [w, d, 0], [w, d, 3], [w, 0, 3]]), '#BDB8AF');
+      s += poly(g([[0, d, 3], [w, d, 3], [w, d, h1], [0, d, h1]]), wall) + poly(g([[w, 0, 3], [w, d, 3], [w, d, h1], [w, 0, h1]]), shade(wall, .86));
+      s += win('s', w * 0.08, 4, w * 0.42, h1 * 0.6) + win('s', w * 0.62, 6, w * 0.14, h1 * 0.45);
+      // 奥の左（2階のない部分）の屋根
+      s += poly(g([[-2, -2, h1 + 2], [x2, -2, h1 + 2], [x2, d2, h1 + 2], [-2, d2, h1 + 2]]), rf);
+      // 2階の箱（奥の右）
+      s += house({ x: x + x2, y, w: w - x2, d: d2, h: h - h1, z0: h1, roof, fin, stage, lamp, eave: false });
+      // 下屋：2階の前の壁から、1階の前の軒へ下がる
+      s += poly(g([[-2, d2, h1 + 6], [w + 2, d2, h1 + 6], [w + 2, d + 3, h1 - 1], [-2, d + 3, h1 - 1]]), rf);
+      s += poly(g([[w + 2, d2, h1 + 6], [w + 2, d + 3, h1 - 1], [w + 2, d + 3, h1 - 2.4], [w + 2, d2, h1 + 4.6]]), shade(rf, .8), '#1E2B36', .8);
+      return s;
+    }
+    // overhang：1階を前で少し引っ込め、2階は総二階と同じ大きさ。下に影
+    const dr = Math.round(d * 0.16);
+    s += poly(g([[0, d - dr, 0], [w, d - dr, 0], [w, d, 0], [0, d, 0]]), 'rgba(30,43,54,.16)', 'none', 0);
+    s += poly(g([[0, d - dr, 0], [w, d - dr, 0], [w, d - dr, 3], [0, d - dr, 3]]), '#CFCBC3') + poly(g([[w, 0, 0], [w, d - dr, 0], [w, d - dr, 3], [w, 0, 3]]), '#BDB8AF');
+    s += poly(g([[0, d - dr, 3], [w, d - dr, 3], [w, d - dr, h1], [0, d - dr, h1]]), shade(wall, .92)) + poly(g([[w, 0, 3], [w, d - dr, 3], [w, d - dr, h1], [w, 0, h1]]), shade(wall, .82));
+    s += win('s', w * 0.10, 5, w * 0.12, h1 * 0.35, w, d - dr) + win('s', w * 0.40, 5, w * 0.12, h1 * 0.35, w, d - dr) + win('s', w * 0.66, 3, w * 0.14, h1 * 0.7, w, d - dr);
+    s += house({ x, y, w, d, h: h - h1, z0: h1, roof, fin, stage, lamp, eave: false });
     return s;
   }
 

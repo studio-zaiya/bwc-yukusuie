@@ -1,5 +1,4 @@
-// 受け入れ基準の確認用：審査員の道（タイトル →「続きから遊ぶ」→ 分岐点 → 電気 → 引渡し → 1年後 → レポート）を通し、
-// 画面ごとのスクショを out/acceptance/ に保存する。使い方：node scripts/acceptance.cjs [URL]
+// 確認用（手元のサーバーだけ）：打ち合わせ済みの状態（?test=continue）から、提案の日 → 分岐点 → 電気 → 引渡し → 1年後 → レポートを通し、
 const { chromium } = require('playwright');
 const fs = require('fs');
 const BASE = process.argv[2] || 'http://localhost:8787';
@@ -18,19 +17,19 @@ const OUT = 'out/acceptance';
   const idle = () => p.waitForFunction(() => !document.querySelector('.msg.typing'), null, { timeout: 120000 });
   try {
     await p.goto(BASE + '/'); await shot('S0-title');
-    await click('[data-act=continueStart]'); await p.waitForTimeout(400); await shot('S4-fork1-intro'); await p.waitForTimeout(1500); await shot('S4-fork1');
-    await click('[data-act=pickSide][data-side=a]'); await shot('S4-fork1-why');
-    await p.fill('#say', '話を最初にじっくり聞いてくれたから'); await click('[data-act=decideWhy]'); await p.waitForTimeout(500); await shot('S4-fork1-band');
-    await p.waitForSelector('[data-act=planConfirm]:not([disabled])', { timeout: 120000 }); await p.waitForTimeout(500); await shot('S5-plan');
-    await click('[data-act=planConfirm]'); await p.waitForTimeout(1800); await shot('S4-fork2');
-    await click('[data-act=pickSide][data-side=b]'); await shot('S4-fork2-why'); await click('[data-act=decideNoWhy]'); await p.waitForTimeout(400); await shot('S4-fork2-band');
-    await p.waitForTimeout(1800); await shot('S4-fork3');
-    await click('[data-act=pickSide][data-side=a]'); await click('[data-act=decideNoWhy]'); await p.waitForTimeout(1900); await shot('S5-contract');
-    await click('[data-act=toCoord]'); await p.waitForTimeout(1600); await shot('S4-fork4'); await click('[data-act=pickSide][data-side=b]'); await click('[data-act=decideNoWhy]'); await p.waitForTimeout(1900); await click('[data-act=finish][data-k=color][data-v="1"]'); await shot('S4-fork4-coord');
-    await click('[data-act=decideCoord]'); await p.waitForTimeout(600); await shot('P4b-electric');
+    await p.goto(BASE + '/?test=continue'); await p.waitForTimeout(600); await shot('F1-proposal-wait');
+    // 流れ v3：提案の日 → 第一 → 第二 → 第三（続けて）→ 契約 → 色決め → 第四（自動）→ 電気
+    await p.waitForSelector('[data-act=toFork1]:not([disabled])', { timeout: 150000 }); await p.waitForTimeout(400); await shot('F2-proposal');
+    await click('[data-act=toFork1]'); await p.waitForTimeout(400); await shot('S4-fork1-intro'); await p.waitForTimeout(1500); await shot('S4-fork1');
+    await click('[data-act=pickSide][data-side=a]'); await shot('U1-fork1-selected'); await click('[data-act=goSide]'); await p.waitForTimeout(300); await shot('S4-fork1-picked'); await p.waitForTimeout(1000); await shot('S4-fork1-band');
+    await p.waitForTimeout(1600); await shot('F3-connector'); await p.waitForTimeout(1700); await shot('S4-fork2');
+    await click('[data-act=pickSide][data-side=b]'); await click('[data-act=goSide]'); await p.waitForTimeout(1200); await shot('S4-fork2-band'); await p.waitForTimeout(3400); await shot('S4-fork3');
+    await click('[data-act=pickSide][data-side=a]'); await click('[data-act=goSide]'); await p.waitForTimeout(2900); await shot('S5-contract');
+    await click('[data-act=toCoord]'); await click('[data-act=finish][data-k=wall][data-v=galva]'); await click('[data-act=finish][data-k=color][data-v="1"]'); await shot('S4-fork4-coord');
+    await click('[data-act=decideCoord]'); await p.waitForTimeout(800); await shot('S4-fork4-auto'); await p.waitForTimeout(1600); await shot('S4-fork4-band'); await p.waitForTimeout(1500); await shot('P4b-electric');
     await p.fill('#say', 'リビングのエアコンは見えないようにしたいと伝えていたはずです'); await click('[data-act=sendElectric]'); await idle(); await p.waitForTimeout(500); await shot('P4b-electric-add');
     const m0 = await p.textContent('.moneyc .v'); await p.fill('#say', '間接照明をお願いしたい'); await click('[data-act=sendElectric]'); await p.waitForTimeout(1300); await shot('P4b-electric-count'); await p.waitForTimeout(1000); console.log('お金の札', m0, '→', await p.textContent('.moneyc .v'));
-    await click('[data-act=toBuild]'); await click('[data-act=startBuild]'); await p.waitForTimeout(2000); await shot('S6-build');
+    await click('[data-act=elecOk]'); await shot('U2-electric-ok'); await click('[data-act=toBuild]'); await click('[data-act=startBuild]'); await p.waitForTimeout(3000); await shot('S6-build'); await p.waitForTimeout(5000); await shot('S6-build-frame');
     await p.waitForFunction(() => YUKU.state.scene === 'handover', null, { timeout: 20000 }); await p.waitForTimeout(400); await shot('S7-handover-fade'); await p.waitForTimeout(3800); await shot('S7-handover');
     await click('[data-act=toSeasons]'); await p.waitForTimeout(2200); await p.waitForFunction(() => YUKU.state.scene === 'result', null, { timeout: 8000 }); await p.waitForTimeout(5200); await shot('S8-result');
     await click('[data-act=toYear]'); await p.waitForTimeout(1200); await shot('S8-year');

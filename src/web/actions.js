@@ -2,10 +2,11 @@
  * Claudeが応答できなかったときは、代わりの文で成功したように見せず、「応答できませんでした（もう一度）」を出す */
 import * as Y from './engine/engine.js';
 import { S, emit, api, render } from './main.js';
-import { busy, setWho, getWho, persona, DATA, PHONE, SHOW, NAMES, unkept, FORK_DONE, dataReady, SV, SWITCH } from './scenes.js';
+import { busy, setWho, getWho, persona, DATA, PHONE, SHOW, NAMES, unkept, FORK_DONE, dataReady, SV, SWITCH, PICK, pickKey, PEEK } from './scenes.js';
 import { buildMemory, deliver, addItem, memoryText, conflictsOf, slotValuesOf } from './memory.js';
 import { setFace } from './parts.js';
-import { tourNext, tourSkip, tourHelp } from './tour.js';
+import { fitProposalW } from './planfit.js';
+import { BUILD } from './buildanim.js';
 
 const val = id => (document.getElementById(id)?.value || '').trim();
 const clear = id => { const el = document.getElementById(id); if (el) el.value = ''; };
@@ -25,8 +26,8 @@ let lastSend = null; // 応答できなかったときに、もう一度送る�
 // 担当者に送る（ヒアリング・返信・質問・電気で共通）
 // 担当者は、場面ごとに役割を分けたハーネス（rep_harness.json）で話す。phase：summary／followUp／proposal／adjust／confirm
 const PHASE_OF = { hearing: 'followUp', reply: 'followUp', forgot: 'followUp', compare: 'proposal', plan: 'proposal', contract: 'proposal', electric: 'confirm', coord: 'confirm' };
-async function askStaff({ co, ch, scene, text, flag, history = true, phase }) {
-  lastSend = { co, ch, scene, text, flag, history, phase };
+async function askStaff({ co, ch, scene, text, flag, history = true, phase, ask }) {
+  lastSend = { co, ch, scene, text, flag, history, phase, ask };
   const ph = phase || PHASE_OF[S.scene] || 'proposal';
   await withBusy(async () => {
     const hist = history ? S.chat.filter(m => m.ch === ch && m.who !== 'sys').map(m => ({ who: m.who === 'staff' ? '担当者' : nameOf(m.who === 'partner' ? 'yuu' : m.who), text: m.text })) : [];
@@ -40,6 +41,7 @@ async function askStaff({ co, ch, scene, text, flag, history = true, phase }) {
     const weight = ['discount', 'overSpec', 'unreasonable'].includes(pr) ? (DATA.harness?.companies?.[co]?.patience?.[pr] ?? 1) : 0;
     const strikes = t.strikes + weight, stage = strikes >= 4 ? 3 : strikes >= 3 ? 2 : strikes >= 2 ? 1 : 0;
     const data = { ...r.data };
+    if (ask !== undefined) data.ask = ask; // 締めの前の「最後に何かございますか？」や、締めの返事（質問なし）はコードが決める（TESTPLAY T1）
     if (weight && stage > t.stage) { data.line = STAGE_LINE[stage](pr); data.say = data.line; data.ask = null; data.notes = []; }
     emit('ai', { role: 'rep', co, ch, phase: ph, data, call: r.call, flag, weight, stage });
     faceTalk();
@@ -59,7 +61,12 @@ let pendingRefuse = null;
 // 断られた：ナレーションの帯 → すでにある別の世界線へ移る。第一の分岐点の前なら、もう1社と進む
 async function refuseAndSwitch(co, kind) {
   await new Promise(r => setTimeout(r, 1400));
-  SWITCH.on = true; SWITCH.lines = ['この世界では、話はここで終わりました。', 'そのころ、別の世界では——']; SWITCH.i = 0; render();
+  // 移る先は、一つ前の分岐点で、選ばなかったほうを選んだ世界（人間の回答11/5）。メイン画面の世界と、下の一覧のその世界を入れ替える
+  // ただし断った会社と建てる世界には移らない（さかのぼって、会社が違う世界の、いちばん近い分岐点へ）
+  const sibAt = k => S.others.find(o => !o.unbuilt && o.bits.length === S.player.bits.length && o.bits.every((b, i) => i === k ? b !== S.player.bits[i] : b === S.player.bits[i]));
+  let k0 = (S.player?.bits.length || 0) - 1, sib = null;
+  for (let k = k0; k >= 0; k--) { const c = sibAt(k); if (c && c.company !== co) { k0 = k; sib = c; break; } }
+  SWITCH.on = true; SWITCH.lines = ['この世界では、話はここで終わりました。', sib ? `そのころ、${Y.FORKS[k0]}で「${sib.labels[k0]}」を選んだ世界では——` : 'そのころ、別の世界では——']; SWITCH.i = 0; render();
   await new Promise(r => setTimeout(r, 1900)); SWITCH.i = 1; render();
   await new Promise(r => setTimeout(r, 1900)); SWITCH.on = false;
   if (!S.player || !S.others.length) {
@@ -71,15 +78,20 @@ async function refuseAndSwitch(co, kind) {
     else render();
     return;
   }
-  const to = Y.switchTarget(S.player, S.others, kind);
+  const to = sib || Y.switchTarget(S.player, S.others, kind);
   if (!to) { emit('refused', { co, kind }); render(); return; }
+  // 空へ上がり、光る線を伝って、移る先の区画へ降りる（WORLD_SWITCH の5）
+  { let idx = parseInt(to.bits.join('').padEnd(4, '0'), 2); if (idx === 6) idx = 9; await new Promise(r => { Object.assign(PEEK, { on: true, mode: 'switch', from: 6, to: idx, no: null, t0: performance.now(), done: r }); render(); }); PEEK.on = false; }
   emit('jump', { to: to.bits.join(''), kind });
-  emit('say', { who: 'sys', ch: S.player.company, text: `${Y.COMPANIES[S.player.company].name}と建てている世界で、続きから` });
+  emit('say', { who: 'sys', ch: S.scene === 'electric' ? 'elec' : S.player.company, text: sib ? `${Y.FORKS[k0]}で「${sib.labels[k0]}」を選んでいた世界へ移った。この世界でも、家づくりはここまで並んで進んでいた（${Y.COMPANIES[S.player.company].name}と建てている）。もとの世界は、下の一覧に「家は建ちませんでした」として残る` : `${Y.COMPANIES[S.player.company].name}と建てている世界で、続きから` });
   if (S.scene === 'plan') { emit('planReset', {}); await planCall(''); } else render();
 }
 const requests = () => [S.survey ? `アンケート：${JSON.stringify(S.survey)}` : '', S.entry.text ? `最初に書いた思い：${S.entry.text}` : '', S.entryRead?.summary ? `入口で読み取った要望：${S.entryRead.summary}` : ''].filter(Boolean).join('。');
 
 export const ACTIONS = {
+  // 世界線を覗く：空へ上がって、選んだ区画へ降りる（操作の対象は自分の世界のまま）
+  peek(d) { const no = +d.no; if (!no || no === 7) return; Object.assign(PEEK, { on: true, mode: 'peek', from: 6, to: no - 1, no, t0: performance.now(), done: null }); render(); },
+  peekClose() { if (PEEK.mode === 'switch') return; PEEK.on = false; render(); },
   async start() {
     let playId = null;
     try { const r = await api('/api/play/start', {}); playId = r.playId; } catch (e) { toast(String(e.message)); return; }
@@ -104,11 +116,13 @@ export const ACTIONS = {
     emit('mem', { memory: m });
     for (const [co, who, text] of [['C', 'staff', 'ご記入ありがとうございます。外まわりまで目の届く、すっきりした箱の家で、冬でも暖かい暮らしがご希望なのですね。屋根の形はおふたりで好みが分かれているようなので、外観と一緒に考えましょう。'], ['C', 'yuu', 'リビングのエアコンは、見えないようにしたいです。'], ['C', 'staff', '承知しました。メモしておきますので、全体の計画の中で調整しましょう。'], ['A', 'staff', '本日はご来場ありがとうございます。いただいたアンケート、拝見しました。性能と資金計画の両方から、ご提案をお持ちします。']]) emit('say', who === 'staff' ? { who, co, ch: co, text } : { who, ch: co, text });
     emit('say', { who: 'sys', ch: 'C', text: '（ここまでの打ち合わせは、済ませてあります）' });
-    emit('pair', { pair: ['C', 'A'] }); emit('world', {}); goto('fork', 2);
+    emit('pair', { pair: ['C', 'A'] }); emit('world', {}); goto('proposal', 2);
+    startProposals(['C', 'A'], 'preset-v3');
   },
   howtoNext() { saveNames(); if (S.howto < 3) emit('howto', { page: S.howto + 1 }); else goto('family', 0); },
   howtoSkip() { saveNames(); goto('family', 0); },
   mode(d) { saveNames(); emit('mode', { mode: d.m }); },
+  role(d) { saveNames(d.r); },
   toLotNoEntry() { goto('lot', 0); },
   // 担当者の質問への選択肢（押しても、自由に書いてもよい）
   choose(d) { const el = document.getElementById('say'); if (el) el.value = d.t; ACTIONS.send(); },
@@ -135,7 +149,14 @@ export const ACTIONS = {
     // ことば・写真・URLから、要望の要素を読み取る（1回だけ）。画像そのものは記録に残さない
     try { const r = await api('/api/ai/entry', { text, photos: S.entry.photos }); if (!isRealFail(r.call)) emit('ai', { role: 'entry', data: r.data, call: r.call }); } catch { /* 読み取れなくても進める */ }
   },
-  toSources() { goto('sources', 0); },
+  // 情報収集 v3：分譲地から「家づくりをはじめる ▶」で、全画面のシートが開く
+  toSources() { emit('gStep', { step: 'flyer' }); goto('gather', 0); },
+  gRank(d) { emit('gRank', { co: d.co }); },
+  gSns() { if ((S.gather?.rank || []).length < 3) return; emit('gStep', { step: 'sns' }); },
+  gBack() { emit('gStep', { step: 'flyer' }); },
+  gTab(d) { emit('gTab', { i: +d.i }); },
+  gSave(d) { emit('gSave', { tab: S.gather?.tab || 0, i: +d.i }); },
+  gPick() { emit('gStep', { step: 'pick' }); const r = S.gather?.rank || []; if (S.visit.length === 0 && r.length >= 2) emit('visit', { cos: [r[0], r[1]] }); },
   source(d) { emit('source', { id: d.id }); },
   pickVisit(d) {
     const v = S.visit.includes(d.co) ? S.visit.filter(x => x !== d.co) : [...S.visit, d.co].slice(-2);
@@ -163,12 +184,24 @@ export const ACTIONS = {
     const who = getWho(), co = S.cur, mt = S.meet[co] || { rounds: 0, min: 15 };
     if (mt.ended) return;
     emit('say', { who, ch: co, text });
+    const base = S.visit[1] === co ? '2社目の初回打ち合わせ。アンケートの答えは1社目と同じ。' : '1社目の初回打ち合わせ。';
+    // 最後の確認への答え：受け止めて預かり、締めの一言で終える（担当者の発言が2つ続かないよう、締めはこの1回だけ）
+    if (mt.lastCall) {
+      emit('meet', { co, data: { min: Math.max(mt.min, 55) } });
+      await askStaff({ co, ch: co, phase: 'followUp', ask: null, text: `${nameOf(who)}：${text}`, scene: base + '時間の終わり。いまの発言は「最後に何かございますか？」への答え。受け止めて預かり、「次回、ラフなプランと概算をお持ちします」の趣旨の締めの一言で終える。質問はしない。' });
+      emit('meet', { co, data: { ended: true } });
+      return;
+    }
+    const final = mt.rounds + 1 >= 4 || mt.min + 10 >= 45;
     emit('meet', { co, data: { rounds: mt.rounds + 1, min: mt.min + 10 } });
-    await askStaff({ co, ch: co, phase: 'followUp', text: `${nameOf(who)}：${text}`, scene: S.visit[1] === co ? '2社目の初回打ち合わせ。アンケートの答えは1社目と同じ。' : '1社目の初回打ち合わせ。' });
+    await askStaff({ co, ch: co, phase: 'followUp', text: `${nameOf(who)}：${text}`, scene: base + (final ? 'そろそろ時間。この返事では質問をしない（最後の確認は別に入る）。' : ''), ...(final ? { ask: LAST_CALL } : {}) });
+    if (final) { emit('meet', { co, data: { lastCall: true } }); return; }
     await partnerAnswers(co);
-    maybeEndMeeting(co);
   },
-  endMeeting() { closeMeeting(S.cur); },
+  // 「今日はこのあたりで」：プレイヤーの言葉として出し、担当者が最後の確認をする
+  endMeeting() { const co = S.cur, mt = S.meet[co]; if (!mt || mt.ended || mt.lastCall) return; emit('say', { who: getWho(), ch: co, text: '今日はこのあたりで。' }); emit('say', { who: 'staff', co, ch: co, text: LAST_CALL }); emit('meet', { co, data: { lastCall: true, min: Math.max(mt.min, 50) } }); },
+  // 最後の確認に「とくにありません」
+  noMore() { const co = S.cur, mt = S.meet[co]; if (!mt || mt.ended) return; emit('say', { who: getWho(), ch: co, text: 'とくにありません。今日はありがとうございました。' }); emit('say', { who: 'staff', co, ch: co, text: 'こちらこそ、ありがとうございました。次回までに、ラフなプランと概算をお持ちします。' }); emit('meet', { co, data: { ended: true, min: Math.max(mt.min, 55) } }); },
   async retry() { if (lastSend) await askStaff(lastSend); },
   async toForgot() {
     goto('forgot', 1);
@@ -182,9 +215,10 @@ export const ACTIONS = {
     if (S.chat.filter(m => m.ch === 'partner' && m.forgot && !m.byPartner).length >= 2) { toast('送れるのは、2つまでです'); return; }
     clear('say');
     emit('say', { who: 'kazu', ch: 'partner', text, forgot: true });
-    emit('say', { who: 'partner', ch: 'partner', text: `それ、${Y.COMPANIES[S.visit[0]].staff}さんに送っておこうよ。` });
+    emit('say', { who: 'partner', ch: 'partner', text: `じゃあ、${Y.COMPANIES[S.visit[0]].staff}さんに送っておくね！` });
   },
   async sendForgot() {
+    return; // 帰り道の転送画面はなくした（TESTPLAY T2）。古い記録の再生のために名前だけ残す
     const co = S.visit[0];
     // 担当者に送るのは、プレイヤーが話したことだけ（パートナーの相づちは送らない。攻めのレビュー11/5）
     const lines = S.chat.filter(m => m.ch === 'partner' && m.forgot && !m.byPartner).slice(-2);
@@ -198,6 +232,8 @@ export const ACTIONS = {
   },
   // 2社目：同じアンケートの答えを使い回す（総括の切り口だけが会社で違う）
   async toSecond() {
+    // 帰り道で話した伝え忘れは、担当者の返事の画面を経ずに、裏で要望の記憶へ（TESTPLAY T2。出どころ：メッセージ）
+    if (S.scene === 'forgot') commitForgot();
     const co = S.visit[1];
     emit('cur', { co });
     if (S.memory) { const m = structuredClone(S.memory); deliver(m, co, DATA.harness.companies[co].oftenMiss, S.seed); emit('mem', { memory: m }); }
@@ -205,7 +241,8 @@ export const ACTIONS = {
     emit('say', { who: 'sys', ch: co, text: `${Y.COMPANIES[S.visit[0]].name}で書いたアンケートを、そのまま渡した` });
     await startMeeting(co);
   },
-  toCompare() { emit('tab', { co: S.visit[0] }); goto('compare', 2); },
+  // 流れ v3：2社目のあと、2社分の提案を同時に作り始め、「2週間後——提案の日」へ
+  toCompare() { if (!S.player) { emit('pair', { pair: S.visit }); emit('world', {}); } goto('proposal', 2); startProposals(S.visit.slice(0, 2)); },
   tab(d) { emit('tab', { co: d.co }); },
   async askCompare() {
     const text = val('say'); if (!text) return; clear('say');
@@ -214,9 +251,19 @@ export const ACTIONS = {
     const q = Y.quote(Y.baseSpec(Y.HOUSEHOLDS[S.household]), co, false);
     await askStaff({ co, ch: co, scene: `提案と見積の説明。見積の見せ方は「${q.label}」。別途の項目：${q.lines.filter(l => !l.shown).map(l => l.label).join('、') || 'なし'}。施主の質問に答える。`, text: `${nameOf(getWho())}：${text}` });
   },
-  toFork1() { emit('pair', { pair: S.visit }); emit('world', {}); goto('fork', 2); },
+  toFork1() { if (!S.player) { emit('pair', { pair: S.visit }); emit('world', {}); } goto('fork', 2); },
   // 札を押したら、パートナーが理由を聞く（任意）。理由は決断の記憶になり、レポートで使う
-  pickSide(d) { const dec = Y.decisions(S.pair)[S.forkNo]; const o = dec[d.side]; emit('pendingSide', { side: d.side, label: typeof o.label === 'function' ? o.label(S.player) : o.label }); prefetchPlan(d.side); },
+  // 札を押したら、そのまま決まる（理由は聞かない。FLOW_v3 の6）。選んだ札が残り、もう一方が下の列へ飛ぶ
+  // 札を押すと選んだ状態になり、右下の「この道で進む ▶」で決まる（UI_NAV_SYSTEM の3）。選び直してよい
+  pickSide(d) { if (S.pendingSide || S.autoFork) return; PICK.key = pickKey(S); PICK.side = PICK.side === d.side ? null : d.side; render(); },
+  async goSide() {
+    if (S.pendingSide || PICK.key !== pickKey(S) || !PICK.side) return;
+    const d = { side: PICK.side }; PICK.side = null;
+    const dec = Y.decisions(S.pair)[S.forkNo]; const o = dec[d.side];
+    emit('pendingSide', { side: d.side, label: typeof o.label === 'function' ? o.label(S.player) : o.label });
+    await new Promise(r => setTimeout(r, 900));
+    decide(d.side, '');
+  },
   unpick() { emit('pendingSide', { side: null }); },
   decideWhy() { const reason = val('say'); clear('say'); decide(S.pendingSide, reason); },
   decideNoWhy() { decide(S.pendingSide, ''); },
@@ -225,7 +272,9 @@ export const ACTIONS = {
     const dec = Y.decisions(S.pair)[S.forkNo];
     emit('say', { who: getWho(), ch: S.player.company, text });
     await withBusy(async () => {
-      const r = await api('/api/ai/trade', { world: S.player, pair: S.pair, decisionId: dec.id, text, wishes: S.wishes });
+      // 第一の分岐点では、札と同じ提案の案を基準に試算する（直前に見せた金額・屋根・会社とずれない）
+      const world = dec.id === 'D1' ? { ...S.player, proposalPlans: Object.fromEntries(Object.entries(S.proposals || {}).map(([c, x]) => [c, fitProposal({ ...x, co: c }).main])) } : S.player;
+      const r = await api('/api/ai/trade', { world, pair: S.pair, decisionId: dec.id, text, wishes: S.wishes });
       emit('ai', { role: 'trade', text, data: r, call: r.call });
       faceTalk();
     });
@@ -238,10 +287,21 @@ export const ACTIONS = {
   },
   cancelTrade() { emit('cancelTrade', {}); },
   // 契約のあと：第四の分岐点「どう仕上げる？」を、ほかと同じ2枚の札の儀式で（人間の回答11/5）。そのあと、選んだ仕上げの中で色を決める
-  toCoord() { goto('fork', 6); },
+  toCoord() { const dd = Y.scheduleOf(S.player), ok = Math.min((dd[4] || 0) + 7, Y.DEADLINE.loan); goto('coord', 6); emit('notice', { text: `請負契約を結びました（${dd[4] || ''}日目）。住宅ローンの本審査が承認されました（${ok}日目、ローン特約の期限の${Y.DEADLINE.loan}日目までに）。` }); },
   finish(d) { emit('finish', { finish: { [d.k]: d.k === 'color' ? +d.v : d.v, ...(d.k === 'wall' ? { color: 0 } : {}) } }); },
   // 色決め：第四の分岐点で選んだ仕上げの中で、外壁の色だけを選ぶ（金額は変わらない）
-  decideCoord() { goto('electric', 6); },
+  // 仕上げを確定したら、第四の分岐点の札が自動で出て、選んだ内容に合うほうが自動で選ばれる（押させない。FLOW_v3 の3.5）
+  async decideCoord() {
+    const f = { ...S.player.finish }, add = Y.finishCost(f), dec = Y.decisions(S.pair)[3], side = add ? 'b' : 'a';
+    const label = add ? `グレードアップして仕上げた（${[f.wall !== 'std' && '外壁', f.floor !== 'std' && '床', f.inner !== 'vinyl' && '内壁'].filter(Boolean).join('・')}）` : '標準の仕上げのまま';
+    emit('autoFork', { side }); goto('fork', 6);
+    await new Promise(r => setTimeout(r, 1300));
+    emit('pendingSide', { side, label });
+    await new Promise(r => setTimeout(r, 900));
+    emit('fork', { decisionId: dec.id, proposal: { side, finish: f, plain: true, label, spec: {}, borrow: 'cover' }, reason: '', priority: '' });
+    emit('autoFork', { side: null });
+    closeFork(dec, () => afterFork(dec));
+  },
   elecTag(d) { const o = Y.ELECTRIC.options.find(x => x.id === d.id); const el = document.getElementById('say'); if (el && o) el.value = `${o.label}をお願いしたい`; },
   async sendElectric() {
     const text = val('say'); if (!text) return; clear('say');
@@ -272,16 +332,20 @@ export const ACTIONS = {
     emit('electric', { ids, adj, told, policy: told.length ? pol.kind : null });
     // 根拠：いつ、どこで伝えていたか（アンケートに書いたのに／帰り道に送ったのに）
     const ev = told.map(id => memItems.find(x => Y.ELECTRIC_WORDS[id].test(x.text))).filter(Boolean);
-    if (ev.length) emit('say', { who: 'sys', ch: 'elec', text: `根拠：${ev.map(x => `「${x.text}」は${{ survey: 'アンケートに書いていた', message: '帰り道にメッセージで送っていた', followUp: '打ち合わせで話していた', partner: '打ち合わせで話していた', summary: '打ち合わせで話していた', show: '写真で見せていた' }[x.source] || '伝えていた'}`).join('／')}` });
+    if (ev.length) emit('say', { who: 'sys', ch: 'elec', text: `根拠：${ev.map(x => `「${x.text}」は${{ survey: 'アンケートに書いていた', message: '帰り道にメッセージで送っていた', followUp: '打ち合わせで話していた', partner: '打ち合わせで話していた', summary: '打ち合わせで話していた', show: '写真で見せていた' }[['survey', 'message', 'followUp', 'partner', 'summary', 'show'].find(k => (x.sources || []).includes(k)) || x.source] || '伝えていた'}`).join('／')}` });
     faceTalk();
   },
-  toBuild() { goto('build', 7); },
+  elecOk() { emit('elecOk', {}); },
+  toBuild() { if (!S.elecOk) return; goto('build', 7); },
   // S6：着工すると、上棟・施主検査・引渡しまで自動で進み、白いフェードで引渡し式へ
   async startBuild() {
     emit('buildAuto', {});
     { const dd = Y.scheduleOf(S.player); emit('notice', { text: `土地の決済と、つなぎ融資の実行（着工金の支払い）が済みました（${dd[6] || ''}日目）。着工します。` }); }
-    for (const st of [8, 9, 10]) { await new Promise(r => setTimeout(r, 1700)); goto('build', st); }
-    await new Promise(r => setTimeout(r, 1400));
+    // 早送りは動く絵（TESTPLAY T11）。工程の線と日付は、絵の場面に合わせて進む
+    BUILD.t0 = performance.now();
+    const at = sec => new Promise(r => setTimeout(r, Math.max(0, BUILD.t0 + sec * 1000 - performance.now())));
+    await at(5.2); goto('build', 8); await at(12.6); goto('build', 9); await at(16); goto('build', 10);
+    await at(17.4); BUILD.t0 = null;
     goto('handover', 10);
   },
   toHandover() { goto('handover', 10); },
@@ -309,7 +373,7 @@ export const ACTIONS = {
   toHonne() { goto('honne', 11); },
   async toReport() { goto('report', 11); if (!S.report || S.report.failed) await reportCall(); },
   retryReport() { S.report = null; render(); reportCall(); },
-  print() { try { localStorage.setItem('yuku-report', JSON.stringify({ report: S.report, player: S.player, others: S.others, heard: S.heard, missed: S.missed, chat: S.chat, staff16: S.staff16, savedId: S.savedId, names: S.names, mode: S.mode })); } catch { } open('/report.html', '_blank'); },
+  print() { try { localStorage.setItem('yuku-report', JSON.stringify({ report: S.report, player: S.player, others: S.others, heard: S.heard, missed: S.missed, chat: S.chat, staff16: S.staff16, savedId: S.savedId, names: S.names, mode: S.mode, memory: S.memory, wishes: S.wishes, survey: DATA.survey ? { questions: DATA.survey.questions, sections: DATA.survey.sections } : null, date: Date.now() })); } catch { } open('/report.html', '_blank'); },
   restart() { location.href = location.pathname; },
   openPop(d) { emit('pop', { pop: d.pop }); },
   closePop() { emit('pop', { pop: null }); },
@@ -353,9 +417,6 @@ export const ACTIONS = {
     if ((S.planRound || 0) >= 3) emit('say', { who: 'staff', co: S.player.company, ch: 'plan', text: 'いったん持ち帰って整理しましょう。いまの案で、設計を進めさせてください。' });
   },
   planConfirm() { if (!S.plan || busy.on) return; emit('planConfirm', {}); goto('fork', 3); },
-  tourNext() { tourNext(); render(); },
-  tourSkip() { tourSkip(); render(); },
-  help() { tourHelp(S); render(); },
 };
 
 function decide(side, reason) {
@@ -366,6 +427,30 @@ function decide(side, reason) {
   closeFork(dec, () => { afterFork(dec); partnerReacts(dec, reason); });
 }
 // 終わり：「第◯の分岐点：〇〇を選んだ」の帯を1.5秒出してから、通常の画面に戻る
+// 分岐点どうしの短いつなぎ（FLOW_v3 の3）
+function connector(text, then) { SWITCH.on = true; SWITCH.lines = [text]; SWITCH.i = 0; SWITCH.soft = true; render(); setTimeout(() => { SWITCH.on = false; SWITCH.soft = false; then(); }, 1500); }
+// 2社分の提案を同時に作る（設計担当。数字はエンジン）。続きから遊ぶ道は、取っておいた提案を使う（cache）
+// 2社の提案の屋根：1社目は1人目の好み、2社目は2人目の好み（同じなら、2社目は会社のふだんの形）。2社の家が同じ形にならないように（監査11/5）
+const ROOF_OF_SV = { flat: 'cube', gable: 'gable', hip: 'hip', mono: 'mane' };
+function roofHints(cos) {
+  const sv = S.memory?.survey?.roof || {}, a = ROOF_OF_SV[sv.p1], b = ROOF_OF_SV[sv.p2] || (S.partnerAns?.roof ? ROOF_OF_SV[S.partnerAns.roof[0]] : null);
+  const [c1, c2] = cos, out = {};
+  const hon = (co, n) => `${n}${co === 'A' ? '様' : 'さん'}`; // 敬称は会社の決まり（Aハウスは様）。「〇〇さんの好み」が読み違えられないよう、かぎかっこで
+  if (a) out[c1] = { roof: a, why: `「${hon(c1, NAMES.kazu)}」の好みに合わせて` };
+  else if (b) out[c1] = { roof: b, why: `「${hon(c1, NAMES.yuu)}」の好みに合わせて` };
+  const r1 = out[c1]?.roof || Y.COMPANIES[c1].roof;
+  if (c2) { if (a && b && b !== a) out[c2] = { roof: b, why: `「${hon(c2, NAMES.yuu)}」の好みに合わせて` }; else { const r = Y.COMPANIES[c2].roof !== r1 ? Y.COMPANIES[c2].roof : Y.COMPANIES[c2].altRoof; if (r && r !== r1) out[c2] = { roof: r, why: '弊社がふだんお勧めしている形で' }; } }
+  return out;
+}
+async function startProposals(cos, cache) {
+  await dataReady();
+  await Promise.all(cos.filter(co => !S.proposals[co]).map(async co => {
+    const w = Y.newWorld({ household: Y.HOUSEHOLDS[S.household] || Y.HOUSEHOLDS.t2, company: co });
+    const rh = roofHints(cos)[co] || {};
+    // 失敗したら、決まった型の案で必ず続ける（提案の日で止まらない）
+    try { const body = { ...planBody(w, '', null), roof: rh.roof, roofWhy: rh.why, cache: cache ? `${cache}-${co}` : undefined }; let r; try { r = await api('/api/ai/planner', body); } catch { r = null; } if (!r || !r.ok) r = await api('/api/ai/planner', { ...body, fallbackOnly: true }); if (r.ok) emit('proposal', { co, data: { intro: r.intro, main: r.main, mainM: r.mainM, options: r.options, altIndex: r.altIndex, fallback: !!r.fallback }, call: r.call }); } catch (e) { toast(String(e.message || e)); }
+  }));
+}
 function closeFork(dec, then) {
   FORK_DONE.on = true; FORK_DONE.text = `${Y.FORKS[dec.no]}：「${S.player.labels.at(-1)}」を選んだ`;
   render();
@@ -375,7 +460,7 @@ function closeFork(dec, then) {
 async function partnerReacts(dec, reason) {
   if (S.mode !== 'solo') return;
   const ch = S.player.company;
-  await partnerSays(ch, `分岐点「${dec.q}」で、夫が「${S.player.labels.at(-1)}」を選んだ。${reason ? '夫の理由：' + reason : '夫は理由を言わなかった'}。ひとことだけ、感想か心配を言う（反対しすぎない）。`, '');
+  await partnerSays(ch, `分岐点「${dec.q}」で、${NAMES.kazu}が「${S.player.labels.at(-1)}」を選んだ。${reason ? '理由：' + reason : '理由は言わなかった'}。ひとことだけ、感想か心配を言う（反対しすぎない）。`, '');
 }
 async function partnerSays(ch, scene, ask, forgot = false) {
   try {
@@ -398,17 +483,29 @@ async function reportCall() {
     emit('ai', { role: 'report', data: r.data, call: r.call });
   } catch (e) { S.report = { failed: true }; toast(String(e.message)); }
 }
+const fitProposal = p => fitProposalW(p, { household: S.household, wishes: S.wishes, co: p.co || S.player?.company });
 function afterFork(dec) {
-  if (dec.id === 'D1') { const dd = Y.scheduleOf(S.player); emit('say', { who: 'sys', ch: S.player.company, text: `${Y.COMPANIES[S.player.company].name}に決めて、土地の売買契約を結んだ（ローン特約の期限は${Y.DEADLINE.loan}日目）` }); goto('plan', 3); emit('notice', { text: `土地の売買契約を結びました（${dd[1] || ''}日目）。住宅ローンの本審査は、ローン特約の期限（${Y.DEADLINE.loan}日目）までに通す必要があります。` }); planCall(''); }
-  else if (dec.id === 'D2') goto('fork', 5);
-  else if (dec.id === 'D4') goto('coord', 6);
+  if (dec.id === 'D1') {
+    // 選んだ会社の案で、家の本体を確定する（第二の分岐点の2案は、その案と調整の案）。ほかの世界にも各社の案を当てる
+    const co = S.player.company, p = S.proposals[co], dd = Y.scheduleOf(S.player);
+    emit('say', { who: 'sys', ch: co, text: `${Y.COMPANIES[co].name}に決めて、土地の売買契約を結んだ（ローン特約の期限は${Y.DEADLINE.loan}日目）` });
+    if (p) { const q = fitProposal({ ...p, co }); if (q.main !== p.main) emit('say', { who: 'sys', ch: co, text: `敷地に建てられる大きさ（建蔽率）に収めるため、「${q.main.title || '調整の案'}」を本体の案にした` }); emit('planGot', { data: { ...q, view: null } }); emit('planConfirm', {}); }
+    emit('planOthers', { byCo: Object.fromEntries(Object.entries(S.proposals).map(([c, x0]) => { const x = fitProposal({ ...x0, co: c }); return [c, { main: x.main, alt: x.options?.[x.altIndex || 0]?.plan || null }]; })) });
+    connector(`${Math.max(1, (dd[2] || 0) - (dd[1] || 0))}日後——間取りの相談`, () => { goto('fork', 3); emit('notice', { text: `土地の売買契約を結びました（${dd[1] || ''}日目）。住宅ローンの本審査は、ローン特約の期限（${Y.DEADLINE.loan}日目）までに通す必要があります。` }); });
+  }
+  else if (dec.id === 'D2') { const d2 = Y.scheduleOf(S.player); connector(`${Math.max(1, (d2[4] || 0) - (d2[2] || 0))}日後——契約の前の、最終のお見積り`, () => goto('fork', 5)); }
+  else if (dec.id === 'D4') {
+    goto('electric', 6);
+    // 伝わらなかった要望に、プレイヤーが気づかなければ、そのまま進む（それも持ち帰ってほしい経験。人間の回答11/5）
+  }
   else if (dec.id === 'D3') {
     // 契約に入れてあるオプションは、その会社の担当者が聞き取れた（記録した）要望だけ
     const co = S.player.company;
     const inc = Y.electricOf(S.heard.filter(h => h.co === co).map(h => h.text).join(' ')).filter(id => !S.player.electric.includes(id));
     if (inc.length) emit('electric', { ids: inc, adj: [], contract: true });
     goto('contract', 5);
-    const dd = Y.scheduleOf(S.player); emit('notice', { text: `住宅ローンの本審査が承認されました（${dd[4] || ''}日目）。建物の請負契約に進みます。` });
+    // 本審査は、請負契約を結んでから（人間の回答13を受けた実務の順：請負契約 → 本審査の申し込み → 承認）
+    emit('notice', { text: `建物の請負契約です。契約を結んだら、その契約書で住宅ローンの本審査を申し込みます（ローン特約の期限は${Y.DEADLINE.loan}日目）。` });
   }
 }
 
@@ -443,15 +540,18 @@ async function pollPhone() {
   pollTimer = setTimeout(pollPhone, 3000);
 }
 
-function saveNames() {
-  const a = document.getElementById('nmA'), b = document.getElementById('nmB');
-  if (a || b) emit('names', { a: (a?.value || '').trim() || 'あなた', b: (b?.value || '').trim() || 'パートナー' });
+// 呼び名の初期値は、選んだ立場で「夫」「妻」（TESTPLAY T3）
+function saveNames(role) {
+  const a = document.getElementById('nmA'), b = document.getElementById('nmB'), r = role || S.names.role || 'h';
+  const da = r === 'w' ? '妻' : '夫', db = r === 'w' ? '夫' : '妻';
+  const va = (a?.value || '').trim(), vb = (b?.value || '').trim();
+  if (a || b || role) emit('names', { a: va && !['夫', '妻', 'あなた'].includes(va) ? va : da, b: vb && !['夫', '妻', 'パートナー'].includes(vb) ? vb : db, role: r });
 }
 // ひとりプレイ：担当者が妻に聞いたとき、パートナー（AI）が答え、担当者がそれを受ける（1往復だけ）
 async function partnerAnswers(co) {
   if (S.mode !== 'solo') return;
   const last = [...S.chat].reverse().find(m => m.ch === co && m.who === 'staff');
-  if (!last || !new RegExp(`奥様|奥さま|${NAMES.yuu}さん|おふたり|お二人`).test(last.text) || !/[？?]/.test(last.text)) return;
+  if (!last || !new RegExp(`${NAMES.yuu}(さん|様)|おふたり|お二人|パートナー`).test(last.text) || !/[？?]/.test(last.text)) return;
   await withBusy(async () => {
     const hist = S.chat.filter(m => m.ch === co && m.who !== 'sys').slice(-8).map(m => ({ who: m.who === 'staff' ? '担当者' : nameOf(m.who), text: m.text }));
     const r = await api('/api/ai/partner', { names: S.names, scene: '住宅会社の初回打ち合わせ。担当者に聞かれたことに、短く答える。', history: hist, ask: last.text });
@@ -482,13 +582,17 @@ async function startMeeting(co) {
   const cf = conflictsOf(S.memory);
   await askStaff({ co, ch: co, phase: 'summary', history: false, text: '（アンケートを書き終えて、担当者に渡した）', scene: `${S.visit[1] === co ? '2社目。1社目と同じアンケートの答えを受け取った。総括の切り口は、あなたの会社の個性で。' : '1社目。'}${cf.length ? `両立が難しそうな組み合わせのうち、言うのは一つだけ：${cf[0]}` : ''}` });
 }
-// 区切り：4往復か、残りが15分を切ったとき（2往復を終えていて担当者が区切ってよいと判断したときも）
-function maybeEndMeeting(co) {
-  const mt = S.meet[co]; if (!mt || mt.ended) return;
-  const last = [...S.chat].reverse().find(m => m.ch === co && m.who === 'staff');
-  if (mt.rounds >= 4 || mt.min >= 45) closeMeeting(co);
-  else if (mt.rounds >= 2 && last && /このあたりにしましょう/.test(last.text)) emit('meet', { co, data: { ended: true } });
+function commitForgot() {
+  const co = S.visit[0];
+  const lines = S.chat.filter(m => m.ch === 'partner' && m.forgot && !m.byPartner).slice(-2);
+  if (!lines.length || !S.memory) return;
+  const m = structuredClone(S.memory);
+  for (const l of lines) { m.messages.push({ to: co, text: l.text, day: 7 }); addItem(m, { text: l.text.slice(0, 30), who: 'p1', source: 'message', co }); }
+  emit('mem', { memory: m });
+  emit('say', { who: 'sys', ch: co, text: `帰り道に話した伝え忘れを、メッセージで送った：${lines.map(l => l.text).join('／')}` });
 }
+// 区切り（TESTPLAY T1）：4往復か残りが15分を切ったら、担当者は返事の最後に「最後に何かございますか？」と聞き、その答えを受けてから締める
+const LAST_CALL = 'すみません、そろそろお時間ですが、最後に何かございますか？';
 function closeMeeting(co) {
   if (S.meet[co]?.ended) return;
   emit('say', { who: 'staff', co, ch: co, text: '今日はこのあたりにしましょうか。次回までに、ラフなプランと概算をお持ちします。' });

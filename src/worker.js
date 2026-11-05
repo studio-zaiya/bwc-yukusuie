@@ -18,9 +18,9 @@ const ipOf = req => req.headers.get('cf-connecting-ip') || 'local';
 
 // ---- 回数制限（KV。無いときはメモリで数える）----
 const mem = new Map();
-async function bump(env, key, ttl = 172800) {
-  if (env.STORE) { const n = +(await env.STORE.get(key) || 0) + 1; await env.STORE.put(key, String(n), { expirationTtl: ttl }); return n; }
-  const n = (mem.get(key) || 0) + 1; mem.set(key, n); return n;
+async function bump(env, key, ttl = 172800, by = 1) {
+  if (env.STORE) { const n = +(await env.STORE.get(key) || 0) + by; await env.STORE.put(key, String(n), { expirationTtl: ttl }); return n; }
+  const n = (mem.get(key) || 0) + by; mem.set(key, n); return n;
 }
 // 費用の累計：計量器（Durable Object）で原子的に足す。はじめての日は、KVに残っていた値から引き継ぐ
 const meter = env => env.METER ? env.METER.get(env.METER.idFromName('global')) : null;
@@ -76,7 +76,7 @@ const PROPOSAL_SCHEMA = {
 const toolSchema = desc => ({ type: 'object', additionalProperties: false, required: ['proposal'], properties: { proposal: PROPOSAL_SCHEMA } });
 
 function tradeTools(world, d) {
-  const wrap = fn => input => { const { proposal } = Y.normalizeProposal(input.proposal); return fn(world, d, proposal); };
+  const wrap = fn => input => { const { proposal } = Y.normalizeProposal(input.proposal, { d1: d.id === 'D1' }); return fn(world, d, proposal); };
   return [
     { name: 'quote', description: '仮の見積。提案を当てたときの総額（土地＋建物）の差と、増える項目を返す', input_schema: toolSchema(), run: wrap(Y.TOOLS.quote) },
     { name: 'loan_check', description: '仮の借入。借入額、返済負担率、審査に通るか、月々の差を返す', input_schema: toolSchema(), run: wrap(Y.TOOLS.loanCheck) },
@@ -111,7 +111,11 @@ function fallbackProposal(text, d, world) {
   if (/テレビ|壁掛け/.test(t)) electric.push('tag_tv_wall');
   if (/LAN|有線/.test(t)) electric.push('tag_lan');
   const borrow = /借入|借り|ローン/.test(t) && !/増やさ|減ら/.test(t) ? 'cover' : 'keep';
-  const side = d.id === 'D3' ? (borrow === 'cover' ? 'b' : 'a') : (spec.roof === 'gable' || spec.kitchen ? 'b' : 'a');
+  // 第一の分岐点：文中の会社名で札を選ぶ（広さや屋根の形は、ここでは受けない）
+  const coName = c => Y.COMPANIES[c]?.name || '';
+  const d1side = d.id === 'D1' ? (t.includes(coName(d.b.patch?.company)) ? 'b' : t.includes(coName(d.a.patch?.company)) ? 'a' : null) : null;
+  if (d.id === 'D1') { delete spec.roof; }
+  const side = d1side || (d.id === 'D3' ? (borrow === 'cover' ? 'b' : 'a') : (spec.roof === 'gable' || spec.kitchen ? 'b' : 'a'));
   const words = [spec.window === 'triple' && '南の窓をトリプルに', spec.kitchen === true && '造作キッチン', spec.exterior === 'full' && '外構まで', spec.exterior === 'min' && '外構は最小限', spec.roof && spec.roof !== 'flat' && Y.ROOF_JA[spec.roof], electric.length && '電気の追加'].filter(Boolean);
   return { side, spec, borrow, electric, label: (words.join('・') || (typeof d[side].label === 'function' ? d[side].label(world) : d[side].label)) + (borrow === 'cover' ? '（借入で）' : '') };
 }
@@ -129,6 +133,7 @@ async function trade(env, body) {
     `- 総額（土地＋建物）：${m.total}万円、借入：${m.loan}万円、自己資金：${m.self}万円`,
     `- これまでの道：${(world.labels || []).join(' → ') || 'なし'}`,
     `- 施主の希望の条件：${(body.wishes || []).map(w => w.text).join('、') || 'なし'}（守れない案になるときは、message でやわらかく触れる）`,
+    d.id === 'D1' ? '# この分かれ道で受けること：どちらの会社と進めるか、と、その会社と進める条件（借入・設備・窓など）だけ。広さや屋根の形の変更は、次の分かれ道（なにを優先する？）で受けると message で伝える。spec に tsubo・roof・form を入れない' : '',
     `# 施主の言葉`, String(body.text || '').slice(0, 400),
   ].join('\n');
   const tools = tradeTools(world, d);
@@ -261,6 +266,18 @@ function planErr(p) {
   return null;
 }
 async function planner(env, body) {
+  // 続きから遊ぶ道（毎回同じ打ち合わせ済みの家族）の提案は、一度作ったものを取っておき、2回目からはすぐ返す（審査員を待たせない）
+  const ck = /^preset-[a-z0-9-]{1,20}-[ABCD]$/.test(body.cache || '') ? `plancache:${body.cache}` : null;
+  if (ck && env.STORE) { const hit = await env.STORE.get(ck); if (hit) { const j = JSON.parse(hit); return { ...j, call: { role: 'planner', cached: true, ms: 0 } }; } }
+  // 設計担当が時間内に返せないとき（502・時間切れ・例外）は、決まった型の案で必ず返す（提案の日で止まらない）
+  let out;
+  try { out = await Promise.race([body.fallbackOnly ? plannerRun(env, body) : plannerRun(env, body), new Promise((_, rej) => setTimeout(() => rej(new Error('planner timeout')), 60000))]); }
+  catch (e) { out = await plannerRun(env, { ...body, fallbackOnly: true }); out.call = { ...(out.call || {}), role: 'planner', fallback: true, error: String(e.message || e).slice(0, 80) }; }
+  if (ck && env.STORE && out.ok && !out.fallback) await env.STORE.put(ck, JSON.stringify({ ...out, call: undefined }), { expirationTtl: 60 * 60 * 24 * 30 });
+  return out;
+}
+const ROOFS = ['cube', 'hip', 'gable', 'mane', 'flat'];
+async function plannerRun(env, body) {
   const world = body.world;
   const co = Y.COMPANIES[world.company];
   const wishes = body.wishes || [];
@@ -271,16 +288,17 @@ async function planner(env, body) {
       intro: { type: 'string', description: '担当者から施主へのひとこと（二〜三文、算用数字なし）' }, main: PLAN, options: { type: 'array', items: OPTION }, altIndex: { type: 'integer', description: '第二の分岐点で「もう一つの案」として残す option の番号（0から）' } } } },
   ];
   const user = [
-    `# 会社：${co.name}（${co.kind}）。提案の外形：${Y.ROOF_JA[co.roof]}`,
+    `# 会社：${co.name}（${co.kind}）。会社がふだん勧める外形：${Y.ROOF_JA[co.roof]}`,
     `# 世帯：${Y.HOUSEHOLDS[world.household]?.story || ''}　広さの目安：${(Y.HOUSEHOLDS[world.household]?.area || []).join('〜')}坪`,
     `# 要望の台帳（ヒアリングで聞き取ったこと）\n${(body.heard || []).slice(0, 30).map(h => `- ${h.who}：${h.text}`).join('\n') || 'なし'}`,
     `# 希望の条件\n${wishes.map(w => `- ${w.text}`).join('\n') || 'なし'}`,
     body.current ? `# いまの骨組み\n${JSON.stringify(body.current)}` : '',
+    ROOFS.includes(body.roof) && !body.current ? `# この案の屋根：${body.roof}（${Y.ROOF_JA[body.roof]}）。${String(body.roofWhy || '').slice(0, 60)}。本案（main）はこの屋根で組む。会社のふだんの外形と違うなら、intro にその理由を一言` : '',
     body.text ? `# 施主の指示（これを反映して組み直す。調整の回数：${body.round || 1}回目）\n${String(body.text).slice(0, 300)}` : '',
   ].filter(Boolean).join('\n');
-  const { submit, call } = await callTools(env, {
+  const { submit, call } = body.fallbackOnly ? { submit: null, call: { role: 'planner', fallback: true } } : await callTools(env, {
     role: 'planner', user, tools, submitName: 'submit_plan', effort: 'low', maxTurns: 4,
-    validateSubmit: x => (!x.main || !Array.isArray(x.options) ? 'main と options（二つか三つ）を入れてください' : null) || planErr(x.main) || x.options.map(o => planErr(o?.plan)).find(Boolean) || (digitsIn(x, ['intro']).length || x.options.some(o => hasDigits(o.effect)) ? '文に算用数字' : null),
+    validateSubmit: x => (!x.main || !Array.isArray(x.options) ? 'main と options（二つか三つ）を入れてください' : null) || (ROOFS.includes(body.roof) && !body.current && x.main?.shape?.roof !== body.roof ? `本案の屋根は ${body.roof} にしてください` : null) || planErr(x.main) || x.options.map(o => planErr(o?.plan)).find(Boolean) || (digitsIn(x, ['intro']).length || x.options.some(o => hasDigits(o.effect)) ? '文に算用数字' : null),
   });
   if (!submit) {
     // 代わりの処理：決まった型の骨組みと調整の案（画面には「代わりの処理」と出す）
@@ -291,15 +309,22 @@ async function planner(env, body) {
     const said = (body.heard || []).map(h => h.text).join(' ');
     if (/仕事は個室/.test(said)) base.push(R('書斎', 4.5, 2));
     if (/客間|和室/.test(said)) base.push(R('和室', 4.5, 1));
-    const shape = { form: '部分二階', roof: co.roof };
-    const main = { title: 'いただいた要望をそのまま入れた案', rooms: base, shape };
+    // 屋根は、要望の台帳の好みを優先（FLOW_v3 の4）
+    // ふたりの好みが分かれていれば、会社によってどちらの好みから組むかが変わる（理由は intro に一言）。形は会社の性格から
+    const RP = [['屋根は四角い箱', 'cube'], ['屋根は三角屋根', 'gable'], ['屋根は寄棟', 'hip'], ['屋根は片流れ', 'mane']].filter(([k]) => said.includes(k)).map(([, v]) => v);
+    const second = ['A', 'D'].includes(world.company);
+    const pref = ROOFS.includes(body.roof) ? body.roof : RP.length ? RP[second && RP.length > 1 ? 1 : 0] : co.roof;
+    const form = ['A', 'B'].includes(world.company) ? '総二階' : '部分二階';
+    const shape = { form, roof: pref };
+    const main = { title: 'いただいた要望をそのまま入れた案', rooms: form === '総二階' ? base.map(r => r.name === 'ファミリー収納' ? { ...r, floor: 2 } : r) : base, shape };
+    const why = body.roofWhy ? `屋根は、${String(body.roofWhy).slice(0, 40)}、${Y.ROOF_JA[pref]}で描いてみました。` : RP.length > 1 ? `屋根は、おふたりの好みが分かれていたので、${Y.ROOF_JA[pref]}で描いてみました。` : '';
     const opts = [
-      { plan: { title: '総二階に寄せた案', rooms: base.map(r => r.name === 'ファミリー収納' ? { ...r, floor: 2 } : r), shape: { form: '総二階', roof: co.roof } }, effect: '一階と二階の形がそろい、基礎と屋根が減る' },
+      { plan: { title: '総二階に寄せた案', rooms: base.map(r => r.name === 'ファミリー収納' ? { ...r, floor: 2 } : r), shape: { form: '総二階', roof: pref } }, effect: '一階と二階の形がそろい、基礎と屋根が減る' },
       { plan: { title: '子ども部屋をひとまわり小さくした案', rooms: base.map(r => r.name === '子ども部屋' ? { ...r, size: 4.5 } : r), shape }, effect: '子ども部屋は寝て勉強する広さに絞り、過ごすのはリビングで' },
       { plan: { title: '収納を一か所にまとめた案', rooms: base.filter(r => r.name !== '玄関収納').map(r => r.name === 'ファミリー収納' ? { ...r, size: 4.5 } : r), shape }, effect: '玄関の収納とまとめ、家族で共有する' },
     ];
     const measure = p => Y.measurePlan(world, p, wishes);
-    return { ok: true, fallback: true, intro: 'いただいた要望を全部入れると、こうなります。調整の案もお持ちしました。', main, mainM: measure(main), options: opts.map(o => ({ ...o, m: measure(o.plan) })), altIndex: 1, call };
+    return { ok: true, fallback: true, intro: `いただいた要望を全部入れると、こうなります。${why}調整の案もお持ちしました。`, main, mainM: measure(main), options: opts.map(o => ({ ...o, m: measure(o.plan) })), altIndex: 1, call };
   }
   // 数字はエンジンが出す：各案の面積・総額・月々・希望との違い
   const measure = p => Y.measurePlan(world, p, wishes);
@@ -310,10 +335,13 @@ async function planner(env, body) {
 const PARTNER_SCHEMA = { type: 'object', additionalProperties: false, required: ['line', 'wishes'], properties: { line: { type: 'string' }, wishes: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['tag', 'text'], properties: { tag: { type: 'string' }, text: { type: 'string' } } } } } };
 async function partner(env, body) {
   const A = String(body.names?.a || 'あなた').slice(0, 8), B = String(body.names?.b || 'パートナー').slice(0, 8);
-  const system = PROMPTS.partner.body.split('{{A}}').join(A).split('{{B}}').join(B);
+  // パートナーの立場はプレイヤーが選ぶ（TESTPLAY T3）。口調は男女の2種類
+  const wife = (body.names?.role || 'h') === 'h';
+  const TONE = wife ? '口調：やわらかい話し言葉。口ぐせ：「それ、毎日のことだよね」「わたしは、こっちのほうが気になるかな」' : '口調：落ち着いた話し言葉（一人称は「ぼく」）。口ぐせ：「それ、毎日のことだよな」「ぼくは、こっちのほうが気になるかな」';
+  const system = PROMPTS.partner.body.split('{{A}}').join(A).split('{{B}}').join(B).split('{{PR}}').join(wife ? '妻' : '夫').split('{{ME}}').join(wife ? '夫' : '妻').split('{{TONE}}').join(TONE);
   const hist = (body.history || []).slice(-8).map(h => `${h.who}：${h.text}`).join('\n');
   const user = `# いまの場面\n${String(body.scene || '').slice(0, 300)}\n${hist ? `# これまでの会話\n${hist}\n` : ''}# あなたへの問いかけ\n${String(body.ask || '').slice(0, 300)}`;
-  const fb = { line: 'うーん、わたしは毎日の家事が回るほうが気になるかな。', wishes: [] };
+  const fb = { line: wife ? 'うーん、わたしは毎日の家事が回るほうが気になるかな。' : 'うーん、ぼくは毎日の家事が回るほうが気になるかな。', wishes: [] };
   return callJSON(env, { role: 'partner', system, user, schema: PARTNER_SCHEMA, fallback: fb, maxTokens: 800, validate: x => hasDigits(x.line) ? '数字' : null });
 }
 
@@ -340,7 +368,7 @@ const REPORT_SCHEMA = {
   },
 };
 // 呼び名・タイトル・教訓の候補（Claudeの生成が確認に通らないときの代わり。data/content/report_phrases.json）
-const tagsOf = w => [w.company, ...(w.labels || []).flatMap(l => [/勾配/.test(l) && 'gable', /箱型/.test(l) && 'box', /外構まで/.test(l) && 'full', /最小限/.test(l) && 'min', /トリプル/.test(l) && 'triple', /アップグレード/.test(l) && 'upgrade', /標準/.test(l) && 'standard']).filter(Boolean)];
+const tagsOf = w => [w.company, ...(w.labels || []).flatMap(l => [/勾配/.test(l) && 'gable', /箱型/.test(l) && 'box', /外構まで/.test(l) && 'full', /最小限/.test(l) && 'min', /トリプル/.test(l) && 'triple', /グレードアップ|アップグレード/.test(l) && 'upgrade', /標準/.test(l) && 'standard']).filter(Boolean)];
 function pickPhrase(list, tags, salt) { const sc = list.map((x, i) => [x.tags.filter(t => tags.includes(t)).length * 10 - ((i + salt) % 7), x]); sc.sort((a, b) => b[0] - a[0]); return sc[0][1].text.replace(/^教訓：/, ''); }
 const BANNED = PHRASES.checks.bannedWords;
 const hasBanned = t => BANNED.some(b => String(t).includes(b));
@@ -491,12 +519,18 @@ export default {
       const n = (await meterAdd(env, [`play:${playId}`], cost))[`play:${playId}`];
       if (path === '/api/ai/entry' && (body.text || '').match(/https?:\/\//) && (await meterAdd(env, [`url:${playId}`], 1))[`url:${playId}`] > 2) body.text = String(body.text).replace(/https?:\/\/\S+/g, '');
       let limited = n > +(env.CALLS_PER_PLAY || 90) ? 'このプレイの呼び出しの上限に達しました。代わりの文でお返しします。' : await guard(env, req, 'call');
-      if (!limited && cost > 1) for (let i = 1; i < cost; i++) await bump(env, `c:${ipOf(req)}:${today()}`);
+      // 15回呼ぶ役割は、まとめて1回の書き込みで数える（同じ欄を短い間に何度も書くと、KVの書き込みの制限で失敗していた）
+      if (!limited && cost > 1) await bump(env, `c:${ipOf(req)}:${today()}`, 172800, cost - 1);
       if (limited) env = { ...env, ANTHROPIC_API_KEY: '' }; // 上限を超えたら、Claudeを呼ばずに代わりの文で返す
-      const out = await fn(env, body);
-      const usd = (out.call?.costUsd || 0) + (out.calls || []).reduce((a, c) => a + (c.costUsd || 0), 0);
-      ctx.waitUntil(addUsd(env, usd));
-      return json({ ...out, limited: limited || undefined, costUsd: usd ? Math.round(usd * 1e5) / 1e5 : undefined });
+      const finish = out => { const usd = (out.call?.costUsd || 0) + (out.calls || []).reduce((a, c) => a + (c.costUsd || 0), 0); ctx.waitUntil(addUsd(env, usd)); return JSON.stringify({ ...out, limited: limited || undefined, costUsd: usd ? Math.round(usd * 1e5) / 1e5 : undefined }); };
+      // 時間のかかる役割（設計担当・レポート）は、待つ間も空白を少しずつ送り、途中の中継に接続を切られないようにする（JSONの前の空白は読むときに無視される）
+      if (path === '/api/ai/planner' || path === '/api/ai/report' || path === '/api/ai/staff16') {
+        const { readable, writable } = new TransformStream(); const w = writable.getWriter(), enc = new TextEncoder();
+        const beat = setInterval(() => { w.write(enc.encode(' ')).catch(() => {}); }, 8000);
+        ctx.waitUntil((async () => { let txt; try { txt = finish(await fn(env, body)); } catch (e) { txt = JSON.stringify({ ok: false, error: String(e.message || e) }); } clearInterval(beat); try { await w.write(enc.encode(txt)); await w.close(); } catch { } })());
+        return new Response(readable, { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
+      }
+      return new Response(finish(await fn(env, body)), { headers: { 'content-type': 'application/json; charset=utf-8' } });
     } catch (e) {
       return json({ error: String(e.message || e) }, 500);
     }

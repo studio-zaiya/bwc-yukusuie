@@ -23,7 +23,7 @@ canvas{display:block;width:1920px;height:1080px}
 const W=1920,H=1080,DUR=8;window.DUR=DUR;
 const C=document.getElementById('c'),X=C.getContext('2d');
 const qs=new URLSearchParams(location.search);
-const DEF={roof:'flat',wall:'#f6f3ec',roofCol:'#4A4F57',galva:false,accent:'wood',eave:'south',carport:2,tree:'sakura',season:'spring',timeOfDay:'day',family:4,staff:true,exterior:'gravel',cap:false};
+const DEF={roof:'flat',wall:'#f6f3ec',roofCol:'#4A4F57',galva:false,accent:'wood',eave:'south',carport:2,tree:'sakura',season:'spring',timeOfDay:'day',family:4,staff:true,exterior:'gravel',cap:false,form:'full'};
 let ST={};try{ST=JSON.parse(qs.get('st')||'{}')}catch(e){}
 const STATE={...DEF,...ST};
 const FONT='"Hiragino Maru Gothic ProN","Zen Maru Gothic","Hiragino Sans",sans-serif';
@@ -199,7 +199,9 @@ function house(t){
   const plaster=S.wall;
   const sideCol=shade(S.wall,.88);
   const shed=S.roof==='shed'||S.roof==='mane';
-  const topL=base-H2-(shed?70:0), topR=base-H2;            // 片流れは左が高い
+  // 家の形（その時点の3Dと同じ。人間の回答11/5）：部分二階は2階を右側だけに、左の1階に下屋。1階を引っ込めた箱は、2階の下に影
+  const part=S.form==='partial', over=S.form==='overhang', xL=part?Math.round(fx+fw*0.42):fx;
+  const topL0=base-H2-(shed?70:0), topR=base-H2, topL=part?topL0+(topR-topL0)*((xL-fx)/fw):topL0;            // 片流れは左が高い
   // 基礎
   piece(()=>X.rect(fx-6,base-26,fw+sideW+8,30),'#b9b4aa',{d:.6});
   // 東側面
@@ -207,20 +209,22 @@ function house(t){
   piece(()=>{X.moveTo(fx+fw,base-2);X.lineTo(fx+fw+sideW,base-2-20);X.lineTo(fx+fw+sideW,sB(1));X.lineTo(fx+fw,base-24);X.closePath()},'#a9a49a',{d:.5});
   paper(()=>{X.moveTo(fx+fw,base-24);X.lineTo(fx+fw,topR);X.lineTo(fx+fw+sideW,sT(1));X.lineTo(fx+fw+sideW,sB(1));X.closePath()},sideCol,1.1,{texA:.32});
   // 正面
-  paper(()=>{X.moveTo(fx,base-24);X.lineTo(fx,topL);X.lineTo(fx+fw,topR);X.lineTo(fx+fw,base-24);X.closePath()},plaster,1.3,{texA:.3});
+  paper(()=>{X.moveTo(fx,base-24);if(part){X.lineTo(fx,base-H1);X.lineTo(xL,base-H1)}X.lineTo(xL,topL);X.lineTo(fx+fw,topR);X.lineTo(fx+fw,base-24);X.closePath()},over?shade(plaster,.93):plaster,1.3,{texA:.3});
+  if(over){paper(()=>{X.moveTo(fx,base-H1+6);X.lineTo(fx,topL);X.lineTo(fx+fw,topR);X.lineTo(fx+fw,base-H1+6);X.closePath()},plaster,1.3,{texA:.3});
+    piece(()=>{X.moveTo(fx,base-H1+6);X.lineTo(fx+fw,base-H1+6);X.lineTo(fx+fw,base-H1+24);X.lineTo(fx,base-H1+24);X.closePath()},'rgba(30,43,54,.35)',{d:.2,rimW:0})}
   // ガルバの縦ハゼ
   if(S.galva){X.save();X.globalAlpha=.25;X.strokeStyle='#2f3840';X.lineWidth=2;
-    for(let x=fx+14;x<fx+fw;x+=22){X.beginPath();X.moveTo(x,base-26);X.lineTo(x,topL+(topR-topL)*((x-fx)/fw)+4);X.stroke()}
+    for(let x=fx+14;x<fx+fw;x+=22){X.beginPath();X.moveTo(x,base-26);X.lineTo(x,x<xL?base-H1+12:topL+(topR-topL)*((x-xL)/(fx+fw-xL))+4);X.stroke()}
     for(let k=1;k<7;k++){const q=k/7,x=fx+fw+q*sideW;X.beginPath();X.moveTo(x,sB(q)-2);X.lineTo(x,sT(q)+4);X.stroke()}X.restore()}
   // 屋根の縁
   if(shed){
     // 片流れ：軒先の鼻隠しを、正面と側面に（目線より上なので屋根面は見えない）
-    piece(()=>{X.moveTo(fx-22,topL-10);X.lineTo(fx+fw+16,topR-10);X.lineTo(fx+fw+16,topR+6);X.lineTo(fx-22,topL+6);X.closePath()},'#2f373e',{d:.6});
+    piece(()=>{X.moveTo(xL-22,topL-10);X.lineTo(fx+fw+16,topR-10);X.lineTo(fx+fw+16,topR+6);X.lineTo(xL-22,topL+6);X.closePath()},'#2f373e',{d:.6});
     piece(()=>{X.moveTo(fx+fw+16,topR-10);X.lineTo(fx+fw+sideW+12,sT(1)-6);X.lineTo(fx+fw+sideW+12,sT(1)+8);X.lineTo(fx+fw+16,topR+6);X.closePath()},'#262d33',{d:.5});
   }else if(S.roof==='gable'||S.roof==='hip'){
     // 切妻・寄棟：目の高さより上なので、手前の屋根面は軒から棟へ奥に倒れて見える（台形）。側面は妻の三角（切妻）か、隅棟の三角（寄棟）
     const rc=S.roofCol, rcs=shade(rc,.82), ridgeY=topR-118, hip=S.roof==='hip';
-    const eL=fx-30, eR=fx+fw+22, rL=hip?fx+110:fx-14, rR=fx+fw+sideW*.5-(hip?70:0);
+    const eL=xL-30, eR=fx+fw+22, rL=hip?xL+Math.min(110,(fx+fw-xL)*.3):xL-14, rR=fx+fw+sideW*.5-(hip?70:0);
     paper(()=>{X.moveTo(eL,topR+8);X.lineTo(eR,topR+8);X.lineTo(rR,ridgeY);X.lineTo(rL,ridgeY);X.closePath()},rc,1.4,{texA:.3});
     if(hip)paper(()=>{X.moveTo(eR,topR+8);X.lineTo(fx+fw+sideW+16,sT(1)+8);X.lineTo(rR,ridgeY);X.closePath()},rcs,1.3,{texA:.3});
     else{paper(()=>{X.moveTo(fx+fw,topR);X.lineTo(fx+fw+sideW,sT(1));X.lineTo(rR,ridgeY+6);X.closePath()},sideCol,1.2,{texA:.3});
@@ -229,13 +233,16 @@ function house(t){
     piece(()=>{X.moveTo(eL,topR+4);X.lineTo(eR,topR+4);X.lineTo(eR,topR+14);X.lineTo(eL,topR+14);X.closePath()},shade(rc,.7),{d:.4});
   }else{
     // 陸屋根・軒ゼロのキューブ：屋根版の小口と立ち上がり（中央には何も置かない）
-    piece(()=>{X.moveTo(fx-4,topR-14);X.lineTo(fx+fw+4,topR-14);X.lineTo(fx+fw+4,topR+2);X.lineTo(fx-4,topR+2);X.closePath()},shade(S.wall,.95),{d:.4});
+    piece(()=>{X.moveTo(xL-4,topR-14);X.lineTo(fx+fw+4,topR-14);X.lineTo(fx+fw+4,topR+2);X.lineTo(xL-4,topR+2);X.closePath()},shade(S.wall,.95),{d:.4});
     piece(()=>{X.moveTo(fx+fw+4,topR-14);X.lineTo(fx+fw+sideW+2,sT(1)-12);X.lineTo(fx+fw+sideW+2,sT(1)+2);X.lineTo(fx+fw+4,topR+2);X.closePath()},shade(S.wall,.85),{d:.3});
   }
+  // 部分二階：左の1階の上に下屋（片流れの屋根が、2階の壁から軒へ下がる）
+  if(part){const rc=S.roofCol||'#4A4F57';paper(()=>{X.moveTo(fx-28,base-H1+10);X.lineTo(xL+2,base-H1+10);X.lineTo(xL+2,base-H1-44);X.lineTo(fx-16,base-H1-8);X.closePath()},rc,1.3,{texA:.3});
+    piece(()=>{X.moveTo(fx-28,base-H1+4);X.lineTo(xL+2,base-H1+4);X.lineTo(xL+2,base-H1+14);X.lineTo(fx-28,base-H1+14);X.closePath()},shade(rc,.7),{d:.4})}
   // 木の縦張り（2階の右側と玄関まわり）
   if(S.accent==='wood'){
     const wx=fx+fw-170,wy=base-H2+(shed?0:0)+18;
-    const yTop=x=>topL+(topR-topL)*((x-fx)/fw)+16;
+    const yTop=x=>topL+(topR-topL)*((x-xL)/(fx+fw-xL))+16;
     paper(()=>{X.moveTo(wx,base-H1-6);X.lineTo(wx,yTop(wx));X.lineTo(fx+fw-16,yTop(fx+fw-16));X.lineTo(fx+fw-16,base-H1-6);X.closePath()},'#b07a4c',.45,{texA:.35});
     X.save();X.globalAlpha=.32;X.strokeStyle='#6e4626';X.lineWidth=2;for(let x=wx+10;x<fx+fw-16;x+=12){X.beginPath();X.moveTo(x,base-H1-8);X.lineTo(x,yTop(x)+2);X.stroke()}X.restore();
     // 玄関
@@ -259,8 +266,8 @@ function house(t){
     paper(()=>{X.moveTo(gx-26,gy-14);X.lineTo(gx+gw+26,gy-14);X.lineTo(gx+gw+40,gy-2);X.lineTo(gx-12,gy-2);X.closePath()},'#8d949a',.9);
   }
   // 2階の窓
-  const yTop2=x=>topL+(topR-topL)*((x-fx)/fw);
-  const w2x=fx+40,w2y=Math.max(yTop2(fx+40)+40,base-H2+48);
+  const yTop2=x=>topL+(topR-topL)*((x-xL)/(fx+fw-xL));
+  const w2x=part?xL+30:fx+40,w2y=Math.max(yTop2(w2x)+40,base-H2+48);
   paper(()=>X.rect(w2x,w2y,180,74),'#3e4a52',.3,{rimW:1.4});
   piece(()=>X.rect(w2x+6,w2y+6,168,62),'#cfe2ec',{d:.05,rimW:0});
   piece(()=>X.rect(w2x+87,w2y+4,6,66),'#3e4a52',{d:.05,rimW:0});

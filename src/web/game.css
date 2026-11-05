@@ -416,7 +416,7 @@ button.rt-card:active{transform:translateY(1px)}
 .rt-card .wbox li.wl{font-size:18px;line-height:1.55}
 .rt-in{display:flex;gap:12px;width:100%;margin-top:14px;align-items:center}.rt-in textarea{flex:1;font:19px/1.5 var(--f);padding:10px 14px;border:1.5px solid rgba(30,43,54,.35);border-radius:12px;background:#fff;resize:none}
 .rt-cards.picked{grid-template-columns:1fr 1fr;flex:0 0 auto}
-.rt-card.on{border:3px solid #C99A00;box-shadow:0 0 0 5px rgba(242,194,48,.35);cursor:default}
+.rt-card.on{border:3px solid var(--ink);box-shadow:0 0 0 5px rgba(30,43,54,.14);cursor:default}
 .rt-card.fly{animation:fly .9s ease-in forwards}
 @keyframes fly{to{transform:translate(-40%,620px) scale(.2);opacity:0}}
 .rt-why{width:100%;margin-top:14px}.rt-why .msg{max-width:none;font-size:22px}
@@ -511,7 +511,7 @@ button.th.th15{font:inherit;color:inherit;text-align:center;cursor:pointer;borde
 .sv-o:hover{border-color:var(--ink)}.sv-o.on{background:#FDE3CC;border-color:#E8701F;transform:translateY(2px)}.sv-o.nopref{color:var(--ink2);font-weight:500}
 .sv-nav{display:flex;justify-content:space-between;align-items:center;margin-top:auto}
 .sv-back{font:900 30px var(--fr);width:60px;height:60px;border-radius:50%;border:2px solid var(--ink);background:#fff;cursor:pointer}
-.sv-pa{font-size:18px;padding:10px 14px;border-radius:12px;background:#F4F1EA}.sv-pa.diff{outline:2px dashed #C99A00;outline-offset:-2px;background:#FFF8DD}.sv-pa b{margin-left:10px;color:#8C6A00}.sv-pa small{color:var(--ink2);margin-left:8px}
+.sv-pa{font-size:18px;padding:10px 14px;border-radius:12px;background:#F4F1EA}.sv-pa.diff{outline:2px solid var(--ink);outline-offset:-2px}.sv-pa b{margin-left:10px;color:var(--ink)}.sv-pa small{color:var(--ink2);margin-left:8px}
 .sv-board{background:#fff;border-radius:24px;padding:20px 22px;display:flex;flex-direction:column;min-height:0}.sv-board h4{font-family:var(--fr);font-size:22px;margin:0 0 8px}
 .sv-board .bst{flex:1;display:flex;flex-wrap:wrap;align-content:flex-start;gap:8px;overflow:hidden}
 .sticky.fly{animation:stfly .5s ease-out}@keyframes stfly{from{transform:translate(-160px,40px) rotate(-12deg);opacity:0}}
@@ -533,8 +533,163 @@ button.th.th15{font:inherit;color:inherit;text-align:center;cursor:pointer;borde
 .th.unbuilt{border:1.5px dashed #1E2B36;background:#F7F3EA}.th.unbuilt .tnm{color:var(--ink2)}
 .rt-card.off{opacity:.55;cursor:not-allowed;position:relative}.rt-off{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--fr);font-weight:900;font-size:26px;background:#fff;border:2px solid var(--ink);border-radius:999px;padding:10px 26px;white-space:nowrap}
 @media (prefers-reduced-motion:reduce){.wswitch,.wswitch p{animation:none}}
-.colors.big{display:flex;gap:14px;flex-wrap:wrap}.colors.big button{width:120px;height:90px;border-radius:14px;border:2px solid rgba(30,43,54,.25);position:relative}.colors.big button[aria-pressed=true]{outline:4px solid #F2C230;outline-offset:2px}.colors.big button span{position:absolute;left:0;right:0;bottom:-26px;font-size:16px;color:var(--ink)}
+.colors.big{display:flex;gap:14px;flex-wrap:wrap}.colors.big button{width:120px;height:90px;border-radius:14px;border:2px solid rgba(30,43,54,.25);position:relative}.colors.big button[aria-pressed=true]{outline:4px solid var(--ink);outline-offset:2px}.colors.big button span{position:absolute;left:0;right:0;bottom:-26px;font-size:16px;color:var(--ink)}
 /* 手続きの通知の箱（人間の回答11/5：独立の場面にせず、起きたときに知らせる） */
 .notice{position:absolute;right:30px;top:116px;width:500px;z-index:40;background:#fff;border:2px solid var(--ink);border-radius:14px;padding:12px 18px;font-size:17px;line-height:1.6;box-shadow:0 10px 24px rgba(30,43,54,.15);animation:rtin .4s ease-out,ntout .6s 6s forwards}@keyframes ntout{to{opacity:0;visibility:hidden}}.notice b{display:block;font-size:14px;color:var(--ink2)}
 .colors.big{margin-bottom:34px}
 .rt-common{font-size:18px;margin:-8px 0 12px;padding:6px 16px;border-radius:999px;background:#F4F1EA}.rt-catch{font-size:17px;color:var(--ink2)}
+.rt-pv{float:right;width:420px;margin:0 0 10px 20px;background:#fff;border:2px dashed #C99A00;border-radius:18px;padding:8px 14px}.rt-pv svg{width:100%;max-height:220px}.rt-pv ul{list-style:none;margin:0;padding:0;font-size:18px}.rt-pv li{color:#8C6A00;font-weight:700}
+.rt-tw{display:grid;grid-template-columns:400px 1fr;gap:22px;width:100%;flex:1;min-height:0;align-items:start}.rt-tw .rt-pv{float:none;width:auto;margin:0}.rt-tw .rt-trade{overflow:auto;max-height:100%}
+
+/* 流れ v3：提案の日 */
+.pp-band{position:absolute;left:50%;top:104px;transform:translateX(-50%);font-family:var(--fr);font-weight:900;font-size:22px;color:var(--ink2);animation:rtin .6s ease-out}
+.pp-wrap{position:absolute;left:30px;right:30px;top:140px;bottom:110px;display:grid;grid-template-columns:1fr 1fr;gap:26px}
+.pp-col{background:#fff;border-radius:22px;padding:18px 24px;display:flex;flex-direction:column;gap:10px;min-height:0;overflow:hidden}
+.pp-col.wait{align-items:center;justify-content:center;gap:16px;font-size:22px}.pp-col.wait .zone{width:80%}
+.pp-hd{display:flex;align-items:center;gap:12px;font-family:var(--fr);font-size:28px}.pp-hd span{margin-left:auto;font-family:var(--f);font-size:17px;color:var(--ink2)}
+.pp-intro{font-size:18px;line-height:1.6;margin:0;color:var(--ink)}
+.pp-mid{display:grid;grid-template-columns:1.35fr 1fr;gap:12px;align-items:center;min-height:0;flex:1}.pp-zone svg{width:100%;height:auto}.pp-house svg{width:100%;max-height:260px}
+.pp-facts{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px}.pp-facts div{display:flex;flex-direction:column}.pp-facts span{font-size:15px;color:var(--ink2)}.pp-facts b{font-family:var(--fr);font-size:24px}
+.pp-go{position:absolute;right:30px;bottom:24px;display:flex;align-items:center;gap:16px}
+.wswitch.soft{background:rgba(255,250,240,.75)}.wswitch.soft p{background:#fff;color:var(--ink);border:2px solid var(--ink)}
+.rt-card.auto{cursor:default}
+.pp-zone{flex:1;min-height:0;display:flex;align-items:center}.pp-zone svg{width:100%;max-height:100%}
+.pp-low{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:center}.pp-low .pp-house svg{width:100%;max-height:250px}
+
+/* ---- 進み方のUI（UI_NAV_SYSTEM）：上は工程の線を全幅に、お金の札は2段目に。下は進行の帯 ---- */
+#view{position:absolute;left:0;top:0;width:1920px;height:1080px}
+.hasnav #view{height:992px}
+#nav{position:absolute;left:0;right:0;bottom:0;height:88px;display:none;align-items:center;gap:22px;padding:0 30px;background:var(--paper);border-top:1.5px solid rgba(30,43,54,.16);z-index:60}
+.hasnav #nav{display:flex}
+.nav-todo{font-size:21px;font-weight:700;color:var(--ink)}
+.nav-back{font:700 18px var(--f);padding:10px 18px;border-radius:12px;border:1.5px solid rgba(30,43,54,.4);background:var(--paper);cursor:pointer}
+.nav-go{margin-left:auto;display:flex;align-items:center;gap:16px}
+.nav-why{font-size:16px;color:var(--ink2);max-width:520px;text-align:right}
+.go{font:900 23px var(--fr);min-height:60px;padding:0 36px;border-radius:18px;border:2px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer;white-space:nowrap}
+.go[disabled]{opacity:.32;cursor:default}
+.go.pulse{animation:gopulse .6s ease-out 1}
+@keyframes gopulse{0%{transform:scale(1)}40%{transform:scale(1.07)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.go.pulse{animation:none;background:#33424F}}
+/* 送るは入力欄の中のアイコン */
+.tw{position:relative;flex:1;min-width:0;display:flex}
+.tw textarea{flex:1;width:100%;padding-right:62px !important}
+.sendi{position:absolute;right:8px;bottom:8px;width:46px;height:46px;border-radius:12px;border:2px solid var(--ink);background:var(--paper);color:var(--ink);display:grid;place-items:center;cursor:pointer;padding:0}
+.sendi:hover{background:#F1EBDF}.sendi[disabled]{opacity:.35;cursor:default}
+/* 墨の塗りは「進む」だけ：ほかのボタンは紙の地に墨の線 */
+.btn{background:var(--paper);color:var(--ink)}
+/* 上の段：工程の線を全幅に（人間の指摘11/5：お金の札に止められて字が小さかった） */
+.top{right:32px;width:auto}
+.top .pbar{flex:1 1 auto}
+.pbar{font-size:16px !important}.pbar li{padding-top:22px}
+.moneyc{top:62px;width:auto;min-width:640px;padding:5px 16px;grid-template-columns:auto auto auto;align-items:center}
+.moneyc .hd{grid-column:auto;font-size:15px;padding-right:12px}
+.moneyc .c{display:grid;grid-template-columns:auto auto;column-gap:8px;align-items:baseline}
+.moneyc .c .k{grid-column:1/-1}
+.moneyc .v{font-size:26px;line-height:1.1}
+.moneyc .sub{font-size:13px !important}
+.clks{top:70px}
+.notice{top:132px}
+/* 帯の分だけ、下の段を上へ */
+.hasnav .galT{top:auto;bottom:206px}
+.hasnav .gal{top:auto;bottom:12px;height:186px}
+.hasnav .hero,.hasnav .right,.hasnav .ritual{height:640px}
+.hasnav .hero.tall,.hasnav .right.tall{height:856px}
+.hasnav .estate,.hasnav .card{height:860px}
+.hasnav .qpanel,.hasnav .ppanel{height:810px}
+.hasnav .w4,.hasnav .w4side{height:650px}
+.hasnav .w4 ~ .galT{top:auto;bottom:200px}.hasnav .w4 ~ .gal{top:auto;bottom:12px;height:180px}
+.hasnav .pp-wrap{bottom:16px}
+.hasnav .tpanel{bottom:16px}
+.rt-card.sel{outline:4px solid var(--ink);outline-offset:3px;transform:translateY(-4px)}
+.hasnav .w4{width:1156px;height:650px}.hasnav .w4 iframe{transform:scale(.60208)}
+.hasnav .w4side{left:1212px;width:678px;height:650px}
+.hasnav .ritual{height:660px}
+.hasnav .ritual ~ .galT,.hasnav .galT{bottom:186px}.hasnav .gal{height:168px}
+.ritual .rt-navs{position:absolute;right:34px;top:22px;margin:0}
+.pp-band{left:380px;top:70px;transform:none}
+.rolebox{display:flex;align-items:center;justify-content:center;gap:12px;font-size:20px;font-weight:700;margin:6px 0 14px}
+.mode.sm{flex-direction:row;padding:8px 26px;font-size:20px;font-weight:700}
+.mode[aria-pressed=true]{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink) inset}
+.youtag{animation:youbob 2.4s ease-in-out infinite}
+@keyframes youbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.youbeam{animation:beamfade 2.2s ease-out forwards;pointer-events:none}
+@keyframes beamfade{0%{opacity:0}20%{opacity:1}70%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.youtag{animation:none}.youbeam{animation:none;opacity:0}}
+body.rec .youtag{animation:none}
+.seasons .tree{left:18%}
+.sz-house{position:absolute;left:50%;bottom:120px;width:900px;transform:translateX(-50%)}.sz-house svg{width:100%;height:auto}
+.hero.yr1{background:linear-gradient(#CFE9F7,#F4FAFD 46%,#E4EFD6 46.1%)}
+.yr1-house{position:absolute;left:4%;right:4%;top:60px;bottom:60px;display:grid;place-items:center}.yr1-house svg{width:100%;height:100%}
+.hero.yr1 .pcap{position:absolute;left:28px;bottom:24px;top:auto;font-size:19px;font-weight:700;background:rgba(255,250,240,.92);border-radius:12px;padding:8px 16px}
+.hero.bld{background:linear-gradient(#DDF0FA,#F4FAFD 40%,#F3E7CF 40.1%)}
+#banim{position:absolute;left:20px;right:20px;top:70px;bottom:60px}#banim svg{width:100%;height:100%}
+.bcap{position:absolute;left:28px;bottom:20px;font-size:20px;font-weight:700;background:rgba(255,250,240,.92);border-radius:12px;padding:8px 16px}
+.pp-col.wait .zone{position:relative;left:auto;top:auto;right:auto;bottom:auto;width:80%;height:auto;inset:auto}.pp-col.wait .zone svg{position:static;width:100%;height:auto}
+/* お知らせはポップアップより下に（閉じるボタンを覆っていた） */
+.notice{z-index:25}
+.pop{z-index:50}
+abbr.term{text-decoration:underline dotted rgba(30,43,54,.55);text-underline-offset:4px;cursor:help}
+.log.coord{padding-bottom:40px !important}
+/* 金と金の破線は「2択の外の答え」の印だけに（守りの監査11/5）。選んだ状態・追加・選んでいる道は墨に */
+.th.new{box-shadow:0 0 0 3px rgba(30,43,54,.25)}
+.colors button[aria-pressed="true"],.vbtn[aria-pressed="true"],.cd.pl.on{box-shadow:0 0 0 3px rgba(30,43,54,.28)}
+.timeline.replay li.dv{border-left:4px solid var(--ink);background:#F4F1EA}
+.nearest{border:2px solid rgba(30,43,54,.45)}
+.treesvg .edge.sel{stroke:#1E2B36;stroke-width:6;filter:none}
+.leaf.on{border:2.5px solid var(--ink);box-shadow:0 0 0 4px rgba(30,43,54,.15)}
+.ei.add{background:#FFFFFF;outline:2px dashed var(--ink);outline-offset:-2px}
+.eanim.sway{animation:sway 2.6s ease-in-out infinite}
+@keyframes sway{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+@media (prefers-reduced-motion:reduce){.eanim{display:none}}
+body.rec .eanim{display:none}
+/* 世界線を覗くビュー */
+.peek{position:absolute;inset:0;z-index:45;background:var(--paper);overflow:hidden}
+.pk-stage{position:absolute;left:0;top:0;transform-origin:0 0}.pk-stage>svg{position:absolute;inset:0;width:100%;height:100%}
+.pk-lines{opacity:0;pointer-events:none;filter:drop-shadow(0 0 6px #fff)}
+.pk-sky{position:absolute;inset:0;background:linear-gradient(#BFE3F7,#EAF6FD 60%,#FFFAF0);opacity:0}
+.pk-panel{position:absolute;inset:30px 30px 30px 30px;display:grid;grid-template-columns:1fr 760px;gap:26px;opacity:0;transform:translateY(16px);transition:opacity .5s,transform .5s;pointer-events:none}
+.peek.land .pk-panel{opacity:1;transform:none;pointer-events:auto}
+.pk-house{background:linear-gradient(#DDF0FA,#F4FAFD 52%,#F3E7CF 52.1%);border-radius:22px;padding:30px}.pk-house svg{width:100%;height:100%}
+.pk-info{background:#fff;border:1.5px solid rgba(30,43,54,.2);border-radius:18px;padding:22px 28px;overflow:auto}
+.pk-k{font-size:16px;color:var(--ink2);font-weight:700}.pk-info h3{display:flex;align-items:center;gap:10px;font-family:var(--fr);font-size:28px;margin:8px 0 12px}
+.pk-tl{list-style:none;margin:0 0 12px}.pk-tl li{display:grid;grid-template-columns:150px 1fr auto;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:18px}.pk-tl li.dv{border-left:4px solid var(--ink);padding-left:10px}.pk-tl em{font-style:normal;color:var(--ink2);font-size:15px}
+.pk-ev ul{margin:6px 0 0 1.2em;font-size:18px;line-height:1.7}
+.peek.switch .pk-panel{display:none}
+.peek.land .pk-stage{opacity:.18;transition:opacity .5s}
+/* ロゴの「い」だけ橙（マークの07と同じ。人間の決定 N2-A） */
+.logo-i{color:#E8701F}
+/* ベータ版の札（N1） */
+.beta{margin-top:18px;font-size:16px;color:var(--ink2);display:flex;align-items:center;justify-content:center;gap:10px}
+.beta-tag{font-size:15px;font-weight:700;color:var(--ink);border:1.5px solid var(--ink);border-radius:8px;padding:2px 10px;background:var(--paper)}
+/* 情報収集 v3 */
+.gsheet{position:absolute;inset:0;background:var(--paper);padding:26px 40px 10px;animation:gup .3s ease-out}
+@keyframes gup{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.gsheet{animation:none}}
+.g-hd{display:flex;gap:12px}.g-step{font-size:16px;font-weight:700;color:var(--ink2);border:1.5px solid rgba(30,43,54,.3);border-radius:999px;padding:4px 14px}.g-step.on{color:var(--paper);background:var(--ink);border-color:var(--ink)}
+.g-h{font-family:var(--fr);font-weight:900;font-size:32px;margin:14px 0 4px}.g-sub{font-size:18px;color:var(--ink2);margin:0 0 14px}
+.g-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;height:calc(100% - 150px)}
+.g-card{position:relative;min-height:0}
+.g-hit{width:100%;height:100%;display:grid;grid-template-columns:300px 1fr;gap:18px;text-align:left;background:#fff;border:2px solid rgba(30,43,54,.2);border-radius:20px;padding:16px 20px;cursor:pointer;font-family:var(--f);color:var(--ink);position:relative}
+.g-card.on .g-hit{border:3px solid var(--ink);box-shadow:0 0 0 4px rgba(30,43,54,.12)}
+.g-img{min-height:0}.g-body{display:flex;flex-direction:column;gap:8px;min-width:0}
+.g-co{display:flex;align-items:center;gap:8px;font-size:22px}.g-co small{font-size:14px;color:var(--ink2);margin-left:auto}
+.g-catch{font-family:var(--fr);font-weight:900;font-size:28px;line-height:1.35}
+.g-icons{display:flex;flex-wrap:wrap;gap:8px}.g-icons span{display:flex;flex-direction:column;align-items:center;font-size:17px;font-weight:700;border:1.5px solid rgba(30,43,54,.3);border-radius:12px;padding:6px 10px;min-width:84px}.g-icons small{font-size:13px;color:var(--ink2);font-weight:400}
+.g-price{font-size:22px;font-weight:700}.g-price small{font-size:14px;color:var(--ink2);margin-left:6px}.g-small{font-size:14px;color:var(--ink2)}
+.g-rank{position:absolute;right:-10px;top:-12px;width:62px;height:62px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;font:900 32px var(--fr);animation:gpop .25s ease-out}
+@keyframes gpop{from{transform:scale(.6)}to{transform:scale(1)}}
+.g-more{position:absolute;right:18px;bottom:14px;font-size:16px;padding:6px 12px}
+.g-sns{display:grid;grid-template-columns:560px 1fr;gap:40px;height:calc(100% - 50px);align-items:start;margin-top:14px}
+.g-phone{background:#fff;border:3px solid var(--ink);border-radius:36px;padding:18px 16px;height:100%;display:flex;flex-direction:column;overflow:hidden}
+.g-bar{font-size:15px;color:var(--ink2);text-align:center;margin-bottom:8px}
+.g-tabs{display:flex;gap:6px;margin-bottom:10px}.g-tab{flex:1;font:700 16px var(--f);padding:8px 6px;border-radius:12px;border:1.5px solid rgba(30,43,54,.3);background:var(--paper);cursor:pointer;display:flex;flex-direction:column;align-items:center}.g-tab[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}.g-tab small{font-size:12px;font-weight:400;min-height:14px}
+.g-posts{overflow:auto;display:flex;flex-direction:column;gap:10px}
+.g-post{border:1.5px solid rgba(30,43,54,.15);border-radius:14px;padding:12px 14px}.g-post p{font-size:20px;line-height:1.55;margin:4px 0 8px}.g-by{font-size:14px;color:var(--ink2);font-weight:700}
+.g-save{display:inline-flex;align-items:center;gap:6px;font:700 16px var(--f);padding:6px 12px;border-radius:10px;border:1.5px solid var(--ink);background:var(--paper);cursor:pointer}.g-save.on{animation:gpop .25s ease-out}
+.g-cnt{list-style:none;font-size:22px;line-height:2}.g-cnt li.ok{font-weight:700}
+.g-pick{position:absolute;left:40px;right:40px;top:130px;bottom:16px;display:grid;grid-template-columns:1fr 620px;gap:30px}
+.g-vp{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}.g-vp .vbtn{font-size:24px;padding:22px}
+.g-memo{background:#fff;border:1.5px dashed rgba(30,43,54,.35);border-radius:18px;padding:18px 22px;overflow:auto;animation:rtin .4s ease-out}.g-memo h4{font-size:20px;margin:0}
+.g-memo-co{margin-top:12px}.g-memo-co b{font-size:18px;margin-left:6px}.g-memo-co .g-r{margin-left:10px;font-size:15px;border:1.5px solid var(--ink);border-radius:999px;padding:1px 10px}.g-memo-co p{font-size:16px;line-height:1.55;margin:4px 0 0 8px;color:var(--ink)}
+.ritual .rt-navs{left:40px;right:auto}
+.moneyc .v.counting{color:var(--ink)}

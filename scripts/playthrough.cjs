@@ -13,6 +13,7 @@ const OUT = process.env.OUT || 'out/shots';
   const errs = [];
   p.on('pageerror', e => errs.push('pageerror: ' + e.message));
   p.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
+  p.on('response', r => { if (r.status() >= 500) errs.push(`http ${r.status()} ${r.url().replace(/^.*\/api/, '/api')}`); });
   let n = 0;
   const shot = async name => { await p.waitForTimeout(300); await p.screenshot({ path: `${OUT}/${String(++n).padStart(2, '0')}-${name}.png` }); };
   const click = async sel => { await p.click(sel, { timeout: 8000 }); await p.waitForTimeout(250); };
@@ -24,14 +25,15 @@ const OUT = process.env.OUT || 'out/shots';
     for (let i = 0; i < 4; i++) await click('[data-act=howtoNext]');
     await shot('family'); await click('[data-act=toLotNoEntry]'); await shot('lot');
     await click('[data-act=toSources]');
-    await click('[data-act=openPop][data-pop=flyers]'); await shot('flyers'); await click('.close');
-    for (const id of ['showroom', 'friend', 'sns']) await click(`[data-act=source][data-id=${id}]`).catch(() => {});
-    await click('[data-act=pickVisit][data-co=C]'); await click('[data-act=pickVisit][data-co=A]'); await shot('sources');
+    // 情報収集 v3：チラシに1〜3位 → SNSで各タブ1つ保存 → 2社を選ぶ（1位・2位が最初から選ばれている）
+    await shot('gather-flyer0'); for (const co of ['C', 'A', 'D']) await click(`[data-act=gRank][data-co=${co}]`); await shot('gather-flyer');
+    await click('[data-act=gSns]'); for (const i of [0, 1, 2]) { await click(`[data-act=gTab][data-i="${i}"]`); await click(`[data-act=gSave][data-i="${i === 1 ? 1 : 3}"]`); } await shot('gather-sns');
+    await click('[data-act=gPick]'); await shot('sources'); console.log('選ばれた2社', await p.evaluate(() => YUKU.state.visit));
     await click('[data-act=toVisit]'); await p.waitForSelector('.sv-q'); await shot('survey');
     // 来場者アンケート：1画面1問。複数選べる問いは最初の札と「つぎへ」、ほかは最初の札
     for (let k = 0; k < 30 && await p.evaluate(() => YUKU.state.scene === 'survey'); k++) {
       if (k === 5) await shot('survey-mid');
-      if (await p.$('[data-act=svNext]')) { await p.click('.sv-o:not(.nopref)'); await p.click('[data-act=svNext]'); } else { await p.click('.sv-o:not(.nopref)'); await p.waitForTimeout(260); }
+      if (await p.$('[data-act=svNext]:not([disabled])')) { await p.click('.sv-o:not(.nopref)'); await p.click('[data-act=svNext]'); } else { await p.click('.sv-o:not(.nopref)'); await p.waitForTimeout(260); }
       await p.waitForTimeout(120);
     }
     await idle(); await p.waitForTimeout(300); await shot('summary');
@@ -39,39 +41,35 @@ const OUT = process.env.OUT || 'out/shots';
     await click('[data-act=openShow]'); await p.fill('#showText', 'リビングのエアコンは見えないようにしたい。こんな外観が好きです'); await shot('show'); await click('[data-act=doShow]'); await idle(); await p.waitForTimeout(400);
     await say('テレビは壁掛けにしたいです。断熱の等級はどれくらいですか？', 'send'); await shot('hearing');
     if (await p.$('[data-act=endMeeting]')) await click('[data-act=endMeeting]');
+    await shot('lastcall'); await say('畳コーナーは小上がりにしたいです。', 'send'); await shot('closed');
     await click('[data-act=toForgot]');
     await p.fill('#say', '寝室にもLANがほしいって言い忘れた'); await click('[data-act=sayPartner]'); await shot('forgot');
-    await click('[data-act=sendForgot]'); await idle(); await p.waitForTimeout(500); await shot('reply');
     await click('[data-act=toSecond]'); await idle(); await p.waitForTimeout(300); await shot('summary2');
     await say('予算はできるだけ抑えたいです。', 'send');
     await say('性能はどのくらいですか？', 'send'); await shot('hearing2');
     if (await p.$('[data-act=endMeeting]')) await click('[data-act=endMeeting]');
-    await click('[data-act=toCompare]'); await shot('compare');
-    await click('[data-act=tab][data-co=A]'); await shot('compare-A');
+    if (await p.$('[data-act=noMore]')) await click('[data-act=noMore]');
+    await click('[data-act=toCompare]'); await p.waitForTimeout(500); await shot('proposal-wait');
+    await p.waitForSelector('[data-act=toFork1]:not([disabled])', { timeout: 150000 }); await p.waitForTimeout(400); await shot('proposal');
     await click('[data-act=toFork1]'); await p.waitForTimeout(300); await shot('fork1-intro'); await p.waitForTimeout(1500); await shot('fork1');
-    await click('[data-act=pickSide][data-side=a]'); await shot('fork1-why');
-    await p.fill('#say', '話を最初にじっくり聞いてくれたから'); await click('[data-act=decideWhy]'); await p.waitForTimeout(600); await shot('fork1-done'); await p.waitForTimeout(1200);
-    await p.waitForSelector('[data-act=planConfirm]', { timeout: 120000 }); await p.waitForTimeout(500); await shot('plan');
-    await click('[data-act=planView][data-i="1"]'); await shot('plan-option');
-    await say('書斎はいらないです', 'planAsk'); await p.waitForSelector('[data-act=planConfirm]:not([disabled])', { timeout: 120000 }); await shot('plan-revised');
-    await click('[data-act=planView][data-i="1"]'); await click('[data-act=planConfirm]'); await p.waitForTimeout(1700); await shot('fork2');
-    await click('[data-act=openPop][data-pop=ai]'); await p.fill('#aiq', '階段はリビングの中と廊下、どっちがいい？'); await click('[data-act=askAI]'); await p.waitForTimeout(1500); await shot('myai'); await click('.close');
-    await p.waitForTimeout(1700); await click('[data-act=pickSide][data-side=b]'); await click('[data-act=decideNoWhy]'); await p.waitForTimeout(1900); await shot('fork3');
+    await click('[data-act=pickSide][data-side=a]'); await click('[data-act=goSide]'); await p.waitForTimeout(300); await shot('fork1-picked'); await p.waitForTimeout(1200); await shot('fork1-done'); await p.waitForTimeout(3300); await shot('fork2');
+    await click('[data-act=openPop][data-pop=ai]'); await p.fill('#aiq', '階段はリビングの中と廊下、どっちがいい？'); await click('[data-act=askAI]'); await idle(); await p.waitForTimeout(500); await shot('myai'); await click('.close');
+    await click('[data-act=pickSide][data-side=b]'); await click('[data-act=goSide]'); await p.waitForTimeout(4800); await shot('fork3');
     await say('借入を少し増やして、南の大きな窓だけトリプルガラスにしたい', 'freeAnswer'); await shot('fork3-trade');
-    await click('[data-act=approve]'); await p.waitForTimeout(1900); await shot('contract');
-    await click('[data-act=toCoord]'); await p.waitForTimeout(1600); await shot('fork4'); await click('[data-act=pickSide][data-side=b]'); await click('[data-act=decideNoWhy]'); await p.waitForTimeout(1900); await click('[data-act=finish][data-k=color][data-v="1"]'); await shot('coord');
-    await click('[data-act=decideCoord]');
+    if (await p.$('[data-act=approve]:not([disabled])')) await click('[data-act=approve]'); else { await click('[data-act=cancelTrade]'); await click('[data-act=pickSide][data-side=a]'); await click('[data-act=goSide]'); } await p.waitForTimeout(2900); await shot('contract');
+    await click('[data-act=toCoord]'); await click('[data-act=finish][data-k=wall][data-v=galva]'); await click('[data-act=finish][data-k=color][data-v="1"]'); await shot('coord');
+    await click('[data-act=decideCoord]'); await p.waitForTimeout(800); await shot('fork4-auto'); await p.waitForTimeout(3200);
     await say('リビングのエアコンは見えないようにしたいと伝えていたはずです', 'sendElectric'); await shot('electric');
-    await click('[data-act=toBuild]'); await shot('build'); await click('[data-act=startBuild]'); await p.waitForTimeout(2000); await shot('build2');
+    await click('[data-act=elecOk]'); await click('[data-act=toBuild]'); await shot('build'); await click('[data-act=startBuild]'); await p.waitForTimeout(2000); await shot('build2');
     await p.waitForFunction(() => YUKU.state.scene === 'handover', null, { timeout: 15000 }); await p.waitForTimeout(400); await shot('handover-fade'); await p.waitForTimeout(3800); await shot('handover');
     await click('[data-act=toSeasons]'); await p.waitForTimeout(2200); await shot('seasons'); await p.waitForFunction(() => YUKU.state.scene === 'result', null, { timeout: 8000 }); await shot('result');
     await click('[data-act=toYear]'); await p.waitForTimeout(1200); await shot('year');
-    await p.mouse.click(222, 560); await p.waitForTimeout(300); console.log('区画を押した →', await p.evaluate(() => YUKU.state.lot)); await shot('year-lot');
+    await p.mouse.click(222, 560); await p.waitForTimeout(300); console.log('区画を押した →', await p.evaluate(() => YUKU.state.lot)); await shot('year-lot'); if (await p.$('.card [data-act=peek]')) { await p.click('.card [data-act=peek]'); await p.waitForTimeout(1300); await shot('peek-fly'); await p.waitForTimeout(3000); await shot('peek'); await p.click('[data-act=peekClose]'); await p.waitForTimeout(300); }
     await click('[data-act=toTree]'); await p.waitForTimeout(2500); await shot('tree'); await click('[data-act=treeSel][data-no="13"]'); await p.waitForTimeout(1500); await shot('tree-13'); await click('[data-act=treeBack]');
     await click('[data-act=toReport]'); await p.waitForSelector('.rep', { timeout: 90000 }); await p.waitForTimeout(800); await shot('report');
     await click('[data-act=rtab][data-k=worlds]'); await shot('report-worlds'); await click('[data-act=rtab][data-k=honne]'); await shot('report-honne'); await click('[data-act=rtab][data-k=home]');
-    const [pr] = await Promise.all([ctx.waitForEvent('page'), p.click('[data-act=print]')]);
-    await pr.waitForFunction(() => window.READY, null, { timeout: 10000 }); await pr.pdf({ path: `${OUT}/report.pdf`, format: 'A4', printBackground: true });
+    const [pr] = await Promise.all([ctx.waitForEvent('page'), p.click('[data-act=print]')]); pr.on('pageerror', e => errs.push('report: ' + e.message));
+    console.log('saved-before-print', await p.evaluate(() => YUKU.state.savedId)); await pr.waitForFunction(() => window.READY, null, { timeout: 45000 }); await pr.pdf({ path: `${OUT}/report.pdf`, format: 'A4', printBackground: true }); { const pgs = await pr.$$('.page'); for (let i = 0; i < pgs.length; i++) await pgs[i].screenshot({ path: `${OUT}/report-p${i + 1}.png` }); }
     await pr.close(); await click('[data-act=toEnd]'); await shot('end');
     const st = await p.evaluate(() => ({ others: YUKU.state.others.length, labels: YUKU.state.player.labels, memory: YUKU.state.player.memory, adds: YUKU.state.player.adds, saved: YUKU.state.savedId, events: YUKU.LOG.length }));
     console.log(JSON.stringify(st));
