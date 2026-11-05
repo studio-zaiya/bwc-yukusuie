@@ -470,11 +470,18 @@ async function reportCall() {
 }
 // 要望を全部入れた案が建蔽率の上限を超えるときは、上限に収まる案を本体に、次に収まる案を第二の分岐点のもう一方にする（建てられない案で契約まで進めない）
 function fitProposal(p) {
-  if (!p?.main || p.mainM?.coverageOk !== false) return p;
+  if (!p?.main || (p.mainM?.coverageOk !== false && p.options?.[p.altIndex || 0]?.m?.coverageOk !== false)) return p;
   const cand = [{ plan: p.main, m: p.mainM }, ...(p.options || []).map(o => ({ ...o }))];
-  const fit = cand.filter(c => c.m?.coverageOk);
-  if (!fit.length) return p;
-  const A = fit[0], rest = cand.filter(c => c !== A), B = fit[1] || rest.find(c => c.plan === p.options?.[p.altIndex || 0]?.plan) || rest[0];
+  let fit = cand.filter(c => c.m?.coverageOk);
+  // 上限に収まる案が2つそろわないときは、超えている案を部屋ひとまわりずつ小さくして収める（水回り・階段は縮めない）。第二の分岐点の2枚とも建てられる案にする
+  if (fit.length < 2) {
+    const w = Y.newWorld({ household: Y.HOUSEHOLDS[S.household] || Y.HOUSEHOLDS.t2, company: p.co || S.player?.company || 'C' });
+    const shrink = (pl, title) => { let q = structuredClone(pl), m = Y.measurePlan(w, q, S.wishes); for (let k = 0; k < 12 && !m.coverageOk; k++) { q.rooms = q.rooms.map(r => /浴|洗面|脱衣|トイレ|階段|玄関/.test(r.name) ? r : { ...r, size: Math.max(2, Math.round(r.size * 0.92 * 2) / 2) }); m = Y.measurePlan(w, q, S.wishes); } return m.coverageOk ? { plan: { ...q, title }, m, effect: '敷地に建てられる大きさに収めるため、部屋をひとまわりずつ小さくした' } : null; };
+    const over = cand.filter(c => !c.m?.coverageOk).sort((x, y) => (x.m?.coverage || 1e9) - (y.m?.coverage || 1e9));
+    for (const c of over) { if (fit.length >= 2) break; const t = c.plan.title || '調整の案'; const f = shrink(c.plan, /収めた案$/.test(t) ? t : `${t.replace(/(にする|案)$/, '')}を、敷地に収めた案`); if (f) { fit.push(f); cand.push(f); } }
+    if (!fit.length) return p;
+  }
+  const A = fit[0], rest = cand.filter(c => c !== A), B = fit[1] || rest[0];
   const options = rest.map(c => c.plan === p.main ? { plan: c.plan, m: c.m, effect: '要望をすべて入れた案（建蔽率の上限を超える）' } : c);
   return { ...p, main: A.plan, mainM: A.m, options, altIndex: Math.max(0, rest.indexOf(B)) };
 }
@@ -483,8 +490,8 @@ function afterFork(dec) {
     // 選んだ会社の案で、家の本体を確定する（第二の分岐点の2案は、その案と調整の案）。ほかの世界にも各社の案を当てる
     const co = S.player.company, p = S.proposals[co], dd = Y.scheduleOf(S.player);
     emit('say', { who: 'sys', ch: co, text: `${Y.COMPANIES[co].name}に決めて、土地の売買契約を結んだ（ローン特約の期限は${Y.DEADLINE.loan}日目）` });
-    if (p) { const q = fitProposal(p); if (q !== p) emit('say', { who: 'sys', ch: co, text: `敷地に建てられる大きさ（建蔽率）に収めるため、「${q.main.title || '調整の案'}」を本体の案にした` }); emit('planGot', { data: { ...q, view: null } }); emit('planConfirm', {}); }
-    emit('planOthers', { byCo: Object.fromEntries(Object.entries(S.proposals).map(([c, x0]) => { const x = fitProposal(x0); return [c, { main: x.main, alt: x.options?.[x.altIndex || 0]?.plan || null }]; })) });
+    if (p) { const q = fitProposal({ ...p, co }); if (q.main !== p.main) emit('say', { who: 'sys', ch: co, text: `敷地に建てられる大きさ（建蔽率）に収めるため、「${q.main.title || '調整の案'}」を本体の案にした` }); emit('planGot', { data: { ...q, view: null } }); emit('planConfirm', {}); }
+    emit('planOthers', { byCo: Object.fromEntries(Object.entries(S.proposals).map(([c, x0]) => { const x = fitProposal({ ...x0, co: c }); return [c, { main: x.main, alt: x.options?.[x.altIndex || 0]?.plan || null }]; })) });
     connector(`${Math.max(1, (dd[2] || 0) - (dd[1] || 0))}日後——間取りの相談`, () => { goto('fork', 3); emit('notice', { text: `土地の売買契約を結びました（${dd[1] || ''}日目）。住宅ローンの本審査は、ローン特約の期限（${Y.DEADLINE.loan}日目）までに通す必要があります。` }); });
   }
   else if (dec.id === 'D2') { const d2 = Y.scheduleOf(S.player); connector(`${Math.max(1, (d2[4] || 0) - (d2[2] || 0))}日後——契約の前の、最終のお見積り`, () => goto('fork', 5)); }
