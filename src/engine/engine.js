@@ -246,14 +246,15 @@ export function scheduleOf(world) {
   const late = (world.delay || 0) + (world.bits && world.bits.length === 4 ? eventDelay(world) : 0);
   const coord = Math.round(80 * (0.9 + 0.1 * k)), start = Math.round(100 * (0.9 + 0.1 * k));
   const jotou = start + Math.round(35 * k), kensa = jotou + Math.round(110 * k), hand = kensa + 10;
-  const days = [...pre.map(d => Math.round(d * (d > 10 ? k : 1))), coord + late, start + late, jotou + late, kensa + late, hand + late, hand + late];
+  const lr = world.loanReview || 0;
+  const days = [...pre.map((d, i) => Math.round(d * (d > 10 ? k : 1)) + (i >= 4 ? lr : 0)), coord + late + lr, start + late + lr, jotou + late + lr, kensa + late + lr, hand + late + lr, hand + late + lr];
   days.push(days[10] + 365);
   return days;
 }
 export function schedule(world, addDays = 0) {
   // 契約の日は、画面の契約の場面と同じ値（scheduleOf の4番目。監査11/6：条件は82日目、画面は62日目と食い違っていた）
   const d = scheduleOf(world), contractDay = d[4] + (world.delay || 0) + addDays;
-  return { contractDay, loanLeft: DEADLINE.loan - contractDay - (world.loanReview || 0), handover: d[10] + addDays, ok: contractDay <= DEADLINE.loan };
+  return { contractDay, loanLeft: DEADLINE.loan - contractDay, handover: d[10] + addDays, ok: contractDay <= DEADLINE.loan };
 }
 
 // ---- 世界（1つの家づくりの状態）----
@@ -330,7 +331,10 @@ export function choose(w, d, opt, extra = {}) {
   // 仕様はプレイヤーの答えを読み替えたものだけを当てる（攻めのレビュー11/5：「トリプルに」と答えたのに外構が入っていた）
   if (typeof opt === 'object') applyPatch(w, { company: base.patch.company, plan: base.patch.plan });
   else applyPatch(w, base.patch);
+  const loan0 = money(w).loan;
   if (typeof opt === 'object') { applyPatch(w, { spec: opt.spec || {}, finish: opt.finish, electric: opt.electric }); if (!opt.plain) w.third = d.id; }
+  // 借入を増やした自由回答は、本審査のやり直しで契約が延びる（条件に出した日数と、契約の日をそろえる。守りの監査11/6）
+  if (typeof opt === 'object' && opt.borrow === 'cover' && d.id === 'D3' && money(w).loan > loan0 + 0.5) w.loanReview = 7;
   w.bits.push(side === 'a' ? 0 : 1);
   w.labels.push(typeof opt === 'object' ? (opt.label || baseLabel) : baseLabel);
   if (extra.reason || extra.priority) w.memory.push({ decisionId: d.id, action: w.labels.at(-1), reason: extra.reason || '', priority: extra.priority || '' });

@@ -6,10 +6,12 @@ let YOU = 7;
 // その世界で選んだ外壁の色（仕上げが決まる前は、番号ごとの見本の色）
 // 家の形：プランの形から（部分二階／1階が2階より小さい箱／総二階）。プランが決まる前は総二階
 export function formOf(w) {
-  const pl = w?.plan, form = pl?.shape?.form || '';
-  if (/部分二階/.test(form)) return 'partial';
+  // 形は名前の札ではなく、エンジンが出す1階と2階の床面積の比から（守りの監査11/6）
   const t = w?.spec?.tsubo, f1 = w?.spec?.floor1Tsubo;
-  if (pl && t && f1 && f1 < (t - f1) * 0.95) return 'overhang';
+  if (!w?.plan || !t || !f1) return 'full';
+  const f2 = t - f1;
+  if (f2 < f1 * 0.75) return 'partial';
+  if (f1 < f2 * 0.95) return 'overhang';
   return 'full';
 }
 export function finOf(w, fallbackNo) {

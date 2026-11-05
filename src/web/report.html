@@ -180,7 +180,7 @@ const near = [0, 1, 2, 3].map(i => ({ i, o: sib(i) })).filter(x => x.o).map(({ i
   const dc = o.choiceTotal - me.choiceTotal, de = o.increase - me.increase;
   const st = line(o.no);
   return `<div class="wc"><div><div class="no">${pad(DN(o))}</div>${th}</div><div><b>${Y.COMPANIES[o.company].name}　${esc(Y.worldName(o))}</b><div class="fk">${Y.FORKS[i]}だけ違う：「${esc(o.labels[i])}」</div>
-    <div class="dl">${o.unbuilt ? '家は建ちませんでした' : `総額 ${man(o.total)}万円（わが家と ${sgn(o.total - me.total)}万円：選択の差 ${sgn(dc)}／出来事の差 ${sgn(de)}）`}</div>
+    <div class="dl">${o.unbuilt ? '家は建ちませんでした' : `総額 ${man(o.total)}万円（わが家と ${sgn(Math.round(o.total) - Math.round(me.total))}万円：選択の差 ${sgn(dc)}／出来事の差 ${sgn(de)}）`}</div>
     <div class="dl">${esc(Y.worldLesson(o, me))}</div>${st && short40(st) ? `<div class="ln">${P.coTag(o.company, 12)} ${esc(short40(st))}</div>` : ''}</div></div>`;
 }).join('');
 P.setYou(7);

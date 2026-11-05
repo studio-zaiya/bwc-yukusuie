@@ -53,6 +53,9 @@ export function deliver(m, co, oftenMiss = [], seed = 7) {
   }
   // 聞き漏らしやすい話題の要望があれば、少なくとも1件は伝わらない（「全部伝えたのに」の場面が、どのプレイでも起きるように。監査11/6）
   if (!m.items.some(x => x.deliveredTo[co] === 'missed')) { const c = m.items.find(x => x.q && oftenMiss.includes(QCAT[x.q])); if (c) c.deliveredTo[co] = 'missed'; }
+  // 電気に関わる要望（テレビの壁掛け・LAN・エアコンを隠す等）は、会社によらず1件は伝わらない。電気の打ち合わせで「全部伝えたのに」が必ず起きる（一貫性の監査11/6）
+  const elec = m.items.filter(x => Y.electricOf(x.text).length);
+  if (elec.length && !elec.some(x => x.deliveredTo[co] === 'missed')) elec[0].deliveredTo[co] = 'missed';
   return m;
 }
 // 担当者の返事の notes（要望の言葉）を記憶に入れる

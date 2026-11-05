@@ -128,7 +128,7 @@ export function apply(s, e) {
       break;
     }
     case 'meet': s.meet[e.co] = { ...(s.meet[e.co] || {}), ...e.data }; break;
-    case 'electric': s.elecFresh = e.contract ? [] : e.ids; s.player.electric = [...new Set([...s.player.electric, ...e.ids])]; s.player.adds.push(...(e.adj || [])); if (e.contract) s.player.contractOpts = [...new Set([...(s.player.contractOpts || []), ...e.ids])]; break;
+    case 'electric': s.elecFresh = e.contract ? [] : e.ids; s.player.electric = [...new Set([...s.player.electric, ...e.ids])]; if (!e.contract) for (const o of s.others) o.electric = [...new Set([...(o.electric || []), ...e.ids])]; // 同じ家族の要望なので、ほかの世界にも同じ電気を足す（いちばん近い世界との差に、電気の追加が混ざらない。守りの監査11/6） s.player.adds.push(...(e.adj || [])); if (e.contract) s.player.contractOpts = [...new Set([...(s.player.contractOpts || []), ...e.ids])]; break;
     case 'pop': s.pop = e.pop; break;
     case 'lot': s.lot = e.no; break;
     case 'buildAuto': s.buildAuto = true; break;

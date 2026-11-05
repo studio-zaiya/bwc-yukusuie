@@ -171,7 +171,7 @@ function diffWords(me, w) {
   if (me.spec.exterior !== w.spec.exterior) out.push(w.spec.exterior === 'full' ? '入居の日から玄関前と庭が整う' : '玄関前は砂利のまま、外構はあとから');
   if (me.spec.window !== w.spec.window) out.push(w.spec.window === 'triple' ? '南の窓がトリプルガラス' : '南の窓は標準のガラス');
   if (me.spec.tsubo !== w.spec.tsubo) out.push(`広さは${w.spec.tsubo}坪になる`);
-  if (Y.finishCost(me.finish) !== Y.finishCost(w.finish)) out.push(Y.finishCost(w.finish) ? '外壁や床をグレードアップ' : '標準の仕上げ');
+  if (Y.finishCost(me.finish) !== Y.finishCost(w.finish)) out.push(Y.finishCost(w.finish) ? `${[w.finish.wall !== 'std' && '外壁', w.finish.floor !== 'std' && '床', w.finish.inner !== 'vinyl' && '内壁'].filter(Boolean).join('と') || '仕上げ'}をグレードアップ` : '標準の仕上げ');
   const wa = Y.warmth(me.spec, me.company), wb = Y.warmth(w.spec, w.company);
   if (wa.level !== wb.level) out.push(`冬の朝は「${wb.label}」`);
   return out;
@@ -439,7 +439,7 @@ export const SCENES = {
       const co = Y.COMPANIES[t.company];
       const life = (w.company !== t.company || d.id === 'D1' ? `${co.kind}。担当は${co.staffRole}の${co.staff}さん、${Y.ROOF_JA[t.spec.roof]}の家` : diffWords(w, t)[0]) || '暮らしは大きくは変わらない';
       const mon = Y.payment(m.loan, Y.RATE.variable);
-      return `<div class="rt-body"><div class="rt-name">${esc(d.id === 'D4' && s.autoFork === side && Y.finishCost(w.finish) ? autoLab(w.finish) : lab(d[side], w))}</div><div class="rt-num">総額 ${man(m.total)}<small>万円</small>${Math.round(df) && d.id !== 'D1' ? `<em>${df > 0 ? '+' : '−'}${man(Math.abs(df))}</em>` : ''}</div><div class="rt-sub">月々 約${mon.toFixed(1)}万円${Math.abs(mo) >= 0.05 ? `（${mo > 0 ? '+' : '−'}${Math.abs(mo).toFixed(1)}）` : ''}${lc.ok ? '' : '　審査の上限を超える'}${t.fitted && !w.fitted ? `　予算に合わせた案（${t.spec.tsubo}坪）` : ''}</div><div class="rt-life">${esc(life)}</div>${d.id === 'D1' && DATA.brochures?.brochures?.[t.company]?.catch ? `<div class="rt-catch">チラシの一行：「${esc(DATA.brochures.brochures[t.company].catch)}」</div>` : ''}<ul class="wbox">${wishLine(Y.checkWishes(t, s.wishes), { hideNg: !!commonNg })}</ul></div><div class="rt-house">${P.coTag(t.company, 26)}${P.bigHouse(t, d.id === 'D3' || d.id === 'D4' ? 4 : 3, d.id === 'D4' ? { fin: P.finOf(t) } : {})}</div>`; };
+      return `<div class="rt-body"><div class="rt-name">${esc(d.id === 'D4' && s.autoFork === side && Y.finishCost(w.finish) ? autoLab(w.finish) : lab(d[side], w))}</div><div class="rt-num">総額 ${man(m.total)}<small>万円</small>${Math.round(df) && d.id !== 'D1' ? `<em>${df > 0 ? '+' : '−'}${man(Math.abs(df))}</em>` : ''}</div><div class="rt-sub">月々 約${mon.toFixed(1)}万円${Math.abs(mo) >= 0.05 && d.id !== 'D1' ? `（${mo > 0 ? '+' : '−'}${Math.abs(mo).toFixed(1)}）` : ''}${lc.ok ? '' : '　審査の上限を超える'}${t.fitted && !w.fitted ? `　予算に合わせた案（${t.spec.tsubo}坪）` : ''}</div><div class="rt-life">${esc(life)}</div>${d.id === 'D1' && DATA.brochures?.brochures?.[t.company]?.catch ? `<div class="rt-catch">チラシの一行：「${esc(DATA.brochures.brochures[t.company].catch)}」</div>` : ''}<ul class="wbox">${wishLine(Y.checkWishes(t, s.wishes), { hideNg: !!commonNg })}</ul></div><div class="rt-house">${P.coTag(t.company, 26)}${P.bigHouse(t, d.id === 'D3' || d.id === 'D4' ? 4 : 3, d.id === 'D4' ? { fin: P.finOf(t) } : {})}</div>`; };
     const pend = s.pendingTrade, side = s.pendingSide;
     const intro = INTRO.has(`${s.playId}-${d.no}`) ? '' : 'intro';
     let body;
@@ -583,7 +583,7 @@ export const SCENES = {
       <dl><dt>冬の朝</dt><dd>${o.warmth.label}</dd><dt>家計のゆとり</dt><dd>${o.slack.label}</dd><dt>総額</dt><dd>${man(o.total)}万円</dd><dt>借入</dt><dd>${man(o.principal)}万円</dd></dl>
       <div style="font-size:16px;color:var(--ink2);font-weight:700">この1年の出来事</div><ul class="ev">${(o.events.length ? o.events : ['大きな出来事はなかった']).slice(0, 3).map(e => `<li>${esc(e)}</li>`).join('')}</ul>
       <div style="font-size:16px;color:var(--ink2);font-weight:700;margin-top:14px">一つだけ選択が違う世界</div>
-      <table class="cmp near4">${[0, 1, 2, 3].map(i => { const w = nearest(s, i); if (!w) return ''; const ow = Y.outcome(w); return `<tr><td>${Y.FORKS[i]}だけ逆</td><td>${esc(w.labels[i])}</td><td>${ow.total - o.total > 0 ? '+' : ''}${man(ow.total - o.total)}万円</td><td>${ow.warmth.label}</td></tr>`; }).join('')}</table>
+      <table class="cmp near4">${[0, 1, 2, 3].map(i => { const w = nearest(s, i); if (!w) return ''; const ow = Y.outcome(w); return `<tr><td>${Y.FORKS[i]}だけ逆</td><td>${esc(w.labels[i])}</td><td>${Math.round(ow.total) - Math.round(o.total) > 0 ? '+' : ''}${man(Math.round(ow.total) - Math.round(o.total))}万円</td><td>${ow.warmth.label}</td></tr>`; }).join('')}</table>
 </div>`;
   },
   year(s) {
@@ -673,7 +673,7 @@ export const SCENES = {
     const div = o.bits.findIndex((b, i) => b !== meO.bits[i]);
     const tl = o.labels.map((l, i) => `<li class="${i === div ? 'dv' : ''}"><b>${Y.FORKS[i]}</b><span>${esc(l)}</span><em>${at[i]}日目${i === div ? '　ここであなたと分かれた' : ''}</em></li>`).join('');
     const d = Math.round(o.total - meO.total);
-    return `<div class="treebg"></div><div class="treetop"><div class="h2" style="margin:0">世界樹</div><span class="note">枝先の家を押すと、その世界線を根からたどります。金色の道が選んでいる世界、橙の道があなたの世界です。</span></div>
+    return `<div class="treebg"></div><div class="treetop"><div class="h2" style="margin:0">世界樹</div><span class="note">枝先の家を押すと、その世界線を根からたどります。墨の太い道が選んでいる世界、橙の道があなたの世界です。</span></div>
       <svg class="treesvg ${s.treeSeen ? 'seen' : ''}" viewBox="0 0 1920 1080"><circle cx="${X(0)}" cy="540" r="10" class="node root"/><text x="${X(0)}" y="575" text-anchor="middle" class="elab">区画が当たった日</text>${edges}${hi}${labels}</svg>${leaves}
       <div class="tpanel"><div class="tp-h"><span class="no2">${pad(sel.n)}</span>${P.coTag(o.company, 24)}${sel.n === YOU ? '<span class="mk">あなたの世界</span>' : ''}</div><div class="h2" style="font-size:28px;margin:4px 0 6px">${esc(Y.worldName(o))}</div>
         <div class="tp-house">${P.bigHouse({ ...sel.w, no: sel.n }, 4, {})}</div>

@@ -415,10 +415,11 @@ const ROOF_OF_SV = { flat: 'cube', gable: 'gable', hip: 'hip', mono: 'mane' };
 function roofHints(cos) {
   const sv = S.memory?.survey?.roof || {}, a = ROOF_OF_SV[sv.p1], b = ROOF_OF_SV[sv.p2] || (S.partnerAns?.roof ? ROOF_OF_SV[S.partnerAns.roof[0]] : null);
   const [c1, c2] = cos, out = {};
-  if (a) out[c1] = { roof: a, why: `${NAMES.kazu}さんの好みに合わせて` };
-  else if (b) out[c1] = { roof: b, why: `${NAMES.yuu}さんの好みに合わせて` };
+  const hon = (co, n) => `${n}${co === 'A' ? '様' : 'さん'}`; // 敬称は会社の決まり（Aハウスは様）。「〇〇さんの好み」が読み違えられないよう、かぎかっこで
+  if (a) out[c1] = { roof: a, why: `「${hon(c1, NAMES.kazu)}」の好みに合わせて` };
+  else if (b) out[c1] = { roof: b, why: `「${hon(c1, NAMES.yuu)}」の好みに合わせて` };
   const r1 = out[c1]?.roof || Y.COMPANIES[c1].roof;
-  if (c2) { if (a && b && b !== a) out[c2] = { roof: b, why: `${NAMES.yuu}さんの好みに合わせて` }; else { const r = Y.COMPANIES[c2].roof !== r1 ? Y.COMPANIES[c2].roof : Y.COMPANIES[c2].altRoof; if (r && r !== r1) out[c2] = { roof: r, why: '弊社がふだんお勧めしている形で' }; } }
+  if (c2) { if (a && b && b !== a) out[c2] = { roof: b, why: `「${hon(c2, NAMES.yuu)}」の好みに合わせて` }; else { const r = Y.COMPANIES[c2].roof !== r1 ? Y.COMPANIES[c2].roof : Y.COMPANIES[c2].altRoof; if (r && r !== r1) out[c2] = { roof: r, why: '弊社がふだんお勧めしている形で' }; } }
   return out;
 }
 async function startProposals(cos, cache) {
@@ -479,10 +480,15 @@ function afterFork(dec) {
     emit('say', { who: 'sys', ch: co, text: `${Y.COMPANIES[co].name}に決めて、土地の売買契約を結んだ（ローン特約の期限は${Y.DEADLINE.loan}日目）` });
     if (p) { const q = fitProposal(p); if (q !== p) emit('say', { who: 'sys', ch: co, text: `敷地に建てられる大きさ（建蔽率）に収めるため、「${q.main.title || '調整の案'}」を本体の案にした` }); emit('planGot', { data: { ...q, view: null } }); emit('planConfirm', {}); }
     emit('planOthers', { byCo: Object.fromEntries(Object.entries(S.proposals).map(([c, x0]) => { const x = fitProposal(x0); return [c, { main: x.main, alt: x.options?.[x.altIndex || 0]?.plan || null }]; })) });
-    connector(`${Math.max(1, (dd[2] || 0) - (dd[1] || 0))}日後——予算の相談`, () => { goto('fork', 3); emit('notice', { text: `土地の売買契約を結びました（${dd[1] || ''}日目）。住宅ローンの本審査は、ローン特約の期限（${Y.DEADLINE.loan}日目）までに通す必要があります。` }); });
+    connector(`${Math.max(1, (dd[2] || 0) - (dd[1] || 0))}日後——間取りの相談`, () => { goto('fork', 3); emit('notice', { text: `土地の売買契約を結びました（${dd[1] || ''}日目）。住宅ローンの本審査は、ローン特約の期限（${Y.DEADLINE.loan}日目）までに通す必要があります。` }); });
   }
   else if (dec.id === 'D2') { const d2 = Y.scheduleOf(S.player); connector(`${Math.max(1, (d2[4] || 0) - (d2[2] || 0))}日後——契約の前の、最終のお見積り`, () => goto('fork', 5)); }
-  else if (dec.id === 'D4') goto('electric', 6);
+  else if (dec.id === 'D4') {
+    goto('electric', 6);
+    // 伝わらなかった電気の要望があれば、パートナーが気づくきっかけを置く（言うのは要望の言葉だけ。気づいて伝えるのはプレイヤー）
+    const co = S.player.company, miss = (S.memory?.items || []).find(x => x.deliveredTo?.[co] === 'missed' && Y.electricOf(x.text).length);
+    if (miss) emit('say', S.mode === 'solo' ? { who: 'partner', ch: 'elec', text: `あれ、「${miss.text}」って伝えてたよね。左の一覧にある？` } : { who: 'sys', ch: 'elec', text: 'アンケートや打ち合わせで伝えた要望と、左の一覧を見比べてみましょう' });
+  }
   else if (dec.id === 'D3') {
     // 契約に入れてあるオプションは、その会社の担当者が聞き取れた（記録した）要望だけ
     const co = S.player.company;
