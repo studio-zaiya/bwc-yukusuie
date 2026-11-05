@@ -254,6 +254,7 @@ const OFF=document.createElement('canvas');OFF.width=W;OFF.height=H;const OCTX=O
 const SEG=[ // [出力の長さ, 種類, 元の開始秒, 元の終わり秒]
  [4.5,'src',0,3.9],[5.0,'src',4.2,8.8],[4.5,'src',17.6,21.3],[10.5,'src',22.3,26.6],[5.5,'src',27.0,29.8],
  [6.0,'gap',31.0,32.8],[5.5,'whole',0,0],[5.0,'ai',32.8,32.8],[9.0,'src',33.0,42.0]];
+SEG.forEach((x,k)=>x.push(k));{const PART=new URLSearchParams(location.search).get('part');const PICK={a:[0,1,2,3,8],b:[4,5,6,7],v6a:[0,2,3,5,8],v6ai:[7]}[PART];const DURS={v6a:[6,4.5,9,6,8.5],v6ai:[5]}[PART];if(PICK){const all=SEG.slice();SEG.length=0;PICK.forEach((k,j)=>{const x=all[k].slice();if(DURS)x[0]=DURS[j];SEG.push(x)})}window.V6=(PART||'').startsWith('v6');}
 const XF=0.4;let T0=[];{let a=0;SEG.forEach(s=>{T0.push(a);a+=s[0]});window.DUR=a;}
 function paper(){ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(grain,0,0)}
 const HOUSES=(()=>{const r=rng(9),a=[];for(let i=0;i<26;i++)a.push([330+(i%9)*46+r()*10,770+Math.floor(i/9)*44+r()*8,.6+r()*.5]);return a})();
@@ -273,12 +274,12 @@ try{document.fonts.load('900 64px "Zen Maru Gothic"')}catch(e){}
 function drawLogo(k,cx,cy){if(k<=0)return;ctx.save();ctx.globalAlpha=k;const ms=96;ctx.font='900 64px "Hiragino Maru Gothic ProN","Zen Maru Gothic",sans-serif';const tw=ctx.measureText('ゆくすいえ').width+4*6;const w=ms+22+tw,x0=cx-w/2;
  if(LOGO_IMG.complete&&LOGO_IMG.naturalWidth)ctx.drawImage(LOGO_IMG,x0,cy-ms/2,ms,ms);
  ctx.textBaseline='middle';ctx.textAlign='left';let x=x0+ms+22;'ゆくすいえ'.split('').forEach((c,j)=>{ctx.fillStyle=j===3?'#E8701F':'#1E2B36';ctx.fillText(c,x,cy+4);x+=ctx.measureText(c).width+6});ctx.restore()}
-function segFrame(i,l){const s=SEG[i],kind=s[1];
+function segFrame(i,l){const s=SEG[i],kind=s[1],id=s[4];
  if(kind==='whole'){drawWhole(l);return}
  const src=Math.min(s[2]+l,s[3]);render(src);ctx.setTransform(1,0,0,1,0,0);
- if(i===0){txt(l,2.3,'でも、ほとんどの家族にとって、家づくりは一生に1回。',960,960,46,{align:'center',weight:700,color:C.or})}
- if(i===4){{const k=eo((l-1.0)/.6);if(k>0){const g=ctx.createLinearGradient(0,780,0,880);g.addColorStop(0,'rgba(250,246,236,0)');g.addColorStop(1,'rgba(250,246,236,'+(.94*k)+')');ctx.fillStyle=g;ctx.fillRect(0,780,W,100);ctx.fillStyle='rgba(250,246,236,'+(.94*k)+')';ctx.fillRect(0,880,W,200)}}txt(l,1.4,'家を建てる家族は、1年におよそ20万。',960,900,44,{align:'center',weight:700});txt(l,3.2,'もしかしたら、Claudeとなら、何かできるかもしれない。',960,985,46,{align:'center',weight:700,color:C.or})}
- if(i===1){txt(l,3.3,'要望は増えるのに、費用も上がる。',960,1000,52,{align:'center',weight:700})}
+ if(id===0){txt(l,2.3,'でも、ほとんどの家族にとって、家づくりは一生に1回。',960,940,46,{align:'center',weight:700,color:C.or});if(window.V6)txt(l,3.6,'土地と建物で、およそ5,007万円。',960,1020,46,{align:'center',weight:700})}
+ if(id===4){{const k=eo((l-1.0)/.6);if(k>0){const g=ctx.createLinearGradient(0,780,0,880);g.addColorStop(0,'rgba(250,246,236,0)');g.addColorStop(1,'rgba(250,246,236,'+(.94*k)+')');ctx.fillStyle=g;ctx.fillRect(0,780,W,100);ctx.fillStyle='rgba(250,246,236,'+(.94*k)+')';ctx.fillRect(0,880,W,200)}}txt(l,1.4,'家を建てる家族は、1年におよそ20万。',960,900,44,{align:'center',weight:700});txt(l,3.2,'もしかしたら、Claudeとなら、何かできるかもしれない。',960,985,46,{align:'center',weight:700,color:C.or})}
+ if(id===1){txt(l,3.3,'要望は増えるのに、費用も上がる。',960,1000,52,{align:'center',weight:700})}
  if(kind==='gap'){txt(l,.2,'問題は、情報の非対称性にあるのかもしれない。',960,150,54,{align:'center',weight:700,color:C.or});txt(l,1.6,'家づくりの「その後」は、作り手のもとに、たくさんある。',960,250,44,{align:'center',weight:700});
    HOUSES.forEach((h,k)=>{const a=eo((l-2.0-k*.05)/.3);if(a>0)miniHouse(h[0],h[1],h[2],C.te,a*.9)});
    {const a=eo((l-3.6)/.4);if(a>0)miniHouse(1385,820,1.3,C.mute,a,true)}
@@ -288,9 +289,9 @@ function segFrame(i,l){const s=SEG[i],kind=s[1];
    txt(l,.4,'効率へ',520,800,36,{align:'center',weight:700});txt(l,.4,'情報集めへ',1400,800,36,{align:'center',weight:700});
    drawLogo(eo((l-1.0)/.5),960,470);
    txt(l,2.2,'そのあいだをつなぐ、問いかけとしてのAIを、考えてみました。',960,930,48,{align:'center',weight:700})}
- if(i===8){const fin=eo((s[2]+l-40.0)/.8);
-   {const a=eo(l/.45)*(1-eo((l-1.7)/.4));if(a>0){ctx.save();ctx.globalAlpha=a;ctx.fillStyle=C.ink;ctx.font=`700 42px ${FONT}`;ctx.textAlign='center';ctx.fillText('もし、建てたあとの経験に、建てる前に触れられたら。',960,150);ctx.restore()}}
-   {const a=eo((l-2.0)/.45)*(1-fin);if(a>0){ctx.save();ctx.globalAlpha=a;ctx.fillStyle=C.ink;ctx.font=`700 42px ${FONT}`;ctx.textAlign='center';ctx.fillText('大きな分かれ道は、4つ。',960,150);ctx.restore()}}}
+ if(id===8){const fin=eo((s[2]+l-40.0)/.8);
+   {const a=eo(l/.45)*(1-eo((l-1.7)/.4));if(a>0){ctx.save();ctx.globalAlpha=a;ctx.fillStyle=C.ink;ctx.font=`700 42px ${FONT}`;ctx.textAlign='center';ctx.fillText(window.V6?'もしかしたら、Claudeとなら。':'もし、建てたあとの経験に、建てる前に触れられたら。',960,150);ctx.restore()}}
+   {const a=eo((l-2.0)/.45)*(1-fin);if(a>0){ctx.save();ctx.globalAlpha=a;ctx.fillStyle=C.ink;ctx.font=`700 42px ${FONT}`;ctx.textAlign='center';ctx.fillText(window.V6?'建てる前に、建てたあとの経験に触れられたら。':'大きな分かれ道は、4つ。',960,150);ctx.restore()}}}
 }
 function renderV(t){t=clamp(t,0,window.DUR);let i=0;while(i<SEG.length-1&&t>=T0[i+1])i++;const l=t-T0[i];
  if(i>0&&l<XF){const k=l/XF;segFrame(i-1,SEG[i-1][0]);OCTX.clearRect(0,0,W,H);OCTX.drawImage(cv,0,0);segFrame(i,l);ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1-k;ctx.drawImage(OFF,0,0);ctx.globalAlpha=1;return}

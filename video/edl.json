@@ -1,16 +1,54 @@
 {
- "note": "通しの場面表（STORY_v3・NARRATION_v2、11/6）。at は通しでの開始秒。full=true は全面、ほかは枠（0.86倍）。rec の in は録画の秒、speed は速さ、play はその秒まで再生して最後のコマで止める、zoom は寄り",
+ "note": "プレファイナル4（構成 v6、HANDOFF_VIDEO_PF4）。at は通しでの開始秒。full=true は全面、ほかは枠（0.82倍・上46px・左右173px）。rec の in は録画の秒、speed は速さ、play はその秒まで再生して最後のコマで止める、zoom は寄り。overlay は全編の重ね（章・字幕・一本の線）",
  "fps": 24,
  "xfade": 0.3,
  "end": 179.5,
- "subs": "subs_v6.srt",
+ "subs": "subs_v7.srt",
+ "frame": {
+  "x": 173,
+  "y": 46,
+  "w": 1574,
+  "h": 885
+ },
+ "overlay": {
+  "names": [
+   "なぜつくったか",
+   "遊んでみる",
+   "見えてきたもの",
+   "どう作ったか"
+  ],
+  "chapters": [
+   [
+    10,
+    44,
+    0
+   ],
+   [
+    44,
+    119,
+    1
+   ],
+   [
+    119,
+    135,
+    2
+   ],
+   [
+    135,
+    156,
+    3
+   ]
+  ],
+  "house": 175.4,
+  "dark": 175.0
+ },
  "segments": [
   {
    "id": "hero",
    "at": 0,
    "kind": "part",
    "file": "hero-title.mp4",
-   "label": "Hero（はじめてなのに、／はじめてじゃない／いえづくりを。）",
+   "label": "Hero",
    "crop": [
     1880,
     1058,
@@ -20,24 +58,24 @@
    "in": 0
   },
   {
-   "id": "intro",
-   "at": 8.5,
-   "kind": "part",
-   "file": "intro-v2.mp4",
-   "label": "前振り intro-v2（9場面。帯の字幕は名乗りだけ）"
-  },
-  {
-   "id": "logo",
-   "at": 64.0,
+   "id": "title",
+   "at": 7,
    "kind": "part",
    "file": "opening.mp4",
-   "label": "ロゴ（紺の地、白い文字）",
+   "label": "タイトル（ロゴ＋添え書き）",
    "full": true,
-   "in": 0.3
+   "in": 0.2
+  },
+  {
+   "id": "intro",
+   "at": 10,
+   "kind": "part",
+   "file": "intro-v6a.mp4",
+   "label": "前半「なぜつくったか」 intro-v6a"
   },
   {
    "id": "r00-gather",
-   "at": 66.5,
+   "at": 44,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：情報収集（チラシ → SNS → 2社を選ぶ）",
@@ -46,7 +84,7 @@
   },
   {
    "id": "r01-survey",
-   "at": 70.0,
+   "at": 49,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：来場者アンケート",
@@ -61,10 +99,10 @@
   },
   {
    "id": "r02-summary",
-   "at": 74.0,
+   "at": 53.5,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
-   "label": "実機：担当者の総括（Cデザイン）",
+   "label": "実機：担当者の総括",
    "in": 137.5,
    "zoom": {
     "at": 0.5,
@@ -75,7 +113,7 @@
   },
   {
    "id": "r02-partner",
-   "at": 78.5,
+   "at": 59,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：帰り道、パートナーに伝え忘れを話す",
@@ -89,7 +127,7 @@
   },
   {
    "id": "r03-proposal",
-   "at": 83.0,
+   "at": 63.5,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：提案の日（2社の案）",
@@ -104,15 +142,15 @@
   },
   {
    "id": "r04-fork1",
-   "at": 86.5,
+   "at": 67.5,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：第一の分岐点 → 選ばなかった道が世界線の列へ",
-   "in": 326.5
+   "in": 326.0
   },
   {
    "id": "r05-fork3",
-   "at": 94.5,
+   "at": 76,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：第三の分岐点（札と自分の言葉の欄）",
@@ -126,7 +164,7 @@
   },
   {
    "id": "r05-trade",
-   "at": 98.5,
+   "at": 80.5,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：自分の言葉 → 家の絵と◆・条件・いま起きたこと",
@@ -142,20 +180,20 @@
   },
   {
    "id": "r06-coord",
-   "at": 103.5,
+   "at": 86,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：色決め → 第四の分岐点（自動）→ 15へ",
    "in": 426.75,
-   "speed": 4.2
+   "speed": 2.8
   },
   {
    "id": "r07-electric",
-   "at": 107.5,
+   "at": 92,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：電気の打ち合わせ → 伝え漏れ（エアコンを隠したい）→ 追加",
-   "in": 450.25,
+   "in": 450.0,
    "zoom": {
     "at": 0.4,
     "scale": 1.25,
@@ -165,7 +203,7 @@
   },
   {
    "id": "r08-build",
-   "at": 114.0,
+   "at": 99.5,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：着工から引渡しまでの早送り",
@@ -174,7 +212,7 @@
   },
   {
    "id": "r08-handover",
-   "at": 118.5,
+   "at": 104,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：引渡し（切り絵）",
@@ -182,7 +220,7 @@
   },
   {
    "id": "r09-seasons",
-   "at": 122.0,
+   "at": 108,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：1年のうつろい → 1年後",
@@ -191,7 +229,7 @@
   },
   {
    "id": "r09-year",
-   "at": 125.0,
+   "at": 111,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：16区画 → 区画を押して比べる",
@@ -205,89 +243,89 @@
    }
   },
   {
-   "id": "bs-title",
-   "at": 132.5,
+   "id": "s67",
+   "at": 119,
    "kind": "part",
-   "file": "bs-title.mp4",
-   "label": "舞台裏1：わたしは、コードが読めません。（画面の字）"
+   "file": "v6-s67.mp4",
+   "label": "後半：16回建てて見えてくるもの（背景は実機の16区画）"
   },
   {
-   "id": "bs-desk",
-   "at": 134.5,
+   "id": "s8",
+   "at": 127,
    "kind": "part",
-   "file": "bs-desk.mp4",
-   "label": "舞台裏2：アプリとブラウザから（docs/devshots 11/3〜11/5 0:25）"
+   "file": "v6-s8.mp4",
+   "label": "後半：家を建てる家族は、1年におよそ20万（出典つき、白地図）"
   },
   {
-   "id": "bs-phone",
-   "at": 138.5,
+   "id": "v6ai",
+   "at": 130,
    "kind": "part",
-   "file": "bs-phone.mp4",
-   "label": "舞台裏3：毛布の中でスマホから（docs/devshots 1:19〜5:02）"
+   "file": "intro-v6ai.mp4",
+   "label": "後半：作り手のAIと施主のAIのあいだ（ロゴ）"
+  },
+  {
+   "id": "team",
+   "at": 135,
+   "kind": "part",
+   "file": "v6-team.mp4",
+   "label": "舞台裏：チームの図"
+  },
+  {
+   "id": "dev",
+   "at": 142,
+   "kind": "part",
+   "file": "v6-dev.mp4",
+   "label": "舞台裏：スマホのスクショ（docs/devshots）"
   },
   {
    "id": "arch",
-   "at": 142.5,
+   "at": 146,
    "kind": "part",
    "file": "arch.mp4",
-   "label": "舞台裏4：仕組みの図（言葉はClaude、数字はコード。+58万円）",
+   "label": "舞台裏：仕組みの図（役割の違う複数のClaude、+58万円）",
    "in": 6.6
   },
   {
-   "id": "bs-models",
-   "at": 146.0,
-   "kind": "part",
-   "file": "bs-models.mp4",
-   "label": "舞台裏5：モデルの使い分け（画面の字）"
-  },
-  {
    "id": "training",
-   "at": 148.2,
+   "at": 150.5,
    "kind": "part",
    "file": "training-log.mp4",
-   "label": "舞台裏6：担当者の研修（92から一桁、1.69→2.67）",
+   "label": "舞台裏：担当者の研修（92→一桁、1.69→2.67）",
    "in": 1.5
   },
   {
    "id": "skills",
-   "at": 151.5,
+   "at": 153.5,
    "kind": "part",
    "file": "skills.mp4",
-   "label": "舞台裏7：自作の点検スキル4つ",
+   "label": "舞台裏：自作の点検スキル4つ",
    "in": 1.0
   },
   {
-   "id": "bs-numbers",
-   "at": 154.0,
-   "kind": "part",
-   "file": "bs-numbers.mp4",
-   "label": "舞台裏8：コミットと文書の量（画面の字）"
-  },
-  {
    "id": "report",
-   "at": 156.5,
+   "at": 156,
    "kind": "part",
    "file": "report-pages.mp4",
-   "label": "レポート → 担当者に渡す1枚",
-   "shotAt": 5.0
+   "label": "締め：レポート → 担当者に渡す1枚",
+   "in": 4.4
   },
   {
    "id": "ending",
-   "at": 165.5,
+   "at": 160,
    "kind": "part",
    "file": "ending-EA-notitle.mp4",
-   "label": "締めの絵（題名なし）",
+   "label": "締め：締めの絵（浮かぶ分譲地）",
    "crop": [
     1880,
     1058,
     36,
     11
    ],
-   "in": 6.7
+   "in": 0.8
   },
   {
    "id": "closing",
-   "at": 171.5,
+   "at": 172,
    "kind": "part",
    "file": "closing.mp4",
    "label": "締めのロゴ（16回目の、マイホームへ。）",
@@ -295,10 +333,10 @@
   },
   {
    "id": "credits",
-   "at": 174.5,
+   "at": 175,
    "kind": "part",
    "file": "credits.mp4",
-   "label": "黒画面（スタッフ・注記）",
+   "label": "黒画面（スタッフ・注記）。一本の線が家になって終わる",
    "full": true
   }
  ]

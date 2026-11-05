@@ -39,6 +39,13 @@ const SCENES = [
   { id: 'bs-phone', url: P('backstage.html?t=0&kind=phone&dur=4.5'), dur: 4.5 },
   { id: 'bs-models', url: P('backstage.html?t=0&kind=models&dur=2.5'), dur: 2.5 },
   { id: 'bs-numbers', url: P('backstage.html?t=0&kind=numbers&dur=3'), dur: 3 },
+  // プレファイナル4（構成 v6）
+  { id: 'intro-v6a', url: P('intro-v2.html?t=0&part=v6a'), dur: 34 },
+  { id: 'intro-v6ai', url: P('intro-v2.html?t=0&part=v6ai'), dur: 5 },
+  { id: 'v6-s67', url: 'file://' + path.join(ROOT, 'video', 'v6', 's67.html'), dur: 8 },
+  { id: 'v6-s8', url: 'file://' + path.join(ROOT, 'video', 'v6', 's8.html?t=0&dur=3'), dur: 3 },
+  { id: 'v6-team', url: 'file://' + path.join(ROOT, 'video', 'v6', 'team.html'), dur: 7 },
+  { id: 'v6-dev', url: 'file://' + path.join(ROOT, 'video', 'v6', 'dev.html'), dur: 4 },
 ];
 
 (async () => {

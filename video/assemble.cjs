@@ -34,7 +34,7 @@ body{margin:0;width:1920px;height:1080px;background:#FFFAF0;color:#1E2B36;font-f
 <div class=k>通し ${fmt(s.at)} 〜 ${fmt(s.to)}</div><div class=d>${(s.to - s.at).toFixed(1)}秒</div>`;
 
 // 字幕：枠の下の紙の帯（上22px＋枠929px の下、高さ129px）の中央に、墨の字（座布団なし）。全編で同じ位置・同じ大きさ
-const FR = { x: 134, y: 22, w: 1652, h: 929 };
+const FR = EDL.frame || { x: 134, y: 22, w: 1652, h: 929 };
 const subHTML = text => `<!doctype html><meta charset=utf-8><style>${FONTS}
 html,body{margin:0;width:1920px;height:1080px;background:transparent}
 .s{position:absolute;left:0;right:0;top:${FR.y + FR.h}px;height:${1080 - FR.y - FR.h}px;display:flex;align-items:center;justify-content:center;color:#1E2B36;
@@ -113,10 +113,26 @@ const zoomExpr = z => { const T = `(in/${24})`; const ss = a => `(clip((${T}-${a
   const silent = ['-f', 'lavfi', '-t', String(END), '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000'];
   execFileSync('ffmpeg', [...args, ...silent, '-filter_complex', fc.join(';'), '-map', `[${prev}]`, '-map', `${nIn}:a`, ...enc, nosub], { stdio: 'inherit' });
   // 字幕を重ねる
+  if (EDL.overlay) {
+    // いつも出す重ね（章・字幕・一本の線）を1コマずつ描いて重ねる（video/scenes/overlay.html）
+    const ov = EDL.overlay, odir = path.join(PRE, '_overlay'); fs.rmSync(odir, { recursive: true, force: true }); fs.mkdirSync(odir, { recursive: true });
+    const TL = { DUR: END, SUBS: subs.map(c => [c.at, c.to, c.text]), CH: ov.chapters, CHN: ov.names, HOUSE: ov.house, DARK: ov.dark };
+    const b2 = await chromium.launch(); const op = await b2.newPage({ viewport: { width: 1920, height: 1080 } });
+    await op.addInitScript(tl => { window.TL = tl; }, TL);
+    await op.goto('file://' + path.join(__dirname, 'scenes', 'overlay.html'));
+    if (FONTS) await op.addStyleTag({ content: FONTS });
+    await op.evaluate(() => document.fonts.ready); await op.waitForFunction(() => window.READY);
+    const N = Math.round(END * FPS);
+    for (let k = 0; k < N; k++) { await op.evaluate(t => window.render(t), k / FPS); await op.screenshot({ path: path.join(odir, `o${String(k).padStart(5, '0')}.png`), omitBackground: true }); }
+    await b2.close();
+    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', nosub, '-framerate', String(FPS), '-i', path.join(odir, 'o%05d.png'), '-filter_complex', '[0:v][1:v]overlay=0:0:eof_action=pass[o]', '-map', '[o]', '-map', '0:a', ...enc.filter(x => x !== '-shortest'), withsub], { stdio: 'inherit' });
+    fs.rmSync(odir, { recursive: true, force: true });
+  } else {
   const a2 = ['-y', '-loglevel', 'error', '-i', nosub]; subPng.forEach(f => a2.push('-i', f));
   const f2 = []; let p2 = '0:v';
   subs.forEach((c, i) => { f2.push(`[${p2}][${i + 1}:v]overlay=0:0:enable='between(t,${c.at.toFixed(3)},${c.to.toFixed(3)})'[o${i}]`); p2 = 'o' + i; });
   execFileSync('ffmpeg', [...a2, '-filter_complex', f2.join(';'), '-map', `[${p2}]`, '-map', '0:a', ...enc.filter((x, i, a) => x !== '-shortest'), withsub], { stdio: 'inherit' });
+  }
   fs.writeFileSync(path.join(PRE, 'yukusuie_prefinal.srt'), subs.map((c, i) => `${i + 1}\n${srtT(c.at)} --> ${srtT(c.to)}\n${c.text}\n`).join('\n'));
 
   // 場面ごとのスクリーンショット（字幕つきの版から。字幕がある場面は字幕の出ている時刻を優先）

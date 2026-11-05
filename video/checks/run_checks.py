@@ -19,7 +19,7 @@ def srt(path):
 subs = srt(SRT)
 
 # 動画に出る場面の文字（場面表に入っている HTML）
-SCENE_FILES = {'opening': 'opening.html', 'hero': 'hero-title.html', 'intro': 'intro-v2.html', 'backstage': 'backstage.html', 'arch': 'arch.html', 'training-log': 'training-log.html',
+SCENE_FILES = {'opening': 'opening.html', 'hero': 'hero-title.html', 'intro': 'intro-v2.html', 'backstage': 'backstage.html', 'overlay': 'overlay.html', 'v6-team': '../v6/team.html', 'v6-dev': '../v6/dev.html', 'v6-s67': '../v6/s67.html', 'v6-s8': '../v6/s8.html', 'arch': 'arch.html', 'training-log': 'training-log.html',
                'skills': 'skills.html', 'report': 'report-pages.html', 'ending': 'ending-EA.html', 'credits': 'credits.html'}
 texts = {'字幕': '\n'.join(x for _, _, x in subs)}
 for k, f in SCENE_FILES.items():
@@ -77,8 +77,10 @@ C = [
  ('V15', '言葉はClaude、数字はコード。金額は、AIではなく計算で出します。', '△', '../rec_qmx2uy73/demo_slow.mp4', 411.5, '画面の数字はエンジンの値（TECH_FACTS 1-3：数字の枠と検査）。画面だけでは全数は確かめられない'),
  ('—', '提案の設計はOpus、担当者との会話はSonnet、研修のお客さま役はHaiku。', '○', None, None, 'docs/TECH_FACTS.md 1-1（planner＝上位、rep＝中位、研修のお客さま役＝軽量）'),
  ('V16', '担当者のClaudeを、Claudeが研修しました。決まり文句は、92から一桁に。', '○', None, None, 'docs/REP_TRAINING_LOG.md の推移の表：1回目 92／281 → 9回目 5／377。答えたか 1.69 → 2.67'),
- ('—', '点検は4つの自作スキルで。実装していないClaudeの目で、12回。', '未確認', None, None, '4つのスキルは .claude/skills/。「12回」は動画担当の環境からは数えられない（実装担当の記録で確かめる）'),
- ('—', '期間中のコミット101件。設計と指示の文書、約35万字。', '△', None, None, '動画担当が数えた値：main の 11/2 12:00 以降のコミット 102件、Markdown の文書（研修の生ログを除く）約46万字。数え方をそろえて提出直前に数え直す'),
+ ('—', '担当者はClaude同士で研修し、点検も自作のスキルで。', '○', None, None, '研修の生ログ docs/REP_TRAINING_LOG.md、スキルは .claude/skills/ の4つ'),
+ ('—', '動画も、編集ソフトは使わず、Claudeとコードで。', '○', None, None, 'video/assemble.cjs・render_scenes.cjs・scenes/*.html（Playwright と ffmpeg）。編集ソフトは使っていない'),
+ ('—', '家を建てる家族は、1年におよそ20万。', '○', None, None, 'v6/s8 の出典：国土交通省「建築着工統計調査」2025年 持家 20万1,285戸（claude.ai の確認による。動画担当は原典を見ていない）'),
+ ('—', 'チームの図の注記：設計と指示の文書 36本・約35万字', '△', None, None, '動画担当が数えた値：main の 11/2 12:00 以降のコミット 102件、Markdown の文書（研修の生ログを除く）約46万字。数え方をそろえて提出直前に数え直す'),
  ('V8', '住宅会社を訪ねる前に、ふたりで。／本物の打ち合わせに持っていく1枚', '○', 'report-p3.png', None, '印刷レポート3ページ目「切り取って、担当者に渡せます」'),
  ('V11', '16回目の、マイホームへ。（締めのロゴ）', '○', 'report-p4.png', None, '印刷レポートの最後にキャッチ'),
  ('V3', '前振り：土地と建物で、およそ5,007万円。年収の7.5年分。', '△', '../rec_qmx2uy73/demo_slow.mp4', 456.5, '実機の総額は5,533万円（同じ水準だが、希望の4,500万円より+1,033万円）'),
