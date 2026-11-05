@@ -878,7 +878,7 @@ export function paperState(s, o = {}) {
   const col = (wall.colors[f.color || 0] || wall.colors[0])[1];
   const roof = { flat: 'flat', cube: 'flat', gable: 'gable', hip: 'hip', mane: 'mane' }[w.spec.roof] || 'flat';
   return { roof, wall: col, roofCol: f.wall === 'galva' ? col : '#4A4F57', galva: f.wall === 'galva', eave: w.spec.roof === 'cube' ? 'none' : 'south', carport: w.spec.carport === false || s.memory?.limits?.carport === false ? 0 : Math.min(2, s.memory?.limits?.parking || 2), // アンケートの台数から
-    exterior: { full: 'lawn', min: 'gravel', none: 'none' }[w.spec.exterior] || 'gravel', family: 4, staff: o.staff !== false, season: o.season || 'spring', timeOfDay: o.timeOfDay || 'day', cap: false };
+    exterior: { full: 'lawn', min: 'gravel', none: 'none' }[w.spec.exterior] || 'gravel', form: P.formOf(w), family: 4, staff: o.staff !== false, season: o.season || 'spring', timeOfDay: o.timeOfDay || 'day', cap: false };
 }
 export function ceremonySVG(s, forPhoto = false) {
   const w = s.player;
