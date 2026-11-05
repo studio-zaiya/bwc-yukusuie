@@ -60,7 +60,10 @@ Built with Claude: Japan 2026 の提出作品です。
 - `docs/`：設計、開発記録
 
 ## 権利について
-© 2026 Studio ZaiYa. All rights reserved.
+© 2026 KT (Studio ZaiYa). All rights reserved.
+
+連絡先：https://note.com/studio_zaiya
+
 Built with Claude: Japan 2026 の審査のための閲覧・実行はご自由にどうぞ。それ以外の複製・改変・再配布・商用利用は、事前の許可なく行わないでください。
 
 ## 注記
