@@ -285,7 +285,7 @@ export function money(w) {
 // ---- 4つの分かれ道（名前と順番は固定）。bit=0 が左の札、bit=1 が右の札 ----
 export const FORKS = ['第一の分岐点', '第二の分岐点', '第三の分岐点', '第四の分岐点'];
 // 案の名前が「〜まとめる」のように動詞で終わるときは、そのまま札の名前にする（「まとめるで進める」を避ける。TESTPLAY T9）
-const verbL = (t, tail) => /(る|た|う|く|す)$/.test(t) ? t : t + tail;
+const verbL = (t, tail) => /(る|た|う|く|す)$/.test(t) ? t : /に$/.test(t) && tail === 'にする' ? t + 'する' : t + tail;
 export function decisions(pair = ['C', 'A']) {
   const [x, y] = pair;
   return [
