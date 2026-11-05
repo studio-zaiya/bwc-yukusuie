@@ -76,7 +76,7 @@ const SCENES = [
     const n = Math.round(s.dur * FPS);
     for (let k = 0; k < n; k++) {
       const t = k / FPS;
-      await p.evaluate(v => { for (const id of ['sl', 'seek', 'scrub', 'sc']) { const el = document.getElementById(id); if (el && el.tagName === 'INPUT') { el.step = 'any'; el.max = Math.max(+el.max || 0, v + 1); el.value = v; el.dispatchEvent(new Event('input')); } } if (window.seekTo) window.seekTo(v); window.render(v); return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); }, t);
+      await p.evaluate(v => { for (const id of ['sl', 'seek', 'scrub', 'sc']) { const el = document.getElementById(id); if (el && el.tagName === 'INPUT') { el.step = 'any'; el.max = Math.max(+el.max || 0, v + 1); el.value = v; el.dispatchEvent(new Event('input')); } } if (window.seekTo) window.seekTo(v); if (window.render) window.render(v); return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); }, t);
       await p.screenshot({ path: path.join(dir, `f${String(k).padStart(5, '0')}.png`) });
     }
     await p.close();
