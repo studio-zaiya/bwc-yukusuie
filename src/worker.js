@@ -76,7 +76,7 @@ const PROPOSAL_SCHEMA = {
 const toolSchema = desc => ({ type: 'object', additionalProperties: false, required: ['proposal'], properties: { proposal: PROPOSAL_SCHEMA } });
 
 function tradeTools(world, d) {
-  const wrap = fn => input => { const { proposal } = Y.normalizeProposal(input.proposal); return fn(world, d, proposal); };
+  const wrap = fn => input => { const { proposal } = Y.normalizeProposal(input.proposal, { d1: d.id === 'D1' }); return fn(world, d, proposal); };
   return [
     { name: 'quote', description: '仮の見積。提案を当てたときの総額（土地＋建物）の差と、増える項目を返す', input_schema: toolSchema(), run: wrap(Y.TOOLS.quote) },
     { name: 'loan_check', description: '仮の借入。借入額、返済負担率、審査に通るか、月々の差を返す', input_schema: toolSchema(), run: wrap(Y.TOOLS.loanCheck) },
@@ -129,6 +129,7 @@ async function trade(env, body) {
     `- 総額（土地＋建物）：${m.total}万円、借入：${m.loan}万円、自己資金：${m.self}万円`,
     `- これまでの道：${(world.labels || []).join(' → ') || 'なし'}`,
     `- 施主の希望の条件：${(body.wishes || []).map(w => w.text).join('、') || 'なし'}（守れない案になるときは、message でやわらかく触れる）`,
+    d.id === 'D1' ? '# この分かれ道で受けること：どちらの会社と進めるか、と、その会社と進める条件（借入・設備・窓など）だけ。広さや屋根の形の変更は、次の分かれ道（なにを優先する？）で受けると message で伝える。spec に tsubo・roof・form を入れない' : '',
     `# 施主の言葉`, String(body.text || '').slice(0, 400),
   ].join('\n');
   const tools = tradeTools(world, d);

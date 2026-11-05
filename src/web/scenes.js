@@ -4,6 +4,7 @@ import { drawBuild, BUILD, DUR, PHASES, phaseAt } from './buildanim.js';
 import * as P from './parts.js';
 import { buildMemory, SRC_LABEL } from './memory.js';
 import { protectedReasons } from './reasons.js';
+import { fitProposalW } from './planfit.js';
 
 // 金額の表示は万円単位の整数（計算の内部は小数のまま）
 const man = n => Math.round(Number(n)).toLocaleString('ja-JP');
@@ -432,11 +433,11 @@ export const SCENES = {
     if (FORK_DONE.on) return `${chrome(s)}${hero(s)}<div class="ritual done"><div class="rt-band">${esc(FORK_DONE.text)}</div><svg class="rt-lot" viewBox="0 0 1860 676" aria-hidden="true"><polygon points="560,284 848,448 580,601 292,438" pathLength="100"/></svg></div>${gallery(s)}`;
     const w = s.player;
     // 2枚とも同じ「守れない希望」なら、札の上に1行だけ（攻めのレビュー11/5：同じ行が両方の札に出て、判断の材料にならなかった）
-    const ngOf = side => { const t = Y.forkWorld(w); Y.choose(t, d, side); if (d.id === 'D1' && s.proposals?.[t.company]) Y.applyPlan(t, s.proposals[t.company].main); return Y.checkWishes(t, s.wishes).filter(c => !c.ok).map(c => c.label).join('、'); };
+    const ngOf = side => { const t = Y.forkWorld(w); Y.choose(t, d, side); if (d.id === 'D1' && s.proposals?.[t.company]) Y.applyPlan(t, fitProposalW({ ...s.proposals[t.company], co: t.company }, { household: s.household, wishes: s.wishes, co: t.company }).main); return Y.checkWishes(t, s.wishes).filter(c => !c.ok).map(c => c.label).join('、'); };
     const ngA = ngOf('a'), ngB = ngOf('b'), commonNg = ngA && ngA === ngB ? ngA : '';
     // 第四の分岐点が自動で出るとき、選ばれる札は色決めで実際に選んだ中身で作る（監査11/6：「外壁と床」と出るのに外壁だけ、を避ける）
     const autoLab = f => `グレードアップして仕上げた（${[f.wall !== 'std' && '外壁', f.floor !== 'std' && '床', f.inner !== 'vinyl' && '内壁'].filter(Boolean).join('・')}）`;
-    const card = side => { const t = Y.forkWorld(w); Y.choose(t, d, side); if (d.id === 'D4' && s.autoFork === side && Y.finishCost(w.finish)) t.finish = { ...w.finish }; if (d.id === 'D1' && s.proposals?.[t.company]) Y.applyPlan(t, s.proposals[t.company].main); const m = Y.money(t), m0 = Y.money(w); const df = m.total - m0.total, mo = Y.payment(m.loan, Y.RATE.variable) - Y.payment(m0.loan, Y.RATE.variable); const lc = Y.loanCheck(H(s), m.loan);
+    const card = side => { const t = Y.forkWorld(w); Y.choose(t, d, side); if (d.id === 'D4' && s.autoFork === side && Y.finishCost(w.finish)) t.finish = { ...w.finish }; if (d.id === 'D1' && s.proposals?.[t.company]) Y.applyPlan(t, fitProposalW({ ...s.proposals[t.company], co: t.company }, { household: s.household, wishes: s.wishes, co: t.company }).main); const m = Y.money(t), m0 = Y.money(w); const df = m.total - m0.total, mo = Y.payment(m.loan, Y.RATE.variable) - Y.payment(m0.loan, Y.RATE.variable); const lc = Y.loanCheck(H(s), m.loan);
       const co = Y.COMPANIES[t.company];
       const life = (w.company !== t.company || d.id === 'D1' ? `${co.kind}。担当は${co.staffRole}の${co.staff}さん、${Y.ROOF_JA[t.spec.roof]}の家` : diffWords(w, t)[0]) || '暮らしは大きくは変わらない';
       const mon = Y.payment(m.loan, Y.RATE.variable);

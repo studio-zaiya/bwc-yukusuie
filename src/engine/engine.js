@@ -331,6 +331,8 @@ export function choose(w, d, opt, extra = {}) {
   // 仕様はプレイヤーの答えを読み替えたものだけを当てる（攻めのレビュー11/5：「トリプルに」と答えたのに外構が入っていた）
   if (typeof opt === 'object') applyPatch(w, { company: base.patch.company, plan: base.patch.plan });
   else applyPatch(w, base.patch);
+  // 第一の分岐点：その会社の提案の案（画面の札と同じ）を当てる（自由入力の試算の基準を、直前に見せた提案にそろえる。INFO_GATHER_v2 の1）
+  if (d.id === 'D1' && w.proposalPlans?.[w.company]) applyPlan(w, w.proposalPlans[w.company]);
   const loan0 = money(w).loan;
   if (typeof opt === 'object') { applyPatch(w, { spec: opt.spec || {}, finish: opt.finish, electric: opt.electric }); if (!opt.plain) w.third = d.id; }
   // 借入を増やした自由回答は、本審査のやり直しで契約が延びる（条件に出した日数と、契約の日をそろえる。守りの監査11/6）
@@ -358,16 +360,16 @@ export const worldNo = bits => bits.reduce((n, b, i) => n + (b << (bits.length -
 
 // ---- 自由な答えの取引：読み替え → 仮計算 → 条件 → 承認 → 確定 ----
 // proposal は Claude が入力文から作る「変更の提案」。数字は入れない（借入は「増やす／増やさない」だけ）
-export function normalizeProposal(p = {}) {
+export function normalizeProposal(p = {}, opts = {}) {
   const out = { side: p.side === 'a' ? 'a' : 'b', spec: {}, borrow: p.borrow === 'keep' ? 'keep' : 'cover', electric: [], finish: undefined };
   const errors = [];
   for (const [k, v] of Object.entries(p.spec || {})) {
-    if (k === 'tsubo') continue;
+    if (k === 'tsubo' || (opts.d1 && ['roof', 'form'].includes(k))) continue;
     if (!(k in SPEC_SCHEMA)) { errors.push(`仕様の項目「${k}」は扱えません`); continue; }
     if (!SPEC_SCHEMA[k].includes(v)) { errors.push(`「${k}」に「${v}」は選べません`); continue; }
     out.spec[k] = v;
   }
-  if (p.spec && p.spec.tsubo != null) { const t = Math.round(+p.spec.tsubo); if (t >= 24 && t <= 40) out.spec.tsuboAbs = t; else errors.push('広さは24〜40坪の範囲で扱います'); }
+  if (p.spec && p.spec.tsubo != null && !opts.d1) { const t = Math.round(+p.spec.tsubo); if (t >= 24 && t <= 40) out.spec.tsuboAbs = t; else errors.push('広さは24〜40坪の範囲で扱います'); }
   for (const id of p.electric || []) { if (ELECTRIC.options.some(o => o.id === id)) out.electric.push(id); else errors.push(`電気の項目「${id}」はありません`); }
   if (p.finish) { out.finish = {}; for (const k of ['wall', 'floor', 'inner']) if (p.finish[k] && FINISH[k].some(x => x.id === p.finish[k])) out.finish[k] = p.finish[k]; }
   if (p.label) out.label = String(p.label).slice(0, 40);
@@ -376,16 +378,18 @@ export function normalizeProposal(p = {}) {
 }
 
 // tool use でClaudeが呼ぶ道具（すべて「仮に」計算するだけで、世界は変えない）
+// 第一の分岐点の「変更前」は、その札に出している提案（会社と案）の世界
+const cardWorld = (w, d, proposal) => { const b = forkWorld(w); choose(b, d, proposal.side || 'a'); return b; };
 export const TOOLS = {
   quote(w, d, proposal) {
-    const t = forkWorld(w); const before = money(t);
+    const t = forkWorld(w); const before = money(d.id === 'D1' ? cardWorld(w, d, proposal) : t);
     choose(t, d, proposal); const after = money(t);
     return { before: before.total, after: after.total, diff: round(after.total - before.total, 1), lines: after.quote.lines.filter(l => !before.quote.lines.some(b => b.key === l.key && b.v === l.v)).map(l => ({ label: l.label, v: l.v })) };
   },
   loanCheck(w, d, proposal) {
     const t = forkWorld(w); choose(t, d, proposal); const m = money(t);
     const lc = loanCheck(householdOf(t), m.loan);
-    const before = money(w).loan;
+    const before = money(d.id === 'D1' ? cardWorld(w, d, proposal) : w).loan;
     return { ...lc, before, diff: round(m.loan - before, 1), monthlyDiff: Math.round((payment(m.loan, RATE.variable) - payment(before, RATE.variable)) * 10000) };
   },
   schedule(w, d, proposal) {
@@ -396,7 +400,7 @@ export const TOOLS = {
 };
 
 export function simulate(w, d, rawProposal) {
-  const { proposal, errors } = normalizeProposal(rawProposal);
+  const { proposal, errors } = normalizeProposal(rawProposal, { d1: d.id === 'D1' });
   const q = TOOLS.quote(w, d, proposal), lc = TOOLS.loanCheck(w, d, proposal), sc = TOOLS.schedule(w, d, proposal), cv = TOOLS.coverageCheck(w, d, proposal);
   // 借入を増やさない場合、増額は手元に残す分から出すことになる
   const h = householdOf(w);

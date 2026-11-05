@@ -5,6 +5,7 @@ import { S, emit, api, render } from './main.js';
 import { busy, setWho, getWho, persona, DATA, PHONE, SHOW, NAMES, unkept, FORK_DONE, dataReady, SV, SWITCH, PICK, pickKey, PEEK } from './scenes.js';
 import { buildMemory, deliver, addItem, memoryText, conflictsOf, slotValuesOf } from './memory.js';
 import { setFace } from './parts.js';
+import { fitProposalW } from './planfit.js';
 import { BUILD } from './buildanim.js';
 
 const val = id => (document.getElementById(id)?.value || '').trim();
@@ -264,7 +265,9 @@ export const ACTIONS = {
     const dec = Y.decisions(S.pair)[S.forkNo];
     emit('say', { who: getWho(), ch: S.player.company, text });
     await withBusy(async () => {
-      const r = await api('/api/ai/trade', { world: S.player, pair: S.pair, decisionId: dec.id, text, wishes: S.wishes });
+      // 第一の分岐点では、札と同じ提案の案を基準に試算する（直前に見せた金額・屋根・会社とずれない）
+      const world = dec.id === 'D1' ? { ...S.player, proposalPlans: Object.fromEntries(Object.entries(S.proposals || {}).map(([c, x]) => [c, fitProposal({ ...x, co: c }).main])) } : S.player;
+      const r = await api('/api/ai/trade', { world, pair: S.pair, decisionId: dec.id, text, wishes: S.wishes });
       emit('ai', { role: 'trade', text, data: r, call: r.call });
       faceTalk();
     });
@@ -473,23 +476,7 @@ async function reportCall() {
     emit('ai', { role: 'report', data: r.data, call: r.call });
   } catch (e) { S.report = { failed: true }; toast(String(e.message)); }
 }
-// 要望を全部入れた案が建蔽率の上限を超えるときは、上限に収まる案を本体に、次に収まる案を第二の分岐点のもう一方にする（建てられない案で契約まで進めない）
-function fitProposal(p) {
-  if (!p?.main || (p.mainM?.coverageOk !== false && p.options?.[p.altIndex || 0]?.m?.coverageOk !== false)) return p;
-  const cand = [{ plan: p.main, m: p.mainM }, ...(p.options || []).map(o => ({ ...o }))];
-  let fit = cand.filter(c => c.m?.coverageOk);
-  // 上限に収まる案が2つそろわないときは、超えている案を部屋ひとまわりずつ小さくして収める（水回り・階段は縮めない）。第二の分岐点の2枚とも建てられる案にする
-  if (fit.length < 2) {
-    const w = Y.newWorld({ household: Y.HOUSEHOLDS[S.household] || Y.HOUSEHOLDS.t2, company: p.co || S.player?.company || 'C' });
-    const shrink = (pl, title) => { let q = structuredClone(pl), m = Y.measurePlan(w, q, S.wishes); for (let k = 0; k < 12 && !m.coverageOk; k++) { q.rooms = q.rooms.map(r => /浴|洗面|脱衣|トイレ|階段|玄関/.test(r.name) ? r : { ...r, size: Math.max(2, Math.round(r.size * 0.92 * 2) / 2) }); m = Y.measurePlan(w, q, S.wishes); } return m.coverageOk ? { plan: { ...q, title }, m, effect: '敷地に建てられる大きさに収めるため、部屋をひとまわりずつ小さくした' } : null; };
-    const over = cand.filter(c => !c.m?.coverageOk).sort((x, y) => (x.m?.coverage || 1e9) - (y.m?.coverage || 1e9));
-    for (const c of over) { if (fit.length >= 2) break; const t = c.plan.title || '調整の案'; const f = shrink(c.plan, /収めた案$/.test(t) ? t : `${t.replace(/(にする|案)$/, '')}を、敷地に収めた案`); if (f) { fit.push(f); cand.push(f); } }
-    if (!fit.length) return p;
-  }
-  const A = fit[0], rest = cand.filter(c => c !== A), B = fit[1] || rest[0];
-  const options = rest.map(c => c.plan === p.main ? { plan: c.plan, m: c.m, effect: '要望をすべて入れた案（建蔽率の上限を超える）' } : c);
-  return { ...p, main: A.plan, mainM: A.m, options, altIndex: Math.max(0, rest.indexOf(B)) };
-}
+const fitProposal = p => fitProposalW(p, { household: S.household, wishes: S.wishes, co: p.co || S.player?.company });
 function afterFork(dec) {
   if (dec.id === 'D1') {
     // 選んだ会社の案で、家の本体を確定する（第二の分岐点の2案は、その案と調整の案）。ほかの世界にも各社の案を当てる
