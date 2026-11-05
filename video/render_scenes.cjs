@@ -32,6 +32,13 @@ const SCENES = [
   // 実際に走らせた点検の結果（video/checks/run_checks.py の出力）
   { id: 'check-audit', url: P('check-table.html?t=0&kind=audit&dur=2.8'), dur: 2.8 },
   { id: 'check-consistency', url: P('check-table.html?t=0&kind=consistency&dur=6.3'), dur: 6.3 },
+  { id: 'intro-v2', url: P('intro-v2.html?t=0'), dur: 55.5 },
+  // 舞台裏（NARRATION_v2）
+  { id: 'bs-title', url: P('backstage.html?t=0&kind=title&dur=2.5'), dur: 2.5 },
+  { id: 'bs-desk', url: P('backstage.html?t=0&kind=desk&dur=4.5'), dur: 4.5 },
+  { id: 'bs-phone', url: P('backstage.html?t=0&kind=phone&dur=4.5'), dur: 4.5 },
+  { id: 'bs-models', url: P('backstage.html?t=0&kind=models&dur=2.5'), dur: 2.5 },
+  { id: 'bs-numbers', url: P('backstage.html?t=0&kind=numbers&dur=3'), dur: 3 },
 ];
 
 (async () => {

@@ -225,9 +225,9 @@ function render(t){
  X.save();X.globalAlpha=.35*ge;X.strokeStyle='#D8DFE3';X.lineWidth=1;for(let x=0;x<W;x+=48){X.beginPath();X.moveTo(x,0);X.lineTo(x,H);X.stroke()}for(let y=0;y<H;y+=48){X.beginPath();X.moveTo(0,y);X.lineTo(W,y);X.stroke()}X.restore();
  txt('ゆくすいえ のしくみ',80,96,46,{f:FD,w:900,a:eo((t-.2)/.5)});
  txt('YUKUSUIE: 16 unbuilt futures',82,134,22,{w:400,c:K.ink2,a:eo((t-.4)/.5)});
- // 全体像の一文（右上）【人間の指示「Claudeのマルチエージェントが16の並行世界をシミュレート」、Claudeが「× 計算エンジンで」を足した案】
+ // 全体像の一文（右上）【11/6 の指示：「マルチエージェント」は使わない。「役割の違う複数のClaude × 計算エンジンで、16の世界を同時に計算」】
  // 指示どおりの言葉に戻すときは ?ov=human
- {const OV=new URLSearchParams(location.search).get('ov')==='human'?['Claudeのマルチエージェントが','16の並行世界をシミュレート']:['Claudeのマルチエージェント × 計算エンジンで、','16の並行世界をシミュレート'];
+ {const OV=new URLSearchParams(location.search).get('ov')==='human'?['役割の違う複数のClaude × 計算エンジンで、','16の世界を同時に計算']:['役割の違う複数のClaude × 計算エンジンで、','16の世界を同時に計算'];
   const oa=eo((t-.6)/.5);txt(OV[0],1840,92,30,{al:'right',w:700,a:oa});txt(OV[1],1840,138,30,{al:'right',w:700,a:oa});}
  const DRAW=[drawTop,drawEngine,drawClaude,drawGround];
  for(let i=3;i>=1;i--){const la=eo((t-1.9-(i-1)*0.12)/.6);if(la<=0)continue;plate(i,la);DRAW[i](t,la)}

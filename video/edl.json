@@ -1,57 +1,57 @@
 {
- "note": "通しの場面表（v0.4）。at は通しでの開始秒。full=true は全面、ほかは枠（0.86倍）。rec の in は録画の秒、speed は速さ、play はその秒まで再生して最後のコマで止める、zoom は寄り（at 秒から0.6秒で scale 倍、cx/cy は寄る位置 0〜1、out で引く）、xf はその場面に入るつなぎの秒",
+ "note": "通しの場面表（STORY_v3・NARRATION_v2、11/6）。at は通しでの開始秒。full=true は全面、ほかは枠（0.86倍）。rec の in は録画の秒、speed は速さ、play はその秒まで再生して最後のコマで止める、zoom は寄り",
  "fps": 24,
  "xfade": 0.3,
- "end": 180,
- "subs": "subs_v5.srt",
+ "end": 179.5,
+ "subs": "subs_v6.srt",
  "segments": [
   {
-   "id": "opening",
+   "id": "hero",
    "at": 0,
    "kind": "part",
-   "file": "opening.mp4",
-   "full": true,
-   "label": "冒頭のロゴ（紺の地、白い文字）＋一言（仮：A）"
-  },
-  {
-   "id": "hero",
-   "at": 4,
-   "kind": "part",
    "file": "hero-title.mp4",
-   "xf": 0.5,
-   "label": "Hero（コピーまで）",
-   "in": 0,
+   "label": "Hero（はじめてなのに、／はじめてじゃない／いえづくりを。）",
    "crop": [
     1880,
     1058,
     36,
     11
-   ]
+   ],
+   "in": 0
   },
   {
    "id": "intro",
-   "at": 12,
+   "at": 8.5,
    "kind": "part",
-   "file": "intro-c.mp4",
-   "label": "前振りC（7場面）"
+   "file": "intro-v2.mp4",
+   "label": "前振り intro-v2（9場面。帯の字幕は名乗りだけ）"
+  },
+  {
+   "id": "logo",
+   "at": 64.0,
+   "kind": "part",
+   "file": "opening.mp4",
+   "label": "ロゴ（紺の地、白い文字）",
+   "full": true,
+   "in": 0.3
   },
   {
    "id": "r00-gather",
-   "at": 47,
+   "at": 66.5,
    "kind": "rec",
-   "file": "rec/demo2_slow.mp4",
-   "label": "実機 0：情報収集（チラシに順位 → SNSで保存 → 2社を選ぶ）",
-   "in": 17.0,
-   "speed": 3
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：情報収集（チラシ → SNS → 2社を選ぶ）",
+   "in": 19.0,
+   "speed": 3.5
   },
   {
    "id": "r01-survey",
-   "at": 52,
+   "at": 70.0,
    "kind": "rec",
-   "file": "rec/demo2_slow.mp4",
-   "label": "実機 1：来場者アンケート",
-   "in": 44.6,
-   "speed": 5,
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：来場者アンケート",
+   "in": 46.5,
+   "speed": 6,
    "zoom": {
     "at": 0.3,
     "scale": 1.3,
@@ -61,28 +61,42 @@
   },
   {
    "id": "r02-summary",
-   "at": 55.5,
+   "at": 74.0,
    "kind": "rec",
-   "file": "rec/demo2_slow.mp4",
-   "label": "実機 2：担当者の総括",
-   "in": 135.8,
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：担当者の総括（Cデザイン）",
+   "in": 137.5,
    "zoom": {
-    "at": 0.6,
+    "at": 0.5,
     "scale": 1.6,
     "cx": 1.0,
     "cy": 0.75
    }
   },
   {
-   "id": "r03-proposal",
-   "at": 61,
+   "id": "r02-partner",
+   "at": 78.5,
    "kind": "rec",
-   "file": "rec/demo2_slow.mp4",
-   "label": "実機 3：提案の日（2社の案）",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：帰り道、パートナーに伝え忘れを話す",
+   "in": 213.0,
+   "zoom": {
+    "at": 0.4,
+    "scale": 1.6,
+    "cx": 1.0,
+    "cy": 0.85
+   }
+  },
+  {
+   "id": "r03-proposal",
+   "at": 83.0,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：提案の日（2社の案）",
    "in": 315.6,
    "play": 2.5,
    "zoom": {
-    "at": 0.6,
+    "at": 0.5,
     "scale": 1.35,
     "cx": 0.5,
     "cy": 1.0
@@ -90,21 +104,21 @@
   },
   {
    "id": "r04-fork1",
-   "at": 65,
+   "at": 86.5,
    "kind": "rec",
-   "file": "rec/demo2_slow.mp4",
-   "label": "実機 4：第一の分岐点 → 選ばなかった道が世界線の列へ",
-   "in": 322.5
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：第一の分岐点 → 選ばなかった道が世界線の列へ",
+   "in": 326.5
   },
   {
    "id": "r05-fork3",
-   "at": 76,
+   "at": 94.5,
    "kind": "rec",
-   "file": "rec/demo2_slow.mp4",
-   "label": "実機 5：第三の分岐点（札と自分の言葉の欄）",
-   "in": 390.6,
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：第三の分岐点（札と自分の言葉の欄）",
+   "in": 388.75,
    "zoom": {
-    "at": 2.5,
+    "at": 1.8,
     "scale": 1.25,
     "cx": 0.5,
     "cy": 0.45
@@ -112,36 +126,36 @@
   },
   {
    "id": "r05-trade",
-   "at": 82.8,
+   "at": 98.5,
    "kind": "rec",
-   "file": "rec/demo2_slow.mp4",
-   "label": "実機 5：自分の言葉 → 家の絵と◆・担当者の条件・いま起きたこと",
-   "in": 409.5,
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：自分の言葉 → 家の絵と◆・条件・いま起きたこと",
+   "in": 409.65,
    "play": 2.3,
    "zoom": {
-    "at": 1.4,
+    "at": 1.2,
     "scale": 1.4,
     "cx": 0.0,
     "cy": 0.4
    },
-   "note": "実際の画面は約2.7秒。最後のコマで止め、寄る"
+   "note": "実際の画面は約2.5秒。最後のコマで止め、寄る"
   },
   {
    "id": "r06-coord",
-   "at": 90.6,
+   "at": 103.5,
    "kind": "rec",
-   "file": "rec/demo2_slow.mp4",
-   "label": "実機 6：色決め → 第四の分岐点（自動）→ 15へ",
-   "in": 429.0,
-   "speed": 2.9
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：色決め → 第四の分岐点（自動）→ 15へ",
+   "in": 426.75,
+   "speed": 4.2
   },
   {
    "id": "r07-electric",
-   "at": 96.4,
+   "at": 107.5,
    "kind": "rec",
-   "file": "rec/demo2_slow.mp4",
-   "label": "実機 7：電気の打ち合わせ → 伝え漏れ（エアコンの隠し方）→ 追加",
-   "in": 453.2,
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：電気の打ち合わせ → 伝え漏れ（エアコンを隠したい）→ 追加",
+   "in": 450.25,
    "zoom": {
     "at": 0.4,
     "scale": 1.25,
@@ -151,118 +165,141 @@
   },
   {
    "id": "r08-build",
-   "at": 103.5,
+   "at": 114.0,
    "kind": "rec",
-   "file": "rec/demo2_slow.mp4",
-   "label": "実機 8：着工から引渡しまでの早送り",
-   "in": 464.5,
-   "speed": 6.7
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：着工から引渡しまでの早送り",
+   "in": 461.5,
+   "speed": 10
   },
   {
    "id": "r08-handover",
-   "at": 110.3,
+   "at": 118.5,
    "kind": "rec",
-   "file": "rec/demo2_slow.mp4",
-   "label": "実機 8：引渡し（切り絵）",
-   "in": 511.5
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：引渡し（切り絵）",
+   "in": 508.5
   },
   {
    "id": "r09-seasons",
-   "at": 116.2,
+   "at": 122.0,
    "kind": "rec",
-   "file": "rec/demo2_slow.mp4",
-   "label": "実機 9：1年のうつろい → 1年後",
-   "in": 524.5,
-   "speed": 3.4
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：1年のうつろい → 1年後",
+   "in": 521.0,
+   "speed": 5
   },
   {
    "id": "r09-year",
-   "at": 120.5,
+   "at": 125.0,
    "kind": "rec",
-   "file": "rec/demo2_slow.mp4",
-   "label": "実機 9：16区画 → 区画を押して比べる",
-   "in": 539.6,
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：16区画 → 区画を押して比べる",
+   "in": 536.5,
    "zoom": {
-    "at": 0.6,
+    "at": 0.5,
     "scale": 1.4,
     "cx": 0.3,
     "cy": 0.45,
-    "out": 5.4
+    "out": 4.6
    }
   },
   {
+   "id": "bs-title",
+   "at": 132.5,
+   "kind": "part",
+   "file": "bs-title.mp4",
+   "label": "舞台裏1：わたしは、コードが読めません。（画面の字）"
+  },
+  {
+   "id": "bs-desk",
+   "at": 134.5,
+   "kind": "part",
+   "file": "bs-desk.mp4",
+   "label": "舞台裏2：アプリとブラウザから（docs/devshots 11/3〜11/5 0:25）"
+  },
+  {
+   "id": "bs-phone",
+   "at": 138.5,
+   "kind": "part",
+   "file": "bs-phone.mp4",
+   "label": "舞台裏3：毛布の中でスマホから（docs/devshots 1:19〜5:02）"
+  },
+  {
    "id": "arch",
-   "at": 133,
+   "at": 142.5,
    "kind": "part",
    "file": "arch.mp4",
-   "label": "仕組み「言葉はClaude、数字はコード。」（+58万円）",
-   "in": 5.6
+   "label": "舞台裏4：仕組みの図（言葉はClaude、数字はコード。+58万円）",
+   "in": 6.6
+  },
+  {
+   "id": "bs-models",
+   "at": 146.0,
+   "kind": "part",
+   "file": "bs-models.mp4",
+   "label": "舞台裏5：モデルの使い分け（画面の字）"
   },
   {
    "id": "training",
-   "at": 139,
+   "at": 148.2,
    "kind": "part",
    "file": "training-log.mp4",
-   "label": "担当者の研修：生ログと数字（1回目→5回目）"
+   "label": "舞台裏6：担当者の研修（92から一桁、1.69→2.67）",
+   "in": 1.5
   },
   {
    "id": "skills",
-   "at": 145,
+   "at": 151.5,
    "kind": "part",
    "file": "skills.mp4",
-   "label": "自作の点検スキル4つ"
+   "label": "舞台裏7：自作の点検スキル4つ",
+   "in": 1.0
   },
   {
-   "id": "audit",
-   "at": 148.5,
+   "id": "bs-numbers",
+   "at": 154.0,
    "kind": "part",
-   "file": "check-audit.mp4",
-   "label": "点検の結果：守りの監査（実際に走らせた）"
-  },
-  {
-   "id": "consistency",
-   "at": 151,
-   "kind": "part",
-   "file": "check-consistency.mp4",
-   "label": "点検の結果：約束の表で、動画の言葉と実機を照合（実際に走らせた）"
+   "file": "bs-numbers.mp4",
+   "label": "舞台裏8：コミットと文書の量（画面の字）"
   },
   {
    "id": "report",
-   "at": 157,
+   "at": 156.5,
    "kind": "part",
    "file": "report-pages.mp4",
-   "shotAt": 5.0,
-   "label": "実機 10：印刷レポート → 担当者に渡す1枚"
+   "label": "レポート → 担当者に渡す1枚",
+   "shotAt": 5.0
   },
   {
    "id": "ending",
-   "at": 169,
+   "at": 165.5,
    "kind": "part",
    "file": "ending-EA-notitle.mp4",
+   "label": "締めの絵（題名なし）",
    "crop": [
     1880,
     1058,
     36,
     11
    ],
-   "label": "締めの絵（題名なし）",
-   "in": 9.7
+   "in": 6.7
   },
   {
    "id": "closing",
-   "at": 172,
+   "at": 171.5,
    "kind": "part",
    "file": "closing.mp4",
-   "full": true,
-   "label": "締めのロゴ（紙色の地、墨の文字）＋16回目の、マイホームへ。"
+   "label": "締めのロゴ（16回目の、マイホームへ。）",
+   "full": true
   },
   {
    "id": "credits",
-   "at": 175,
+   "at": 174.5,
    "kind": "part",
    "file": "credits.mp4",
-   "full": true,
-   "label": "黒画面（スタッフ・注記）"
+   "label": "黒画面（スタッフ・注記）",
+   "full": true
   }
  ]
 }

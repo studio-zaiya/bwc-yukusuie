@@ -12,7 +12,7 @@ const fs = require('fs'), path = require('path'), { execFileSync } = require('ch
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.resolve(process.env.OUT || path.join(ROOT, 'out'));
 const EDL = JSON.parse(fs.readFileSync(process.env.EDL || path.join(__dirname, 'edl.json'), 'utf8'));
-const PARTS = path.join(OUT, 'video_parts'), PLATES = path.join(OUT, 'plates'), PRE = path.join(OUT, 'prefinal');
+const PARTS = path.join(OUT, 'video_parts'), PLATES = path.join(OUT, 'plates'), PRE = path.resolve(process.env.PRE_DIR || path.join(OUT, 'prefinal'));
 const FONT_DIR = process.env.FONT_DIR || '';
 const XF = EDL.xfade, FPS = EDL.fps, END = EDL.end;
 const FONTS = FONT_DIR ? ['zen-maru-gothic/700.css', 'zen-maru-gothic/900.css', 'biz-udpgothic/400.css', 'biz-udpgothic/700.css'].map(f => `@import url("file://${path.join(FONT_DIR, f)}");`).join('\n') : '';
