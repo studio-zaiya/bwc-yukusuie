@@ -18,9 +18,9 @@ const ipOf = req => req.headers.get('cf-connecting-ip') || 'local';
 
 // ---- 回数制限（KV。無いときはメモリで数える）----
 const mem = new Map();
-async function bump(env, key, ttl = 172800) {
-  if (env.STORE) { const n = +(await env.STORE.get(key) || 0) + 1; await env.STORE.put(key, String(n), { expirationTtl: ttl }); return n; }
-  const n = (mem.get(key) || 0) + 1; mem.set(key, n); return n;
+async function bump(env, key, ttl = 172800, by = 1) {
+  if (env.STORE) { const n = +(await env.STORE.get(key) || 0) + by; await env.STORE.put(key, String(n), { expirationTtl: ttl }); return n; }
+  const n = (mem.get(key) || 0) + by; mem.set(key, n); return n;
 }
 // 費用の累計：計量器（Durable Object）で原子的に足す。はじめての日は、KVに残っていた値から引き継ぐ
 const meter = env => env.METER ? env.METER.get(env.METER.idFromName('global')) : null;
@@ -514,7 +514,8 @@ export default {
       const n = (await meterAdd(env, [`play:${playId}`], cost))[`play:${playId}`];
       if (path === '/api/ai/entry' && (body.text || '').match(/https?:\/\//) && (await meterAdd(env, [`url:${playId}`], 1))[`url:${playId}`] > 2) body.text = String(body.text).replace(/https?:\/\/\S+/g, '');
       let limited = n > +(env.CALLS_PER_PLAY || 90) ? 'このプレイの呼び出しの上限に達しました。代わりの文でお返しします。' : await guard(env, req, 'call');
-      if (!limited && cost > 1) for (let i = 1; i < cost; i++) await bump(env, `c:${ipOf(req)}:${today()}`);
+      // 15回呼ぶ役割は、まとめて1回の書き込みで数える（同じ欄を短い間に何度も書くと、KVの書き込みの制限で失敗していた）
+      if (!limited && cost > 1) await bump(env, `c:${ipOf(req)}:${today()}`, 172800, cost - 1);
       if (limited) env = { ...env, ANTHROPIC_API_KEY: '' }; // 上限を超えたら、Claudeを呼ばずに代わりの文で返す
       const finish = out => { const usd = (out.call?.costUsd || 0) + (out.calls || []).reduce((a, c) => a + (c.costUsd || 0), 0); ctx.waitUntil(addUsd(env, usd)); return JSON.stringify({ ...out, limited: limited || undefined, costUsd: usd ? Math.round(usd * 1e5) / 1e5 : undefined }); };
       // 時間のかかる役割（設計担当・レポート）は、待つ間も空白を少しずつ送り、途中の中継に接続を切られないようにする（JSONの前の空白は読むときに無視される）
