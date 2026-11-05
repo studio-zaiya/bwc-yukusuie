@@ -3,7 +3,7 @@
  "fps": 24,
  "xfade": 0.3,
  "end": 180,
- "subs": "subs_v4.srt",
+ "subs": "subs_v5.srt",
  "segments": [
   {
    "id": "opening",
@@ -36,43 +36,53 @@
    "label": "前振りC（7場面）"
   },
   {
-   "id": "r01-survey",
+   "id": "r00-gather",
    "at": 47,
    "kind": "rec",
-   "file": "rec/demo_full.mp4",
+   "file": "rec/demo2_slow.mp4",
+   "label": "実機 0：情報収集（チラシに順位 → SNSで保存 → 2社を選ぶ）",
+   "in": 17.0,
+   "speed": 3
+  },
+  {
+   "id": "r01-survey",
+   "at": 52,
+   "kind": "rec",
+   "file": "rec/demo2_slow.mp4",
    "label": "実機 1：来場者アンケート",
-   "in": 13.5,
+   "in": 44.6,
+   "speed": 5,
    "zoom": {
-    "at": 0.8,
-    "scale": 1.35,
+    "at": 0.3,
+    "scale": 1.3,
     "cx": 0.08,
     "cy": 0.05
    }
   },
   {
    "id": "r02-summary",
-   "at": 54,
+   "at": 55.5,
    "kind": "rec",
-   "file": "rec/demo_slow.mp4",
+   "file": "rec/demo2_slow.mp4",
    "label": "実機 2：担当者の総括",
-   "in": 124.0,
+   "in": 135.8,
    "zoom": {
-    "at": 0.9,
+    "at": 0.6,
     "scale": 1.6,
     "cx": 1.0,
-    "cy": 0.82
+    "cy": 0.75
    }
   },
   {
    "id": "r03-proposal",
-   "at": 59,
+   "at": 61,
    "kind": "rec",
-   "file": "rec/demo_slow.mp4",
+   "file": "rec/demo2_slow.mp4",
    "label": "実機 3：提案の日（2社の案）",
-   "in": 318.2,
-   "play": 3.6,
+   "in": 315.6,
+   "play": 2.5,
    "zoom": {
-    "at": 0.8,
+    "at": 0.6,
     "scale": 1.35,
     "cx": 0.5,
     "cy": 1.0
@@ -80,19 +90,19 @@
   },
   {
    "id": "r04-fork1",
-   "at": 64,
+   "at": 65,
    "kind": "rec",
-   "file": "rec/demo_slow.mp4",
+   "file": "rec/demo2_slow.mp4",
    "label": "実機 4：第一の分岐点 → 選ばなかった道が世界線の列へ",
-   "in": 326.0
+   "in": 322.5
   },
   {
    "id": "r05-fork3",
    "at": 76,
    "kind": "rec",
-   "file": "rec/demo_slow.mp4",
+   "file": "rec/demo2_slow.mp4",
    "label": "実機 5：第三の分岐点（札と自分の言葉の欄）",
-   "in": 394.6,
+   "in": 390.6,
    "zoom": {
     "at": 2.5,
     "scale": 1.25,
@@ -102,77 +112,76 @@
   },
   {
    "id": "r05-trade",
-   "at": 83,
+   "at": 82.8,
    "kind": "rec",
-   "file": "rec/demo_slow.mp4",
+   "file": "rec/demo2_slow.mp4",
    "label": "実機 5：自分の言葉 → 家の絵と◆・担当者の条件・いま起きたこと",
-   "in": 413.95,
+   "in": 409.5,
    "play": 2.3,
    "zoom": {
-    "at": 1.6,
+    "at": 1.4,
     "scale": 1.4,
     "cx": 0.0,
     "cy": 0.4
    },
-   "note": "実際の画面は約2.4秒。最後のコマで止め、寄る"
+   "note": "実際の画面は約2.7秒。最後のコマで止め、寄る"
   },
   {
    "id": "r06-coord",
-   "at": 89,
+   "at": 90.6,
    "kind": "rec",
-   "file": "rec/demo_slow.mp4",
+   "file": "rec/demo2_slow.mp4",
    "label": "実機 6：色決め → 第四の分岐点（自動）→ 15へ",
-   "in": 436.5,
-   "speed": 1.4
+   "in": 429.0,
+   "speed": 2.9
   },
   {
    "id": "r07-electric",
-   "at": 97,
+   "at": 96.4,
    "kind": "rec",
-   "file": "rec/demo_slow.mp4",
-   "label": "実機 7：電気の打ち合わせ（左の一覧）",
-   "in": 453.4,
+   "file": "rec/demo2_slow.mp4",
+   "label": "実機 7：電気の打ち合わせ → 伝え漏れ（エアコンの隠し方）→ 追加",
+   "in": 453.2,
    "zoom": {
-    "at": 0.5,
-    "scale": 1.3,
+    "at": 0.4,
+    "scale": 1.25,
     "cx": 0.0,
     "cy": 0.3
    }
   },
   {
    "id": "r08-build",
-   "at": 102,
+   "at": 103.5,
    "kind": "rec",
-   "file": "rec/demo_slow.mp4",
+   "file": "rec/demo2_slow.mp4",
    "label": "実機 8：着工から引渡しまでの早送り",
-   "in": 464.8,
-   "speed": 5.6
+   "in": 464.5,
+   "speed": 6.7
   },
   {
    "id": "r08-handover",
-   "at": 110,
+   "at": 110.3,
    "kind": "rec",
-   "file": "rec/demo_slow.mp4",
+   "file": "rec/demo2_slow.mp4",
    "label": "実機 8：引渡し（切り絵）",
-   "in": 513.8
+   "in": 511.5
   },
   {
    "id": "r09-seasons",
-   "at": 117,
+   "at": 116.2,
    "kind": "rec",
-   "file": "rec/demo_slow.mp4",
+   "file": "rec/demo2_slow.mp4",
    "label": "実機 9：1年のうつろい → 1年後",
-   "in": 523.0,
-   "speed": 2.4
+   "in": 524.5,
+   "speed": 3.4
   },
   {
    "id": "r09-year",
-   "at": 122,
+   "at": 120.5,
    "kind": "rec",
-   "file": "rec/demo_slow.mp4",
+   "file": "rec/demo2_slow.mp4",
    "label": "実機 9：16区画 → 区画を押して比べる",
-   "in": 539.2,
-   "play": 8.9,
+   "in": 539.6,
    "zoom": {
     "at": 0.6,
     "scale": 1.4,
