@@ -87,7 +87,7 @@
    "in": 326.0,
    "zoom": {
     "at": 0.5,
-    "scale": 1.3,
+    "scale": 1.15,
     "cx": 0.5,
     "cy": 0.3,
     "out": 9.6
@@ -194,7 +194,7 @@
    "kind": "part",
    "file": "arch.mp4",
    "label": "仕組み「言葉はClaude、数字はコード。」（+58万円）",
-   "in": 6.2
+   "in": 5.6
   },
   {
    "id": "training",
