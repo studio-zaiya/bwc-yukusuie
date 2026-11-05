@@ -9,21 +9,22 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:rgb(14,18,34)}
 #e span{font-weight:500}
 #c{white-space:nowrap;font-family:"Hiragino Sans","BIZ UDPGothic",sans-serif;font-weight:700;font-size:38px;letter-spacing:.08em;color:#FFFAF0;margin-top:56px;opacity:.95}
 </style></head><body>
-<div id="all"><div id="lock"><div id="mark"></div><div id="t">ゆくすいえ</div><div id="e">YUKUSUIE: <span>16 unbuilt futures</span></div><div id="c"></div></div></div>
+<div id="all"><div id="lock"><div id="logo"></div><div id="c"></div></div></div>
 <script src="logo.js"></script>
 <script>
 // 冒頭のロゴ【人間の案】：Heroの最初の空の色の上に、白い文字のロゴと一言。消えるとそのままHeroの光が降りてくる
 const q=new URLSearchParams(location.search);
 // mode=light：締め用の反転（明るい紙色の地に墨の文字、同じレイアウト）【人間の案】
 const LIGHT=q.get('mode')==='light';
-if(LIGHT){document.documentElement.style.background=document.body.style.background='#FFFAF0';['t','e','c'].forEach(id=>document.getElementById(id).style.color='#1E2B36');}
+if(LIGHT){document.documentElement.style.background=document.body.style.background='#FFFAF0';document.getElementById('c').style.color='#1E2B36';}
 const DUR=+(q.get('dur')||4); window.DUR=DUR;
 document.getElementById('c').textContent=q.get('copy')||(LIGHT?'16回目の、マイホームへ。':'現役の建築士が、Claudeとつくった家づくりシミュレーション');
 const cl=v=>Math.max(0,Math.min(1,v)),eo=v=>1-Math.pow(1-cl(v),3),$=id=>document.getElementById(id);
 const fade=(el,a)=>{el.style.opacity=a.toFixed(3);el.style.transform=`translateY(${((1-a)*12).toFixed(1)}px)`};
 window.render=t=>{
-  $('mark').innerHTML=YLOGO.markSVG(cl(t/1.1),{size:220,ink:LIGHT?'#1E2B36':'#FFFAF0',accent:'#E8701F'});
-  fade($('t'),eo((t-1.0)/0.5)); fade($('e'),eo((t-1.3)/0.5)); fade($('c'),eo((t-1.7)/0.6));
+  // 新しいロゴ（横組み、「い」が橙）。マークが現れ、文字、英字の順
+  $('logo').innerHTML=YLOGO.lockupHTML({fs:132,ink:LIGHT?'#1E2B36':'#FFFAF0',p:cl(t/1.1),textA:eo((t-1.0)/0.5).toFixed(3),subA:eo((t-1.3)/0.5).toFixed(3)});
+  fade($('c'),eo((t-1.7)/0.6));
   $('all').style.opacity=(LIGHT?1:(1-cl((t-(DUR-0.8))/0.8))).toFixed(3);
 };
 render(q.has('t')?+q.get('t'):3);window.READY=true;

@@ -30,5 +30,16 @@
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="${size}" height="${size}" aria-hidden="true"><g transform="translate(0,6)">${s}</g></svg>`;
   }
   const FONT = '"Hiragino Maru Gothic ProN","Zen Maru Gothic",sans-serif';
-  root.YLOGO = { markSVG, FONT, TILES };
+  // 横組みのロックアップ（最終のロゴ：design/v3/logo/final、実機の src/web/brand/lockup-horizontal.svg と同じ組み）
+  // マークが左、文字が右。「い」だけ橙（マークの07と同じ。人間の決定 N2-A）。下に YUKUSUIE（太字・字間広め）＋ 16 unbuilt futures
+  // fs：「ゆくすいえ」の字の大きさ（px）。p：マークの現れ方 0..1。textA/subA：文字の不透明度
+  function lockupHTML({ fs = 120, ink = '#1E2B36', accent = '#E8701F', p = 1, textA = 1, subA = 1 } = {}) {
+    const mk = markSVG(p, { size: Math.round(fs * 1.7), ink, accent });
+    return `<div style="display:flex;align-items:center;gap:${Math.round(fs * 0.12)}px">`
+      + `<div style="width:${Math.round(fs * 1.7)}px;height:${Math.round(fs * 1.7)}px;margin-top:-${Math.round(fs * 0.1)}px">${mk}</div>`
+      + `<div style="color:${ink}"><div style="font-family:${FONT.replace(/"/g, "'")};font-weight:900;font-size:${fs}px;letter-spacing:${(fs * 0.1).toFixed(1)}px;line-height:1.05;white-space:nowrap;opacity:${textA}">ゆくす<span style="color:${accent}">い</span>え</div>`
+      + `<div style="font-family:'Hiragino Sans','BIZ UDPGothic',sans-serif;font-size:${Math.round(fs * 0.24)}px;margin-top:${Math.round(fs * 0.16)}px;margin-left:${Math.round(fs * 0.02)}px;white-space:nowrap;opacity:${subA}">`
+      + `<b style="font-weight:700;letter-spacing:${(fs * 0.077).toFixed(1)}px">YUKUSUIE</b><span style="font-weight:400;letter-spacing:${(fs * 0.014).toFixed(1)}px;margin-left:${Math.round(fs * 0.12)}px">16 unbuilt futures</span></div></div></div>`;
+  }
+  root.YLOGO = { markSVG, lockupHTML, FONT, TILES };
 })(typeof window !== 'undefined' ? window : globalThis);

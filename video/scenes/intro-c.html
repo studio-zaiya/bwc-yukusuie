@@ -84,7 +84,33 @@ function sceneAlpha(k,t){if(k>=S.length-1)return 1;return lerp(1,.28,eo((t-S[k+1
 // 紙の目
 const grain=document.createElement('canvas');grain.width=W;grain.height=H;(function(){const g=grain.getContext('2d');g.fillStyle=C.paper;g.fillRect(0,0,W,H);const r=rng(7);for(let i=0;i<9000;i++){g.fillStyle=r()<.5?'rgba(120,95,60,0.05)':'rgba(255,255,255,0.35)';g.fillRect(r()*W,r()*H,1.4,1.4)}g.fillStyle='rgba(120,95,60,0.07)';for(let x=40;x<W;x+=40)for(let y=40;y<H;y+=40)g.fillRect(x,y,2,2)})();
 // 点
-const DOTS=(()=>{const r=rng(42),a=[];while(a.length<160){const x=80+r()*1760,y=400+r()*600;if(Math.hypot(x-960,y-686)<60)continue;if(y>1000)continue;a.push([x,y,r()])}return a})();
+// ⑦の背景：薄い日本の白地図【人間の指示】。主な海岸線の緯度経度を手で打った簡略な輪郭（外部の地図データは使っていない）。沖縄は左下の枠に
+const JP=(()=>{const S=47,K=0.81,P=(lon,lat)=>[640+(lon-129.5)*K*S,330+(45.7-lat)*S];
+ const IS=(lon0,lat0,x0,y0)=>(lon,lat)=>[x0+(lon-lon0)*K*S,y0+(lat0-lat)*S];
+ const L={
+  hokkaido:[[141.9,45.5],[142.8,44.8],[143.6,44.2],[144.5,43.95],[145.3,44.3],[145.1,43.65],[145.6,43.35],[144.9,43.0],[144.0,42.95],[143.3,42.0],[142.5,42.2],[141.7,42.6],[141.0,42.35],[140.6,42.55],[140.9,42.05],[141.15,41.8],[140.7,41.75],[140.05,41.42],[140.15,42.0],[139.8,42.3],[140.3,42.8],[140.5,43.25],[141.0,43.2],[141.45,43.35],[141.65,43.95],[141.8,44.45],[141.65,45.1],[141.9,45.5]],
+  honshu:[[140.3,41.25],[140.85,41.15],[141.45,41.45],[141.4,40.6],[141.95,39.65],[141.6,38.95],[141.5,38.3],[141.0,38.2],[141.0,37.1],[140.65,36.4],[140.85,35.75],[140.4,35.15],[139.85,34.9],[139.95,35.4],[139.65,35.3],[139.15,35.25],[138.85,34.6],[138.7,35.05],[138.25,34.6],[137.3,34.65],[136.9,34.75],[136.85,34.3],[136.3,34.05],[135.75,33.45],[135.1,33.85],[135.15,34.3],[135.4,34.65],[134.9,34.65],[134.2,34.65],[133.4,34.45],[132.4,34.25],[131.9,33.95],[130.95,33.95],[131.05,34.4],[131.7,34.75],[132.6,35.45],[133.3,35.55],[134.3,35.6],[135.3,35.6],[136.0,35.7],[136.1,36.1],[136.7,36.7],[136.75,37.25],[137.3,37.5],[137.0,36.9],[137.3,36.75],[138.2,37.15],[139.0,37.95],[139.55,38.6],[139.95,39.5],[139.7,39.95],[140.0,40.3],[139.9,40.65],[140.3,41.25]],
+  shikoku:[[132.0,33.35],[132.55,32.9],[133.0,32.72],[133.6,33.5],[134.2,33.25],[134.7,33.8],[134.6,34.2],[134.0,34.35],[133.0,34.08],[132.7,33.9],[132.4,33.5],[132.0,33.35]],
+  kyushu:[[130.9,33.95],[131.4,33.6],[131.7,33.25],[131.9,32.95],[131.65,32.4],[131.4,31.45],[131.1,31.3],[130.7,31.0],[130.55,31.55],[130.2,31.25],[130.15,31.8],[130.35,32.4],[130.55,32.75],[130.2,32.85],[129.75,32.7],[129.65,33.15],[129.95,33.5],[130.4,33.62],[130.9,33.95]],
+  sado:[[138.25,38.3],[138.5,38.25],[138.55,37.9],[138.25,37.85],[138.25,38.3]],
+  tsushima:[[129.3,34.7],[129.45,34.65],[129.4,34.2],[129.2,34.2],[129.3,34.7]],
+  awaji:[[134.95,34.6],[135.0,34.55],[134.85,34.2],[134.7,34.25],[134.95,34.6]],
+  tanega:[[130.95,30.85],[131.1,30.75],[130.95,30.35],[130.85,30.5],[130.95,30.85]],
+  yaku:[[130.5,30.45],[130.65,30.35],[130.5,30.25],[130.4,30.35],[130.5,30.45]],
+  goto:[[128.7,32.85],[128.9,32.75],[128.75,32.6],[128.6,32.7],[128.7,32.85]],
+  oki:[[133.2,36.3],[133.35,36.25],[133.25,36.15],[133.1,36.2],[133.2,36.3]]};
+ const OK=IS(123.6,28.7,300,780);
+ const O={okinawa:[[127.65,26.08],[127.9,26.4],[128.25,26.65],[128.33,26.87],[128.1,26.75],[127.8,26.45],[127.65,26.2],[127.65,26.08]],
+  amami:[[129.2,28.5],[129.7,28.4],[129.6,28.15],[129.2,28.25],[129.2,28.5]],
+  miyako:[[125.2,24.85],[125.45,24.75],[125.3,24.7],[125.15,24.75],[125.2,24.85]],
+  ishigaki:[[124.1,24.55],[124.35,24.5],[124.25,24.35],[124.05,24.4],[124.1,24.55]],
+  iriomote:[[123.7,24.42],[123.95,24.4],[123.9,24.25],[123.7,24.3],[123.7,24.42]]};
+ const polys=Object.values(L).map(a=>a.map(([lo,la])=>P(lo,la))).concat(Object.values(O).map(a=>a.map(([lo,la])=>OK(lo,la))));
+ const path=new Path2D();polys.forEach(pl=>{pl.forEach(([x,y],i)=>i?path.lineTo(x,y):path.moveTo(x,y));path.closePath()});
+ const box=[OK(123.4,28.9),OK(130.0,23.9)];
+ return {path,box};})();
+// 色のドット：地図の陸の上に散らす【人間の指示】
+const DOTS=(()=>{const r=rng(42),a=[],tc=document.createElement('canvas').getContext('2d');let guard=0;while(a.length<160&&guard++<200000){const x=250+r()*1500,y=320+r()*720;if(!tc.isPointInPath(JP.path,x,y))continue;if(Math.hypot(x-960,y-686)<40)continue;a.push([x,y,r()])}return a})();
 // 付箋
 const NOTES=[['吹き抜け','#ffe48a'],['大開口','#ffc7d9'],['回遊動線','#bfe7ff'],['アイランド','#c9f0c4'],['造作キッチン','#ffe48a'],['書斎','#ffc7d9'],['ガレージ','#bfe7ff'],['畳コーナー','#c9f0c4'],['広いWIC','#ffe48a']];
 const NOTE_DST=[[-100,-150],[60,-140],[-60,-60],[90,-50],[-110,40],[40,20],[-30,110],[110,120],[-120,150]];
@@ -148,10 +174,10 @@ function render(t){
     {const k=eo((t-17.4)/.4);if(k>0){ctx.save();ctx.globalAlpha=a*k*.5;ctx.fillStyle=C.pk;for(let i=0;i<6;i++)ctx.fillRect(410,340+i*70,220-(i%3)*50,22);ctx.restore()}}
     // 付箋が飛ぶ
     NOTES.forEach((nt,i)=>{const st=18.0+i*.22,k=eio((t-st)/.7);if(t<st)return;const dx=1350+NOTE_DST[i][0]*s,dy=650+NOTE_DST[i][1]*s-(s-1)*120;const x=lerp(520,dx,k),y=lerp(520,dy,k)-Math.sin(k*Math.PI)*120;ctx.save();ctx.globalAlpha=a;ctx.translate(x,y);ctx.rotate((i%2?1:-1)*(.08+.04*(i%3))*k);ctx.font=`700 22px ${FONT}`;const w=Math.max(110,ctx.measureText(nt[0]).width+24);ctx.fillStyle=nt[1];ctx.shadowColor='rgba(80,50,20,.18)';ctx.shadowBlur=8;ctx.shadowOffsetY=3;ctx.fillRect(-w/2,-26,w,52);ctx.shadowColor='transparent';ctx.fillStyle=C.ink;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(nt[0],0,1);ctx.restore()});
-    txt(t,16.8,'流れてくるのは、お金をかけた映える家か、',760,170,44,{weight:700,alpha:a});
-    txt(t,17.3,'「正解・不正解」で言い切れる家。',760,240,44,{weight:700,alpha:a});
+    txt(t,16.8,'SNSには、お金をかけた「映える」家か、',760,170,44,{weight:700,alpha:a});
+    txt(t,17.3,'断片的な「正解・不正解」があふれています。',760,240,44,{weight:700,alpha:a});
     tag(t,17.6,'field',760,268,a);
-    txt(t,19.4,'要望が、いろいろな家の切り貼りになっていく。',760,950,40,{alpha:a});
+    txt(t,19.4,'理想の住まいが、だれかの家の切り貼りになっていく。',760,950,40,{alpha:a});
     if(t<S[5].t0+.2)penTip(tip,S[4].col);ctx.restore()}
   // ---- S6
   {const o=5*W,a=sceneAlpha(5,t);ctx.save();ctx.translate(o,0);
@@ -168,6 +194,8 @@ function render(t){
     if(t<S[6].t0+.2)penTip(tip,S[5].col);ctx.restore()}
   // ---- S7
   {const o=6*W,a=sceneAlpha(6,t);ctx.save();ctx.translate(o,0);
+    {const ma=a*eo((t-26.6)/.8);if(ma>0){ctx.save();ctx.globalAlpha=ma;ctx.fillStyle='rgba(42,38,32,.04)';ctx.fill(JP.path);ctx.strokeStyle='rgba(42,38,32,.14)';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke(JP.path);
+      const [p0,p1]=JP.box;ctx.strokeStyle='rgba(42,38,32,.16)';ctx.lineWidth=1.5;ctx.strokeRect(p0[0],p0[1],p1[0]-p0[0],p1[1]-p0[1]);ctx.restore()}}
     const tip=strokePart(S[6].pts,eio((t-S[6].t0)/S[6].d),S[6].col,a);
     const n=t<27.4?0:Math.min(DOTS.length,Math.floor(Math.pow(2,(t-27.4)*3.6)));
     for(let i=0;i<n;i++){const d=DOTS[i];const age=t-27.4-Math.log2(i+1)/3.6;const k=eo(age/.3);ctx.save();ctx.globalAlpha=a*k*.85;ctx.fillStyle=d[2]<.5?C.or:C.te;ctx.beginPath();ctx.arc(d[0],d[1],5+3*k*(1-clamp(age-.3)),0,7);ctx.fill();ctx.restore()}
@@ -180,7 +208,14 @@ function render(t){
     txt(t,30.2,'業界のためのAIでも、寄り添うだけのAIでもない。',960,230,44,{align:'center',alpha:a});
     txt(t,30.6,'作り手',520,614,36,{align:'center',weight:700,color:C.te,alpha:a});
     txt(t,31.4,'施主',1400,614,36,{align:'center',weight:700,color:C.te,alpha:a});
-    txt(t,31.0,'AI',960,520,30,{align:'center',weight:900,color:C.or,alpha:a});
+    // 「AI」の代わりに、ゆくすいえのシンボルマークとロゴ【人間の指示】（マークの座標は logo.js と同じ。07だけ橙、「い」も橙）
+    {const k=eo((t-31.0)/.45);if(k>0){ctx.save();ctx.globalAlpha=a*k;const MS=.72,mx=812,my=468+(1-k)*14;
+      const TL=[[60,28.2],[74.7,36.7],[89.4,45.2],[104.2,53.7],[45.3,36.7],[60,45.2],[74.7,53.7],[89.4,62.2],[30.6,45.2],[45.3,53.7],[60,62.2],[74.7,70.7],[15.8,53.7],[30.6,62.2],[45.3,70.7],[60,79.2]];
+      TL.forEach(([x,y],i)=>{ctx.beginPath();[[x,y],[x+11,y+6.3],[x,y+12.6],[x-11,y+6.3]].forEach(([px,py],j)=>{const X=mx+px*MS,Y=my+py*MS;j?ctx.lineTo(X,Y):ctx.moveTo(X,Y)});ctx.closePath();
+        if(i===6){ctx.fillStyle=C.or;ctx.fill()}ctx.strokeStyle=i===6?C.or:'#1E2B36';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke()});
+      ctx.font=`900 40px "Hiragino Maru Gothic ProN","Zen Maru Gothic",sans-serif`;ctx.textBaseline='alphabetic';let x=mx+92;const y=my+48;
+      for(const ch of 'ゆくすいえ'){ctx.fillStyle=ch==='い'?C.or:'#1E2B36';ctx.fillText(ch,x,y);x+=ctx.measureText(ch).width+4}
+      ctx.restore()}}
     txt(t,31.8,'そのあいだを、やわらかくつなぐAI。',960,870,56,{align:'center',weight:700,alpha:a});
     if(t<S[8].t0+.2)penTip(tip,S[7].col);ctx.restore()}
   // ---- S9 / S10
