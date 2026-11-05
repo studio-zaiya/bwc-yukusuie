@@ -5,7 +5,7 @@
   const P = (x, y, z = 0) => [(x - y) * C30, (x + y) * S30 - z];
   const pts = a => a.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ');
   const poly = (a, fill, stroke = '#1E2B36', sw = 1.4, extra = '') => `<polygon points="${pts(a)}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round" ${extra}/>`;
-  // 暗い外壁（黒・チャコールなど）は、輪郭が線と同化しないよう、面を明るめにする（人間の回答11/6）
+  // 暗い外壁（黒・チャコールなど）は、輪郭が線と同化しないよう、面を明るめにする（人間の回答11/5）
   const lum = hex => { const n = parseInt(String(hex).slice(1), 16); return ((n >> 16) * .299 + (n >> 8 & 255) * .587 + (n & 255) * .114) / 255; };
   const liftDark = hex => /^#[0-9a-fA-F]{6}$/.test(hex || '') && lum(hex) < 0.3 ? mix(hex, '#FFFFFF', 0.32) : hex;
   function mix(a, b, t) { const p = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; const x = p(a), y = p(b); return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join(''); }
@@ -19,7 +19,7 @@
   // 1軒：原点(ox,oy)に、幅w×奥行きd×高さh。stage: 0 地縄 / 1 基礎 / 2 骨組み / 3 白い下地 / 4 完成 / -1 工事中止
   function house(o) {
     const { x = 0, y = 0, w = 46, d = 38, h = 40, roof = 'flat', fin = FINISH[0], stage = 4, lamp = false, eave = true, third = false, z0 = 0, form = 'full' } = o;
-    // 家の形（人間の回答11/6）：総二階／部分二階（1階は総二階と同じ大きさ、2階を半分ほどにして、1階に下屋）／1階を少し引っ込めた箱（2階は総二階と同じ大きさ）
+    // 家の形（人間の回答11/5）：総二階／部分二階（1階は総二階と同じ大きさ、2階を半分ほどにして、1階に下屋）／1階を少し引っ込めた箱（2階は総二階と同じ大きさ）
     if (form !== 'full' && stage >= 3 && !z0) return formHouse(o);
     let s = '';
     const g = (a) => a.map(([px, py, pz]) => { const q = P(x + px, y + py, pz + z0); return q; });

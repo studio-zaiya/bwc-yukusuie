@@ -252,7 +252,7 @@ export function scheduleOf(world) {
   return days;
 }
 export function schedule(world, addDays = 0) {
-  // 契約の日は、画面の契約の場面と同じ値（scheduleOf の4番目。監査11/6：条件は82日目、画面は62日目と食い違っていた）
+  // 契約の日は、画面の契約の場面と同じ値（scheduleOf の4番目。監査11/5：条件は82日目、画面は62日目と食い違っていた）
   const d = scheduleOf(world), contractDay = d[4] + (world.delay || 0) + addDays;
   return { contractDay, loanLeft: DEADLINE.loan - contractDay, handover: d[10] + addDays, ok: contractDay <= DEADLINE.loan };
 }
@@ -335,7 +335,7 @@ export function choose(w, d, opt, extra = {}) {
   if (d.id === 'D1' && w.proposalPlans?.[w.company]) applyPlan(w, w.proposalPlans[w.company]);
   const loan0 = money(w).loan;
   if (typeof opt === 'object') { applyPatch(w, { spec: opt.spec || {}, finish: opt.finish, electric: opt.electric }); if (!opt.plain) w.third = d.id; }
-  // 借入を増やした自由回答は、本審査のやり直しで契約が延びる（条件に出した日数と、契約の日をそろえる。守りの監査11/6）
+  // 借入を増やした自由回答は、本審査のやり直しで契約が延びる（条件に出した日数と、契約の日をそろえる。守りの監査11/5）
   if (typeof opt === 'object' && opt.borrow === 'cover' && d.id === 'D3' && money(w).loan > loan0 + 0.5) w.loanReview = 7;
   w.bits.push(side === 'a' ? 0 : 1);
   w.labels.push(typeof opt === 'object' ? (opt.label || baseLabel) : baseLabel);
@@ -453,7 +453,7 @@ export function outcome(w, opts = {}) {
   if (wm.level >= 3 && w.spec.window === 'triple') events.push('南の窓辺が、冬でもいちばんの居場所');
   const m = money({ ...w, adds: [...w.adds, ...(increase ? [{ label: '契約後の増額', v: increase }] : [])] });
   const sl = slack(h, m.loan);
-  // 予算や借入の上限を超えた世界には、暮らしのひとことだけ添える（計算は変えない。人間の回答11/6）
+  // 予算や借入の上限を超えた世界には、暮らしのひとことだけ添える（計算は変えない。人間の回答11/5）
   if (!w.unbuilt) {
     const over = m.loan - loanLimit(h);
     if (over > 0) events.push(['借りられる額を超えた分は、NISAと学資の積み立てを崩して払った', '借りられる額を超えた分を、知り合いに頼んで少し借りた', '足りない分は、子どもの学資の積み立てを取り崩した'][no % 3]);

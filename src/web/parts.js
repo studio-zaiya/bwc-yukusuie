@@ -6,7 +6,7 @@ let YOU = 7;
 // その世界で選んだ外壁の色（仕上げが決まる前は、番号ごとの見本の色）
 // 家の形：プランの形から（部分二階／1階が2階より小さい箱／総二階）。プランが決まる前は総二階
 export function formOf(w) {
-  // 形は名前の札ではなく、エンジンが出す1階と2階の床面積の比から（守りの監査11/6）
+  // 形は名前の札ではなく、エンジンが出す1階と2階の床面積の比から（守りの監査11/5）
   const t = w?.spec?.tsubo, f1 = w?.spec?.floor1Tsubo;
   if (!w?.plan || !t || !f1) return 'full';
   const f2 = t - f1;
@@ -123,7 +123,7 @@ export function estate2(list, o = {}) {
       const t = P(X + 33, Yy + 27, 66); // 番号札は、その区画の家の真上に（手前の区画の家と取り違えない）
       if (you) { // 「あなた」の札：墨の地に白字、橙の■。ゆっくり上下に揺れる。寄った最初の数秒だけ、薄い光の柱
         const g0 = P(X + Lz / 2, Yy + Lz / 2, 0);
-        void g0; // 光の柱は家の上に色が重なりくすんで見えるため、やめた（フレンドリー監査11/6。CLAUDE.md「家がくすむ演出」）
+        void g0; // 光の柱は家の上に色が重なりくすんで見えるため、やめた（フレンドリー監査11/5。CLAUDE.md「家がくすむ演出」）
         tags += `<g transform="translate(${t[0]},${t[1] - 6})"><g class="youtag"><rect x="-44" y="-17" width="88" height="30" rx="7" fill="#1E2B36"/><rect x="-36" y="-7" width="10" height="10" fill="#E8701F"/><text x="8" y="5" text-anchor="middle" font-size="15" font-weight="700" fill="#FFFAF0">${String(w.no).padStart(2, '0')} あなた</text></g></g>`;
       } else tags += `<g transform="translate(${t[0]},${t[1] + 4})"><rect x="-17" y="-12" width="34" height="22" rx="5" fill="#FFFAF0" stroke="#1E2B36" stroke-width="1.2"/><text x="0" y="4" text-anchor="middle" font-size="13" font-weight="700" fill="#1E2B36">${String(w.no).padStart(2, '0')}</text></g>`;
       if (o.notes && x.note && (o.notes === true || o.notes.includes(w.no))) { const m = P(X + Lz / 2, Yy + Lz / 2, 74); const fs = o.noteFs || 11, tw = x.note.length * fs * 0.62 + fs * 1.4; tags += `<g transform="translate(${m[0]},${m[1]})"><rect x="${-tw / 2}" y="${-fs * 1.15}" width="${tw}" height="${fs * 2}" rx="${fs}" fill="rgba(255,250,240,.94)" stroke="rgba(30,43,54,.3)"/><text x="0" y="${fs * 0.3}" text-anchor="middle" font-size="${fs}" font-weight="700" fill="#1E2B36">${x.note}</text></g>`; }

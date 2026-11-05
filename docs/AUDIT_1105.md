@@ -1,6 +1,6 @@
 # 4つの監査のまとめ（HANDOFF_1105 の8）
 
-作成：2026-11-06（Claude Code）。守り（yukusuie-audit）・フレンドリー（yukusuie-friendly）・攻め（yukusuie-review）・一貫性（yukusuie-consistency）を、実装した本人ではない4つのエージェントが見たものを統合した。提案はすべて【Claude】。【人間】の決定は覆さない。
+作成：2026-11-05（Claude Code）。守り（yukusuie-audit）・フレンドリー（yukusuie-friendly）・攻め（yukusuie-review）・一貫性（yukusuie-consistency）を、実装した本人ではない4つのエージェントが見たものを統合した。提案はすべて【Claude】。【人間】の決定は覆さない。
 
 ## 0. 監査のあとで、すぐ直したもの（11/6）
 - 守りのP0「通しの途中でわが家が入れ替わる」は、監査中にスクショを上書きした混在による誤検出。最新の1回分で、契約・引渡し・1年後・レポートが同じ総額（5,077万円）であることを確認
@@ -46,4 +46,4 @@
 4. どの画面でも同じ進行の帯
 
 ## 3. 人間に決めてほしいこと
-docs/questions.md の「11/6 監査から」に積んだ。
+docs/questions.md の「11/5 監査から」に積んだ。

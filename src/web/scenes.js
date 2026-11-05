@@ -464,7 +464,7 @@ export const SCENES = {
     // 2枚とも同じ「守れない希望」なら、札の上に1行だけ（攻めのレビュー11/5：同じ行が両方の札に出て、判断の材料にならなかった）
     const ngOf = side => { const t = Y.forkWorld(w); Y.choose(t, d, side); if (d.id === 'D1' && s.proposals?.[t.company]) Y.applyPlan(t, fitProposalW({ ...s.proposals[t.company], co: t.company }, { household: s.household, wishes: s.wishes, co: t.company }).main); return Y.checkWishes(t, s.wishes).filter(c => !c.ok).map(c => c.label).join('、'); };
     const ngA = ngOf('a'), ngB = ngOf('b'), commonNg = ngA && ngA === ngB ? ngA : '';
-    // 第四の分岐点が自動で出るとき、選ばれる札は色決めで実際に選んだ中身で作る（監査11/6：「外壁と床」と出るのに外壁だけ、を避ける）
+    // 第四の分岐点が自動で出るとき、選ばれる札は色決めで実際に選んだ中身で作る（監査11/5：「外壁と床」と出るのに外壁だけ、を避ける）
     const autoLab = f => `グレードアップして仕上げた（${[f.wall !== 'std' && '外壁', f.floor !== 'std' && '床', f.inner !== 'vinyl' && '内壁'].filter(Boolean).join('・')}）`;
     const card = side => { const t = Y.forkWorld(w); Y.choose(t, d, side); if (d.id === 'D4' && s.autoFork === side && Y.finishCost(w.finish)) t.finish = { ...w.finish }; if (d.id === 'D1' && s.proposals?.[t.company]) Y.applyPlan(t, fitProposalW({ ...s.proposals[t.company], co: t.company }, { household: s.household, wishes: s.wishes, co: t.company }).main); const m = Y.money(t), m0 = Y.money(w); const df = m.total - m0.total, mo = Y.payment(m.loan, Y.RATE.variable) - Y.payment(m0.loan, Y.RATE.variable); const lc = Y.loanCheck(H(s), m.loan);
       const co = Y.COMPANIES[t.company];

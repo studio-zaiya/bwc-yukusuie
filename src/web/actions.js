@@ -61,7 +61,7 @@ let pendingRefuse = null;
 // 断られた：ナレーションの帯 → すでにある別の世界線へ移る。第一の分岐点の前なら、もう1社と進む
 async function refuseAndSwitch(co, kind) {
   await new Promise(r => setTimeout(r, 1400));
-  // 移る先は、一つ前の分岐点で、選ばなかったほうを選んだ世界（人間の回答11/6）。メイン画面の世界と、下の一覧のその世界を入れ替える
+  // 移る先は、一つ前の分岐点で、選ばなかったほうを選んだ世界（人間の回答11/5）。メイン画面の世界と、下の一覧のその世界を入れ替える
   // ただし断った会社と建てる世界には移らない（さかのぼって、会社が違う世界の、いちばん近い分岐点へ）
   const sibAt = k => S.others.find(o => !o.unbuilt && o.bits.length === S.player.bits.length && o.bits.every((b, i) => i === k ? b !== S.player.bits[i] : b === S.player.bits[i]));
   let k0 = (S.player?.bits.length || 0) - 1, sib = null;
@@ -430,7 +430,7 @@ function decide(side, reason) {
 // 分岐点どうしの短いつなぎ（FLOW_v3 の3）
 function connector(text, then) { SWITCH.on = true; SWITCH.lines = [text]; SWITCH.i = 0; SWITCH.soft = true; render(); setTimeout(() => { SWITCH.on = false; SWITCH.soft = false; then(); }, 1500); }
 // 2社分の提案を同時に作る（設計担当。数字はエンジン）。続きから遊ぶ道は、取っておいた提案を使う（cache）
-// 2社の提案の屋根：1社目は1人目の好み、2社目は2人目の好み（同じなら、2社目は会社のふだんの形）。2社の家が同じ形にならないように（監査11/6）
+// 2社の提案の屋根：1社目は1人目の好み、2社目は2人目の好み（同じなら、2社目は会社のふだんの形）。2社の家が同じ形にならないように（監査11/5）
 const ROOF_OF_SV = { flat: 'cube', gable: 'gable', hip: 'hip', mono: 'mane' };
 function roofHints(cos) {
   const sv = S.memory?.survey?.roof || {}, a = ROOF_OF_SV[sv.p1], b = ROOF_OF_SV[sv.p2] || (S.partnerAns?.roof ? ROOF_OF_SV[S.partnerAns.roof[0]] : null);
@@ -496,7 +496,7 @@ function afterFork(dec) {
   else if (dec.id === 'D2') { const d2 = Y.scheduleOf(S.player); connector(`${Math.max(1, (d2[4] || 0) - (d2[2] || 0))}日後——契約の前の、最終のお見積り`, () => goto('fork', 5)); }
   else if (dec.id === 'D4') {
     goto('electric', 6);
-    // 伝わらなかった要望に、プレイヤーが気づかなければ、そのまま進む（それも持ち帰ってほしい経験。人間の回答11/6）
+    // 伝わらなかった要望に、プレイヤーが気づかなければ、そのまま進む（それも持ち帰ってほしい経験。人間の回答11/5）
   }
   else if (dec.id === 'D3') {
     // 契約に入れてあるオプションは、その会社の担当者が聞き取れた（記録した）要望だけ

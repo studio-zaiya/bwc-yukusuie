@@ -133,7 +133,7 @@ export function apply(s, e) {
       break;
     }
     case 'meet': s.meet[e.co] = { ...(s.meet[e.co] || {}), ...e.data }; break;
-    case 'electric': s.elecFresh = e.contract ? [] : e.ids; s.player.electric = [...new Set([...s.player.electric, ...e.ids])]; if (!e.contract) for (const o of s.others) o.electric = [...new Set([...(o.electric || []), ...e.ids])]; // 同じ家族の要望なので、ほかの世界にも同じ電気を足す（いちばん近い世界との差に、電気の追加が混ざらない。守りの監査11/6） s.player.adds.push(...(e.adj || [])); if (e.contract) s.player.contractOpts = [...new Set([...(s.player.contractOpts || []), ...e.ids])]; break;
+    case 'electric': s.elecFresh = e.contract ? [] : e.ids; s.player.electric = [...new Set([...s.player.electric, ...e.ids])]; if (!e.contract) for (const o of s.others) o.electric = [...new Set([...(o.electric || []), ...e.ids])]; // 同じ家族の要望なので、ほかの世界にも同じ電気を足す（いちばん近い世界との差に、電気の追加が混ざらない。守りの監査11/5） s.player.adds.push(...(e.adj || [])); if (e.contract) s.player.contractOpts = [...new Set([...(s.player.contractOpts || []), ...e.ids])]; break;
     case 'pop': s.pop = e.pop; break;
     case 'lot': s.lot = e.no; break;
     case 'buildAuto': s.buildAuto = true; break;
@@ -217,7 +217,7 @@ export function render() {
   peekAnim();
   if (SCENES[S.scene + '_after']) SCENES[S.scene + '_after'](S);
 }
-// 家づくりの言葉の短い説明（フレンドリー監査11/6）：画面ごとに、各語の最初の1か所だけに点線を付け、指を乗せると説明が出る
+// 家づくりの言葉の短い説明（フレンドリー監査11/5）：画面ごとに、各語の最初の1か所だけに点線を付け、指を乗せると説明が出る
 const GLOSS = { '建蔽率': '敷地の広さに対して、建物を建ててよい面積の割合', '容積率': '敷地の広さに対して、延床面積の合計の上限の割合', 'ローン特約': '住宅ローンの本審査に通らなければ、土地の契約を白紙に戻せる約束。期限がある', '外構': '門・駐車場・庭・塀など、家の外まわりの工事', '返済負担率': '年収に対する、年間の返済額の割合', '本審査': '契約の内容で、金融機関が正式に融資を決める審査', '増工': '契約のあとで、工事を足して増えた金額', '施主支給': '照明や設備を、施主が自分で買って用意すること', 'つなぎ融資': '家の完成前の支払い（着工金など）のために、一時的に借りるお金', '別途': '見積の金額に入っていない項目。あとで足される', '延床': '1階と2階の床面積の合計', '部分二階': '1階の一部の上にだけ2階がある形', '総二階': '1階と2階がほぼ同じ大きさの形', '施主検査': '引渡しの前に、頼んだとおりか施主が確かめる検査', '上棟': '柱・梁・屋根の骨組みが組み上がること' };
 function glossify(root) {
   const seen = new Set(), re = new RegExp(Object.keys(GLOSS).join('|'));

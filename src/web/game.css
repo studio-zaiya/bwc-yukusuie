@@ -630,7 +630,7 @@ body.rec .youtag{animation:none}
 .pop{z-index:50}
 abbr.term{text-decoration:underline dotted rgba(30,43,54,.55);text-underline-offset:4px;cursor:help}
 .log.coord{padding-bottom:40px !important}
-/* 金と金の破線は「2択の外の答え」の印だけに（守りの監査11/6）。選んだ状態・追加・選んでいる道は墨に */
+/* 金と金の破線は「2択の外の答え」の印だけに（守りの監査11/5）。選んだ状態・追加・選んでいる道は墨に */
 .th.new{box-shadow:0 0 0 3px rgba(30,43,54,.25)}
 .colors button[aria-pressed="true"],.vbtn[aria-pressed="true"],.cd.pl.on{box-shadow:0 0 0 3px rgba(30,43,54,.28)}
 .timeline.replay li.dv{border-left:4px solid var(--ink);background:#F4F1EA}
