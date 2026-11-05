@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>ゆくすいえ — 1枚を持っていく</title>
+<!-- 実写の手渡しが間に合わない場合の場面【構成：Claude】。前振り⑧（作り手と施主をつなぐ線）と同じ座標・色で、
+     施主の側に「本物の打ち合わせに持っていく1枚」が描かれ、作り手の側へ渡る。手は描かない。
+     決定論的：window.render(t)、DUR、READY、?t=秒 -->
+<style>
+html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:#fbf7ee}
+canvas{display:block}
+</style></head><body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+const W=1920,H=1080,DUR=8;window.DUR=DUR;
+const C={paper:'#fbf7ee',ink:'#2a2620',mute:'#8a8070',or:'#ef7a3b',te:'#16a093',pk:'#e4589a',bl:'#3d7be0',sun:'#f2b632'};
+const FONT='"Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic","Zen Kaku Gothic New",sans-serif';
+const ctx=document.getElementById('c').getContext('2d');
+const clamp=v=>Math.max(0,Math.min(1,v)),lerp=(a,b,k)=>a+(b-a)*k;
+const eo=v=>1-Math.pow(1-clamp(v),3),eio=v=>{v=clamp(v);return v<.5?4*v*v*v:1-Math.pow(-2*v+2,3)/2};
+const cum=p=>{const L=[0];for(let i=1;i<p.length;i++)L.push(L[i-1]+Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]));return L};
+function stroke(pts,p,color,lw,alpha){
+  if(p<=0||pts.length<2)return null;const L=cum(pts),target=L[L.length-1]*clamp(p);
+  ctx.save();ctx.globalAlpha=alpha==null?1:alpha;ctx.strokeStyle=color;ctx.lineWidth=lw||6;ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);let tip=pts[0];
+  for(let i=1;i<pts.length;i++){if(L[i]<=target){ctx.lineTo(pts[i][0],pts[i][1]);tip=pts[i]}else{const k=(target-L[i-1])/(L[i]-L[i-1]||1);tip=[lerp(pts[i-1][0],pts[i][0],k),lerp(pts[i-1][1],pts[i][1],k)];ctx.lineTo(tip[0],tip[1]);break}}
+  ctx.stroke();ctx.restore();return tip}
+function penTip(tip,color){if(!tip)return;ctx.save();const g=ctx.createRadialGradient(tip[0],tip[1],0,tip[0],tip[1],26);g.addColorStop(0,color);g.addColorStop(.35,color+'99');g.addColorStop(1,color+'00');ctx.fillStyle=g;ctx.beginPath();ctx.arc(tip[0],tip[1],26,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(tip[0],tip[1],4,0,7);ctx.fill();ctx.restore()}
+function txt(t,t0,s,x,y,size,o){o=o||{};const a=eo((t-t0)/.45);if(a<=0)return;ctx.save();ctx.globalAlpha=a*(o.alpha==null?1:o.alpha);ctx.fillStyle=o.color||C.ink;ctx.font=`${o.weight||500} ${size}px ${FONT}`;ctx.textAlign=o.align||'left';ctx.fillText(s,x,y+(1-a)*14);ctx.restore()}
+const circ=(cx,cy,r,a0,dir)=>{const p=[];for(let i=0;i<=72;i++){const a=a0+dir*i/72*Math.PI*2;p.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r])}return p};
+const rr=(x,y,w,h,r)=>{ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()};
+
+// 前振り⑧と同じ位置：作り手（左）・施主（右）
+const L0=[520,670],R0=[1400,670],RAD=120;
+// 一筆の線：左から入り、作り手の円 → 机の線 → 施主の円 → 右へ
+const B=L0[1]+RAD; // 円の下端を机の線が通る
+const LINE=[[0,B+24],[380,B+4],[L0[0],B]].concat(circ(L0[0],L0[1],RAD,Math.PI/2,-1)).concat([[R0[0],B]]).concat(circ(R0[0],R0[1],RAD,Math.PI/2,-1)).concat([[1560,B+4],[1920,B+18]]);
+
+// 1枚（縦長の紙）。原点は紙の中心、幅 230・高さ 310
+const PW=230,PH=310;
+function sheet(t,x,y,rot,draw,fill){
+  ctx.save();ctx.translate(x,y);ctx.rotate(rot);
+  // 影
+  ctx.save();ctx.globalAlpha=.10*fill;ctx.fillStyle=C.ink;rr(-PW/2+8,-PH/2+10,PW,PH,10);ctx.fill();ctx.restore();
+  // 紙
+  ctx.save();ctx.globalAlpha=fill;ctx.fillStyle='#ffffff';rr(-PW/2,-PH/2,PW,PH,10);ctx.fill();ctx.restore();
+  const box=[[-PW/2+10,-PH/2],[PW/2-10,-PH/2],[PW/2,-PH/2+10],[PW/2,PH/2-10],[PW/2-10,PH/2],[-PW/2+10,PH/2],[-PW/2,PH/2-10],[-PW/2,-PH/2+10],[-PW/2+10,-PH/2]];
+  stroke(box,draw/.35,C.ink,4);
+  // 表紙の小さな家（色決めの色を思わせる、やわらかい塗り）
+  const k1=clamp((draw-.30)/.25);
+  if(k1>0){ctx.save();ctx.globalAlpha=k1;ctx.fillStyle='#ffe2c9';ctx.beginPath();ctx.moveTo(-70,-45);ctx.lineTo(-70,-95);ctx.lineTo(0,-135);ctx.lineTo(70,-95);ctx.lineTo(70,-45);ctx.closePath();ctx.fill();ctx.restore();}
+  stroke([[-70,-45],[-70,-95],[0,-135],[70,-95],[70,-45],[-70,-45]],k1,C.or,4);
+  stroke([[-14,-45],[-14,-75],[14,-75],[14,-45]],clamp((draw-.48)/.1),C.or,3);
+  // 見出しの線
+  stroke([[-80,-14],[80,-14]],clamp((draw-.55)/.1),C.ink,5);
+  // 希望の行：○ と △（守れた／守れなかった）。色で良し悪しを塗らない
+  const rows=[[24,'o',120],[60,'o',96],[96,'t',110],[132,'o',84]];
+  rows.forEach(([yy,m,len],i)=>{const k=clamp((draw-.62-i*.07)/.12);if(k<=0)return;
+    ctx.save();ctx.globalAlpha=k;ctx.strokeStyle=C.ink;ctx.lineWidth=3;
+    if(m==='o'){ctx.beginPath();ctx.arc(-80,yy-4,9,0,7);ctx.stroke()}else{ctx.beginPath();ctx.moveTo(-80,yy-15);ctx.lineTo(-70,yy+5);ctx.lineTo(-90,yy+5);ctx.closePath();ctx.stroke()}
+    ctx.restore();
+    ctx.save();ctx.globalAlpha=k*.9;ctx.fillStyle=i===2?'#ffc7d9':'#ffe48a';rr(-58,yy-12,len*k,16,8);ctx.fill();ctx.restore();});
+  ctx.restore();
+}
+
+window.render=t=>{
+  ctx.fillStyle=C.paper;ctx.fillRect(0,0,W,H);
+  // 線と円
+  const tip=stroke(LINE,eio(t/1.5),C.te,6);
+  txt(t,.5,'作り手',L0[0],L0[1]+14,36,{align:'center',weight:700,color:C.te});
+  txt(t,1.1,'施主',R0[0],R0[1]+14,36,{align:'center',weight:700,color:C.te});
+  if(t<1.6)penTip(tip,C.te);
+  // 1枚：施主の上に描かれる（2.0〜3.6秒）→ 作り手の上へ渡る（3.9〜5.6秒）
+  const draw=clamp((t-1.1)/1.4),fill=eo((t-1.4)/.6);
+  const m=eio((t-3.0)/1.7);
+  const sx=lerp(R0[0],L0[0],m),sy=335-Math.sin(m*Math.PI)*70;
+  const rot=lerp(.06,-.05,m)+Math.sin(m*Math.PI)*-.08;
+  // 渡る道すじ：前振り⑧の「あいだをつなぐ」波を、細く
+  if(t>3.0){const wave=[];for(let i=0;i<=80;i++){const x=lerp(R0[0]-RAD-10,L0[0]+RAD+10,i/80);wave.push([x,590-Math.sin(i/80*Math.PI*2)*28])}
+    stroke(wave,eio((t-3.0)/1.7),C.or,3,.55*(1-eo((t-5.6)/1)));}
+  if(draw>0)sheet(t,sx,sy,rot,draw,fill);
+  // 受け取ったとき：作り手の円が、ふわっと明るくなる
+  const g=eo((t-4.6)/.5)*(1-eo((t-6.0)/1.2));
+  if(g>0){ctx.save();const gr=ctx.createRadialGradient(L0[0],L0[1],RAD*.6,L0[0],L0[1],RAD*1.6);gr.addColorStop(0,'rgba(22,160,147,0)');gr.addColorStop(.5,`rgba(22,160,147,${.18*g})`);gr.addColorStop(1,'rgba(22,160,147,0)');ctx.fillStyle=gr;ctx.beginPath();ctx.arc(L0[0],L0[1],RAD*1.6,0,7);ctx.fill();ctx.restore();}
+};
+const q=new URLSearchParams(location.search);
+render(q.has('t')?+q.get('t'):DUR-.5);
+(document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(()=>{window.READY=true});
+</script></body></html>

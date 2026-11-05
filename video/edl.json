@@ -1,0 +1,259 @@
+{
+ "note": "通しの場面表（v0.4）。at は通しでの開始秒。full=true は全面、ほかは枠（0.86倍）。rec の in は録画の秒、speed は速さ、play はその秒まで再生して最後のコマで止める、zoom は寄り（at 秒から0.6秒で scale 倍、cx/cy は寄る位置 0〜1、out で引く）、xf はその場面に入るつなぎの秒",
+ "fps": 24,
+ "xfade": 0.3,
+ "end": 180,
+ "subs": "subs_v4.srt",
+ "segments": [
+  {
+   "id": "opening",
+   "at": 0,
+   "kind": "part",
+   "file": "opening.mp4",
+   "full": true,
+   "label": "冒頭のロゴ（紺の地、白い文字）＋一言（仮：A）"
+  },
+  {
+   "id": "hero",
+   "at": 4,
+   "kind": "part",
+   "file": "hero-title.mp4",
+   "xf": 0.5,
+   "label": "Hero（コピーまで）",
+   "in": 0,
+   "crop": [
+    1880,
+    1058,
+    36,
+    11
+   ]
+  },
+  {
+   "id": "intro",
+   "at": 12,
+   "kind": "part",
+   "file": "intro-c.mp4",
+   "label": "前振りC（7場面）"
+  },
+  {
+   "id": "r01-survey",
+   "at": 47,
+   "kind": "rec",
+   "file": "rec/demo_full.mp4",
+   "label": "実機 1：来場者アンケート",
+   "in": 13.5,
+   "zoom": {
+    "at": 0.8,
+    "scale": 1.35,
+    "cx": 0.08,
+    "cy": 0.05
+   }
+  },
+  {
+   "id": "r02-summary",
+   "at": 54,
+   "kind": "rec",
+   "file": "rec/demo_slow.mp4",
+   "label": "実機 2：担当者の総括",
+   "in": 124.0,
+   "zoom": {
+    "at": 0.9,
+    "scale": 1.6,
+    "cx": 1.0,
+    "cy": 0.82
+   }
+  },
+  {
+   "id": "r03-proposal",
+   "at": 59,
+   "kind": "rec",
+   "file": "rec/demo_slow.mp4",
+   "label": "実機 3：提案の日（2社の案）",
+   "in": 318.2,
+   "play": 3.6,
+   "zoom": {
+    "at": 0.8,
+    "scale": 1.35,
+    "cx": 0.5,
+    "cy": 1.0
+   }
+  },
+  {
+   "id": "r04-fork1",
+   "at": 64,
+   "kind": "rec",
+   "file": "rec/demo_slow.mp4",
+   "label": "実機 4：第一の分岐点 → 選ばなかった道が世界線の列へ",
+   "in": 326.0
+  },
+  {
+   "id": "r05-fork3",
+   "at": 76,
+   "kind": "rec",
+   "file": "rec/demo_slow.mp4",
+   "label": "実機 5：第三の分岐点（札と自分の言葉の欄）",
+   "in": 394.6,
+   "zoom": {
+    "at": 2.5,
+    "scale": 1.25,
+    "cx": 0.5,
+    "cy": 0.45
+   }
+  },
+  {
+   "id": "r05-trade",
+   "at": 83,
+   "kind": "rec",
+   "file": "rec/demo_slow.mp4",
+   "label": "実機 5：自分の言葉 → 家の絵と◆・担当者の条件・いま起きたこと",
+   "in": 413.95,
+   "play": 2.3,
+   "zoom": {
+    "at": 1.6,
+    "scale": 1.4,
+    "cx": 0.0,
+    "cy": 0.4
+   },
+   "note": "実際の画面は約2.4秒。最後のコマで止め、寄る"
+  },
+  {
+   "id": "r06-coord",
+   "at": 89,
+   "kind": "rec",
+   "file": "rec/demo_slow.mp4",
+   "label": "実機 6：色決め → 第四の分岐点（自動）→ 15へ",
+   "in": 436.5,
+   "speed": 1.4
+  },
+  {
+   "id": "r07-electric",
+   "at": 97,
+   "kind": "rec",
+   "file": "rec/demo_slow.mp4",
+   "label": "実機 7：電気の打ち合わせ（左の一覧）",
+   "in": 453.4,
+   "zoom": {
+    "at": 0.5,
+    "scale": 1.3,
+    "cx": 0.0,
+    "cy": 0.3
+   }
+  },
+  {
+   "id": "r08-build",
+   "at": 102,
+   "kind": "rec",
+   "file": "rec/demo_slow.mp4",
+   "label": "実機 8：着工から引渡しまでの早送り",
+   "in": 464.8,
+   "speed": 5.6
+  },
+  {
+   "id": "r08-handover",
+   "at": 110,
+   "kind": "rec",
+   "file": "rec/demo_slow.mp4",
+   "label": "実機 8：引渡し（切り絵）",
+   "in": 513.8
+  },
+  {
+   "id": "r09-seasons",
+   "at": 117,
+   "kind": "rec",
+   "file": "rec/demo_slow.mp4",
+   "label": "実機 9：1年のうつろい → 1年後",
+   "in": 523.0,
+   "speed": 2.4
+  },
+  {
+   "id": "r09-year",
+   "at": 122,
+   "kind": "rec",
+   "file": "rec/demo_slow.mp4",
+   "label": "実機 9：16区画 → 区画を押して比べる",
+   "in": 539.2,
+   "play": 8.9,
+   "zoom": {
+    "at": 0.6,
+    "scale": 1.4,
+    "cx": 0.3,
+    "cy": 0.45,
+    "out": 5.4
+   }
+  },
+  {
+   "id": "arch",
+   "at": 133,
+   "kind": "part",
+   "file": "arch.mp4",
+   "label": "仕組み「言葉はClaude、数字はコード。」（+58万円）",
+   "in": 5.6
+  },
+  {
+   "id": "training",
+   "at": 139,
+   "kind": "part",
+   "file": "training-log.mp4",
+   "label": "担当者の研修：生ログと数字（1回目→5回目）"
+  },
+  {
+   "id": "skills",
+   "at": 145,
+   "kind": "part",
+   "file": "skills.mp4",
+   "label": "自作の点検スキル4つ"
+  },
+  {
+   "id": "audit",
+   "at": 148.5,
+   "kind": "part",
+   "file": "check-audit.mp4",
+   "label": "点検の結果：守りの監査（実際に走らせた）"
+  },
+  {
+   "id": "consistency",
+   "at": 151,
+   "kind": "part",
+   "file": "check-consistency.mp4",
+   "label": "点検の結果：約束の表で、動画の言葉と実機を照合（実際に走らせた）"
+  },
+  {
+   "id": "report",
+   "at": 157,
+   "kind": "part",
+   "file": "report-pages.mp4",
+   "shotAt": 5.0,
+   "label": "実機 10：印刷レポート → 担当者に渡す1枚"
+  },
+  {
+   "id": "ending",
+   "at": 169,
+   "kind": "part",
+   "file": "ending-EA-notitle.mp4",
+   "crop": [
+    1880,
+    1058,
+    36,
+    11
+   ],
+   "label": "締めの絵（題名なし）",
+   "in": 9.7
+  },
+  {
+   "id": "closing",
+   "at": 172,
+   "kind": "part",
+   "file": "closing.mp4",
+   "full": true,
+   "label": "締めのロゴ（紙色の地、墨の文字）＋16回目の、マイホームへ。"
+  },
+  {
+   "id": "credits",
+   "at": 175,
+   "kind": "part",
+   "file": "credits.mp4",
+   "full": true,
+   "label": "黒画面（スタッフ・注記）"
+  }
+ ]
+}
