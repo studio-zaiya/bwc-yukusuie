@@ -1,0 +1,160 @@
+{
+ "co": "A",
+ "cust": "price",
+ "custLabel": "値段ばかり気にする",
+ "phase": "proposal",
+ "seed": 115,
+ "harness": "harness-v2",
+ "log": [
+  {
+   "role": "cust",
+   "text": "図面と見積、ありがとうございます。まず、総額はいくらになりましたか？ 5,000万円以内に収まりますか？ 少しでも安くなりませんか？"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "その点は、標準でしっかり備えております。くわしい中身もお伝えできますよ。",
+   "say": "その点は、標準でしっかり備えております。くわしい中身もお伝えできますよ。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "中身の説明はあとで聞きたいです。まず総額はいくらなんですか？ 5,000万円以内に本当に収まっているんですよね？ 少しでも安くする方法はありませんか？"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "少し確認してまいりますね。",
+   "say": "少し確認してまいりますね。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "確認していただけるのはありがたいです。でも、正直に教えてください。総額はいくらなんですか？ 5,000万円を超えているなら、どこを削れば安くなりますか？"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "その点は、標準でしっかり備えております。くわしい中身もお伝えできますよ。",
+   "say": "その点は、標準でしっかり備えております。くわしい中身もお伝えできますよ。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "その『標準でしっかり備えております』って、結局いくらなんですか？ 同じ説明を何度も聞いてるんですけど、総額の数字だけ先に教えてください。5,000万円を超えているなら、どこを削ればいくらになるのかも一緒に出してほしいです。"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "少し確認してまいりますね。",
+   "say": "少し確認してまいりますね。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "確認してまいりますと言われてから、もう何度も同じやりとりをしています。いいですか、総額の数字だけで構いません。5,000万円を超えているなら、それがいくらオーバーしているのか、どこを削ればいくら安くなるのかを、今ここで具体的に出してください。"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "その点は、標準でしっかり備えております。くわしい中身もお伝えできますよ。",
+   "say": "その点は、標準でしっかり備えております。くわしい中身もお伝えできますよ。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "また同じ答えですか。総額の数字を聞いているのに、標準でしっかり備えていますの繰り返しでは困ります。いくらなんですか？ 5,000万円を超えているなら、今ここでオーバー分と、削ればいくら安くなるかを具体的に出してください。"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "少し確認してまいりますね。",
+   "say": "少し確認してまいりますね。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "もう何度目ですか。確認してまいりますばかりで、総額の数字が一度も出てきていません。今ここで総額をはっきり言ってください。5,000万円を超えているなら、オーバーした金額と、どこを削ればいくら安くなるかも具体的に教えてください。それができないなら、一度持ち帰って他社と比べます。"
+  }
+ ],
+ "auto": {
+  "len": 0,
+  "q1": 0,
+  "num": 0,
+  "reask": 0,
+  "words": 0,
+  "stock": 6,
+  "turns": 6
+ },
+ "scores": {
+  "interrogate": 2,
+  "answer": 1,
+  "defer": 1,
+  "persona": 2,
+  "progress": 1,
+  "warmth": 1
+ },
+ "worstTurn": {
+  "index": 5,
+  "why": "総額を聞かれて確認すると繰り返すだけで、数字も削減案も出さず、客の不満と他社比較の宣言を招いている。",
+  "better": "総額は本日お伝えできる数字として先に示し、5,000万円との差と削減の候補は後日の詳細資料に預けましょう。まず今の見積の総額と予算との差を明確にお答えします。"
+ },
+ "judgeErr": [],
+ "autoPass": true,
+ "judgePass": false,
+ "pass": false
+}

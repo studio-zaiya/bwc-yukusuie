@@ -1,0 +1,160 @@
+{
+ "co": "C",
+ "cust": "price",
+ "custLabel": "値段ばかり気にする",
+ "phase": "proposal",
+ "seed": 117,
+ "harness": "harness-v2",
+ "log": [
+  {
+   "role": "cust",
+   "text": "図面と見積、ありがとうございます。まず総額はいくらになりますか。うちは5,000万円以内で考えているので、そこに収まるのかが一番気になります。あと、少し安くなりませんか。"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "なるほど。それは、間取りの中で一緒に考えましょう。",
+   "say": "なるほど。それは、間取りの中で一緒に考えましょう。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "ありがとうございます。でも、まず総額がいくらになるのかを教えてください。5,000万円以内に収まらないなら、間取りを考える前に安くなる方法を知りたいです。"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "少し、時間をいただけますか。",
+   "say": "少し、時間をいただけますか。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "もちろんです。ただ、正直なところ、まず総額がいくらになるのかを早く知りたいです。5,000万円を超えているなら、どこを削ればいいのか今わかると助かります。ちなみに、月々12万円くらいまでという目安もあるので、そちらも合わせて教えてください。"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "なるほど。それは、間取りの中で一緒に考えましょう。",
+   "say": "なるほど。それは、間取りの中で一緒に考えましょう。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "またそれですか。間取りの中でと言われても、結局いくらになるのかが分からないと、話を進められません。今の時点で、総額のおおよその目安だけでも教えてください。5,000万円に収まらないなら、どこを削ればいいのかも知りたいです。"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "少し、時間をいただけますか。",
+   "say": "少し、時間をいただけますか。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "また時間をいただくんですか。こちらは判断材料がほしいだけなんです。総額のおおよその数字だけでも今わかりませんか。5,000万円を超えるなら、安くなる方法も一緒に教えてください。"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "なるほど。それは、間取りの中で一緒に考えましょう。",
+   "say": "なるほど。それは、間取りの中で一緒に考えましょう。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "またその答えですか。間取りの中でと言われ続けると、いつまでたっても総額が分からないままです。今の段階で構いませんので、おおよその総額の数字だけ教えてください。5,000万円を超えるなら、どこを削るとどれくらい下がるのかも一緒に示してほしいです。"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "少し、時間をいただけますか。",
+   "say": "少し、時間をいただけますか。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "また時間をいただくんですか。こちらは何度も同じお願いをしているんです。今の段階で構いませんので、総額のおおよその数字と、5,000万円を超える場合に削れる項目の金額感を、ひとつだけでもいいので今すぐ教えてください。"
+  }
+ ],
+ "auto": {
+  "len": 0,
+  "q1": 0,
+  "num": 0,
+  "reask": 0,
+  "words": 0,
+  "stock": 6,
+  "turns": 6
+ },
+ "scores": {
+  "interrogate": 1,
+  "answer": 1,
+  "defer": 2,
+  "persona": 2,
+  "progress": 1,
+  "warmth": 1
+ },
+ "worstTurn": {
+  "index": 5,
+  "why": "総額の質問に一度も答えず、「少し時間をいただけますか」と同じ逃げ文句を繰り返して、お客様の苛立ちを無視している。",
+  "better": "概算の総額は今すぐには出せませんが、5,000万円を超えそうな項目と目安の金額感を、今週中に一覧にしてお送りします。今日は窓の高さや光の入り方など、お話しできる範囲で進めましょう。"
+ },
+ "judgeErr": [],
+ "autoPass": true,
+ "judgePass": false,
+ "pass": false
+}

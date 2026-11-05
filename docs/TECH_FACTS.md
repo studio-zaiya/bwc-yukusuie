@@ -86,7 +86,7 @@
 | API キーがブラウザに出ない | ある | キーは Worker の秘密 `ANTHROPIC_API_KEY`（`src/ai.js:37-39`）。`src/web/` にキーの参照はない（grep で0件） | ブラウザは `/api/ai/*` を呼ぶだけ |
 | 1人あたりの回数制限 | ある | `src/worker.js:41-56`（`guard`）、`wrangler.toml:26-28`：1つの IP で1日6プレイ・120回、全体で1日4,000回 | 超えたら代わりの文で返す |
 | 費用の上限 | ある | `wrangler.toml:31-32`（1日25ドル・全体150ドル）、`src/worker.js:51-52`、研修 `:503`。緊急停止 `EMERGENCY_STOP`（`:42`） | 11/6 未明の `/api/health`：累計 約50.6ドル |
-| 担当者の研修 | ある | `docs/REP_TRAINING_LOG.md`（`tools/rep_training/make_log.py` で作り直せる）、`tools/rep_training/train.mjs`、推移の図 `docs/devlog/rep_training.svg`。生の記録は `out/rep_training/round1〜9`（コミットしない） | 9回、会話496本（1〜5回目は各48本、6〜9回目は各64本）、お客さま役10人（`data/training/customers.json`：初めの8人＋6回目から値下げを迫る人・役を壊す人）、合計40.14ドル |
+| 担当者の研修 | ある | `docs/REP_TRAINING_LOG.md`（`tools/rep_training/make_log.py` で作り直せる）、`tools/rep_training/train.mjs`、推移の図 `docs/devlog/rep_training.svg`。生の記録（会話1本ずつのJSON、モデル名つき）は `data/training/runs/round1〜9`（11/6 に人間の指示でリポジトリに入れた） | 9回、会話496本（1〜5回目は各48本、6〜9回目は各64本）、お客さま役10人（`data/training/customers.json`：初めの8人＋6回目から値下げを迫る人・役を壊す人）、合計40.14ドル |
 | 研修の評価の項目 | ある | `data/training/rubric.json`：コードで数える5項目（発言の長さ・質問は1つ・枠の外の数字・聞き直し・ほかの会社の言葉）＋審査役の6項目（尋問っぽさ・答えたか・預け方・会社らしさ・前に進んだか・分かってもらえた感） | — |
 | 研修の前後の数字 | ある | `docs/REP_TRAINING_LOG.md` の表 | 決まり文句に落ちた発言 92/281 → 5/377（途中の最小は7回目の0/373）。答えたか 1.69 → 2.67。預け方 2.02 → 3.12。前に進んだか 1.53 → 2.55。合格（6項目すべて）は0〜4%で雑音の範囲 |
 

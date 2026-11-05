@@ -1,0 +1,160 @@
+{
+ "co": "D",
+ "cust": "price",
+ "custLabel": "値段ばかり気にする",
+ "phase": "proposal",
+ "seed": 118,
+ "harness": "harness-v2",
+ "log": [
+  {
+   "role": "cust",
+   "text": "図面と見積、ありがとうございます。まず、総額はおいくらになりますか？ 5,000万円以内に収まりますか？ 正直、それが一番気になっています。"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "大丈夫、なんとかしますよ。",
+   "say": "大丈夫、なんとかしますよ。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "なんとかするって、具体的にいくらになるんですか？ 5,000万円以内に本当に収まるんですか？ 安くなりませんか？"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "それは現場で相談しましょう。",
+   "say": "それは現場で相談しましょう。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "現場で相談するって、それじゃ困るんです。今この場で、総額がいくらになるのか教えてください。5,000万円以内に収まらないなら、どこを削ればいいのか、そこも含めてはっきりさせてほしいです。安くなる方法はありませんか？"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "大丈夫、なんとかしますよ。",
+   "say": "大丈夫、なんとかしますよ。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "なんとかするって、その言葉が一番困るんです。結局いくらなんですか？ 5,000万円以内に収まらないなら、何をいくら削ればいいのか、数字で今すぐ教えてください。"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "それは現場で相談しましょう。",
+   "say": "それは現場で相談しましょう。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "現場で相談しましょう、って同じ答えが二回目ですよ。今ここで数字を出してもらえないなら、うちは5,000万円以内に収まるかどうか判断できません。いくらなのか、削るならどこをいくら削るのか、まずそれだけ教えてください。"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "大丈夫、なんとかしますよ。",
+   "say": "大丈夫、なんとかしますよ。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "また「なんとかします」ですか。それでは何も決まらないんです。今すぐ、総額の数字と、削るならどこをいくら削るのかを具体的に出してください。5,000万円以内に収まらないなら、そのまま見過ごせません。安くなる方法もはっきり教えてください。"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "それは現場で相談しましょう。",
+   "say": "それは現場で相談しましょう。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "またそれですか。現場で相談しましょう、と「なんとかします」を交互に繰り返されても、数字がひとつも出てこないじゃないですか。総額はいくらなんですか？ 5,000万円以内に収まらないなら、何をいくら削るのか、今この場で金額を書いて見せてください。"
+  }
+ ],
+ "auto": {
+  "len": 0,
+  "q1": 0,
+  "num": 0,
+  "reask": 0,
+  "words": 0,
+  "stock": 6,
+  "turns": 6
+ },
+ "scores": {
+  "interrogate": 1,
+  "answer": 1,
+  "defer": 1,
+  "persona": 1,
+  "progress": 1,
+  "warmth": 1
+ },
+ "worstTurn": {
+  "index": 0,
+  "why": "総額の問いに数字を一切出さず「なんとかします」で流しており、お客様の不安をさらに強めている。",
+  "better": "今の時点での総額の目安を数字で伝えて、5,000万円を超えそうなら、どこをいくら調整できるかを一緒に見ていきましょうと言ってください。細かい部分は次回の打ち合わせで詰めましょう。"
+ },
+ "judgeErr": [],
+ "autoPass": true,
+ "judgePass": false,
+ "pass": false
+}

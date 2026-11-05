@@ -1,0 +1,159 @@
+{
+ "co": "A",
+ "cust": "tired",
+ "custLabel": "疲れていて答えが短い",
+ "phase": "proposal",
+ "seed": 101,
+ "harness": "harness-v2",
+ "log": [
+  {
+   "role": "cust",
+   "text": "……図面、見ました。思ったより広いですね。ただ、ちょっと予算のところが気になってて。"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "図面をご覧いただき、ありがとうございます。広さの印象と、予算が気になるとのこと、承知しました。どの部分から見直したいか、お考えはありますか？",
+   "say": "図面をご覧いただき、ありがとうございます。広さの印象と、予算が気になるとのこと、承知しました。",
+   "ask": "どの部分から見直したいか、お考えはありますか？",
+   "notes": [
+    "予算が気になる"
+   ],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": false,
+   "retries": [],
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "role": "cust",
+   "text": "うーん……全部じゃなくていいんですけど、4,500万円くらいまでにおさまりますかね。"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "少し確認してまいりますね。",
+   "say": "少し確認してまいりますね。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "うーん、そこまでいけるなら助かります。できれば月々12万円くらいにも収まるとうれしいです。"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "その点は、標準でしっかり備えております。くわしい中身もお伝えできますよ。",
+   "say": "その点は、標準でしっかり備えております。くわしい中身もお伝えできますよ。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "うーん……標準でって言われても、中身がよくわからないので。とりあえず予算に収まるか、そこだけ知りたいです。"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "少し確認してまいりますね。",
+   "say": "少し確認してまいりますね。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "えっと……そこだけ知りたいんです。4,500万円と月12万円に収まるのか、はっきり教えてもらえますか。"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "その点は、標準でしっかり備えております。くわしい中身もお伝えできますよ。",
+   "say": "その点は、標準でしっかり備えております。くわしい中身もお伝えできますよ。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "……また同じ答えですね。もういいです。4,500万円と月12万円に収まるかだけ、はいかいいえで教えてください。"
+  },
+  {
+   "role": "rep",
+   "phase": "proposal",
+   "text": "少し確認してまいりますね。",
+   "say": "少し確認してまいりますね。",
+   "ask": null,
+   "notes": [],
+   "deferred": [],
+   "endMeeting": false,
+   "stock": true,
+   "retries": [
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で",
+    "検証：数字は差し込み枠（{price} {area} {days}）で"
+   ]
+  },
+  {
+   "role": "cust",
+   "text": "……はい、いいえで答えてもらえないなら、もういいです。"
+  }
+ ],
+ "auto": {
+  "len": 0,
+  "q1": 0,
+  "num": 0,
+  "reask": 0,
+  "words": 0,
+  "stock": 5,
+  "turns": 6
+ },
+ "scores": {
+  "interrogate": 1,
+  "answer": 1,
+  "defer": 1,
+  "persona": 1,
+  "progress": 1,
+  "warmth": 1
+ },
+ "worstTurn": {
+  "index": 4,
+  "why": "お客様の『はい・いいえで』という明確な質問に答えず、同じ定型文を繰り返して話を前に進めなかった。",
+  "better": "4,500万円と月12万円の範囲に収まるかは、現時点の見積もりで『はい、収まる見込みです』と先に答え、根拠となる性能・保証・資金計画の要点は後ほど別途ご説明すると伝えてください。"
+ },
+ "judgeErr": [],
+ "autoPass": true,
+ "judgePass": false,
+ "pass": false
+}
