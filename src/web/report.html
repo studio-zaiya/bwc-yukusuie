@@ -91,8 +91,10 @@ const monthly = o => Y.payment(o.principal, Y.RATE.variable);
 const fam = `${esc(NA)} と ${esc(NB)}`;
 const date = new Date(D.date || Date.now()); const ds = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
 const head = `<div class="top"><div class="logo">ゆくす<span style="color:#E8701F">い</span>え</div><div class="meta">${fam} の家づくり<br>入居から1年後のレポート</div></div>`;
-const NOTICE = '本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。実際の家づくりでは、地域・金融機関・住宅会社によって異なります。登場する住宅会社・人物・団体はすべて架空です。';
-const foot = n => `<div class="foot"><span>${NOTICE}</span><span>${n} / 4</span></div>`;
+const NOTICE = '本作の制度・手続き・金額・期間などの設定は、体験のために簡略化しています。実際の家づくりは、地域・金融機関・住宅会社によって異なります。登場する住宅会社・人物・団体はすべて架空です。';
+// 注記は2行。単語の途中で折り返さないよう、文の切れ目（「簡略化しています。」のあと）で改行する
+const NOTICE2 = NOTICE.replace('簡略化しています。', '簡略化しています。<br>');
+const foot = n => `<div class="foot"><span>${NOTICE2}</span><span>${n} / 4</span></div>`;
 
 // ---- 1ページ目 表紙：わが家の水彩は、選んだ案の屋根・外壁の色・外構・1年後の庭木から ----
 const w = D.player, f = w.finish || {};
@@ -104,7 +106,7 @@ const p1 = `<div class="page cover"><img class="cv-logo" src="/brand/lockup-vert
   <div class="cv-k">わが家の、ちょうどいいバランス</div><div class="cv-title">${esc(R.title || 'わが家の1年後')}</div>
   <iframe class="cv-wc" id="wc" src="/watercolor.html?${wcq}" title="わが家の水彩"></iframe>
   <div class="cv-meta">${fam} の家づくり　入居から1年後のレポート</div><div class="cv-date">${ds}に遊んだ記録から</div>
-  <div class="foot" style="width:100%;text-align:left"><span>${NOTICE}</span><span>1 / 4</span></div></div>`;
+  <div class="foot" style="width:100%;text-align:left"><span>${NOTICE2}</span><span>1 / 4</span></div></div>`;
 
 // ---- 2ページ目 わが家の答え ----
 const zone = w.plan ? zoningSVG(w.plan, { stack: true }) : '';
