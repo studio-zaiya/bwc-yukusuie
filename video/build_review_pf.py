@@ -69,7 +69,7 @@ prs = Presentation(); prs.slide_width, prs.slide_height = Inches(13.333), Inches
 # レイアウトを1つ作り直す：本文のプレースホルダー（memo）を右の3分の1に。タイトルは消す
 lay = prs.slide_layouts[1]
 for ph in list(lay.placeholders):
-    if ph.placeholder_format.type != 2: ph._element.getparent().remove(ph._element)  # 2 = BODY
+    if ph.placeholder_format.idx != 1: ph._element.getparent().remove(ph._element)  # 本文（idx 1）だけ残す
 memo = [ph for ph in lay.placeholders][0]
 memo.left, memo.top, memo.width, memo.height = Inches(9.15), Inches(0.55), Inches(3.95), Inches(6.7)
 memo.name = 'memo'
