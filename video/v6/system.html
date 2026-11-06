@@ -1,0 +1,93 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>全体の構成</title>
+<!-- 全体の構成図【人間の指示 11/6：実装にあわせて。お任せ】。中身は docs/TECH_FACTS.md と src/（worker.js・ai.js・rep.js・engine/）で確かめた事実だけ。
+     Supabase は使っていないので描かない。「エージェント」とは書かず、実装どおり「道具を呼ぶ（tool use）」と書く。決定論的：render(t) -->
+<style>
+*{box-sizing:border-box}
+body{margin:0;width:1920px;height:1080px;background:#FFFAF0;color:#1E2B36;font-family:"Hiragino Sans","BIZ UDPGothic",sans-serif;overflow:hidden;position:relative}
+body{background-image:linear-gradient(rgba(28,141,204,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(28,141,204,.06) 1px,transparent 1px);background-size:32px 32px}
+h1{position:absolute;left:110px;top:64px;margin:0;font-size:46px;font-weight:700}
+.sub{position:absolute;left:112px;top:128px;font-size:24px;color:#6B6358}
+.box{position:absolute;border:3px solid #1E2B36;border-radius:22px;background:#fff;padding:20px 24px;opacity:0}
+.box h2{margin:0 0 10px;font-size:30px;font-weight:700;display:flex;align-items:center;gap:12px;white-space:nowrap}
+.box h2 small{white-space:nowrap;font-size:18px;font-weight:700;color:#6B6358;border:1.5px solid #c9c2b3;border-radius:8px;padding:2px 8px}
+.box p{margin:6px 0;font-size:20px;line-height:1.5;color:#3d4852}
+.box b{color:#1E2B36}
+.cf{border-color:#1E2B36;background:#fff}
+.claude{border-color:#E8701F;background:#FFF5EC}
+.code{border-style:dashed}
+.m{display:grid;grid-template-columns:150px 1fr;gap:10px 16px;align-items:start;margin-top:6px}
+.m .n{font-size:26px;font-weight:700;color:#E8701F}
+.m .r{font-size:19px;line-height:1.45;color:#3d4852}
+.tag{display:inline-block;font-size:17px;font-weight:700;border:1.5px solid #1E2B36;border-radius:999px;padding:1px 10px;margin:4px 6px 0 0;background:#FFFAF0}
+svg{position:absolute;left:0;top:0}
+.lab{position:absolute;font-size:19px;color:#1E2B36;font-weight:700;background:#FFFAF0;padding:0 6px;opacity:0}
+.foot{position:absolute;left:110px;right:110px;bottom:44px;font-size:21px;color:#6B6358;opacity:0}
+</style></head><body>
+<h1 id="h">全体の構成</h1><div class="sub" id="s">言葉はClaude、数字はコード。Claudeの出力は、コードが検査してから画面に出る</div>
+
+<div class="box" id="b1" style="left:100px;top:250px;width:420px;height:560px">
+ <h2>ブラウザ <small>遊ぶ画面</small></h2>
+ <p>情報収集・アンケート・打ち合わせ・分岐点・電気・1年後・レポート</p>
+ <p>家と街は <b>座標からコードで描く</b>（SVG・Canvas・three.js）。画像生成は使わない</p>
+ <p><b>出来事の記録</b>（イベントソーシング）を送り、再生コードで同じ流れを何度でも再現</p>
+ <p>スマホとQRでつなぐ（ひとりでも、ふたりでも）</p>
+</div>
+
+<div class="box cf" id="b2" style="left:640px;top:220px;width:560px;height:330px">
+ <h2>Cloudflare Workers <small>画面と /api</small></h2>
+ <p><b>APIキーはここだけ</b>（ブラウザには出さない）。1人あたりの回数と、1日・累計の費用の上限</p>
+ <p>役割ごとに、Claudeの <b>モデル・プロンプトの版・出力の形（JSONスキーマ）</b> を決めて呼ぶ</p>
+ <p>出力の数字を検査し、だめなら <b>理由を添えて作り直し</b> → それでもだめなら決まった文</p>
+</div>
+
+<div class="box code" id="b3" style="left:640px;top:600px;width:560px;height:210px">
+ <h2>計算エンジン <small>コード</small></h2>
+ <p>見積（台帳3層）・ローンと返済負担率・工程と日数・建蔽率。<b>金額と日数は、ここでだけ出る</b></p>
+ <p>16の世界それぞれの家の状態を持つ</p>
+</div>
+
+<div class="box" id="b4" style="left:640px;top:850px;width:560px;height:110px;padding:16px 24px">
+ <h2 style="margin:0;font-size:24px;gap:10px">Workers KV <small>プレイの記録</small><span style="width:28px"></span>Durable Object <small>費用の計量</small></h2>
+</div>
+
+<div class="box claude" id="b5" style="left:1320px;top:220px;width:500px;height:740px">
+ <h2>Claude API <small>役割で使い分け</small></h2>
+ <div class="m">
+  <div class="n">Opus</div><div class="r">設計担当：間取りの骨組み<br><span class="tag">道具を呼ぶ：仮に測る → 確定</span></div>
+  <div class="n">Sonnet</div><div class="r">住宅会社の担当者（会社ごとの人柄）・パートナー・自由回答の読み替え・レポート<br><span class="tag">道具を呼ぶ：見積・借入・工程</span></div>
+  <div class="n">Haiku</div><div class="r">自分のAI・選ばなかった15の世界の担当者のひとこと・研修のお客さま役と審査役</div>
+ </div>
+ <p style="margin-top:22px">担当者は、会社ごとのハーネスと、Claude同士の研修（9回・496本）で整えた</p>
+ <p>数字は書かせず、<b>差し込み枠</b>で書かせて、表示の直前にエンジンの値を入れる</p>
+</div>
+
+<svg width="1920" height="1080" id="ar"><defs><marker id="a" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto"><path d="M0 0 L12 6 L0 12z" fill="#1E2B36"/></marker>
+ <marker id="o" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto"><path d="M0 0 L12 6 L0 12z" fill="#E8701F"/></marker></defs>
+ <g fill="none" stroke-width="3.5" stroke-linecap="round">
+  <path id="p1" d="M520 380 L 636 380" stroke="#1E2B36" marker-end="url(#a)"/>
+  <path id="p2" d="M636 440 L 520 440" stroke="#1E2B36" marker-end="url(#a)"/>
+  <path id="p3" d="M1200 330 L 1316 330" stroke="#E8701F" marker-end="url(#o)"/>
+  <path id="p4" d="M1316 420 L 1200 420" stroke="#E8701F" marker-end="url(#o)"/>
+  <path id="p5" d="M920 550 L 920 596" stroke="#1E2B36" marker-end="url(#a)"/>
+  <path id="p6" d="M1316 640 C 1260 640, 1250 700, 1204 700" stroke="#E8701F" stroke-dasharray="8 8" marker-end="url(#o)"/>
+  <path id="p7" d="M920 810 L 920 846" stroke="#1E2B36" marker-end="url(#a)"/>
+ </g></svg>
+<div class="lab" id="l1" style="left:532px;top:344px">出来事</div>
+<div class="lab" id="l2" style="left:540px;top:452px">言葉＋値</div>
+<div class="lab" id="l3" style="left:1206px;top:294px">依頼</div>
+<div class="lab" id="l4" style="left:1206px;top:432px">JSON</div>
+<div class="lab" id="l6" style="left:1210px;top:610px">道具の呼び出し</div>
+<div class="foot" id="f">作るとき：構想と指示書は Claude（チャット）、実装と動画は2つの Claude Code。人間はアプリとブラウザから頼み、黒い画面は使っていない</div>
+<script>
+const cl=v=>Math.max(0,Math.min(1,v)),eo=v=>1-Math.pow(1-cl(v),3);window.DUR=+(new URLSearchParams(location.search).get('dur')||6);
+const $=id=>document.getElementById(id);
+const paths=['p1','p2','p3','p4','p5','p6','p7'].map(id=>{const p=$(id);const L=p.getTotalLength();p.style.strokeDasharray=p.id==='p6'?'8 8':L+' '+L;p.dataset.L=L;return p});
+const show=(el,a)=>{el.style.opacity=a;el.style.transform=`translateY(${((1-a)*16).toFixed(1)}px)`};
+window.render=t=>{show($('h'),eo(t/.4));show($('s'),eo((t-.2)/.4));
+ [['b1',.3],['b2',.7],['b3',1.0],['b4',1.2],['b5',1.0]].forEach(([id,t0])=>show($(id),eo((t-t0)/.5)));
+ const PT={p1:1.4,p2:1.6,p3:1.8,p4:2.0,p5:1.6,p6:2.3,p7:1.8};
+ paths.forEach(p=>{const k=eo((t-PT[p.id])/.5);if(p.id==='p6'){p.style.opacity=k}else p.style.strokeDashoffset=(1-k)*p.dataset.L});
+ [['l1',1.6],['l2',1.8],['l3',2.0],['l4',2.2],['l6',2.5]].forEach(([id,t0])=>$(id).style.opacity=eo((t-t0)/.4));
+ $('f').style.opacity=eo((t-2.8)/.5);};
+(document.fonts?document.fonts.ready:Promise.resolve()).then(()=>{render(+(new URLSearchParams(location.search).get('t')||5));window.READY=true});
+</script></body></html>

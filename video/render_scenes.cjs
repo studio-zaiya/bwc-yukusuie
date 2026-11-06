@@ -47,6 +47,10 @@ const SCENES = [
   { id: 'v6-team', url: 'file://' + path.join(ROOT, 'video', 'v6', 'team.html'), dur: 7 },
   { id: 'v6-dev', url: 'file://' + path.join(ROOT, 'video', 'v6', 'dev.html'), dur: 4 },
   { id: 'title', url: P('opening.html?t=0&dur=5'), dur: 5 },
+  // プレファイナル6（人間のレビュー 11/6）
+  { id: 'v6-impl', url: 'file://' + path.join(ROOT, 'video', 'v6', 'impl-title.html?t=0'), dur: 3 },
+  { id: 'v6-mac', url: 'file://' + path.join(ROOT, 'video', 'v6', 'mac.html?t=0'), dur: 6 },
+  { id: 'v6-system', url: 'file://' + path.join(ROOT, 'video', 'v6', 'system.html?t=0&dur=6'), dur: 6 },
 ];
 
 (async () => {

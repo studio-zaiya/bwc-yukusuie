@@ -11,6 +11,21 @@ const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
 const FONT='"Hiragino Sans","BIZ UDPGothic","Zen Maru Gothic",sans-serif';
 const X0=173,X1=1747,Y=948;               // 線の左右（枠の幅）と高さ（枠の下と字幕のあいだ）
 const cl=v=>Math.max(0,Math.min(1,v)),eo=v=>1-Math.pow(1-cl(v),3);
+
+const eio=v=>{v=cl(v);return v<.5?4*v*v*v:1-Math.pow(-2*v+2,3)/2};
+// ごく小さな4人家族（左から：父・子・子・母）。足を交互に動かして走る。dir=1 右向き、-1 左向き
+function family(x,y,t,a,dark,dir){
+  const P=[{h:22,c:'#E8701F',dx:-4},{h:13,c:dark?'#FFFAF0':'#1E2B36',dx:-17},{h:11,c:'#F2B632',dx:-28},{h:20,c:'#1C8DCC',dx:-40}];
+  ctx.save();ctx.globalAlpha=a;ctx.lineCap='round';
+  P.forEach((p,i)=>{const px=x+p.dx*dir,ph=p.h,ph2=ph*.45,ry=y-2,bob=Math.abs(Math.sin(t*14+i*1.3))*1.6;
+    const hy=ry-ph-bob,sw=Math.sin(t*14+i*1.3);
+    ctx.strokeStyle=p.c;ctx.fillStyle=p.c;ctx.lineWidth=Math.max(2,ph*.13);
+    ctx.beginPath();ctx.arc(px,hy,ph*.17,0,7);ctx.fill();                                 // 頭
+    ctx.beginPath();ctx.moveTo(px,hy+ph*.17);ctx.lineTo(px,ry-ph2-bob);ctx.stroke();      // 胴
+    ctx.beginPath();ctx.moveTo(px,ry-ph2-bob);ctx.lineTo(px+sw*ph*.28,ry);ctx.moveTo(px,ry-ph2-bob);ctx.lineTo(px-sw*ph*.28,ry);ctx.stroke(); // 足
+    ctx.beginPath();ctx.moveTo(px,hy+ph*.32);ctx.lineTo(px-sw*ph*.25,hy+ph*.55);ctx.moveTo(px,hy+ph*.32);ctx.lineTo(px+sw*ph*.25,hy+ph*.55);ctx.stroke(); // 腕
+    if(i<3){const q=P[i+1];ctx.lineWidth=1.2;ctx.globalAlpha=a*.6;ctx.beginPath();ctx.moveTo(px-sw*ph*.25*dir*0+(-ph*.2*dir),hy+ph*.5);ctx.lineTo(x+q.dx*dir+q.h*.2*dir,ry-q.h*.5);ctx.stroke();ctx.globalAlpha=a;} // 手をつなぐ
+  });ctx.restore();}
 const SUBT=TL.SUBS.map(s=>s[0]),CHT=TL.CH.slice(1).map(c=>c[0]);
 function yAt(x,t,tip){let y=Y+Math.sin(x*.012-t*2.2)*1.2+Math.sin(x*.031+t*1.3)*.6;             // ふだんの息づかい
   SUBT.forEach(s=>{const a=t-s;if(a<0||a>.7)return;const d=x-tip;y+=-7*Math.exp(-a*6)*Math.exp(-d*d/7200)*Math.sin(a*26)}); // 字幕が変わるとペン先がピクッ
@@ -29,18 +44,24 @@ window.render=t=>{
   if(s){const a=Math.min(eo((t-s[0])/.18),eo((s[1]-t)/.18));ctx.globalAlpha=a;ctx.fillStyle='#1E2B36';ctx.textAlign='center';ctx.textBaseline='middle';
     let fs=44;ctx.font=`700 ${fs}px ${FONT}`;while(ctx.measureText(s[2]).width>1640&&fs>28){fs-=2;ctx.font=`700 ${fs}px ${FONT}`}
     ctx.fillText(s[2],960,1014);ctx.globalAlpha=1;ctx.textAlign='left';}
-  // 一本の線（ペン先が動画の始めから終わりへ。黒画面では紙の色になり、一筆で家を描いて屋根の下に橙の点）
-  const tip=X0+(X1-X0)*cl(t/TL.HOUSE);ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle=dark?'#FFFAF0':'#1C9A8E';ctx.lineWidth=3.5;
-  ctx.beginPath();for(let x=X0;x<=tip;x+=4){const y=yAt(x,t,tip);x===X0?ctx.moveTo(x,y):ctx.lineTo(x,y)}
-  let tp=[tip,yAt(tip,t,tip)];
-  if(t>TL.HOUSE){const k=eo((t-TL.HOUSE)/2.6),cx=1560,cy=Y-30,sz=80;
-    const P=[[X1,Y],[cx+sz+40,Y],[cx+sz,cy],[cx+sz,cy-sz*.9],[cx,cy-sz*1.7],[cx-sz,cy-sz*.9],[cx-sz,cy],[cx-sz*.25,cy],[cx-sz*.25,cy-sz*.55],[cx+sz*.25,cy-sz*.55],[cx+sz*.25,cy]];
-    let L=0;const sg=[];for(let i=1;i<P.length;i++){const d=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);sg.push(d);L+=d}let r=L*k;
-    for(let i=1;i<P.length&&r>0;i++){const f=Math.min(1,r/sg[i-1]);const x=P[i-1][0]+(P[i][0]-P[i-1][0])*f,y=P[i-1][1]+(P[i][1]-P[i-1][1])*f;ctx.lineTo(x,y);tp=[x,y];r-=sg[i-1]}
-    ctx.stroke();if(k>=1){const a=eo((t-TL.HOUSE-2.6)/.4);ctx.globalAlpha=a;ctx.fillStyle='#E8701F';ctx.beginPath();ctx.arc(cx,cy-sz*1.15,9,0,7);ctx.fill();ctx.globalAlpha=1;return}}
-  else ctx.stroke();
-  const g=ctx.createRadialGradient(tp[0],tp[1],0,tp[0],tp[1],18);g.addColorStop(0,'rgba(232,112,31,.9)');g.addColorStop(1,'rgba(232,112,31,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(tp[0],tp[1],18,0,7);ctx.fill();
-  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(tp[0],tp[1],3.5,0,7);ctx.fill();
+  // 一本の線【人間の指示 11/6】：線の先端を、ごく小さな4人家族が走る。最後は、線がほどけて家になって終わる
+  const tipX=X0+(X1-X0)*cl(t/TL.HOUSE);ctx.lineCap='round';ctx.lineJoin='round';
+  const lineCol=dark?'#FFFAF0':'#1C9A8E';ctx.strokeStyle=lineCol;ctx.lineWidth=3.5;
+  // 家（切妻の一筆書き）。屋根の下に橙の点（ロゴの07）
+  const cx=1520,base=Y,sz=78;
+  const HP=[[X1,base],[cx+sz,base],[cx+sz,base-sz*.95],[cx,base-sz*1.75],[cx-sz,base-sz*.95],[cx-sz,base],[cx-sz*.22,base],[cx-sz*.22,base-sz*.55],[cx+sz*.22,base-sz*.55],[cx+sz*.22,base]];
+  const k=t>TL.HOUSE?eio((t-TL.HOUSE)/3.0):0;
+  // ほどける：左端から線が巻き取られ、その長さで家が描かれていく
+  const left=X0+(X1-X0)*k;
+  ctx.beginPath();let first=true;for(let x=left;x<=tipX;x+=4){const y=k>0?Y+Math.sin(x*.05+t*6)*2*(1-k):yAt(x,t,tipX);first?(ctx.moveTo(x,y),first=false):ctx.lineTo(x,y)}ctx.stroke();
+  let fam=[tipX,yAt(tipX,t,tipX)];
+  if(k>0){let L=0;const sg=[];for(let i=1;i<HP.length;i++){const d=Math.hypot(HP[i][0]-HP[i-1][0],HP[i][1]-HP[i-1][1]);sg.push(d);L+=d}
+    let r=L*k;ctx.beginPath();ctx.moveTo(HP[0][0],HP[0][1]);for(let i=1;i<HP.length&&r>0;i++){const f=Math.min(1,r/sg[i-1]);ctx.lineTo(HP[i-1][0]+(HP[i][0]-HP[i-1][0])*f,HP[i-1][1]+(HP[i][1]-HP[i-1][1])*f);r-=sg[i-1]}ctx.stroke();
+    // 家族は戸口へ歩いて入る
+    const door=[cx,base];fam=[X1+(door[0]-X1)*cl(k*1.4),base];}
+  const famA=k>0?1-cl((k-0.7)/0.3):1;
+  if(famA>0)family(fam[0],fam[1],t,famA,dark,k>0?-1:1);
+  if(k>=1){const a=eo((t-TL.HOUSE-3.0)/.5);ctx.globalAlpha=a;ctx.fillStyle='#E8701F';ctx.beginPath();ctx.arc(cx,base-sz*1.18,8,0,7);ctx.fill();ctx.globalAlpha=1;}
 };
 (document.fonts?document.fonts.ready:Promise.resolve()).then(()=>{window.render(+(new URLSearchParams(location.search).get('t')||3));window.READY=true});
 </script></body></html>

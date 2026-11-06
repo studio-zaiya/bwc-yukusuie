@@ -285,10 +285,10 @@ function segFrame(i,l){const s=SEG[i],kind=s[1],id=s[4];
    {const a=eo((l-3.6)/.4);if(a>0)miniHouse(1385,820,1.3,C.mute,a,true)}
    {const k=eo((l-3.0)/.6);if(k>0){ctx.save();ctx.strokeStyle=C.mute;ctx.lineWidth=3;ctx.setLineDash([10,12]);ctx.globalAlpha=.8;ctx.beginPath();ctx.moveTo(800,800);ctx.lineTo(800+k*360,800);ctx.stroke();ctx.restore()}}
    txt(l,4.2,'建てたい人には、そこへのアクセスが限られている。',960,970,48,{align:'center',weight:700})}
- if(kind==='ai'){txt(l,.1,'作り手のAIは効率重視。施主のAIは非専門家。',960,210,48,{align:'center',weight:700});
-   txt(l,.4,'効率重視',520,800,36,{align:'center',weight:700});txt(l,.4,'非専門家',1400,800,36,{align:'center',weight:700});
+ if(kind==='ai'){ /* 上の文は消す【人間 11/6】 */
+   
    drawLogo(eo((l-1.0)/.5),960,470);
-   txt(l,2.2,'そのあいだをつなぐ、問いかけのAIを。',960,930,48,{align:'center',weight:700})}
+   txt(l,2.2,'あいだをつなぐ、問いかけのAIを。',960,930,48,{align:'center',weight:700})}
  if(id===8){const fin=eo((s[2]+l-40.0)/.8);
    {const a=eo(l/.45)*(1-eo((l-1.7)/.4));if(a>0){ctx.save();ctx.globalAlpha=a;ctx.fillStyle=C.ink;ctx.font=`700 42px ${FONT}`;ctx.textAlign='center';ctx.fillText(window.V6?'もしかしたら、Claudeとなら。':'もし、建てたあとの経験に、建てる前に触れられたら。',960,150);ctx.restore()}}
    {const a=eo((l-2.0)/.45)*(1-fin);if(a>0){ctx.save();ctx.globalAlpha=a;ctx.fillStyle=C.ink;ctx.font=`700 42px ${FONT}`;ctx.textAlign='center';ctx.fillText(window.V6?'建てる前に、建てたあとの経験に触れられたら。':'大きな分かれ道は、4つ。',960,150);ctx.restore()}}}
