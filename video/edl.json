@@ -61,10 +61,10 @@
    "id": "title",
    "at": 7,
    "kind": "part",
-   "file": "opening.mp4",
+   "file": "title.mp4",
    "label": "タイトル（ロゴ＋添え書き）",
    "full": true,
-   "in": 0.2
+   "in": 1.3
   },
   {
    "id": "intro",

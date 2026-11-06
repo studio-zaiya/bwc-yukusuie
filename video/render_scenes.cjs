@@ -46,6 +46,7 @@ const SCENES = [
   { id: 'v6-s8', url: 'file://' + path.join(ROOT, 'video', 'v6', 's8.html?t=0&dur=3'), dur: 3 },
   { id: 'v6-team', url: 'file://' + path.join(ROOT, 'video', 'v6', 'team.html'), dur: 7 },
   { id: 'v6-dev', url: 'file://' + path.join(ROOT, 'video', 'v6', 'dev.html'), dur: 4 },
+  { id: 'title', url: P('opening.html?t=0&dur=5'), dur: 5 },
 ];
 
 (async () => {
