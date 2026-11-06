@@ -71,23 +71,29 @@ export function spouse(who, size = 96) {
 
 export function bigHouse(w, stage, o = {}) {
     const P = I.P; let s = '';
+    // 外構を整えた世界の庭木（細い幹と丸い葉）
+    const gardenTree = (x, y, k) => { const a = P(x, y, 0), b = P(x, y, 12 * k); return `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#7A5A3A" stroke-width="2.4"/><circle cx="${b[0]}" cy="${b[1] - 7 * k}" r="${11 * k}" fill="#7DBF62" stroke="#1E2B36" stroke-width="1.2"/>`; };
     const lot = [P(-20, -16), P(96, -16), P(96, 92), P(-20, 92)];
     s += I.poly(lot, stage >= 4 && w.spec.exterior !== 'full' ? '#E7E0D2' : '#F3E7CF', '#9BD27A', 2.4);
     if (stage === 0) s += I.poly([P(-6, -4), P(60, -4), P(60, 50), P(-6, 50)], 'none', '#1E2B36', 1.4, 'stroke-dasharray="5 4"');
     if (stage === 0 && o.ghost) s += `<g opacity="${o.ghost}">` + I.house({ x: 0, y: 0, w: 52, d: 44, h: 46, roof: o.roof || w.spec.roof, fin: I.FINISH[0], stage: 3 }) + '</g>';
-    else s += I.house({ x: 0, y: 0, w: 52, d: 44, h: 46, roof: w.spec.roof, form: formOf(w), fin: o.fin || I.FINISH[(w.no * 5) % 8], stage: stage === 0 ? 0 : stage, third: !!w.third && stage >= 4 });
+    else {
+      // 奥にあるもの（家の裏の庭木）は、家より先に描く。手前に重ねると、家の壁の前に浮いて見える
+      if (stage >= 4 && w.spec.exterior === 'full') s += gardenTree(-14, 20, .8);
+      s += I.house({ x: 0, y: 0, w: 52, d: 44, h: 46, roof: w.spec.roof, form: formOf(w), fin: o.fin || I.FINISH[(w.no * 5) % 8], stage: stage === 0 ? 0 : stage, third: !!w.third && stage >= 4 });
+    }
     if (stage >= 4) {
       const cp = (x, y) => { let t = ''; [[0,0],[24,0],[0,22],[24,22]].forEach(([a,b]) => { const q = P(x+a, y+b, 0), r = P(x+a, y+b, 20); t += `<line x1="${q[0]}" y1="${q[1]}" x2="${r[0]}" y2="${r[1]}" stroke="#8A8F96" stroke-width="1.6"/>`; }); t += I.poly([[0,0],[24,0],[24,22],[0,22]].map(([a,b]) => P(x+a, y+b, 20)), 'rgba(220,230,236,.85)', '#8A8F96', 1.2); return t; };
-      s += cp(64, 56);
-      // 1年後の暮らしの跡（TESTPLAY T10）：伸びた庭木、自転車、鉢植え。外構の状態と外壁の色は、その世界のまま
-      if (o.life) {
+      // 外構と1年後の暮らしの跡（TESTPLAY T10）。奥のものから先に描く：庭木 → 鉢植え → 自転車 → カーポート
+      // （以前は自転車をカーポートの後に、カーポートより奥の位置に描いていて、屋根の上に乗って見えていた）。外構の状態と外壁の色は、その世界のまま
         const tree = (x, y, k) => { const a = P(x, y, 0), b = P(x, y, 16 * k); return `<ellipse cx="${a[0]}" cy="${a[1]}" rx="${12 * k}" ry="${5 * k}" fill="rgba(30,43,54,.14)"/><line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#7A5A3A" stroke-width="3"/><circle cx="${b[0]}" cy="${b[1] - 9 * k}" r="${14 * k}" fill="#7DBF62" stroke="#1E2B36" stroke-width="1.2"/><circle cx="${b[0] - 7 * k}" cy="${b[1] - 2 * k}" r="${9 * k}" fill="#8CCB6E" stroke="#1E2B36" stroke-width="1"/>`; };
-        s += tree(86, -8, w.spec.exterior === 'full' ? 1.5 : 1.0);
-        const bk = P(58, 52, 0); s += `<g transform="translate(${bk[0]},${bk[1] - 10})" stroke="#1E2B36" stroke-width="1.6" fill="none"><circle cx="-9" cy="6" r="6"/><circle cx="9" cy="6" r="6"/><path d="M-9 6 L-2 -4 L6 -4 L9 6 M-2 -4 L0 6 M6 -4 L5 -8"/></g>`;
-        s += tree(-14, 72, w.spec.exterior === 'full' ? 1.2 : 0.8);
-        [[56, 14], [56, 20]].forEach(([x, y]) => { const q = P(x, y, 0); s += `<rect x="${q[0] - 4}" y="${q[1] - 6}" width="8" height="6" fill="#B9774F" stroke="#1E2B36" stroke-width="1"/><circle cx="${q[0]}" cy="${q[1] - 9}" r="5" fill="#7DBF62" stroke="#1E2B36" stroke-width="1"/>`; });
-      }
-      if (w.spec.exterior === 'full') [[-12, 80, 1.1], [86, -8, .9], [-14, 20, .8]].forEach(([x, y, k]) => { const a = P(x, y, 0), b = P(x, y, 12 * k); s += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#7A5A3A" stroke-width="2.4"/><circle cx="${b[0]}" cy="${b[1] - 7 * k}" r="${11 * k}" fill="#7DBF62" stroke="#1E2B36" stroke-width="1.2"/>`; });
+      if (o.life) s += tree(86, -8, w.spec.exterior === 'full' ? 1.5 : 1.0);
+      if (w.spec.exterior === 'full') s += gardenTree(86, -8, .9);
+      if (o.life) s += tree(-14, 72, w.spec.exterior === 'full' ? 1.2 : 0.8);
+      if (w.spec.exterior === 'full') s += gardenTree(-12, 80, 1.1);
+      if (o.life) [[56, 14], [56, 20]].forEach(([x, y]) => { const q = P(x, y, 0); s += `<rect x="${q[0] - 4}" y="${q[1] - 6}" width="8" height="6" fill="#B9774F" stroke="#1E2B36" stroke-width="1"/><circle cx="${q[0]}" cy="${q[1] - 9}" r="5" fill="#7DBF62" stroke="#1E2B36" stroke-width="1"/>`; });
+      if (o.life) { const bk = P(80, 20, 0); s += `<g transform="translate(${bk[0]},${bk[1] - 10})" stroke="#1E2B36" stroke-width="1.6" fill="none"><circle cx="-9" cy="6" r="6"/><circle cx="9" cy="6" r="6"/><path d="M-9 6 L-2 -4 L6 -4 L9 6 M-2 -4 L0 6 M6 -4 L5 -8"/></g>`; }
+      s += cp(64, 56);
     }
     const minX = P(-20, 92)[0] - 10, maxX = P(96, -16)[0] + 10, minY = P(-20, -16)[1] - 90, maxY = P(96, 92)[1] + 10;
     return `<svg viewBox="${minX} ${minY} ${maxX - minX} ${maxY - minY}" xmlns="http://www.w3.org/2000/svg" style="${o.style || ''}">${s}</svg>`;
