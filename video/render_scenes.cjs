@@ -52,7 +52,8 @@ const SCENES = [
   { id: 'v6-mac', url: 'file://' + path.join(ROOT, 'video', 'v6', 'mac.html?t=0'), dur: 6 },
   { id: 'v6-system', url: 'file://' + path.join(ROOT, 'video', 'v6', 'system.html?t=0&dur=6'), dur: 6 },
   // 章「ゆくすいえとは」を一本の線で描き直した版
-  { id: 'v7-ch1a', url: 'file://' + path.join(ROOT, 'video', 'v7', 'ch1.html?t=0&part=a'), dur: 23 },
+  { id: 'v7-ch1a', url: 'file://' + path.join(ROOT, 'video', 'v7', 'ch1.html?t=0&part=a'), dur: 24 },
+  { id: 'v7-ai', url: 'file://' + path.join(ROOT, 'video', 'v7', 'ch1.html?t=0&part=ai'), dur: 5 },
   { id: 'v7-tree', url: 'file://' + path.join(ROOT, 'video', 'v7', 'ch1.html?t=0&part=tree'), dur: 9 },
 ];
 

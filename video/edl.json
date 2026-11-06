@@ -1,9 +1,9 @@
 {
- "note": "プレファイナル7（人間のレビュー prefinal6_review_zaiya を反映）。at は通しでの開始秒。full=true は全面、ほかは枠（0.82倍・上46px・左右173px）。rec の in は録画の秒、speed は速さ、play はその秒まで再生して最後のコマで止める、zoom は寄り。overlay は全編の重ね（章・字幕・一本の線）",
+ "note": "プレファイナル8（人間のレビュー prefinal7_review を反映）。at は通しでの開始秒。full=true は全面、ほかは枠（0.82倍・上46px・左右173px）。rec の in は録画の秒、speed は速さ、play はその秒まで再生して最後のコマで止める、zoom は寄り。overlay は全編の重ね（章・字幕・一本の線）",
  "fps": 24,
  "xfade": 0.3,
  "end": 179.5,
- "subs": "subs_v10.srt",
+ "subs": "subs_v11.srt",
  "frame": {
   "x": 173,
   "y": 46,
@@ -21,21 +21,21 @@
   "chapters": [
    [
     3,
-    44.5,
+    42.3,
     0
    ],
    [
-    44.5,
-    89.1,
+    42.3,
+    86.9,
     1
    ],
    [
-    89.1,
-    126.1,
+    86.9,
+    123.9,
     2
    ],
    [
-    126.1,
+    123.9,
     156.1,
     3
    ],
@@ -63,11 +63,12 @@
    "at": 3,
    "kind": "part",
    "file": "v7-ch1a.mp4",
-   "label": "ゆくすいえとは：一本の線（20万戸 → 3回建てる → 5,007万円 → 経験知のへだたり → 誰かの正解 → 切り貼り → 光へ）"
+   "label": "ゆくすいえとは：一本の線（3回建てる → 5,007万円 → 経験知のへだたり → 誰かの正解 → 切り貼り → 光へ）",
+   "in": 3.2
   },
   {
    "id": "hero",
-   "at": 26,
+   "at": 23.8,
    "kind": "part",
    "file": "hero-title.mp4",
    "label": "Hero",
@@ -83,7 +84,7 @@
   },
   {
    "id": "tree",
-   "at": 35.5,
+   "at": 33.3,
    "kind": "part",
    "file": "v7-tree.mp4",
    "xf": 0.5,
@@ -91,7 +92,7 @@
   },
   {
    "id": "gtitle",
-   "at": 44.5,
+   "at": 42.3,
    "kind": "rec",
    "file": "rec/demo2_full.mp4",
    "label": "実機：ゲームのタイトル画面（同じ記録 qmx2uy73 の別の録画）",
@@ -100,7 +101,7 @@
   },
   {
    "id": "r00-gather",
-   "at": 46.5,
+   "at": 44.3,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：情報収集（チラシに順位 → 選んだ会社へさっと寄る）",
@@ -116,7 +117,7 @@
   },
   {
    "id": "r02-summary",
-   "at": 50.1,
+   "at": 47.9,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：担当者との会話（早回しで2往復）",
@@ -131,7 +132,7 @@
   },
   {
    "id": "r01-survey",
-   "at": 55.3,
+   "at": 53.1,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：来場者アンケート",
@@ -146,7 +147,7 @@
   },
   {
    "id": "r02-partner",
-   "at": 57.9,
+   "at": 55.7,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：帰り道、パートナー（AI）と話す",
@@ -160,7 +161,7 @@
   },
   {
    "id": "r03-proposal",
-   "at": 61.5,
+   "at": 59.3,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：提案の日（次に選ぶCデザインの案へ寄る）",
@@ -176,7 +177,7 @@
   },
   {
    "id": "r04-fork1",
-   "at": 64.7,
+   "at": 62.5,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：第一の分岐点 → 選ばなかった道が世界線の列へ",
@@ -186,7 +187,7 @@
   },
   {
    "id": "r05-fork3",
-   "at": 70.3,
+   "at": 68.1,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：第三の分岐点（自由入力の欄を光らせる）",
@@ -203,7 +204,7 @@
   },
   {
    "id": "r05-trade",
-   "at": 74.1,
+   "at": 71.9,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：自由入力 → 家の絵と◆・条件・いま起きたこと",
@@ -219,7 +220,7 @@
   },
   {
    "id": "r06-fork4",
-   "at": 76.5,
+   "at": 74.3,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：第四の分岐点 → 15の世界線の列を光らせる",
@@ -237,7 +238,7 @@
   },
   {
    "id": "r07-electric",
-   "at": 81.5,
+   "at": 79.3,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：電気の打ち合わせ → 伝え漏れ → チャットで交渉（チャットへ寄る）",
@@ -253,7 +254,7 @@
   },
   {
    "id": "r08-build",
-   "at": 89.1,
+   "at": 86.9,
    "kind": "rec",
    "file": "rec_qmx2uy73/y1/build_to_year1_x03.mp4",
    "label": "実機：着工 → 家ができていく（さっと寄って固定）",
@@ -269,7 +270,7 @@
   },
   {
    "id": "r08-handover",
-   "at": 95.7,
+   "at": 93.5,
    "kind": "rec",
    "file": "rec_qmx2uy73/y1/build_to_year1_x03.mp4",
    "label": "実機：引渡し（切り絵のアニメ）",
@@ -278,7 +279,7 @@
   },
   {
    "id": "r09-year",
-   "at": 103.2,
+   "at": 101.0,
    "kind": "rec",
    "file": "rec_qmx2uy73/y1/build_to_year1_x03.mp4",
    "label": "実機：1年後のわが家（全体を映す）",
@@ -287,7 +288,7 @@
   },
   {
    "id": "r09-16",
-   "at": 106.2,
+   "at": 104.0,
    "kind": "rec",
    "file": "rec_qmx2uy73/y1/build_to_year1_x03.mp4",
    "label": "実機：16区画 → 区画を押して比べる（全体を映す）",
@@ -296,7 +297,7 @@
   },
   {
    "id": "report",
-   "at": 111.0,
+   "at": 108.8,
    "kind": "part",
    "file": "report-pages.mp4",
    "label": "レポート",
@@ -304,21 +305,21 @@
   },
   {
    "id": "s67",
-   "at": 116.6,
+   "at": 114.4,
    "kind": "part",
    "file": "v6-s67.mp4",
    "label": "16回建てて見えるのは、正解ではなく、ふたりが大切にしたいこと"
   },
   {
    "id": "impl",
-   "at": 126.1,
+   "at": 123.9,
    "kind": "part",
    "file": "v6-impl.mp4",
-   "label": "実装について／毛布のなかからこんにちは –"
+   "label": "実装について／毛布のなかからこんにちは"
   },
   {
    "id": "arch",
-   "at": 128.3,
+   "at": 126.1,
    "kind": "part",
    "file": "arch.mp4",
    "label": "仕組みの図（Opus・Sonnet・Haiku、+58万円）",
@@ -326,7 +327,7 @@
   },
   {
    "id": "training",
-   "at": 134.9,
+   "at": 133.3,
    "kind": "part",
    "file": "training-log.mp4",
    "label": "担当者の研修（9回・496本・約55万字）",
@@ -334,14 +335,14 @@
   },
   {
    "id": "team",
-   "at": 138.9,
+   "at": 137.9,
    "kind": "part",
    "file": "v6-team.mp4",
    "label": "チームの図"
   },
   {
    "id": "skills",
-   "at": 144.9,
+   "at": 144.4,
    "kind": "part",
    "file": "skills.mp4",
    "label": "自作の点検スキル",
@@ -349,7 +350,7 @@
   },
   {
    "id": "mac",
-   "at": 147.9,
+   "at": 147.4,
    "kind": "part",
    "file": "v6-mac.mp4",
    "label": "Macからの実装（4枚）"
@@ -380,8 +381,8 @@
    "id": "v6ai",
    "at": 166.6,
    "kind": "part",
-   "file": "intro-v6ai.mp4",
-   "label": "あいだをつなぐ、問いかけのAIを"
+   "file": "v7-ai.mp4",
+   "label": "あいだをつなぐ、問いかけのAIを（へだたりの2つの円が一本の線でつながる）"
   },
   {
    "id": "closing",

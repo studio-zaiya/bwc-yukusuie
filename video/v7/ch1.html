@@ -4,12 +4,13 @@
      ?part=a   ：20万の地図 → 3回建てる → 5,007万円 → 経験知のへだたり（専門家／経験者 … 初めての施主）→ SNSの「誰かの」正解 → 切り貼りの家 → 線が上へ（Heroの光の束へつなぐ）。23秒
      【人間の指示 11/6 レビュー6】地図のテロップは「注文住宅は1年に／およそ20万戸」だけ。へだたりの場面を足す（テロップ・円の中の字は人間の指定）
      ?part=tree：Heroの16本の世界線を受けて、一本の線が4回分かれて16の家へ（だれと×なにを×いくらで×どう仕上げる）。8秒
+     ?part=ai  ：締めの「あいだをつなぐ、問いかけのAIを」。へだたりの場面と同じ2つの円で、断片が一本の線につながる【人間の指示 11/6 レビュー7】。5秒
      線の色は全編の重ねの線（#1C9A8E）と同じ。だいじな所だけ橙。決定論的：window.render(t)、DUR、READY、?t=秒 -->
 <style>html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:#FFFAF0}canvas{display:block}</style></head><body>
 <canvas id="c" width="1920" height="1080"></canvas>
 <script>
 const Q=new URLSearchParams(location.search),PART=Q.get('part')||'a';
-const W=1920,H=1080,DUR=PART==='tree'?9:23;window.DUR=DUR;
+const W=1920,H=1080,DUR=PART==='tree'?9:PART==='ai'?5:24;window.DUR=DUR;
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
 const C={paper:'#FFFAF0',ink:'#1E2B36',mute:'#6B6358',te:'#1C9A8E',or:'#E8701F',sky:'#1C8DCC',gold:'#F2B632',pk:'#f49ac1'};
 const FONT='"Hiragino Sans","BIZ UDPGothic","Zen Maru Gothic",sans-serif',MARU='"Hiragino Maru Gothic ProN","Zen Maru Gothic",sans-serif';
@@ -40,7 +41,8 @@ const JP=(()=>{const S=40,K=0.81,P=(lon,lat)=>[420+(lon-129.5)*K*S,230+(45.7-lat
 const DOTS=(()=>{const r=rng(42),a=[],tc=document.createElement('canvas').getContext('2d');let g=0;while(a.length<180&&g++<300000){const x=60+r()*1000,y=200+r()*700;if(tc.isPointInPath(JP.path,x,y))a.push([x,y,r()])}return a})();
 const NOTES=[['吹き抜け','#ffe48a'],['大開口','#ffc7d9'],['回遊動線','#bfe7ff'],['アイランド','#c9f0c4'],['造作キッチン','#ffe48a'],['書斎','#ffc7d9'],['ガレージ','#bfe7ff'],['畳コーナー','#c9f0c4'],['広いWIC','#ffe48a'],['ホテルライク','#bfe7ff'],['土間','#c9f0c4'],['ヌック','#ffc7d9'],['ランドリー','#bfe7ff'],['中庭','#ffe48a'],['北欧風','#c9f0c4']];
 // 場面の並び（世界の x は i*W から）。各場面の線と描く時間（秒）
-const T=[0,3.2,6.2,9.0,14.6,20.0];const SC=T.map(t0=>({t0}));
+// 【人間 11/6 レビュー7】地図の場面は使わない（動画は T[1] から）。へだたり〜切り貼りの間を少し広げた
+const T=[0,3.2,6.4,9.4,15.2,20.8];const SC=T.map(t0=>({t0}));
 const GAP=(()=>{const o=3*W,R=190,cy=BASE-R,circ=(cx)=>{const p=[];for(let i=0;i<=72;i++){const a=Math.PI/2+i/72*Math.PI*2;p.push([cx+Math.cos(a)*R,cy+Math.sin(a)*R])}return p};return {o,R,cy,L:o+560,Rx:o+1360,circ}})();
 const PATH=[ // 場面ごとの線（世界座標）。前の場面の終わりと次の場面の始まりがつながる
  [[0,BASE],[1920,BASE]],
@@ -136,6 +138,24 @@ function renderTree(t){
   txt('2 × 2 × 2 × 2 ＝ 16',120,222,60,{f:MARU,w:900,c:C.or,a:eo((t-4.2)/.5)});
   txt('建てる前に、16回建ててみよう。',1800,218,44,{al:'right',a:eo((t-5.0)/.5)});
 }
-window.render=t=>{t=cl(t,0,DUR);PART==='tree'?renderTree(t):renderA(t)};
+// ---------------- part ai：へだたりの2つの円が、一本の線でつながる ----------------
+function renderAI(t){
+  ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=C.paper;ctx.fillRect(0,0,W,H);grid();
+  const R=190,cy=BASE-R,L=560,Rx=1360,a0=eo(t/.4);
+  const circ=cx=>{const p=[];for(let i=0;i<=72;i++){const a=Math.PI/2+i/72*Math.PI*2;p.push([cx+Math.cos(a)*R,cy+Math.sin(a)*R])}return p};
+  stroke([[0,BASE],...circ(L),[L+200,BASE]],1,C.te,7,a0);stroke([[Rx-200,BASE],...circ(Rx),[W,BASE]],1,C.te,7,a0);
+  const join=eio((t-.7)/1.5);
+  // 断片（へだたりの場面と同じ）は、つながる線に重なって消える
+  for(let i=0;i<7;i++){const x0=L+210+i*58;ctx.save();ctx.globalAlpha=a0*(1-i*.09)*(1-join);ctx.strokeStyle=C.te;ctx.lineWidth=7;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x0,BASE+(i%3-1)*6);ctx.lineTo(x0+(i%2?18:30),BASE+(i%3-1)*6);ctx.stroke();ctx.restore()}
+  const wave=[];for(let x=L+200;x<=Rx-200;x+=8)wave.push([x,BASE-Math.sin((x-L-200)/400*Math.PI*2)*16]);
+  const tip=stroke(wave,join,C.or,7);if(join>0&&join<1)pen(tip,C.or);
+  // 円の中
+  ctx.save();ctx.globalAlpha=a0*(.10+.08*eo((t-2.2)/.5));ctx.fillStyle=C.te;ctx.beginPath();ctx.arc(L,cy,R-4,0,7);ctx.fill();ctx.fillStyle=C.or;ctx.beginPath();ctx.arc(Rx,cy,R-4,0,7);ctx.fill();ctx.restore();
+  txt('専門家',L,cy-6,56,{al:'center',a:a0});txt('経験者',L,cy+66,56,{al:'center',a:a0});
+  txt('初めての',Rx,cy-6,56,{al:'center',a:a0});txt('施主',Rx,cy+66,56,{al:'center',a:a0});
+  txt('あいだをつなぐ、',960,230,62,{al:'center',a:eo((t-.3)/.5)});
+  txt('問いかけのAIを。',960,326,62,{al:'center',c:C.or,a:eo((t-1.6)/.5)});
+}
+window.render=t=>{t=cl(t,0,DUR);PART==='tree'?renderTree(t):PART==='ai'?renderAI(t):renderA(t)};
 (document.fonts?Promise.all([document.fonts.load(`900 64px ${MARU}`),document.fonts.load(`700 40px ${FONT}`)]).catch(()=>{}):Promise.resolve()).then(()=>{render(Q.has('t')?+Q.get('t'):DUR*.6);window.READY=true});
 </script></body></html>
