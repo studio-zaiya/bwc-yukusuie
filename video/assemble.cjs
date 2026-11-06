@@ -49,8 +49,8 @@ c.save();c.shadowColor='rgba(30,43,54,.20)';c.shadowBlur=28;c.shadowOffsetY=8;rr
 c.globalCompositeOperation='destination-out';rr();c.fill();c.globalCompositeOperation='source-over';
 c.strokeStyle='rgba(30,43,54,.10)';c.lineWidth=1.5;rr();c.stroke();
 <\/script>`;
-// 寄り：0.6秒で寄って止める（smoothstep）。out があれば、その秒から0.6秒で引く
-const zoomExpr = z => { const T = `(in/${24})`; const ss = a => `(clip((${T}-${a})/0.6,0,1)*clip((${T}-${a})/0.6,0,1)*(3-2*clip((${T}-${a})/0.6,0,1)))`;
+// 寄り：ramp 秒（ふだん0.6秒、さっと寄るときは0.25秒など）で寄って止める（smoothstep）。out があれば、その秒から同じ速さで引く
+const zoomExpr = z => { const T = `(in/${24})`, R = z.ramp || 0.6; const ss = a => `(clip((${T}-${a})/${R},0,1)*clip((${T}-${a})/${R},0,1)*(3-2*clip((${T}-${a})/${R},0,1)))`;
   return `1+${z.scale - 1}*(${ss(z.at)}${z.out != null ? '-' + ss(z.out) : ''})`; };
 
 (async () => {
@@ -79,6 +79,12 @@ const zoomExpr = z => { const T = `(in/${24})`; const ss = a => `(clip((${T}-${a
     await pg.setContent(subHTML(subs[i].text)); await pg.evaluate(() => document.fonts.ready); await pg.waitForTimeout(100);
     const f = path.join(PRE, '_subs', `s${String(i + 1).padStart(2, '0')}.png`); await pg.screenshot({ path: f, omitBackground: true }); subPng.push(f);
   }
+  // 強調の光（hl：{box:[x0,y0,x1,y1] 枠の中の割合, at, to}）。金の縁と、外へにじむ光【人間の指示 11/6 レビュー6：ズームの代わりに光らせる】
+  const hlPng = {};
+  for (const [i, s] of S.entries()) { if (!s.hl) continue; const [x0, y0, x1, y1] = s.hl.box;
+    await pg.setViewportSize({ width: FR.w, height: FR.h });
+    await pg.setContent(`<body style="margin:0;background:transparent"><div style="position:absolute;left:${x0 * FR.w}px;top:${y0 * FR.h}px;width:${(x1 - x0) * FR.w}px;height:${(y1 - y0) * FR.h}px;border:5px solid #F2B632;border-radius:14px;box-shadow:0 0 22px 8px rgba(242,182,50,.55),inset 0 0 18px 4px rgba(242,182,50,.28)"></div></body>`);
+    const f = path.join(PRE, '_subs', `hl_${s.id}.png`); await pg.screenshot({ path: f, omitBackground: true }); hlPng[i] = f; }
   await b.close();
 
   // ffmpeg：場面をそろえる（枠に入れる場面は 0.86倍＋寄り＋枠の PNG）→ クロスフェードでつなぐ
@@ -93,6 +99,7 @@ const zoomExpr = z => { const T = `(in/${24})`; const ss = a => `(clip((${T}-${a
   // 枠の PNG は、枠に入れる場面ごとに長さを区切った別の入力にする（1つを分けると、あとの場面のコマがたまる）
   const maskIn = {}; let nIn = S.length;
   S.forEach((s, i) => { if (s.full) return; args.push('-loop', '1', '-framerate', String(FPS), '-t', String(s.dur + 0.5), '-i', maskPng); maskIn[i] = nIn++; });
+  const hlIn = {}; S.forEach((s, i) => { if (!hlPng[i]) return; args.push('-loop', '1', '-framerate', String(FPS), '-t', String(s.dur + 0.5), '-i', hlPng[i]); hlIn[i] = nIn++; });
   S.forEach((s, i) => {
     const sp = s.speed || 1;
     const crop = s.crop ? `crop=${s.crop.join(':')},` : '';
@@ -101,6 +108,7 @@ const zoomExpr = z => { const T = `(in/${24})`; const ss = a => `(clip((${T}-${a
     if (s.full) { fc.push(`${v},format=yuv420p,trim=duration=${s.dur},setpts=PTS-STARTPTS[v${i}]`); return; }
     if (s.zoom) { const z = s.zoom; v += `,zoompan=z='${zoomExpr(z)}':x='(iw-iw/zoom)*${z.cx}':y='(ih-ih/zoom)*${z.cy}':d=1:s=${FR.w}x${FR.h}:fps=${FPS}`; }
     else v += `,scale=${FR.w}:${FR.h}:flags=lanczos`;
+    if (hlIn[i] != null) { const h = s.hl, to = h.to != null ? h.to : s.dur; v += `,setsar=1,format=rgba[z${i}];[${hlIn[i]}:v]format=rgba,fade=t=in:st=${h.at}:d=0.3:alpha=1,fade=t=out:st=${Math.max(h.at + 0.3, to - 0.3)}:d=0.3:alpha=1[g${i}];[z${i}][g${i}]overlay=0:0:eof_action=pass`; }
     v += `,setsar=1,pad=1920:1080:${FR.x}:${FR.y}:color=0xFFFAF0,format=rgba[p${i}];[p${i}][${maskIn[i]}:v]overlay=0:0:shortest=1,format=yuv420p,trim=duration=${s.dur},setpts=PTS-STARTPTS[v${i}]`;
     fc.push(v);
   });
@@ -146,7 +154,7 @@ const zoomExpr = z => { const T = `(in/${24})`; const ss = a => `(clip((${T}-${a
   });
   fs.writeFileSync(path.join(PRE, 'scenes.json'), JSON.stringify(S.map(({ id, kind, label, note, at, to, shot, still, subs, file, in: inp }) => ({ id, kind, label, note, at, to, shot, still: path.relative(PRE, still), subs, src: kind === 'plate' ? '仮の板' : file, in: inp })), null, 1));
 
-  const kindJa = s => (s.sub ? '**代用**' : s.kind === 'rec' ? '実機の録画' : s.kind === 'plate' ? '**仮の板**' : '書き出し済み') + (s.full ? '・全面' : '・枠') + (s.zoom ? `・寄り${s.zoom.scale}倍` : '') + (s.play ? `・${s.play}秒で静止` : '') + (s.speed && s.speed !== 1 ? `・${s.speed}倍速` : '');
+  const kindJa = s => (s.sub ? '**代用**' : s.kind === 'rec' ? '実機の録画' : s.kind === 'plate' ? '**仮の板**' : '書き出し済み') + (s.full ? '・全面' : '・枠') + (s.zoom ? `・寄り${s.zoom.scale}倍` : '') + (s.play ? `・${s.play}秒で静止` : '') + (s.speed && s.speed !== 1 ? `・${s.speed}倍速` : '') + (s.hl ? '・光で強調' : '');
   const rows = S.map(s => `| ${fmt(s.at)}–${fmt(s.to)} | ${(s.to - s.at).toFixed(1)} | ${kindJa(s)} | ${s.label}${s.note ? '（' + s.note + '）' : ''} | ${s.file ? s.file + (s.in != null ? ' @' + s.in + '秒' : '') : ''} |`);
   const subRows = subs.map((c, i) => `| ${i + 1} | ${fmt(c.at)}–${fmt(c.to)} | ${c.text} |`);
   fs.writeFileSync(path.join(__dirname, 'TIMELINE.md'), `# 通しの場面と字幕の時刻（自動生成：node video/assemble.cjs）\n\n全体 ${fmt(END)}（${END}秒）。つなぎは ${XF}秒のクロスフェード。1920×1080・${FPS}fps。音は無音のトラックだけ（BGMと声は人間が入れる）。\n場面の開始時刻は構成 v0.3 の時刻にそろえ、字幕（${EDL.subs}）の時刻がそのまま使えるようにしてある。\n\n## 場面\n| 時刻 | 秒 | 材料 | 中身 | ファイル |\n|---|---|---|---|---|\n${rows.join('\n')}\n\n## 字幕（焼き込み）\n| # | 時刻 | 字幕 |\n|---|---|---|\n${subRows.join('\n')}\n${warn.length ? '\n## 字幕の基準に足りないもの\n' + warn.map(w => '- ' + w).join('\n') + '\n' : ''}`);

@@ -9,7 +9,12 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:rgb(14,18,34)}
 #e span{font-weight:500}
 #c2{white-space:nowrap;font-family:"Hiragino Sans","BIZ UDPGothic",sans-serif;font-weight:400;font-size:28px;letter-spacing:.06em;color:#FFFAF0;margin-top:22px;opacity:0}
 #c{white-space:nowrap;font-family:"Hiragino Sans","BIZ UDPGothic",sans-serif;font-weight:700;font-size:38px;letter-spacing:.08em;color:#FFFAF0;margin-top:56px;opacity:.95}
+#bwc{position:absolute;left:64px;top:52px;color:#FFFAF0;opacity:0;line-height:1.12;white-space:nowrap}
+#bwc .e{font-family:Georgia,"Liberation Serif","FreeSerif",serif;font-size:30px;font-weight:400;letter-spacing:.01em}
+#bwc .e b{font-weight:700}
+#bwc .j{font-family:"Hiragino Sans","BIZ UDPGothic",sans-serif;font-size:17px;font-weight:400;letter-spacing:.12em;margin-top:8px}
 </style></head><body>
+<!-- 左上の控えめな表示【人間の指示 11/6 レビュー6】 --><div id="bwc"><div class="e">Built with <b>Claude</b>:</div><div class="e">Japan 2026</div><div class="j">オンラインハッカソン</div></div>
 <div id="all"><div id="lock"><div id="logo"></div><div id="c"></div><div id="c2"></div></div></div>
 <script src="logo.js"></script>
 <script>
@@ -30,6 +35,7 @@ window.render=t=>{
   $('logo').innerHTML=YLOGO.lockupHTML({fs:132,ink:LIGHT?'#1E2B36':'#FFFAF0',p:cl(t/1.1),textA:eo((t-1.0)/0.5).toFixed(3),subA:eo((t-1.3)/0.5).toFixed(3)});
   fade($('c'),eo((t-1.7)/0.6)); if(!LIGHT)fade($('c2'),eo((t-2.0)/0.6)*.85);
   $('all').style.opacity=(LIGHT?1:(1-cl((t-(DUR-0.8))/0.8))).toFixed(3);
+  $('bwc').style.opacity=LIGHT?0:(eo((t-1.2)/0.6)*.82*(1-cl((t-(DUR-0.8))/0.8))).toFixed(3);
 };
 render(q.has('t')?+q.get('t'):3);window.READY=true;
 </script></body></html>
