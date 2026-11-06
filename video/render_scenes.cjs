@@ -42,15 +42,18 @@ const SCENES = [
   // プレファイナル4（構成 v6）
   { id: 'intro-v6a', url: P('intro-v2.html?t=0&part=v6a'), dur: 34 },
   { id: 'intro-v6ai', url: P('intro-v2.html?t=0&part=v6ai'), dur: 5 },
-  { id: 'v6-s67', url: 'file://' + path.join(ROOT, 'video', 'v6', 's67.html'), dur: 8 },
+  { id: 'v6-s67', url: 'file://' + path.join(ROOT, 'video', 'v6', 's67.html?t=0'), dur: 9.5 },
   { id: 'v6-s8', url: 'file://' + path.join(ROOT, 'video', 'v6', 's8.html?t=0&dur=3'), dur: 3 },
-  { id: 'v6-team', url: 'file://' + path.join(ROOT, 'video', 'v6', 'team.html'), dur: 7 },
-  { id: 'v6-dev', url: 'file://' + path.join(ROOT, 'video', 'v6', 'dev.html'), dur: 4 },
+  { id: 'v6-team', url: 'file://' + path.join(ROOT, 'video', 'v6', 'team.html?t=0'), dur: 9 },
+  { id: 'v6-dev', url: 'file://' + path.join(ROOT, 'video', 'v6', 'dev.html?t=0'), dur: 4.5 },
   { id: 'title', url: P('opening.html?t=0&dur=5'), dur: 5 },
   // プレファイナル6（人間のレビュー 11/6）
   { id: 'v6-impl', url: 'file://' + path.join(ROOT, 'video', 'v6', 'impl-title.html?t=0'), dur: 3 },
   { id: 'v6-mac', url: 'file://' + path.join(ROOT, 'video', 'v6', 'mac.html?t=0'), dur: 6 },
   { id: 'v6-system', url: 'file://' + path.join(ROOT, 'video', 'v6', 'system.html?t=0&dur=6'), dur: 6 },
+  // 章「ゆくすいえとは」を一本の線で描き直した版
+  { id: 'v7-ch1a', url: 'file://' + path.join(ROOT, 'video', 'v7', 'ch1.html?t=0&part=a'), dur: 15 },
+  { id: 'v7-tree', url: 'file://' + path.join(ROOT, 'video', 'v7', 'ch1.html?t=0&part=tree'), dur: 9 },
 ];
 
 (async () => {
