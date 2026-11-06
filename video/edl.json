@@ -78,7 +78,8 @@
     11
    ],
    "in": 0.7,
-   "xf": 0.6
+   "xf": 0.6,
+   "play": 9.3
   },
   {
    "id": "tree",
@@ -94,7 +95,8 @@
    "kind": "rec",
    "file": "rec/demo2_full.mp4",
    "label": "実機：ゲームのタイトル画面（同じ記録 qmx2uy73 の別の録画）",
-   "in": 0.6
+   "in": 0.2,
+   "play": 0.6
   },
   {
    "id": "r00-gather",
