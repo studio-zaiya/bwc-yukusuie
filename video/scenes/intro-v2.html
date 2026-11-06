@@ -280,15 +280,15 @@ function segFrame(i,l){const s=SEG[i],kind=s[1],id=s[4];
  if(id===0){txt(l,2.3,'でも、ほとんどの家族にとって、家づくりは一生に1回。',960,940,46,{align:'center',weight:700,color:C.or});if(window.V6)txt(l,3.6,'土地と建物で、およそ5,007万円。',960,1020,46,{align:'center',weight:700})}
  if(id===4){{const k=eo((l-1.0)/.6);if(k>0){const g=ctx.createLinearGradient(0,780,0,880);g.addColorStop(0,'rgba(250,246,236,0)');g.addColorStop(1,'rgba(250,246,236,'+(.94*k)+')');ctx.fillStyle=g;ctx.fillRect(0,780,W,100);ctx.fillStyle='rgba(250,246,236,'+(.94*k)+')';ctx.fillRect(0,880,W,200)}}txt(l,1.4,'家を建てる家族は、1年におよそ20万。',960,900,44,{align:'center',weight:700});txt(l,3.2,'もしかしたら、Claudeとなら、何かできるかもしれない。',960,985,46,{align:'center',weight:700,color:C.or})}
  if(id===1){txt(l,3.3,'要望は増えるのに、費用も上がる。',960,1000,52,{align:'center',weight:700})}
- if(kind==='gap'){txt(l,.2,'問題は、情報の非対称性にあるのかもしれない。',960,150,54,{align:'center',weight:700,color:C.or});txt(l,1.6,'家づくりの「その後」は、作り手のもとに、たくさんある。',960,250,44,{align:'center',weight:700});
+ if(kind==='gap'){txt(l,.2,'問題は、情報の非対称性にあるのかもしれない。',960,150,54,{align:'center',weight:700,color:C.or});txt(l,1.6,'作り手には、経験と専門知がある。',960,250,44,{align:'center',weight:700});
    HOUSES.forEach((h,k)=>{const a=eo((l-2.0-k*.05)/.3);if(a>0)miniHouse(h[0],h[1],h[2],C.te,a*.9)});
    {const a=eo((l-3.6)/.4);if(a>0)miniHouse(1385,820,1.3,C.mute,a,true)}
    {const k=eo((l-3.0)/.6);if(k>0){ctx.save();ctx.strokeStyle=C.mute;ctx.lineWidth=3;ctx.setLineDash([10,12]);ctx.globalAlpha=.8;ctx.beginPath();ctx.moveTo(800,800);ctx.lineTo(800+k*360,800);ctx.stroke();ctx.restore()}}
-   txt(l,4.2,'でも施主には、それに触れる手段がない。',960,970,48,{align:'center',weight:700})}
- if(kind==='ai'){txt(l,.1,'作り手のAIは、効率へ。施主のAIは、情報集めへ。',960,210,48,{align:'center',weight:700});
-   txt(l,.4,'効率へ',520,800,36,{align:'center',weight:700});txt(l,.4,'情報集めへ',1400,800,36,{align:'center',weight:700});
+   txt(l,4.2,'建てたい人には、そこへのアクセスが限られている。',960,970,48,{align:'center',weight:700})}
+ if(kind==='ai'){txt(l,.1,'作り手のAIは効率重視。施主のAIは非専門家。',960,210,48,{align:'center',weight:700});
+   txt(l,.4,'効率重視',520,800,36,{align:'center',weight:700});txt(l,.4,'非専門家',1400,800,36,{align:'center',weight:700});
    drawLogo(eo((l-1.0)/.5),960,470);
-   txt(l,2.2,'そのあいだをつなぐ、問いかけとしてのAIを、考えてみました。',960,930,48,{align:'center',weight:700})}
+   txt(l,2.2,'そのあいだをつなぐ、問いかけのAIを。',960,930,48,{align:'center',weight:700})}
  if(id===8){const fin=eo((s[2]+l-40.0)/.8);
    {const a=eo(l/.45)*(1-eo((l-1.7)/.4));if(a>0){ctx.save();ctx.globalAlpha=a;ctx.fillStyle=C.ink;ctx.font=`700 42px ${FONT}`;ctx.textAlign='center';ctx.fillText(window.V6?'もしかしたら、Claudeとなら。':'もし、建てたあとの経験に、建てる前に触れられたら。',960,150);ctx.restore()}}
    {const a=eo((l-2.0)/.45)*(1-fin);if(a>0){ctx.save();ctx.globalAlpha=a;ctx.fillStyle=C.ink;ctx.font=`700 42px ${FONT}`;ctx.textAlign='center';ctx.fillText(window.V6?'建てる前に、建てたあとの経験に触れられたら。':'大きな分かれ道は、4つ。',960,150);ctx.restore()}}}

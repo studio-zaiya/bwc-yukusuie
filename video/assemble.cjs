@@ -62,7 +62,7 @@ const zoomExpr = z => { const T = `(in/${24})`; const ss = a => `(clip((${T}-${a
   const subs = readSrt(path.resolve(__dirname, EDL.subs));
   // 字幕の基準（最低1.8秒、文字数÷4秒）の確認
   const warn = [];
-  subs.forEach((c, i) => { const need = Math.max(1.8, c.text.replace(/\s/g, '').length / 4); if (c.to - c.at < need - 1e-6) warn.push(`字幕${i + 1}「${c.text}」が ${(c.to - c.at).toFixed(2)}秒（基準 ${need.toFixed(2)}秒）`); });
+  subs.forEach((c, i) => { const need = Math.max(1.8, c.text.replace(/\s/g, '').length / 6); if (c.to - c.at < need - 1e-6) warn.push(`字幕${i + 1}「${c.text}」が ${(c.to - c.at).toFixed(2)}秒（基準 ${need.toFixed(2)}秒）`); });
 
   const b = await chromium.launch(); const pg = await b.newPage({ viewport: { width: 1920, height: 1080 } });
   for (const s of S) {

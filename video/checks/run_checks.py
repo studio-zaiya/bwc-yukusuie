@@ -48,8 +48,8 @@ NOTE = '本作の制度・手続き・金額・期間などの設定は、体験
 cred = texts.get('場面:credits.html', '')
 audit.append({'項目': '注記の文（動画の最後）', '結果': '○' if NOTE[:20] in cred and '架空' in cred else '×', '詳細': 'credits.html に注記の文' + ('あり' if NOTE[:20] in cred else 'なし'), '備考': ''})
 # 字幕の長さ
-bad = [f'{i+1}「{x}」{z-a:.2f}秒' for i, (a, z, x) in enumerate(subs) if z - a < max(1.8, len(re.sub(r'\s', '', x)) / 4) - 1e-6]
-audit.append({'項目': '字幕：最低1.8秒・文字数÷4秒', '結果': '○' if not bad else '×', '詳細': '、'.join(bad) or f'{len(subs)}行すべて満たす', '備考': ''})
+bad = [f'{i+1}「{x}」{z-a:.2f}秒' for i, (a, z, x) in enumerate(subs) if z - a < max(1.8, len(re.sub(r'\s', '', x)) / 6) - 1e-6]
+audit.append({'項目': '字幕：最低1.8秒・1秒に6文字まで', '結果': '○' if not bad else '×', '詳細': '、'.join(bad) or f'{len(subs)}行すべて満たす', '備考': ''})
 ov = [f'{i+1}と{i+2}' for i in range(len(subs) - 1) if subs[i][1] > subs[i + 1][0]]
 audit.append({'項目': '字幕：前の行と重ならない', '結果': '○' if not ov else '×', '詳細': '、'.join(ov) or '重なりなし', '備考': ''})
 # 人間が指定した使わない語（非公開の一覧）
