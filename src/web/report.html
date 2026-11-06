@@ -192,8 +192,16 @@ const p4 = `<div class="page">${head}
   ${foot(4)}</div>`;
 
 root.innerHTML = p1 + p2 + p3 + p4;
+// 中身が紙の高さを超えるページは、注記（下の帯）以外を少しずつ縮めて、1枚に収める（記録によって文の長さが違うため。最小0.8倍）
+const fitPages = () => document.querySelectorAll('.page').forEach(pg => {
+  const kids = [...pg.children].filter(el => !el.classList.contains('foot'));
+  kids.forEach(el => { el.style.zoom = ''; });
+  for (let z = 1; pg.scrollHeight > pg.clientHeight + 1 && z > 0.8;) { z = +(z - 0.02).toFixed(2); kids.forEach(el => { el.style.zoom = z; }); }
+});
+fitPages();
+const fitted = (document.fonts ? document.fonts.ready : Promise.resolve()).then(fitPages);
 const wc = document.getElementById('wc');
-wc.addEventListener('load', () => { const t0 = Date.now(); const iv = setInterval(() => { try { if (wc.contentWindow.READY || Date.now() - t0 > 8000) { clearInterval(iv); window.READY = true; } } catch { clearInterval(iv); window.READY = true; } }, 200); });
+wc.addEventListener('load', () => { const t0 = Date.now(); const iv = setInterval(() => { try { if (wc.contentWindow.READY || Date.now() - t0 > 8000) { clearInterval(iv); fitted.then(() => { window.READY = true; }); } } catch { clearInterval(iv); fitted.then(() => { window.READY = true; }); } }, 200); });
 </script>
 </body>
 </html>
