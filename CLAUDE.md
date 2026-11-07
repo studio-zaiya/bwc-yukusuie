@@ -49,7 +49,7 @@ Built with Claude: Japan 2026 の提出作品「ゆくすいえ　YUKUSUIE: 16 u
 - 舞台の中央寄せは absolute＋translate(-50%,-50%)＋scale
 
 ## エンジンの大原則
-- 言葉はClaude、数字はコード。Claudeは数字を生成しない（`app/engine.js`）
+- 言葉はClaude、数字はコード。Claudeは数字を生成しない（`src/engine/engine.js`）
 - 台帳は3層：①仕様と数量／②会社ごとの原価と売価／③会社ごとの見積の見せ方
 - 自由回答（2択の外の答え）は画面上で特別扱いの言葉を付けない。原子的な取引：読み替え → 仮計算 → 条件を見せる → 承認 → 確定
 - 出来事の記録（イベントソーシング）＋スナップショット。Claudeの出力・モデル名・プロンプトの版も残す
@@ -64,10 +64,11 @@ Built with Claude: Japan 2026 の提出作品「ゆくすいえ　YUKUSUIE: 16 u
 - 描画は画像生成を使わず、座標からコードで描く（SVG／Canvas。three.jsは npm の依存として使う）
 
 ## リポジトリの構成
-- `app/`：ゲーム本体（`engine.js` 計算エンジン、`iso.js` 描画、`index.html` 画面、`report.html` 印刷レポート）
+- `src/`：ゲーム本体（`worker.js` サーバー、`engine/engine.js` 計算エンジン、`web/` 画面・描画・印刷レポート）
+- `app/`：初期の試作の版（いまのゲーム本体ではない。公開には入らない）
 - `prototypes/`：期間中にclaude.aiで作った見せ方の試作（動画素材の元）
-- `video/`：動画の書き出し（`capture.cjs`）
-- `data/`：トラブル目録・ビルダー類型・対立軸の辞書（期間中に新しく作るJSON）
+- `video/`：動画の場面と書き出しの道具（`scenes/`、`capture.cjs`、字幕）
+- `data/`：期間中に作ったデータ（`content/` 担当者・アンケート・チラシ・SNS など、`training/` 担当者の研修の設定と生の記録）
 - `docs/`：引き継ぎ書、設計、開発記録（`devlog.md`）
 
 ## 権利
