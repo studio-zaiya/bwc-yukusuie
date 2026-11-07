@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>ゆくすいえとは（一本の線）</title>
+<!-- 章「ゆくすいえとは」の線画を、一本の線で通して描き直した版【人間の指示 11/6：順番を入れ替えたので、線の色と位置をつなぐ。線が世界線（16の木）とつながって見えるように】。
+     ?part=a   ：20万の地図 → 3回建てる → 5,007万円 → 経験知のへだたり（専門家／経験者 … 初めての施主）→ SNSの「誰かの」正解 → 切り貼りの家 → 線が上へ（Heroの光の束へつなぐ）。23秒
+     【人間の指示 11/6 レビュー6】地図のテロップは「注文住宅は1年に／およそ20万戸」だけ。へだたりの場面を足す（テロップ・円の中の字は人間の指定）
+     ?part=tree：Heroの16本の世界線を受けて、一本の線が4回分かれて16の家へ（だれと×なにを×いくらで×どう仕上げる）。8秒
+     ?part=ai  ：締めの「あいだをつなぐ、問いかけのAIを」。へだたりの場面と同じ2つの円で、断片が一本の線につながる【人間の指示 11/6 レビュー7】。5秒
+     線の色は全編の重ねの線（#1C9A8E）と同じ。だいじな所だけ橙。決定論的：window.render(t)、DUR、READY、?t=秒 -->
+<style>html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:#FFFAF0}canvas{display:block}</style></head><body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+const Q=new URLSearchParams(location.search),PART=Q.get('part')||'a';
+const W=1920,H=1080,DUR=PART==='tree'?9:PART==='ai'?5:26.9;window.DUR=DUR;
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const C={paper:'#FFFAF0',ink:'#1E2B36',mute:'#6B6358',te:'#1C9A8E',or:'#E8701F',sky:'#1C8DCC',gold:'#F2B632',pk:'#f49ac1'};
+const FONT='"Hiragino Sans","BIZ UDPGothic","Zen Maru Gothic",sans-serif',MARU='"Hiragino Maru Gothic ProN","Zen Maru Gothic",sans-serif';
+const cl=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),lerp=(a,b,k)=>a+(b-a)*k,eo=v=>1-Math.pow(1-cl(v),3),eio=v=>{v=cl(v);return v<.5?4*v*v*v:1-Math.pow(-2*v+2,3)/2};
+function rng(s){return function(){s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function txt(s,x,y,size,o={}){if((o.a??1)<=0)return;ctx.save();ctx.globalAlpha=o.a??1;ctx.fillStyle=o.c||C.ink;ctx.font=`${o.w||700} ${size}px ${o.f||FONT}`;ctx.textAlign=o.al||'left';ctx.textBaseline='alphabetic';ctx.fillText(s,x,y+(1-(o.a??1))*12);ctx.restore()}
+function grid(){ctx.save();ctx.strokeStyle='rgba(28,141,204,.06)';ctx.lineWidth=1;for(let x=0;x<W;x+=32){ctx.beginPath();ctx.moveTo(x+.5,0);ctx.lineTo(x+.5,H);ctx.stroke()}for(let y=0;y<H;y+=32){ctx.beginPath();ctx.moveTo(0,y+.5);ctx.lineTo(W,y+.5);ctx.stroke()}ctx.restore()}
+// 折れ線を、長さの割合 k まで描く。先端の座標を返す
+function stroke(pts,k,col,lw,alpha=1){if(k<=0||pts.length<2)return null;const L=[0];for(let i=1;i<pts.length;i++)L.push(L[i-1]+Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]));const tg=L[L.length-1]*cl(k);
+  ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=col;ctx.lineWidth=lw;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);let tip=pts[0];
+  for(let i=1;i<pts.length;i++){if(L[i]<=tg){ctx.lineTo(pts[i][0],pts[i][1]);tip=pts[i]}else{const f=(tg-L[i-1])/(L[i]-L[i-1]||1);tip=[lerp(pts[i-1][0],pts[i][0],f),lerp(pts[i-1][1],pts[i][1],f)];ctx.lineTo(tip[0],tip[1]);break}}ctx.stroke();ctx.restore();return tip}
+function pen(p,col){if(!p)return;ctx.save();const g=ctx.createRadialGradient(p[0],p[1],0,p[0],p[1],24);g.addColorStop(0,col);g.addColorStop(.4,col+'88');g.addColorStop(1,col+'00');ctx.fillStyle=g;ctx.beginPath();ctx.arc(p[0],p[1],24,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(p[0],p[1],4,0,7);ctx.fill();ctx.restore()}
+const house=(x0,base,w,h,roof)=>[[x0,base],[x0,base-h],[x0+w/2,base-h-roof],[x0+w,base-h],[x0+w,base]];
+
+// ---------------- part a：一本の線のパン ----------------
+const BASE=820;   // 線の基準の高さ（各場面の床）
+// 日本の白地図（intro-c と同じ手打ちの輪郭）
+const JP=(()=>{const S=40,K=0.81,P=(lon,lat)=>[420+(lon-129.5)*K*S,230+(45.7-lat)*S];
+ const L={hokkaido:[[141.9,45.5],[142.8,44.8],[143.6,44.2],[144.5,43.95],[145.3,44.3],[145.1,43.65],[145.6,43.35],[144.9,43.0],[144.0,42.95],[143.3,42.0],[142.5,42.2],[141.7,42.6],[141.0,42.35],[140.6,42.55],[140.9,42.05],[141.15,41.8],[140.7,41.75],[140.05,41.42],[140.15,42.0],[139.8,42.3],[140.3,42.8],[140.5,43.25],[141.0,43.2],[141.45,43.35],[141.65,43.95],[141.8,44.45],[141.65,45.1],[141.9,45.5]],
+  honshu:[[140.3,41.25],[140.85,41.15],[141.45,41.45],[141.4,40.6],[141.95,39.65],[141.6,38.95],[141.5,38.3],[141.0,38.2],[141.0,37.1],[140.65,36.4],[140.85,35.75],[140.4,35.15],[139.85,34.9],[139.95,35.4],[139.65,35.3],[139.15,35.25],[138.85,34.6],[138.7,35.05],[138.25,34.6],[137.3,34.65],[136.9,34.75],[136.85,34.3],[136.3,34.05],[135.75,33.45],[135.1,33.85],[135.15,34.3],[135.4,34.65],[134.9,34.65],[134.2,34.65],[133.4,34.45],[132.4,34.25],[131.9,33.95],[130.95,33.95],[131.05,34.4],[131.7,34.75],[132.6,35.45],[133.3,35.55],[134.3,35.6],[135.3,35.6],[136.0,35.7],[136.1,36.1],[136.7,36.7],[136.75,37.25],[137.3,37.5],[137.0,36.9],[137.3,36.75],[138.2,37.15],[139.0,37.95],[139.55,38.6],[139.95,39.5],[139.7,39.95],[140.0,40.3],[139.9,40.65],[140.3,41.25]],
+  shikoku:[[132.0,33.35],[132.55,32.9],[133.0,32.72],[133.6,33.5],[134.2,33.25],[134.7,33.8],[134.6,34.2],[134.0,34.35],[133.0,34.08],[132.7,33.9],[132.4,33.5],[132.0,33.35]],
+  kyushu:[[130.9,33.95],[131.4,33.6],[131.7,33.25],[131.9,32.95],[131.65,32.4],[131.4,31.45],[131.1,31.3],[130.7,31.0],[130.55,31.55],[130.2,31.25],[130.15,31.8],[130.35,32.4],[130.55,32.75],[130.2,32.85],[129.75,32.7],[129.65,33.15],[129.95,33.5],[130.4,33.62],[130.9,33.95]],
+  sado:[[138.25,38.3],[138.5,38.25],[138.55,37.9],[138.25,37.85],[138.25,38.3]],awaji:[[134.95,34.6],[135.0,34.55],[134.85,34.2],[134.7,34.25],[134.95,34.6]]};
+ const OK=(lon,lat)=>[90+(lon-123.6)*K*S,560+(28.7-lat)*S];
+ const O={okinawa:[[127.65,26.08],[127.9,26.4],[128.25,26.65],[128.33,26.87],[128.1,26.75],[127.8,26.45],[127.65,26.2],[127.65,26.08]],amami:[[129.2,28.5],[129.7,28.4],[129.6,28.15],[129.2,28.25],[129.2,28.5]],ishigaki:[[124.1,24.55],[124.35,24.5],[124.25,24.35],[124.05,24.4],[124.1,24.55]],miyako:[[125.2,24.85],[125.45,24.75],[125.3,24.7],[125.15,24.75],[125.2,24.85]]};
+ const path=new Path2D();Object.values(L).map(a=>a.map(([a1,b])=>P(a1,b))).concat(Object.values(O).map(a=>a.map(([a1,b])=>OK(a1,b)))).forEach(pl=>{pl.forEach(([x,y],i)=>i?path.lineTo(x,y):path.moveTo(x,y));path.closePath()});
+ return {path,box:[OK(123.4,28.9),OK(130.0,23.9)]}})();
+const DOTS=(()=>{const r=rng(42),a=[],tc=document.createElement('canvas').getContext('2d');let g=0;while(a.length<180&&g++<300000){const x=60+r()*1000,y=200+r()*700;if(tc.isPointInPath(JP.path,x,y))a.push([x,y,r()])}return a})();
+const NOTES=[['吹き抜け','#ffe48a'],['大開口','#ffc7d9'],['回遊動線','#bfe7ff'],['アイランド','#c9f0c4'],['造作キッチン','#ffe48a'],['書斎','#ffc7d9'],['ガレージ','#bfe7ff'],['畳コーナー','#c9f0c4'],['広いWIC','#ffe48a'],['ホテルライク','#bfe7ff'],['土間','#c9f0c4'],['ヌック','#ffc7d9'],['ランドリー','#bfe7ff'],['中庭','#ffe48a'],['北欧風','#c9f0c4']];
+// 場面の並び（世界の x は i*W から）。各場面の線と描く時間（秒）
+// 【人間 11/6 レビュー7】地図の場面は使わない（動画は T[1] から）。へだたり〜切り貼りの間を少し広げた
+const T=[0,3.2,6.4,9.4,15.6,21.7],S5=5.2;  // 【人間 11/7 ラフカット】切り貼りの場面を長く（S5）、へだたり・SNSも少し長く
+const SC=T.map(t0=>({t0}));
+const GAP=(()=>{const o=3*W,R=190,cy=BASE-R,circ=(cx)=>{const p=[];for(let i=0;i<=72;i++){const a=Math.PI/2+i/72*Math.PI*2;p.push([cx+Math.cos(a)*R,cy+Math.sin(a)*R])}return p};return {o,R,cy,L:o+560,Rx:o+1360,circ}})();
+const PATH=[ // 場面ごとの線（世界座標）。前の場面の終わりと次の場面の始まりがつながる
+ [[0,BASE],[1920,BASE]],
+ (()=>{const o=W,p=[[o,BASE]];[300,720,1140].forEach(x=>p.push(...house(o+x,BASE,320,170,120)));p.push([o+1920,BASE]);return p})(),
+ (()=>{const o=2*W;return [[o,BASE],[o+240,BASE-10],[o+560,BASE-60],[o+880,BASE-170],[o+1180,BASE-330],[o+1420,BASE-520],[o+1480,BASE-560],[o+1520,BASE-520],[o+1560,BASE-300],[o+1640,BASE],[o+1920,BASE]]})(),
+ [[GAP.o,BASE],...GAP.circ(GAP.L),[GAP.L+200,BASE]],
+ [[GAP.Rx-200,BASE],...GAP.circ(GAP.Rx),[GAP.o+1920,BASE]],
+ (()=>{const o=4*W,x0=o+250,y0=200,w=380,h=620,r=54;const ph=[[o,BASE],[x0,BASE],[x0,y0+h-r],[x0,y0+r],[x0+r,y0],[x0+w-r,y0],[x0+w,y0+r],[x0+w,y0+h-r],[x0+w-r,y0+h],[x0+r,y0+h],[x0,y0+h-r],[x0,BASE],[o+1920,BASE]];return ph})(),
+ (()=>{const o=5*W;return [[o,BASE],[o+620,BASE],...house(o+620,BASE,620,330,230).slice(1),[o+2200,BASE]]})(),
+ (()=>{const o=5*W;return [[o+2200,BASE],[o+2200,-40]]})(),
+];
+const DRAW=[[0.1,1.6],[T[1]-.5,1.7],[T[2]-.5,1.5],[T[3]-.5,1.6],[T[3]+3.1,1.3],[T[4]-.5,1.6],[T[5]-.5,1.4],[T[5]+S5-1.05,0.7]];  // 線はパンより少し先に描き始める（ペン先がカメラを引っぱる）  // 線を描く［開始秒, 秒数］
+function camX(t){ // 場面ごとに止まり、0.6秒でパンする
+  let x=0;for(let i=1;i<SC.length;i++){const s=SC[i].t0;x=lerp(x,i*W,eio((t-(s-0.55))/0.6))}return x+eio((t-(T[5]+S5-1.3))/1.0)*700}
+function renderA(t){
+  ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=C.paper;ctx.fillRect(0,0,W,H);grid();
+  const cx=camX(t);ctx.save();ctx.translate(-cx,0);
+  // 線（全場面ぶん、ひと続き）
+  let tip=null;PATH.forEach((p,i)=>{const [a,d]=DRAW[i];const k=eio((t-a)/d);const tp=stroke(p,k,C.te,7);if(k>0&&k<1)tip=tp});
+  // ---- 場面1：20万の地図
+  {const o=0,a=eo((t-.2)/.6);ctx.save();ctx.translate(o,0);ctx.save();ctx.globalAlpha=a;
+    ctx.fillStyle='rgba(30,43,54,.04)';ctx.fill(JP.path);ctx.strokeStyle='rgba(30,43,54,.16)';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke(JP.path);
+    const [p0,p1]=JP.box;ctx.strokeStyle='rgba(30,43,54,.12)';ctx.lineWidth=1.5;ctx.strokeRect(p0[0],p0[1],p1[0]-p0[0],p1[1]-p0[1]);ctx.restore();
+    const n=Math.min(DOTS.length,Math.floor(Math.pow(2,(t-.5)*4.2)));for(let i=0;i<n;i++){const d=DOTS[i];ctx.save();ctx.globalAlpha=.7;ctx.fillStyle=d[2]<.5?C.or:C.te;ctx.beginPath();ctx.arc(d[0],d[1],6,0,7);ctx.fill();ctx.restore()}
+    txt('注文住宅は1年に',1060,380,56,{a:eo((t-.4)/.5)});
+    {const k=eo((t-.8)/1.0),v=Math.round(lerp(0,20,k));txt(`およそ${v}万`,1050,540,132,{f:MARU,w:900,c:C.or,a:eo((t-.8)/.4)});txt('戸',1050+ctxW(`およそ${v}万`,132,MARU,900)+12,540,60,{a:eo((t-1.4)/.4)})}
+    txt('出典：国土交通省「建築着工統計調査」（2025年 持家 20万1,285戸）',1060,620,22,{w:400,c:C.mute,a:eo((t-1.2)/.5)});
+    ctx.restore()}
+  // ---- 場面2：3回建てないと
+  {const o=W;ctx.save();ctx.translate(o,0);const a=1;
+    const u=t-T[1];txt('「家は、3回建てないと',960,220,76,{al:'center',a:eo((u-.2)/.5)});txt('満足できない」',960,318,76,{al:'center',a:eo((u-.5)/.5)});
+    ['1回目','2回目','3回目'].forEach((s,i)=>txt(s,460+420*i,BASE+52,30,{al:'center',c:C.or,a:eo((u-.5-i*.3)/.4)}));
+    txt('古くから、そう言われてきました。',960,BASE+120,34,{al:'center',w:400,c:C.mute,a:eo((u-1.0)/.5)});ctx.restore()}
+  // ---- 場面3：5,007万円
+  {const o=2*W,u=t-T[2];ctx.save();ctx.translate(o,0);
+    txt('土地と建物で、およそ',160,200,44,{a:eo((u-.1)/.4)});
+    {const k=eo((u-.4)/1.1);if(u>.4){const v=Math.round(lerp(3000,5007,k)).toLocaleString('ja-JP');txt(v,150,340,140,{f:MARU,w:900,c:C.or,a:eo((u-.4)/.3)});txt('万円',160+ctxW(v,140,MARU,900),340,60,{a:eo((u-.4)/.3)})}}
+    txt('年収の7.5年分。',160,430,56,{a:eo((u-1.1)/.4)});
+    txt('出典：住宅金融支援機構「2024年度 フラット35利用者調査」（土地付注文住宅）',160,BASE+70,22,{w:400,c:C.mute,a:eo((u-.9)/.4)});
+    ctx.restore()}
+  // ---- 場面3.5：経験知のへだたり（線が円を描いたあと途切れ、断片だけが向こうの円へ届く）
+  {const u=t-T[3],G=GAP;
+    txt('住まいづくりの経験知には、',G.o+960,230,62,{al:'center',a:eo((u-.2)/.5)});
+    txt('未経験者はアクセスしづらい',G.o+960,326,62,{al:'center',c:C.or,a:eo((u-.6)/.5)});
+    // 左の円の中：専門家／経験者
+    {const a=eo((u-.9)/.5);ctx.save();ctx.globalAlpha=a*.10;ctx.fillStyle=C.te;ctx.beginPath();ctx.arc(G.L,G.cy,G.R-4,0,7);ctx.fill();ctx.restore();
+      txt('専門家',G.L,G.cy-6,56,{al:'center',a});txt('経験者',G.L,G.cy+66,56,{al:'center',a})}
+    // あいだ：線の断片（とびとびに、だんだん薄く）
+    for(let i=0;i<7;i++){const x0=G.L+210+i*58,st=2.5+i*.12,k=eo((u-st)/.25);if(k<=0)continue;const len=(i%2?18:30)*k;
+      ctx.save();ctx.globalAlpha=(1-i*.09);ctx.strokeStyle=C.te;ctx.lineWidth=7;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x0,BASE+(i%3-1)*6);ctx.lineTo(x0+len,BASE+(i%3-1)*6);ctx.stroke();ctx.restore()}
+    // 右の円の中：初めての／施主
+    {const a=eo((u-3.7)/.5);ctx.save();ctx.globalAlpha=a*.10;ctx.fillStyle=C.or;ctx.beginPath();ctx.arc(G.Rx,G.cy,G.R-4,0,7);ctx.fill();ctx.restore();
+      txt('初めての',G.Rx,G.cy-6,56,{al:'center',a});txt('施主',G.Rx,G.cy+66,56,{al:'center',a})}
+  }
+  // ---- 場面4：SNSの「誰かの」正解
+  {const o=4*W,u=t-T[4]+9;ctx.save();ctx.translate(o,0);const k=eo((u-9.9)/.5);
+    if(k>0){ctx.save();ctx.globalAlpha=k;const posts=[['映える家',C.pk],['これが正解',C.gold],['これは失敗',C.sky],['インフルエンサー',C.pk],['AIのおすすめ',C.gold]];
+      posts.forEach((p,i)=>{const y=300+i*104,a=eo((u-10.0-i*.18)/.35);ctx.globalAlpha=k*a;ctx.fillStyle=p[1]+'55';ctx.fillRect(296,y,288,78);ctx.fillStyle=C.ink;ctx.font=`700 26px ${FONT}`;ctx.fillText(p[0],314,y+48)});ctx.restore()}
+    txt('SNSの映える家。',760,330,64,{a:eo((u-9.3)/.5)});txt('インフルエンサーやAIの',760,430,48,{w:400,a:eo((u-9.7)/.5)});
+    txt('「誰かの」正解。',760,540,80,{c:C.or,a:eo((u-10.1)/.5)});txt('ときには、すこし息苦しい。',760,640,48,{w:400,a:eo((u-11.6)/.5)});ctx.restore()}
+  // ---- 場面5：切り貼りの家（付箋が家の中を埋めていく）
+  {const o=5*W,u=t-T[5]+12;ctx.save();ctx.translate(o,0);
+    NOTES.forEach((nt,i)=>{const st=12.15+i*.08,k=eio((t-st)/.5);if(t<st)return;const col=i%5,row=Math.floor(i/5);const dx=700+col*115+(row===2?0:0),dy=BASE-62-row*84;const sx=-200,sy=300+i*30;const x=lerp(sx,dx,k),y=lerp(sy,dy,k)-Math.sin(k*Math.PI)*90;
+      ctx.save();ctx.translate(x,y);ctx.rotate((i%2?1:-1)*(.06+.03*(i%3)));ctx.font=`700 20px ${FONT}`;const w=106;ctx.fillStyle=nt[1];ctx.shadowColor='rgba(80,50,20,.16)';ctx.shadowBlur=6;ctx.shadowOffsetY=3;ctx.fillRect(-w/2,-34,w,68);ctx.shadowColor='transparent';ctx.fillStyle=C.ink;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(nt[0],0,0);ctx.restore()});
+    txt('理想の住まいが、',1330,330,52,{a:eo((u-12.1)/.5)});txt('他人の切り貼りで',1330,420,52,{a:eo((u-12.3)/.5)});txt('埋め尽くされないように。',1330,510,46,{a:eo((u-12.5)/.5)});txt('なにか、できないか。',1330,640,52,{c:C.or,a:eo((u-13.3)/.5)});
+    ctx.restore()}
+  // ---- 場面6：線が上へ（Heroの光の束へ）
+  {const o=5*W+1240;ctx.save();ctx.translate(o,0);const k=eo((t-(T[5]+S5-.65))/.45);if(k>0){const g=ctx.createRadialGradient(960,0,0,960,0,520);g.addColorStop(0,`rgba(255,240,210,${.9*k})`);g.addColorStop(1,'rgba(255,240,210,0)');ctx.fillStyle=g;ctx.fillRect(400,0,1120,600)}
+    ctx.restore()}
+  if(tip)pen(tip,C.te);
+  ctx.restore();
+}
+function ctxW(s,size,f,w){ctx.save();ctx.font=`${w} ${size}px ${f}`;const v=ctx.measureText(s).width;ctx.restore();return v}
+
+// ---------------- part tree：一本の線が16の世界線へ ----------------
+const ROOT=[120,655],XS=[520,880,1240,1560],SP=[0,250,128,64,32],LEAF=1720;
+const NAMES=['だれと建てる？','なにを優先する？','いくらまでかける？','どう仕上げる？'];
+function renderTree(t){
+  ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=C.paper;ctx.fillRect(0,0,W,H);grid();
+  // 入ってくる線（Heroの世界線を受けて、左から）
+  const kin=eio(t/.8);stroke([[0,ROOT[1]],[ROOT[0],ROOT[1]],[XS[0]-120,ROOT[1]]],kin,C.te,7);
+  // 4回の分かれ道（2→4→8→16）
+  let nodes=[[XS[0]-120,ROOT[1],'']];const mine='0110';  // わが家（07）の道
+  for(let lv=0;lv<4;lv++){const nx=lv<3?XS[lv+1]-120:LEAF,t0=.7+lv*.75,next=[];
+    nodes.forEach(([x,y,id])=>{[-1,1].forEach((s,b)=>{const ny=y+s*SP[lv+1]*.78,cid=id+b,isMine=mine.startsWith(cid);
+      const pts=[[x,y],[x+60,y],[x+150,ny],[nx,ny]];stroke(pts,eio((t-t0)/.7),isMine?C.or:C.te,isMine?6:4,isMine?1:.85);next.push([nx,ny,cid])})});
+    // 分岐点の名前：左上に「×」でつないで1行に【人間の指示 11/6 レビュー6】
+    {let x=120;for(let j=0;j<lv;j++)x+=ctxW(NAMES[j]+'　×　',42,FONT,700);txt(NAMES[lv]+(lv<3?'　×':''),x,128,42,{a:eo((t-t0)/.4)})}
+    nodes=next}
+  // 16の家（先端）。わが家は橙
+  nodes.forEach(([x,y,id],i)=>{const a=eo((t-3.9-i*.04)/.35);if(a<=0)return;const m=id===mine;ctx.save();ctx.globalAlpha=a;ctx.strokeStyle=m?C.or:C.ink;ctx.fillStyle=m?C.or:'#fff';ctx.lineWidth=2.5;const w=30,h=20,r=13;ctx.beginPath();ctx.moveTo(x+8,y+h/2);ctx.lineTo(x+8,y-h/2);ctx.lineTo(x+8+w/2,y-h/2-r);ctx.lineTo(x+8+w,y-h/2);ctx.lineTo(x+8+w,y+h/2);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.fillStyle=m?'#fff':C.mute;ctx.font=`700 13px ${FONT}`;ctx.textAlign='center';ctx.fillText(String(i+1).padStart(2,'0'),x+8+w/2,y+h/2-3);ctx.restore()});
+  txt('2 × 2 × 2 × 2 ＝ 16',120,222,60,{f:MARU,w:900,c:C.or,a:eo((t-4.2)/.5)});
+  txt('建てる前に、16回建ててみよう。',1800,218,44,{al:'right',a:eo((t-5.0)/.5)});
+}
+// ---------------- part ai：へだたりの2つの円が、一本の線でつながる ----------------
+function renderAI(t){
+  ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=C.paper;ctx.fillRect(0,0,W,H);grid();
+  const R=190,cy=BASE-R,L=560,Rx=1360,a0=eo(t/.4);
+  const circ=cx=>{const p=[];for(let i=0;i<=72;i++){const a=Math.PI/2+i/72*Math.PI*2;p.push([cx+Math.cos(a)*R,cy+Math.sin(a)*R])}return p};
+  stroke([[0,BASE],...circ(L),[L+200,BASE]],1,C.te,7,a0);stroke([[Rx-200,BASE],...circ(Rx),[W,BASE]],1,C.te,7,a0);
+  const join=eio((t-.7)/1.5);
+  // 断片（へだたりの場面と同じ）は、つながる線に重なって消える
+  for(let i=0;i<7;i++){const x0=L+210+i*58;ctx.save();ctx.globalAlpha=a0*(1-i*.09)*(1-join);ctx.strokeStyle=C.te;ctx.lineWidth=7;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x0,BASE+(i%3-1)*6);ctx.lineTo(x0+(i%2?18:30),BASE+(i%3-1)*6);ctx.stroke();ctx.restore()}
+  const wave=[];for(let x=L+200;x<=Rx-200;x+=8)wave.push([x,BASE-Math.sin((x-L-200)/400*Math.PI*2)*16]);
+  const tip=stroke(wave,join,C.or,7);if(join>0&&join<1)pen(tip,C.or);
+  // 円の中
+  ctx.save();ctx.globalAlpha=a0*(.10+.08*eo((t-2.2)/.5));ctx.fillStyle=C.te;ctx.beginPath();ctx.arc(L,cy,R-4,0,7);ctx.fill();ctx.fillStyle=C.or;ctx.beginPath();ctx.arc(Rx,cy,R-4,0,7);ctx.fill();ctx.restore();
+  txt('専門家',L,cy-6,56,{al:'center',a:a0});txt('経験者',L,cy+66,56,{al:'center',a:a0});
+  txt('初めての',Rx,cy-6,56,{al:'center',a:a0});txt('施主',Rx,cy+66,56,{al:'center',a:a0});
+  txt('あいだをつなぐ、',960,230,62,{al:'center',a:eo((t-.3)/.5)});
+  txt('問いかけのAIを。',960,326,62,{al:'center',c:C.or,a:eo((t-1.6)/.5)});
+}
+window.render=t=>{t=cl(t,0,DUR);PART==='tree'?renderTree(t):PART==='ai'?renderAI(t):renderA(t)};
+(document.fonts?Promise.all([document.fonts.load(`900 64px ${MARU}`),document.fonts.load(`700 40px ${FONT}`)]).catch(()=>{}):Promise.resolve()).then(()=>{render(Q.has('t')?+Q.get('t'):DUR*.6);window.READY=true});
+</script></body></html>

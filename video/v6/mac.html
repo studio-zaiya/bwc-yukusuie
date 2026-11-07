@@ -1,0 +1,16 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>Macからの実装</title>
+<!-- 人間がMacで撮った期間中の作業画面（docs/devshots/*_mac_*.png）。1枚を大きく、3枚を小さく【人間の指示 11/6：4枚、1〜2枚を大きめに】。
+     添付ファイル名が写る右側の領域は切り落とした。決定論的：render(t) -->
+<style>body{margin:0;width:1920px;height:1080px;background:#FFFAF0;color:#1E2B36;font-family:"Hiragino Sans","BIZ UDPGothic",sans-serif;overflow:hidden}
+img{position:absolute;border-radius:14px;box-shadow:0 14px 34px rgba(30,43,54,.20),0 2px 6px rgba(30,43,54,.12);object-fit:cover;object-position:left top;background:#fff;opacity:0}
+.c{position:absolute;font-size:22px;color:#6B6358;font-family:ui-monospace,Menlo,monospace}
+.cap{position:absolute;left:0;right:0;bottom:40px;text-align:center;font-size:30px;color:#5b6670}</style></head><body>
+<img id="i0" src="../../docs/devshots/20261104-1605_mac_ui-review.png" style="left:80px;top:70px;width:930px;height:860px">
+<img id="i1" src="../../docs/devshots/20261104-1302_mac_api-key-recording.png" style="left:1060px;top:70px;width:780px;height:420px">
+<img id="i2" src="../../docs/devshots/20261104-1504_mac_task-plan.png" style="left:1060px;top:520px;width:380px;height:410px">
+<img id="i3" src="../../docs/devshots/20261104-1727_mac_survey-idea.png" style="left:1460px;top:520px;width:380px;height:410px">
+<div class="c" style="left:84px;top:940px">11/4 16:05</div><div class="c" style="left:1064px;top:494px">11/4 13:02</div><div class="c" style="left:1064px;top:936px">11/4 15:04</div><div class="c" style="left:1464px;top:936px">11/4 17:27</div>
+<script>const cl=v=>Math.max(0,Math.min(1,v)),eo=v=>1-Math.pow(1-cl(v),3);window.DUR=6;
+const I=[0,1,2,3].map(i=>document.getElementById('i'+i));
+window.render=t=>{I.forEach((im,i)=>{const a=eo((t-.1-i*.25)/.5);im.style.opacity=a;im.style.transform=`translateY(${(1-a)*24}px)`;im.style.objectPosition=`left ${(cl(t/6)*(i?8:14)).toFixed(1)}%`})};
+Promise.all(I.map(i=>i.decode().catch(()=>{}))).then(()=>{render(+(new URLSearchParams(location.search).get('t')||5));window.READY=true});</script></body></html>

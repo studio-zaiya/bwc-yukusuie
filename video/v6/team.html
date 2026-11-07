@@ -1,0 +1,29 @@
+<html><head><style>
+@import url("../../node_modules/@fontsource/biz-udpgothic/700.css");@import url("../../node_modules/@fontsource/biz-udpgothic/400.css");@import url("../../node_modules/@fontsource/zen-maru-gothic/900.css");
+body{margin:0;width:1920px;height:1080px;background:#FFFAF0;font-family:"BIZ UDPGothic";color:#1E2B36;position:relative}
+h1{position:absolute;top:120px;width:100%;text-align:center;font-size:64px;margin:0;font-weight:700}
+h2{position:absolute;top:215px;width:100%;text-align:center;font-size:38px;margin:0;font-weight:700;color:#E8701F}
+.b{position:absolute;border:3px solid #1E2B36;border-radius:22px;background:#fff;text-align:center;padding:22px 18px;box-sizing:border-box}
+.b b{display:block;font-size:34px;margin-bottom:8px}.b span{font-size:24px;color:#5b6670;line-height:1.5}
+.h{border-color:#E8701F;background:#FFF3E6}
+svg{position:absolute;left:0;top:0}
+.lab{position:absolute;font-size:22px;color:#5b6670}
+</style></head><body>
+<h1>わたしは、コードが読めません。</h1><h2>代わりに、Claudeでチームを組みました。</h2>
+<svg width="1920" height="1080"><g stroke="#1E2B36" stroke-width="3" fill="none" marker-end="url(#a)">
+<path d="M640 560 L 780 560"/><path d="M780 610 L 640 610"/>
+<path d="M1140 540 L 1290 470"/><path d="M1290 500 L 1140 570"/>
+<path d="M1140 640 L 1290 710"/><path d="M1290 740 L 1140 670"/></g>
+<defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#1E2B36"/></marker></defs></svg>
+<div class="b" style="left:260px;top:470px;width:380px;height:230px"><b>Claude（チャット）</b><span>構想と設計<br>指示書を書く司令塔<br>辛口のレビュー</span></div>
+<div class="b h" style="left:780px;top:450px;width:360px;height:270px"><b>わたし</b><span>指示と報告を受け渡す<br>決める・捨てる<br>演出を加える<br>（あえて自動にしない）</span></div>
+<div class="b" style="left:1290px;top:380px;width:460px;height:170px"><b>Claude Code（実装）</b><span>ゲーム本体・監査</span></div>
+<div class="b" style="left:1290px;top:640px;width:460px;height:170px"><b>Claude Code（動画）</b><span>録画・書き出し・字幕<br>編集ソフトは使わず、コードで</span></div>
+<div class="lab" style="left:655px;top:520px">指示書</div><div class="lab" style="left:262px;top:715px;width:380px;text-align:center;font-size:20px">設計と指示の文書　57本・約22万字</div><div class="lab" style="left:670px;top:622px">報告</div>
+<script>const cl=v=>Math.max(0,Math.min(1,v)),eo=v=>1-Math.pow(1-cl(v),3);window.DUR=7;
+const H=[...document.querySelectorAll('h1,h2')],B=[...document.querySelectorAll('.b')],L=[...document.querySelectorAll('.lab')],G=document.querySelector('svg g');
+const order=[1,0,2,3];
+window.render=t=>{H.forEach((el,i)=>{const a=eo((t-i*.35)/.5);el.style.opacity=a});
+ B.forEach((el,i)=>{const a=eo((t-0.8-order.indexOf(i)*.35)/.5);el.style.opacity=a;el.style.transform=`translateY(${((1-a)*18).toFixed(1)}px)`});
+ G.style.opacity=eo((t-2.0)/.6);L.forEach(el=>el.style.opacity=eo((t-2.3)/.5))};
+render(+(new URLSearchParams(location.search).get('t')||6));window.READY=true;</script></body></html>

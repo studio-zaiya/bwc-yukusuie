@@ -207,7 +207,7 @@ function drawGold(t){
 const LBL=[
  {t:'世界樹と16の敷地',s:'分かれ道が生まれ、家として実体化する',chips:[]},
  {t:'計算エンジン',s:'数字は、ここでだけ出る',chips:[['コード','code']]},
- {t:'Claude',s:'読み替え・2択の生成・審査・会話',chips:[['上位','claude'],['中位','claude'],['軽量','claude']]},
+ {t:'Claude',s:'読み替え・2択の生成・審査・会話',chips:[['Opus','claude'],['Sonnet','claude'],['Haiku','claude']]},
  {t:'ふたりの一言',s:'自由な答えが、すべての始まり',chips:[]},
 ];
 function labels(t){
@@ -225,6 +225,10 @@ function render(t){
  X.save();X.globalAlpha=.35*ge;X.strokeStyle='#D8DFE3';X.lineWidth=1;for(let x=0;x<W;x+=48){X.beginPath();X.moveTo(x,0);X.lineTo(x,H);X.stroke()}for(let y=0;y<H;y+=48){X.beginPath();X.moveTo(0,y);X.lineTo(W,y);X.stroke()}X.restore();
  txt('ゆくすいえ のしくみ',80,96,46,{f:FD,w:900,a:eo((t-.2)/.5)});
  txt('YUKUSUIE: 16 unbuilt futures',82,134,22,{w:400,c:K.ink2,a:eo((t-.4)/.5)});
+ // 全体像の一文（右上）【11/6 の指示：「マルチエージェント」は使わない。「役割の違う複数のClaude × 計算エンジンで、16の世界を同時に計算」】
+ // 指示どおりの言葉に戻すときは ?ov=human
+ {const OV=new URLSearchParams(location.search).get('ov')==='human'?['役割の違う複数のClaude × 計算エンジンで、','16の世界を同時に計算']:['役割の違う複数のClaude × 計算エンジンで、','16の世界を同時に計算'];
+  const oa=eo((t-.6)/.5);txt(OV[0],1840,92,30,{al:'right',w:700,a:oa});txt(OV[1],1840,138,30,{al:'right',w:700,a:oa});}
  const DRAW=[drawTop,drawEngine,drawClaude,drawGround];
  for(let i=3;i>=1;i--){const la=eo((t-1.9-(i-1)*0.12)/.6);if(la<=0)continue;plate(i,la);DRAW[i](t,la)}
  plate(0,1);drawTop(t,1);

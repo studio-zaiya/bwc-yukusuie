@@ -12,7 +12,7 @@ const fs = require('fs'), path = require('path'), { execFileSync } = require('ch
 const ROOT = path.resolve(__dirname, '..');
 const OUT = path.resolve(process.env.OUT || path.join(ROOT, 'out'));
 const EDL = JSON.parse(fs.readFileSync(process.env.EDL || path.join(__dirname, 'edl.json'), 'utf8'));
-const PARTS = path.join(OUT, 'video_parts'), PLATES = path.join(OUT, 'plates'), PRE = path.join(OUT, 'prefinal');
+const PARTS = path.join(OUT, 'video_parts'), PLATES = path.join(OUT, 'plates'), PRE = path.resolve(process.env.PRE_DIR || path.join(OUT, 'prefinal'));
 const FONT_DIR = process.env.FONT_DIR || '';
 const XF = EDL.xfade, FPS = EDL.fps, END = EDL.end;
 const FONTS = FONT_DIR ? ['zen-maru-gothic/700.css', 'zen-maru-gothic/900.css', 'biz-udpgothic/400.css', 'biz-udpgothic/700.css'].map(f => `@import url("file://${path.join(FONT_DIR, f)}");`).join('\n') : '';
@@ -34,7 +34,7 @@ body{margin:0;width:1920px;height:1080px;background:#FFFAF0;color:#1E2B36;font-f
 <div class=k>通し ${fmt(s.at)} 〜 ${fmt(s.to)}</div><div class=d>${(s.to - s.at).toFixed(1)}秒</div>`;
 
 // 字幕：枠の下の紙の帯（上22px＋枠929px の下、高さ129px）の中央に、墨の字（座布団なし）。全編で同じ位置・同じ大きさ
-const FR = { x: 134, y: 22, w: 1652, h: 929 };
+const FR = EDL.frame || { x: 134, y: 22, w: 1652, h: 929 };
 const subHTML = text => `<!doctype html><meta charset=utf-8><style>${FONTS}
 html,body{margin:0;width:1920px;height:1080px;background:transparent}
 .s{position:absolute;left:0;right:0;top:${FR.y + FR.h}px;height:${1080 - FR.y - FR.h}px;display:flex;align-items:center;justify-content:center;color:#1E2B36;
@@ -49,8 +49,8 @@ c.save();c.shadowColor='rgba(30,43,54,.20)';c.shadowBlur=28;c.shadowOffsetY=8;rr
 c.globalCompositeOperation='destination-out';rr();c.fill();c.globalCompositeOperation='source-over';
 c.strokeStyle='rgba(30,43,54,.10)';c.lineWidth=1.5;rr();c.stroke();
 <\/script>`;
-// 寄り：0.6秒で寄って止める（smoothstep）。out があれば、その秒から0.6秒で引く
-const zoomExpr = z => { const T = `(in/${24})`; const ss = a => `(clip((${T}-${a})/0.6,0,1)*clip((${T}-${a})/0.6,0,1)*(3-2*clip((${T}-${a})/0.6,0,1)))`;
+// 寄り：ramp 秒（ふだん0.6秒、さっと寄るときは0.25秒など）で寄って止める（smoothstep）。out があれば、その秒から同じ速さで引く
+const zoomExpr = z => { const T = `(in/${24})`, R = z.ramp || 0.6; const ss = a => `(clip((${T}-${a})/${R},0,1)*clip((${T}-${a})/${R},0,1)*(3-2*clip((${T}-${a})/${R},0,1)))`;
   return `1+${z.scale - 1}*(${ss(z.at)}${z.out != null ? '-' + ss(z.out) : ''})`; };
 
 (async () => {
@@ -62,7 +62,7 @@ const zoomExpr = z => { const T = `(in/${24})`; const ss = a => `(clip((${T}-${a
   const subs = readSrt(path.resolve(__dirname, EDL.subs));
   // 字幕の基準（最低1.8秒、文字数÷4秒）の確認
   const warn = [];
-  subs.forEach((c, i) => { const need = Math.max(1.8, c.text.replace(/\s/g, '').length / 4); if (c.to - c.at < need - 1e-6) warn.push(`字幕${i + 1}「${c.text}」が ${(c.to - c.at).toFixed(2)}秒（基準 ${need.toFixed(2)}秒）`); });
+  subs.forEach((c, i) => { const need = Math.max(1.8, c.text.replace(/\s/g, '').length / 6); if (c.to - c.at < need - 1e-6) warn.push(`字幕${i + 1}「${c.text}」が ${(c.to - c.at).toFixed(2)}秒（基準 ${need.toFixed(2)}秒）`); });
 
   const b = await chromium.launch(); const pg = await b.newPage({ viewport: { width: 1920, height: 1080 } });
   for (const s of S) {
@@ -79,6 +79,12 @@ const zoomExpr = z => { const T = `(in/${24})`; const ss = a => `(clip((${T}-${a
     await pg.setContent(subHTML(subs[i].text)); await pg.evaluate(() => document.fonts.ready); await pg.waitForTimeout(100);
     const f = path.join(PRE, '_subs', `s${String(i + 1).padStart(2, '0')}.png`); await pg.screenshot({ path: f, omitBackground: true }); subPng.push(f);
   }
+  // 強調の光（hl：{box:[x0,y0,x1,y1] 枠の中の割合, at, to}）。金の縁と、外へにじむ光【人間の指示 11/6 レビュー6：ズームの代わりに光らせる】
+  const hlPng = {};
+  for (const [i, s] of S.entries()) { if (!s.hl) continue; const [x0, y0, x1, y1] = s.hl.box;
+    await pg.setViewportSize({ width: FR.w, height: FR.h });
+    await pg.setContent(`<body style="margin:0;background:transparent"><div style="position:absolute;left:${x0 * FR.w}px;top:${y0 * FR.h}px;width:${(x1 - x0) * FR.w}px;height:${(y1 - y0) * FR.h}px;border:5px solid #F2B632;border-radius:14px;box-shadow:0 0 22px 8px rgba(242,182,50,.55),inset 0 0 18px 4px rgba(242,182,50,.28)"></div></body>`);
+    const f = path.join(PRE, '_subs', `hl_${s.id}.png`); await pg.screenshot({ path: f, omitBackground: true }); hlPng[i] = f; }
   await b.close();
 
   // ffmpeg：場面をそろえる（枠に入れる場面は 0.86倍＋寄り＋枠の PNG）→ クロスフェードでつなぐ
@@ -93,6 +99,7 @@ const zoomExpr = z => { const T = `(in/${24})`; const ss = a => `(clip((${T}-${a
   // 枠の PNG は、枠に入れる場面ごとに長さを区切った別の入力にする（1つを分けると、あとの場面のコマがたまる）
   const maskIn = {}; let nIn = S.length;
   S.forEach((s, i) => { if (s.full) return; args.push('-loop', '1', '-framerate', String(FPS), '-t', String(s.dur + 0.5), '-i', maskPng); maskIn[i] = nIn++; });
+  const hlIn = {}; S.forEach((s, i) => { if (!hlPng[i]) return; args.push('-loop', '1', '-framerate', String(FPS), '-t', String(s.dur + 0.5), '-i', hlPng[i]); hlIn[i] = nIn++; });
   S.forEach((s, i) => {
     const sp = s.speed || 1;
     const crop = s.crop ? `crop=${s.crop.join(':')},` : '';
@@ -101,6 +108,7 @@ const zoomExpr = z => { const T = `(in/${24})`; const ss = a => `(clip((${T}-${a
     if (s.full) { fc.push(`${v},format=yuv420p,trim=duration=${s.dur},setpts=PTS-STARTPTS[v${i}]`); return; }
     if (s.zoom) { const z = s.zoom; v += `,zoompan=z='${zoomExpr(z)}':x='(iw-iw/zoom)*${z.cx}':y='(ih-ih/zoom)*${z.cy}':d=1:s=${FR.w}x${FR.h}:fps=${FPS}`; }
     else v += `,scale=${FR.w}:${FR.h}:flags=lanczos`;
+    if (hlIn[i] != null) { const h = s.hl, to = h.to != null ? h.to : s.dur; v += `,setsar=1,format=rgba[z${i}];[${hlIn[i]}:v]format=rgba,fade=t=in:st=${h.at}:d=0.3:alpha=1,fade=t=out:st=${Math.max(h.at + 0.3, to - 0.3)}:d=0.3:alpha=1[g${i}];[z${i}][g${i}]overlay=0:0:eof_action=pass`; }
     v += `,setsar=1,pad=1920:1080:${FR.x}:${FR.y}:color=0xFFFAF0,format=rgba[p${i}];[p${i}][${maskIn[i]}:v]overlay=0:0:shortest=1,format=yuv420p,trim=duration=${s.dur},setpts=PTS-STARTPTS[v${i}]`;
     fc.push(v);
   });
@@ -113,10 +121,26 @@ const zoomExpr = z => { const T = `(in/${24})`; const ss = a => `(clip((${T}-${a
   const silent = ['-f', 'lavfi', '-t', String(END), '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000'];
   execFileSync('ffmpeg', [...args, ...silent, '-filter_complex', fc.join(';'), '-map', `[${prev}]`, '-map', `${nIn}:a`, ...enc, nosub], { stdio: 'inherit' });
   // 字幕を重ねる
+  if (EDL.overlay) {
+    // いつも出す重ね（章・字幕・一本の線）を1コマずつ描いて重ねる（video/scenes/overlay.html）
+    const ov = EDL.overlay, odir = path.join(PRE, '_overlay'); fs.rmSync(odir, { recursive: true, force: true }); fs.mkdirSync(odir, { recursive: true });
+    const TL = { DUR: END, SUBS: subs.map(c => [c.at, c.to, c.text]), CH: ov.chapters, CHN: ov.names, HOUSE: ov.house, DARK: ov.dark };
+    const b2 = await chromium.launch(); const op = await b2.newPage({ viewport: { width: 1920, height: 1080 } });
+    await op.addInitScript(tl => { window.TL = tl; }, TL);
+    await op.goto('file://' + path.join(__dirname, 'scenes', 'overlay.html'));
+    if (FONTS) await op.addStyleTag({ content: FONTS });
+    await op.evaluate(() => document.fonts.ready); await op.waitForFunction(() => window.READY);
+    const N = Math.round(END * FPS);
+    for (let k = 0; k < N; k++) { await op.evaluate(t => window.render(t), k / FPS); await op.screenshot({ path: path.join(odir, `o${String(k).padStart(5, '0')}.png`), omitBackground: true }); }
+    await b2.close();
+    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', nosub, '-framerate', String(FPS), '-i', path.join(odir, 'o%05d.png'), '-filter_complex', '[0:v][1:v]overlay=0:0:eof_action=pass[o]', '-map', '[o]', '-map', '0:a', ...enc.filter(x => x !== '-shortest'), withsub], { stdio: 'inherit' });
+    fs.rmSync(odir, { recursive: true, force: true });
+  } else {
   const a2 = ['-y', '-loglevel', 'error', '-i', nosub]; subPng.forEach(f => a2.push('-i', f));
   const f2 = []; let p2 = '0:v';
   subs.forEach((c, i) => { f2.push(`[${p2}][${i + 1}:v]overlay=0:0:enable='between(t,${c.at.toFixed(3)},${c.to.toFixed(3)})'[o${i}]`); p2 = 'o' + i; });
   execFileSync('ffmpeg', [...a2, '-filter_complex', f2.join(';'), '-map', `[${p2}]`, '-map', '0:a', ...enc.filter((x, i, a) => x !== '-shortest'), withsub], { stdio: 'inherit' });
+  }
   fs.writeFileSync(path.join(PRE, 'yukusuie_prefinal.srt'), subs.map((c, i) => `${i + 1}\n${srtT(c.at)} --> ${srtT(c.to)}\n${c.text}\n`).join('\n'));
 
   // 場面ごとのスクリーンショット（字幕つきの版から。字幕がある場面は字幕の出ている時刻を優先）
@@ -130,7 +154,7 @@ const zoomExpr = z => { const T = `(in/${24})`; const ss = a => `(clip((${T}-${a
   });
   fs.writeFileSync(path.join(PRE, 'scenes.json'), JSON.stringify(S.map(({ id, kind, label, note, at, to, shot, still, subs, file, in: inp }) => ({ id, kind, label, note, at, to, shot, still: path.relative(PRE, still), subs, src: kind === 'plate' ? '仮の板' : file, in: inp })), null, 1));
 
-  const kindJa = s => (s.sub ? '**代用**' : s.kind === 'rec' ? '実機の録画' : s.kind === 'plate' ? '**仮の板**' : '書き出し済み') + (s.full ? '・全面' : '・枠') + (s.zoom ? `・寄り${s.zoom.scale}倍` : '') + (s.play ? `・${s.play}秒で静止` : '') + (s.speed && s.speed !== 1 ? `・${s.speed}倍速` : '');
+  const kindJa = s => (s.sub ? '**代用**' : s.kind === 'rec' ? '実機の録画' : s.kind === 'plate' ? '**仮の板**' : '書き出し済み') + (s.full ? '・全面' : '・枠') + (s.zoom ? `・寄り${s.zoom.scale}倍` : '') + (s.play ? `・${s.play}秒で静止` : '') + (s.speed && s.speed !== 1 ? `・${s.speed}倍速` : '') + (s.hl ? '・光で強調' : '');
   const rows = S.map(s => `| ${fmt(s.at)}–${fmt(s.to)} | ${(s.to - s.at).toFixed(1)} | ${kindJa(s)} | ${s.label}${s.note ? '（' + s.note + '）' : ''} | ${s.file ? s.file + (s.in != null ? ' @' + s.in + '秒' : '') : ''} |`);
   const subRows = subs.map((c, i) => `| ${i + 1} | ${fmt(c.at)}–${fmt(c.to)} | ${c.text} |`);
   fs.writeFileSync(path.join(__dirname, 'TIMELINE.md'), `# 通しの場面と字幕の時刻（自動生成：node video/assemble.cjs）\n\n全体 ${fmt(END)}（${END}秒）。つなぎは ${XF}秒のクロスフェード。1920×1080・${FPS}fps。音は無音のトラックだけ（BGMと声は人間が入れる）。\n場面の開始時刻は構成 v0.3 の時刻にそろえ、字幕（${EDL.subs}）の時刻がそのまま使えるようにしてある。\n\n## 場面\n| 時刻 | 秒 | 材料 | 中身 | ファイル |\n|---|---|---|---|---|\n${rows.join('\n')}\n\n## 字幕（焼き込み）\n| # | 時刻 | 字幕 |\n|---|---|---|\n${subRows.join('\n')}\n${warn.length ? '\n## 字幕の基準に足りないもの\n' + warn.map(w => '- ' + w).join('\n') + '\n' : ''}`);

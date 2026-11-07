@@ -32,6 +32,29 @@ const SCENES = [
   // 実際に走らせた点検の結果（video/checks/run_checks.py の出力）
   { id: 'check-audit', url: P('check-table.html?t=0&kind=audit&dur=2.8'), dur: 2.8 },
   { id: 'check-consistency', url: P('check-table.html?t=0&kind=consistency&dur=6.3'), dur: 6.3 },
+  { id: 'intro-v2', url: P('intro-v2.html?t=0'), dur: 55.5 },
+  // 舞台裏（NARRATION_v2）
+  { id: 'bs-title', url: P('backstage.html?t=0&kind=title&dur=2.5'), dur: 2.5 },
+  { id: 'bs-desk', url: P('backstage.html?t=0&kind=desk&dur=4.5'), dur: 4.5 },
+  { id: 'bs-phone', url: P('backstage.html?t=0&kind=phone&dur=4.5'), dur: 4.5 },
+  { id: 'bs-models', url: P('backstage.html?t=0&kind=models&dur=2.5'), dur: 2.5 },
+  { id: 'bs-numbers', url: P('backstage.html?t=0&kind=numbers&dur=3'), dur: 3 },
+  // プレファイナル4（構成 v6）
+  { id: 'intro-v6a', url: P('intro-v2.html?t=0&part=v6a'), dur: 34 },
+  { id: 'intro-v6ai', url: P('intro-v2.html?t=0&part=v6ai'), dur: 5 },
+  { id: 'v6-s67', url: 'file://' + path.join(ROOT, 'video', 'v6', 's67.html?t=0'), dur: 11 },
+  { id: 'v6-s8', url: 'file://' + path.join(ROOT, 'video', 'v6', 's8.html?t=0&dur=3'), dur: 3 },
+  { id: 'v6-team', url: 'file://' + path.join(ROOT, 'video', 'v6', 'team.html?t=0'), dur: 9 },
+  { id: 'v6-dev', url: 'file://' + path.join(ROOT, 'video', 'v6', 'dev.html?t=0'), dur: 6 },
+  { id: 'title', url: P('opening.html?t=0&dur=5'), dur: 5 },
+  // プレファイナル6（人間のレビュー 11/6）
+  { id: 'v6-impl', url: 'file://' + path.join(ROOT, 'video', 'v6', 'impl-title.html?t=0'), dur: 3 },
+  { id: 'v6-mac', url: 'file://' + path.join(ROOT, 'video', 'v6', 'mac.html?t=0'), dur: 7 },
+  { id: 'v6-system', url: 'file://' + path.join(ROOT, 'video', 'v6', 'system.html?t=0&dur=6'), dur: 6 },
+  // 章「ゆくすいえとは」を一本の線で描き直した版
+  { id: 'v7-ch1a', url: 'file://' + path.join(ROOT, 'video', 'v7', 'ch1.html?t=0&part=a'), dur: 26.9 },
+  { id: 'v7-ai', url: 'file://' + path.join(ROOT, 'video', 'v7', 'ch1.html?t=0&part=ai'), dur: 5 },
+  { id: 'v7-tree', url: 'file://' + path.join(ROOT, 'video', 'v7', 'ch1.html?t=0&part=tree'), dur: 9 },
 ];
 
 (async () => {
@@ -40,6 +63,9 @@ const SCENES = [
   const ctx = await b.newContext({ viewport: { width: 1920, height: 1080 }, locale: 'ja-JP' });
   await ctx.route(/cdn\.jsdelivr\.net\/npm\/three@0\.160\.0\/(.*)/, (route, req) => route.fulfill({ path: path.join(THREE, req.url().split('three@0.160.0/')[1]), contentType: 'application/javascript' }));
   if (FONT_DIR) await ctx.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
+  // 正式のクレジット（コミットしない手元のファイル）を、file:// でも読めるようにページへ渡す
+  const LOCAL = path.join(ROOT, 'video', 'scenes', 'credits.local.json');
+  if (fs.existsSync(LOCAL)) await ctx.addInitScript(j => { window.CREDITS_LOCAL = j; }, JSON.parse(fs.readFileSync(LOCAL, 'utf8')));
   for (const s of SCENES) {
     if (ONLY && !ONLY.includes(s.id)) continue;
     const dir = path.join(OUT, '_frames_' + s.id); fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
@@ -59,7 +85,7 @@ const SCENES = [
     const n = Math.round(s.dur * FPS);
     for (let k = 0; k < n; k++) {
       const t = k / FPS;
-      await p.evaluate(v => { for (const id of ['sl', 'seek', 'scrub', 'sc']) { const el = document.getElementById(id); if (el && el.tagName === 'INPUT') { el.step = 'any'; el.max = Math.max(+el.max || 0, v + 1); el.value = v; el.dispatchEvent(new Event('input')); } } if (window.seekTo) window.seekTo(v); window.render(v); return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); }, t);
+      await p.evaluate(v => { for (const id of ['sl', 'seek', 'scrub', 'sc']) { const el = document.getElementById(id); if (el && el.tagName === 'INPUT') { el.step = 'any'; el.max = Math.max(+el.max || 0, v + 1); el.value = v; el.dispatchEvent(new Event('input')); } } if (window.seekTo) window.seekTo(v); if (window.render) window.render(v); return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); }, t);
       await p.screenshot({ path: path.join(dir, `f${String(k).padStart(5, '0')}.png`) });
     }
     await p.close();

@@ -1,0 +1,382 @@
+{
+ "note": "プレファイナル4（構成 v6、HANDOFF_VIDEO_PF4）。at は通しでの開始秒。full=true は全面、ほかは枠（0.82倍・上46px・左右173px）。rec の in は録画の秒、speed は速さ、play はその秒まで再生して最後のコマで止める、zoom は寄り。overlay は全編の重ね（章・字幕・一本の線）",
+ "fps": 24,
+ "xfade": 0.3,
+ "end": 179.5,
+ "subs": "subs_v9.srt",
+ "frame": {
+  "x": 173,
+  "y": 46,
+  "w": 1574,
+  "h": 885
+ },
+ "overlay": {
+  "names": [
+   "ゆくすいえとは",
+   "入力画面",
+   "結果とレポート",
+   "実装について",
+   "さいごに"
+  ],
+  "chapters": [
+   [
+    3,
+    36.5,
+    0
+   ],
+   [
+    36.5,
+    86.5,
+    1
+   ],
+   [
+    86.5,
+    129.5,
+    2
+   ],
+   [
+    129.5,
+    158,
+    3
+   ],
+   [
+    158,
+    171.5,
+    4
+   ]
+  ],
+  "house": 174.8,
+  "dark": 174.5
+ },
+ "segments": [
+  {
+   "id": "title",
+   "at": 0,
+   "kind": "part",
+   "file": "title.mp4",
+   "label": "タイトル（ロゴ＋Claudeと描く、家づくりの16の未来。）",
+   "full": true,
+   "in": 1.3
+  },
+  {
+   "id": "ch1a",
+   "at": 3,
+   "kind": "part",
+   "file": "v7-ch1a.mp4",
+   "label": "ゆくすいえとは：一本の線（20万 → 3回建てる → 5,007万円 → 誰かの正解 → 切り貼り → 光へ）"
+  },
+  {
+   "id": "hero",
+   "at": 18,
+   "kind": "part",
+   "file": "hero-title.mp4",
+   "label": "Hero",
+   "crop": [
+    1880,
+    1058,
+    36,
+    11
+   ],
+   "in": 0.7,
+   "xf": 0.6,
+   "play": 9.3
+  },
+  {
+   "id": "tree",
+   "at": 27.5,
+   "kind": "part",
+   "file": "v7-tree.mp4",
+   "xf": 0.5,
+   "label": "ゆくすいえとは：一本の線が16の世界線へ（2×2×2×2）"
+  },
+  {
+   "id": "gtitle",
+   "at": 36.5,
+   "kind": "rec",
+   "file": "rec/demo2_full.mp4",
+   "label": "実機：ゲームのタイトル画面（同じ記録 qmx2uy73 の別の録画）",
+   "in": 0.2,
+   "play": 0.6
+  },
+  {
+   "id": "r00-gather",
+   "at": 38.5,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：情報収集（チラシ → SNS → 2社を選ぶ）",
+   "in": 19.0,
+   "speed": 3.2
+  },
+  {
+   "id": "r02-summary",
+   "at": 43,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：担当者の総括（Claudeが会社の役を演じる）",
+   "in": 137.5,
+   "zoom": {
+    "at": 0.5,
+    "scale": 1.5,
+    "cx": 1.0,
+    "cy": 0.75
+   }
+  },
+  {
+   "id": "r01-survey",
+   "at": 47,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：来場者アンケート",
+   "in": 46.5,
+   "speed": 6,
+   "zoom": {
+    "at": 0.3,
+    "scale": 1.3,
+    "cx": 0.08,
+    "cy": 0.05
+   }
+  },
+  {
+   "id": "r02-partner",
+   "at": 50,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：帰り道、パートナー（AI）と話す",
+   "in": 214.5,
+   "zoom": {
+    "at": 0.3,
+    "scale": 1.6,
+    "cx": 1.0,
+    "cy": 0.95
+   }
+  },
+  {
+   "id": "r03-proposal",
+   "at": 54,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：提案の日（2社の案）",
+   "in": 315.6,
+   "play": 2.5,
+   "zoom": {
+    "at": 0.4,
+    "scale": 1.3,
+    "cx": 0.5,
+    "cy": 1.0
+   }
+  },
+  {
+   "id": "r04-fork1",
+   "at": 57,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：第一の分岐点 → 選ばなかった道が世界線の列へ",
+   "in": 323.75
+  },
+  {
+   "id": "r05-fork3",
+   "at": 65,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：第三の分岐点（自由入力の欄）",
+   "in": 388.75,
+   "zoom": {
+    "at": 1.5,
+    "scale": 1.25,
+    "cx": 0.5,
+    "cy": 0.45
+   }
+  },
+  {
+   "id": "r05-trade",
+   "at": 69,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：自由入力 → 家の絵と◆・条件・いま起きたこと",
+   "in": 409.65,
+   "play": 2.3,
+   "zoom": {
+    "at": 1.2,
+    "scale": 1.4,
+    "cx": 0.0,
+    "cy": 0.4
+   }
+  },
+  {
+   "id": "r06-coord",
+   "at": 73.5,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：色決め → 第四の分岐点 → 16に",
+   "in": 426.75,
+   "speed": 2.8
+  },
+  {
+   "id": "r07-electric",
+   "at": 79,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：電気の打ち合わせ → 伝え漏れ → チャットで交渉 → 追加",
+   "in": 450.0,
+   "zoom": {
+    "at": 0.4,
+    "scale": 1.25,
+    "cx": 0.0,
+    "cy": 0.3
+   }
+  },
+  {
+   "id": "r08-build",
+   "at": 86.5,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：着工から引渡しまでの早送り（動く絵）",
+   "in": 461.5,
+   "speed": 5.2
+  },
+  {
+   "id": "r08-handover",
+   "at": 95.5,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：引渡し（切り絵のアニメを最初から最後まで）",
+   "in": 510.5
+  },
+  {
+   "id": "r09-seasons",
+   "at": 105.5,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：1年のうつろい → 1年後",
+   "in": 521.0,
+   "speed": 3.0
+  },
+  {
+   "id": "r09-year",
+   "at": 109.5,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：16区画 → 区画を押して比べる",
+   "in": 536.5,
+   "zoom": {
+    "at": 0.5,
+    "scale": 1.4,
+    "cx": 0.3,
+    "cy": 0.45,
+    "out": 4.0
+   }
+  },
+  {
+   "id": "report",
+   "at": 115.5,
+   "kind": "part",
+   "file": "report-pages.mp4",
+   "label": "レポート",
+   "in": 4.0
+  },
+  {
+   "id": "s67",
+   "at": 120.5,
+   "kind": "part",
+   "file": "v6-s67.mp4",
+   "label": "16回建てて見えるのは、正解ではなく、ふたりが大切にしたいこと"
+  },
+  {
+   "id": "impl",
+   "at": 129.5,
+   "kind": "part",
+   "file": "v6-impl.mp4",
+   "label": "実装について／毛布のなかからこんにちは –"
+  },
+  {
+   "id": "arch",
+   "at": 131.5,
+   "kind": "part",
+   "file": "arch.mp4",
+   "label": "仕組みの図（Opus・Sonnet・Haiku、+58万円）",
+   "in": 6.6
+  },
+  {
+   "id": "mac",
+   "at": 134.5,
+   "kind": "part",
+   "file": "v6-mac.mp4",
+   "label": "Macからの実装（4枚）"
+  },
+  {
+   "id": "dev",
+   "at": 138.5,
+   "kind": "part",
+   "file": "v6-dev.mp4",
+   "label": "毛布の中でスマホから（5枚）"
+  },
+  {
+   "id": "training",
+   "at": 142.5,
+   "kind": "part",
+   "file": "training-log.mp4",
+   "label": "担当者の研修（9回・496本・約55万字）",
+   "in": 1.5
+  },
+  {
+   "id": "skills",
+   "at": 146,
+   "kind": "part",
+   "file": "skills.mp4",
+   "label": "自作の点検スキル",
+   "in": 1.0
+  },
+  {
+   "id": "team",
+   "at": 149.5,
+   "kind": "part",
+   "file": "v6-team.mp4",
+   "label": "チームの図"
+  },
+  {
+   "id": "system",
+   "at": 154.5,
+   "kind": "part",
+   "file": "v6-system.mp4",
+   "label": "全体の構成図"
+  },
+  {
+   "id": "ending",
+   "at": 158,
+   "kind": "part",
+   "file": "ending-EA-notitle.mp4",
+   "label": "締めの絵（浮かぶ分譲地）",
+   "crop": [
+    1880,
+    1058,
+    36,
+    11
+   ],
+   "in": 3.0,
+   "speed": 0.75
+  },
+  {
+   "id": "v6ai",
+   "at": 167,
+   "kind": "part",
+   "file": "intro-v6ai.mp4",
+   "label": "あいだをつなぐ、問いかけのAIを"
+  },
+  {
+   "id": "closing",
+   "at": 171.5,
+   "kind": "part",
+   "file": "closing.mp4",
+   "label": "締めのロゴ",
+   "full": true
+  },
+  {
+   "id": "credits",
+   "at": 174.5,
+   "kind": "part",
+   "file": "credits.mp4",
+   "label": "黒画面",
+   "full": true
+  }
+ ]
+}

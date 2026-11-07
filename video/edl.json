@@ -1,259 +1,420 @@
 {
- "note": "通しの場面表（v0.4）。at は通しでの開始秒。full=true は全面、ほかは枠（0.86倍）。rec の in は録画の秒、speed は速さ、play はその秒まで再生して最後のコマで止める、zoom は寄り（at 秒から0.6秒で scale 倍、cx/cy は寄る位置 0〜1、out で引く）、xf はその場面に入るつなぎの秒",
+ "note": "ファイナル（人間のナレーションに字幕を合わせた）。at は通しでの開始秒。full=true は全面、ほかは枠（0.82倍・上46px・左右173px）。rec の in は録画の秒、speed は速さ、play はその秒まで再生して最後のコマで止める、zoom は寄り。overlay は全編の重ね（章・字幕・一本の線）",
  "fps": 24,
  "xfade": 0.3,
- "end": 180,
- "subs": "subs_v4.srt",
+ "end": 178.5,
+ "subs": "subs_v15_final.srt",
+ "frame": {
+  "x": 173,
+  "y": 46,
+  "w": 1574,
+  "h": 885
+ },
+ "overlay": {
+  "names": [
+   "ゆくすいえとは",
+   "プレイ画面",
+   "結果とレポート",
+   "実装について",
+   "さいごに"
+  ],
+  "chapters": [
+   [
+    3,
+    46.3,
+    0
+   ],
+   [
+    46.3,
+    88.55,
+    1
+   ],
+   [
+    88.55,
+    118.9,
+    2
+   ],
+   [
+    118.9,
+    154.6,
+    3
+   ],
+   [
+    154.6,
+    170.5,
+    4
+   ]
+  ],
+  "house": 173.8,
+  "dark": 173.5
+ },
  "segments": [
   {
-   "id": "opening",
+   "id": "title",
    "at": 0,
    "kind": "part",
-   "file": "opening.mp4",
+   "file": "title.mp4",
+   "label": "タイトル（ロゴ＋Claudeと描く、家づくりの16の未来。＋左上にハッカソンの表示）",
    "full": true,
-   "label": "冒頭のロゴ（紺の地、白い文字）＋一言（仮：A）"
+   "in": 1.3
+  },
+  {
+   "id": "ch1a",
+   "at": 3,
+   "kind": "part",
+   "file": "v7-ch1a.mp4",
+   "label": "ゆくすいえとは：一本の線（3回建てる → 5,007万円 → 経験知のへだたり → 誰かの正解 → 切り貼り → 光へ）",
+   "in": 3.2
   },
   {
    "id": "hero",
-   "at": 4,
+   "at": 26.7,
    "kind": "part",
    "file": "hero-title.mp4",
-   "xf": 0.5,
-   "label": "Hero（コピーまで）",
-   "in": 0,
-   "crop": [
-    1880,
-    1058,
-    36,
-    11
-   ]
-  },
-  {
-   "id": "intro",
-   "at": 12,
-   "kind": "part",
-   "file": "intro-c.mp4",
-   "label": "前振りC（7場面）"
-  },
-  {
-   "id": "r01-survey",
-   "at": 47,
-   "kind": "rec",
-   "file": "rec/demo_full.mp4",
-   "label": "実機 1：来場者アンケート",
-   "in": 13.5,
-   "zoom": {
-    "at": 0.8,
-    "scale": 1.35,
-    "cx": 0.08,
-    "cy": 0.05
-   }
-  },
-  {
-   "id": "r02-summary",
-   "at": 54,
-   "kind": "rec",
-   "file": "rec/demo_slow.mp4",
-   "label": "実機 2：担当者の総括",
-   "in": 124.0,
-   "zoom": {
-    "at": 0.9,
-    "scale": 1.6,
-    "cx": 1.0,
-    "cy": 0.82
-   }
-  },
-  {
-   "id": "r03-proposal",
-   "at": 59,
-   "kind": "rec",
-   "file": "rec/demo_slow.mp4",
-   "label": "実機 3：提案の日（2社の案）",
-   "in": 318.2,
-   "play": 3.6,
-   "zoom": {
-    "at": 0.8,
-    "scale": 1.35,
-    "cx": 0.5,
-    "cy": 1.0
-   }
-  },
-  {
-   "id": "r04-fork1",
-   "at": 64,
-   "kind": "rec",
-   "file": "rec/demo_slow.mp4",
-   "label": "実機 4：第一の分岐点 → 選ばなかった道が世界線の列へ",
-   "in": 326.0
-  },
-  {
-   "id": "r05-fork3",
-   "at": 76,
-   "kind": "rec",
-   "file": "rec/demo_slow.mp4",
-   "label": "実機 5：第三の分岐点（札と自分の言葉の欄）",
-   "in": 394.6,
-   "zoom": {
-    "at": 2.5,
-    "scale": 1.25,
-    "cx": 0.5,
-    "cy": 0.45
-   }
-  },
-  {
-   "id": "r05-trade",
-   "at": 83,
-   "kind": "rec",
-   "file": "rec/demo_slow.mp4",
-   "label": "実機 5：自分の言葉 → 家の絵と◆・担当者の条件・いま起きたこと",
-   "in": 413.95,
-   "play": 2.3,
-   "zoom": {
-    "at": 1.6,
-    "scale": 1.4,
-    "cx": 0.0,
-    "cy": 0.4
-   },
-   "note": "実際の画面は約2.4秒。最後のコマで止め、寄る"
-  },
-  {
-   "id": "r06-coord",
-   "at": 89,
-   "kind": "rec",
-   "file": "rec/demo_slow.mp4",
-   "label": "実機 6：色決め → 第四の分岐点（自動）→ 15へ",
-   "in": 436.5,
-   "speed": 1.4
-  },
-  {
-   "id": "r07-electric",
-   "at": 97,
-   "kind": "rec",
-   "file": "rec/demo_slow.mp4",
-   "label": "実機 7：電気の打ち合わせ（左の一覧）",
-   "in": 453.4,
-   "zoom": {
-    "at": 0.5,
-    "scale": 1.3,
-    "cx": 0.0,
-    "cy": 0.3
-   }
-  },
-  {
-   "id": "r08-build",
-   "at": 102,
-   "kind": "rec",
-   "file": "rec/demo_slow.mp4",
-   "label": "実機 8：着工から引渡しまでの早送り",
-   "in": 464.8,
-   "speed": 5.6
-  },
-  {
-   "id": "r08-handover",
-   "at": 110,
-   "kind": "rec",
-   "file": "rec/demo_slow.mp4",
-   "label": "実機 8：引渡し（切り絵）",
-   "in": 513.8
-  },
-  {
-   "id": "r09-seasons",
-   "at": 117,
-   "kind": "rec",
-   "file": "rec/demo_slow.mp4",
-   "label": "実機 9：1年のうつろい → 1年後",
-   "in": 523.0,
-   "speed": 2.4
-  },
-  {
-   "id": "r09-year",
-   "at": 122,
-   "kind": "rec",
-   "file": "rec/demo_slow.mp4",
-   "label": "実機 9：16区画 → 区画を押して比べる",
-   "in": 539.2,
-   "play": 8.9,
-   "zoom": {
-    "at": 0.6,
-    "scale": 1.4,
-    "cx": 0.3,
-    "cy": 0.45,
-    "out": 5.4
-   }
-  },
-  {
-   "id": "arch",
-   "at": 133,
-   "kind": "part",
-   "file": "arch.mp4",
-   "label": "仕組み「言葉はClaude、数字はコード。」（+58万円）",
-   "in": 5.6
-  },
-  {
-   "id": "training",
-   "at": 139,
-   "kind": "part",
-   "file": "training-log.mp4",
-   "label": "担当者の研修：生ログと数字（1回目→5回目）"
-  },
-  {
-   "id": "skills",
-   "at": 145,
-   "kind": "part",
-   "file": "skills.mp4",
-   "label": "自作の点検スキル4つ"
-  },
-  {
-   "id": "audit",
-   "at": 148.5,
-   "kind": "part",
-   "file": "check-audit.mp4",
-   "label": "点検の結果：守りの監査（実際に走らせた）"
-  },
-  {
-   "id": "consistency",
-   "at": 151,
-   "kind": "part",
-   "file": "check-consistency.mp4",
-   "label": "点検の結果：約束の表で、動画の言葉と実機を照合（実際に走らせた）"
-  },
-  {
-   "id": "report",
-   "at": 157,
-   "kind": "part",
-   "file": "report-pages.mp4",
-   "shotAt": 5.0,
-   "label": "実機 10：印刷レポート → 担当者に渡す1枚"
-  },
-  {
-   "id": "ending",
-   "at": 169,
-   "kind": "part",
-   "file": "ending-EA-notitle.mp4",
+   "label": "Hero",
    "crop": [
     1880,
     1058,
     36,
     11
    ],
-   "label": "締めの絵（題名なし）",
-   "in": 9.7
+   "xf": 0.6,
+   "play": 11.6,
+   "in": 0.7,
+   "speed": 0.8
+  },
+  {
+   "id": "tree",
+   "at": 38.3,
+   "kind": "part",
+   "file": "v7-tree.mp4",
+   "xf": 0.5,
+   "label": "ゆくすいえとは：一本の線が16の世界線へ（だれと×なにを×いくらで×どう仕上げる＝2×2×2×2）"
+  },
+  {
+   "id": "gtitle",
+   "at": 46.3,
+   "kind": "rec",
+   "file": "rec/demo2_full.mp4",
+   "label": "実機：ゲームのタイトル画面（同じ記録 qmx2uy73 の別の録画）",
+   "play": 0.6,
+   "in": 0.2
+  },
+  {
+   "id": "r00-gather",
+   "at": 48.3,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：情報収集（チラシに順位 → 選んだ会社へさっと寄る）",
+   "speed": 1.964,
+   "zoom": {
+    "at": 0.458,
+    "ramp": 0.25,
+    "scale": 1.6,
+    "cx": 0.0,
+    "cy": 1.0
+   },
+   "in": 19.5
+  },
+  {
+   "id": "r02-summary",
+   "at": 51.6,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：担当者との会話（早回しで2往復）",
+   "speed": 4.875,
+   "zoom": {
+    "at": 0.277,
+    "scale": 1.5,
+    "cx": 1.0,
+    "cy": 0.75
+   },
+   "in": 137.5
+  },
+  {
+   "id": "r01-survey",
+   "at": 56.4,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：来場者アンケート",
+   "speed": 6.5,
+   "zoom": {
+    "at": 0.277,
+    "scale": 1.3,
+    "cx": 0.08,
+    "cy": 0.05
+   },
+   "in": 46.5
+  },
+  {
+   "id": "r02-partner",
+   "at": 58.8,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：帰り道、パートナー（AI）と話す",
+   "zoom": {
+    "at": 0.275,
+    "scale": 1.6,
+    "cx": 1.0,
+    "cy": 0.95
+   },
+   "in": 214.5,
+   "speed": 1.091
+  },
+  {
+   "id": "r03-proposal",
+   "at": 62.1,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/zoning/proposal_x03.mp4",
+   "label": "実機：提案の日（新しい間取りの絵。次に選ぶCデザインの案へ寄る）",
+   "play": 1.844,
+   "zoom": {
+    "at": 0.369,
+    "ramp": 0.5,
+    "scale": 1.2,
+    "cx": 0.0,
+    "cy": 0.5
+   },
+   "in": 15.0,
+   "speed": 1.085
+  },
+  {
+   "id": "r04-fork1",
+   "at": 65.05,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：第一の分岐点 → 選ばなかった道が世界線の列へ",
+   "speed": 1.0,
+   "in": 328.5,
+   "play": 5.45
+  },
+  {
+   "id": "r05-fork3",
+   "at": 70.65,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：第三の分岐点（自由入力の欄を光らせる）",
+   "hl": {
+    "box": [
+     0.03,
+     0.615,
+     0.97,
+     0.715
+    ],
+    "at": 0.276
+   },
+   "in": 388.0,
+   "speed": 1.086
+  },
+  {
+   "id": "r05-trade",
+   "at": 74.15,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：自由入力 → 家の絵と◆・条件・いま起きたこと",
+   "play": 1.467,
+   "zoom": {
+    "at": 0.275,
+    "ramp": 0.4,
+    "scale": 1.4,
+    "cx": 0.0,
+    "cy": 0.4
+   },
+   "in": 409.7,
+   "speed": 1.091
+  },
+  {
+   "id": "r06-fork4",
+   "at": 76.35,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：第四の分岐点 → 15の世界線の列を光らせる",
+   "speed": 2.174,
+   "hl": {
+    "box": [
+     0.008,
+     0.735,
+     0.925,
+     0.925
+    ],
+    "at": 3.68
+   },
+   "in": 438.0
+  },
+  {
+   "id": "r07-electric",
+   "at": 80.95,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/demo_slow.mp4",
+   "label": "実機：電気の打ち合わせ → 伝え漏れ → チャットで交渉（チャットへ寄る）",
+   "speed": 1.45,
+   "zoom": {
+    "at": 0.4,
+    "ramp": 0.25,
+    "scale": 1.9,
+    "cx": 1.0,
+    "cy": 0.16
+   },
+   "in": 451.8
+  },
+  {
+   "id": "r08-build",
+   "at": 88.55,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/y1/build_to_year1_x03.mp4",
+   "label": "実機：着工 → 家ができていく（さっと寄って固定）",
+   "speed": 7.091,
+   "zoom": {
+    "at": 0.458,
+    "ramp": 0.25,
+    "scale": 1.8,
+    "cx": 0.04,
+    "cy": 0.27
+   },
+   "in": 0.3
+  },
+  {
+   "id": "r08-handover",
+   "at": 91.5,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/y1/build_to_year1_x03.mp4",
+   "label": "実機：引渡し（切り絵のアニメ）",
+   "speed": 1.413,
+   "in": 47.91
+  },
+  {
+   "id": "r09-year",
+   "at": 97.42,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/y1/build_to_year1_x03.mp4",
+   "label": "実機：1年後のわが家（全体を映す）",
+   "play": 0.2,
+   "in": 74.8
+  },
+  {
+   "id": "r09-16",
+   "at": 99.43,
+   "kind": "rec",
+   "file": "rec_qmx2uy73/y1/build_to_year1_x03.mp4",
+   "label": "実機：16区画 → 区画を押して比べる（全体を映す）",
+   "speed": 2.182,
+   "in": 76.3
+  },
+  {
+   "id": "r09-tree",
+   "kind": "rec",
+   "file": "rec_qmx2uy73/y1/build_to_year1_x1.mp4",
+   "label": "実機：世界樹（枝をたどって、ほかの世界を見る。等速版を1.25倍）",
+   "speed": 1.25,
+   "play": 1.97,
+   "in": 31.6,
+   "at": 103.83
+  },
+  {
+   "id": "report",
+   "at": 105.8,
+   "kind": "part",
+   "file": "report-pages.mp4",
+   "label": "レポート",
+   "in": 4.29
+  },
+  {
+   "id": "s67",
+   "at": 108.76,
+   "kind": "part",
+   "file": "v6-s67.mp4",
+   "label": "16回建てて見えるのは、正解ではなく、ふたりが大切にしたいこと",
+   "in": 0.3
+  },
+  {
+   "id": "impl",
+   "at": 118.9,
+   "kind": "part",
+   "file": "v6-impl.mp4",
+   "label": "実装について／毛布のなかからこんにちは"
+  },
+  {
+   "id": "arch",
+   "at": 121.1,
+   "kind": "part",
+   "file": "arch.mp4",
+   "label": "仕組みの図（Opus・Sonnet・Haiku、+58万円）",
+   "in": 6.6
+  },
+  {
+   "id": "training",
+   "at": 128.3,
+   "kind": "part",
+   "file": "training-log.mp4",
+   "label": "担当者の研修（9回・496本・約55万字）",
+   "in": 1.5
+  },
+  {
+   "id": "team",
+   "at": 132.9,
+   "kind": "part",
+   "file": "v6-team.mp4",
+   "label": "チームの図"
+  },
+  {
+   "id": "skills",
+   "at": 139.9,
+   "kind": "part",
+   "file": "skills.mp4",
+   "label": "自作の点検スキル",
+   "in": 1.0
+  },
+  {
+   "id": "mac",
+   "at": 142.9,
+   "kind": "part",
+   "file": "v6-mac.mp4",
+   "label": "Macからの実装（4枚）"
+  },
+  {
+   "id": "dev",
+   "at": 148.9,
+   "kind": "part",
+   "file": "v6-dev.mp4",
+   "label": "毛布の中でスマホから（5枚）"
+  },
+  {
+   "id": "ending",
+   "at": 154.6,
+   "kind": "part",
+   "file": "ending-EA-notitle.mp4",
+   "label": "締めの絵（浮かぶ分譲地）",
+   "crop": [
+    1880,
+    1058,
+    36,
+    11
+   ],
+   "speed": 0.75,
+   "in": 3.0
+  },
+  {
+   "id": "v6ai",
+   "at": 165.6,
+   "kind": "part",
+   "file": "v7-ai.mp4",
+   "label": "あいだをつなぐ、問いかけのAIを（へだたりの2つの円が一本の線でつながる）"
   },
   {
    "id": "closing",
-   "at": 172,
+   "at": 170.5,
    "kind": "part",
    "file": "closing.mp4",
-   "full": true,
-   "label": "締めのロゴ（紙色の地、墨の文字）＋16回目の、マイホームへ。"
+   "label": "締めのロゴ",
+   "full": true
   },
   {
    "id": "credits",
-   "at": 175,
+   "at": 173.5,
    "kind": "part",
    "file": "credits.mp4",
-   "full": true,
-   "label": "黒画面（スタッフ・注記）"
+   "label": "黒画面",
+   "full": true
   }
  ]
 }

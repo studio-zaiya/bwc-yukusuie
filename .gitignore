@@ -8,3 +8,4 @@ node_modules/
 public/
 # 動画のクレジットの正式表記（作り手の名前・後援）。リポジトリには入れない
 video/scenes/credits.local.json
+__pycache__/

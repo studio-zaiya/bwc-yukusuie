@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>ゆくすいえ — 舞台裏</title>
+<!-- 舞台裏（NARRATION_v2 の舞台裏）の場面。?kind=
+     title：わたしは、コードが読めません。（画面の字＝声。帯の字幕は出さない）
+     desk：アプリとブラウザから頼んだ記録（docs/devshots の 11/3〜11/5 0:25 のスクショ）
+     phone：毛布の中でスマホから（docs/devshots の 1:19〜5:02 のスクショ。時刻が見える）
+     models：提案の設計はOpus、担当者との会話はSonnet、研修のお客さま役はHaiku。（画面の字。docs/TECH_FACTS.md で確認済み）
+     numbers：期間中のコミット・文書の量（画面の字。提出直前に数え直す）
+     スクショはすべて人間が期間中に撮った実物（docs/devshots/README.md）。決定論的：window.render(t)、DUR、READY、?t=秒 -->
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#FFFAF0;color:#1E2B36;font-family:"Hiragino Sans","BIZ UDPGothic","Zen Maru Gothic",sans-serif}
+body{background-image:linear-gradient(rgba(28,141,204,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(28,141,204,.06) 1px,transparent 1px);background-size:32px 32px}
+.big{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;font-weight:700;font-size:84px;letter-spacing:.04em;line-height:1.5}
+.big small{display:block;font-size:34px;font-weight:400;color:#6B6358;margin-top:18px;letter-spacing:.02em}
+.shot{position:absolute;border-radius:22px;box-shadow:0 18px 40px rgba(30,43,54,.20),0 2px 6px rgba(30,43,54,.12);background:#111;object-fit:cover}
+.cap{position:absolute;font-size:24px;color:#6B6358;text-align:center;font-family:ui-monospace,Menlo,monospace}
+.row{display:flex;justify-content:center;gap:56px;align-items:baseline;margin-top:30px}
+.row b{font-size:120px;font-weight:700;color:#1E2B36;font-variant-numeric:tabular-nums}
+.row span{font-size:40px;font-weight:700}
+.m{font-size:64px;font-weight:700;line-height:1.7}
+.m em{font-style:normal;color:#E8701F}
+</style></head><body>
+<div id="root"></div>
+<script>
+const q=new URLSearchParams(location.search),KIND=q.get('kind')||'title',DIR=q.get('dir')||'../../docs/devshots';
+const DUR=+(q.get('dur')||4);window.DUR=DUR;
+const cl=v=>Math.max(0,Math.min(1,v)),eo=v=>1-Math.pow(1-cl(v),3);
+const R=document.getElementById('root');const imgs=[];let items=[];
+const add=(html)=>{const d=document.createElement('div');d.innerHTML=html;const el=d.firstElementChild;R.appendChild(el);return el};
+if(KIND==='title'){items=[add('<div class="big">わたしは、コードが読めません。</div>')];}
+if(KIND==='models'){items=[add('<div class="big"><div class="m">提案の設計は <em>Opus</em>、担当者との会話は <em>Sonnet</em>、<br>研修のお客さま役は <em>Haiku</em>。</div></div>')];}
+if(KIND==='numbers'){items=[add('<div class="big"><div class="row"><span>期間中のコミット</span><b id="n1">101</b><span>件</span></div><div class="row"><span>設計と指示の文書</span><b>約35</b><span>万字</span></div></div>')];}
+// スクショを並べる（スマホは縦長 739x1600）
+const PH={desk:['20261103-1631_mobile_arch-3ideas.jpg','20261104-1633_mobile_fork-cards.jpg','20261105-0025_mobile_judge-path-tests.jpg'],
+  phone:['20261105-0119_mobile_report-watercolor.jpg','20261105-0120_mobile_cutout-roofs.jpg','20261105-0123_mobile_rep-training-log.jpg','20261105-0220_mobile_friendly-audit-idea.jpg','20261105-0502_mobile_video-session-start.jpg']};
+const CAP={desk:['11/3 16:31','11/4 16:33','11/5 0:25'],phone:['11/5 1:19','1:20','1:23','2:20','5:02']};
+if(PH[KIND]){const n=PH[KIND].length,h=KIND==='desk'?820:700,w=Math.round(h*739/1600),gap=KIND==='desk'?70:40;
+  const x0=(1920-(n*w+(n-1)*gap))/2;
+  PH[KIND].forEach((f,i)=>{const im=add(`<img class="shot" src="${DIR}/${f}" style="left:${x0+i*(w+gap)}px;top:${(1080-h)/2-20}px;width:${w}px;height:${h}px">`);imgs.push(im);
+    const c=add(`<div class="cap" style="left:${x0+i*(w+gap)}px;top:${(1080-h)/2+h-6}px;width:${w}px">${CAP[KIND][i]}</div>`);items.push([im,c,i]);});}
+window.render=t=>{
+  if(PH[KIND]){items.forEach(([im,c,i])=>{const a=eo((t-0.15-i*0.22)/0.5);im.style.opacity=a;c.style.opacity=a;im.style.transform=`translateY(${((1-a)*30).toFixed(1)}px)`;
+    // ゆっくり上へ流す（スマホの画面をなぞる感じ）
+    im.style.objectPosition=`50% ${(cl(t/DUR)*12).toFixed(1)}%`;});}
+  else items.forEach(el=>{const a=eo((t-0.1)/0.45);el.style.opacity=a;el.style.transform=`translateY(calc(-50% + ${((1-a)*14).toFixed(1)}px))`;});
+};
+Promise.all(imgs.map(im=>im.decode().catch(()=>{}))).then(()=>(document.fonts?document.fonts.ready:0)).then(()=>{render(q.has('t')?+q.get('t'):DUR-.5);window.READY=true});
+</script></body></html>
