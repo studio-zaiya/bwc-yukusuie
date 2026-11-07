@@ -1,7 +1,7 @@
 <html><style>@import url('../../node_modules/@fontsource/biz-udpgothic/700.css');@import url('../../node_modules/@fontsource/biz-udpgothic/400.css');body{margin:0;width:1920px;height:1080px;background:#FFFAF0;font-family:'BIZ UDPGothic';color:#1E2B36;position:relative;overflow:hidden} .bg{position:absolute;inset:0;background:url(./k16.png) center/cover;opacity:.16}.t{position:absolute;width:100%;text-align:center;font-weight:700}</style><body><div class="bg"></div>
 <div class="t" style="top:430px;font-size:64px">16回建てて見えてくるのは、</div><div class="t" style="top:540px;font-size:64px">正解ではなく、<span style="color:#E8701F">ふたりが大切にしたいこと。</span></div>
-<script>const cl=v=>Math.max(0,Math.min(1,v)),eo=v=>1-Math.pow(1-cl(v),3);window.DUR=9;
+<script>const cl=v=>Math.max(0,Math.min(1,v)),eo=v=>1-Math.pow(1-cl(v),3);window.DUR=11;
 const bg=document.querySelector('.bg'),T=[...document.querySelectorAll('.t')];
-window.render=t=>{bg.style.transform=`scale(${(1.04+0.08*cl(t/9)).toFixed(4)})`;bg.style.opacity=(0.10+0.08*eo(t/1.2)).toFixed(3);
+window.render=t=>{bg.style.transform=`scale(${(1.04+0.08*cl(t/11)).toFixed(4)})`;bg.style.opacity=(0.10+0.08*eo(t/1.2)).toFixed(3);
  T.forEach((el,i)=>{const a=eo((t-0.3-i*0.9)/0.6);el.style.opacity=a;el.style.transform=`translateY(${((1-a)*16).toFixed(1)}px)`})};
 render(+(new URLSearchParams(location.search).get('t')||5));window.READY=true;</script></body></html>

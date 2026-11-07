@@ -10,7 +10,7 @@
 <canvas id="c" width="1920" height="1080"></canvas>
 <script>
 const Q=new URLSearchParams(location.search),PART=Q.get('part')||'a';
-const W=1920,H=1080,DUR=PART==='tree'?9:PART==='ai'?5:24;window.DUR=DUR;
+const W=1920,H=1080,DUR=PART==='tree'?9:PART==='ai'?5:26.9;window.DUR=DUR;
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
 const C={paper:'#FFFAF0',ink:'#1E2B36',mute:'#6B6358',te:'#1C9A8E',or:'#E8701F',sky:'#1C8DCC',gold:'#F2B632',pk:'#f49ac1'};
 const FONT='"Hiragino Sans","BIZ UDPGothic","Zen Maru Gothic",sans-serif',MARU='"Hiragino Maru Gothic ProN","Zen Maru Gothic",sans-serif';
@@ -42,7 +42,8 @@ const DOTS=(()=>{const r=rng(42),a=[],tc=document.createElement('canvas').getCon
 const NOTES=[['吹き抜け','#ffe48a'],['大開口','#ffc7d9'],['回遊動線','#bfe7ff'],['アイランド','#c9f0c4'],['造作キッチン','#ffe48a'],['書斎','#ffc7d9'],['ガレージ','#bfe7ff'],['畳コーナー','#c9f0c4'],['広いWIC','#ffe48a'],['ホテルライク','#bfe7ff'],['土間','#c9f0c4'],['ヌック','#ffc7d9'],['ランドリー','#bfe7ff'],['中庭','#ffe48a'],['北欧風','#c9f0c4']];
 // 場面の並び（世界の x は i*W から）。各場面の線と描く時間（秒）
 // 【人間 11/6 レビュー7】地図の場面は使わない（動画は T[1] から）。へだたり〜切り貼りの間を少し広げた
-const T=[0,3.2,6.4,9.4,15.2,20.8];const SC=T.map(t0=>({t0}));
+const T=[0,3.2,6.4,9.4,15.6,21.7],S5=5.2;  // 【人間 11/7 ラフカット】切り貼りの場面を長く（S5）、へだたり・SNSも少し長く
+const SC=T.map(t0=>({t0}));
 const GAP=(()=>{const o=3*W,R=190,cy=BASE-R,circ=(cx)=>{const p=[];for(let i=0;i<=72;i++){const a=Math.PI/2+i/72*Math.PI*2;p.push([cx+Math.cos(a)*R,cy+Math.sin(a)*R])}return p};return {o,R,cy,L:o+560,Rx:o+1360,circ}})();
 const PATH=[ // 場面ごとの線（世界座標）。前の場面の終わりと次の場面の始まりがつながる
  [[0,BASE],[1920,BASE]],
@@ -54,9 +55,9 @@ const PATH=[ // 場面ごとの線（世界座標）。前の場面の終わり�
  (()=>{const o=5*W;return [[o,BASE],[o+620,BASE],...house(o+620,BASE,620,330,230).slice(1),[o+2200,BASE]]})(),
  (()=>{const o=5*W;return [[o+2200,BASE],[o+2200,-40]]})(),
 ];
-const DRAW=[[0.1,1.6],[T[1]-.5,1.7],[T[2]-.5,1.5],[T[3]-.5,1.6],[T[3]+2.75,1.3],[T[4]-.5,1.6],[T[5]-.5,1.4],[T[5]+2.15,0.7]];  // 線はパンより少し先に描き始める（ペン先がカメラを引っぱる）  // 線を描く［開始秒, 秒数］
+const DRAW=[[0.1,1.6],[T[1]-.5,1.7],[T[2]-.5,1.5],[T[3]-.5,1.6],[T[3]+3.1,1.3],[T[4]-.5,1.6],[T[5]-.5,1.4],[T[5]+S5-1.05,0.7]];  // 線はパンより少し先に描き始める（ペン先がカメラを引っぱる）  // 線を描く［開始秒, 秒数］
 function camX(t){ // 場面ごとに止まり、0.6秒でパンする
-  let x=0;for(let i=1;i<SC.length;i++){const s=SC[i].t0;x=lerp(x,i*W,eio((t-(s-0.55))/0.6))}return x+eio((t-(T[5]+1.9))/1.0)*700}
+  let x=0;for(let i=1;i<SC.length;i++){const s=SC[i].t0;x=lerp(x,i*W,eio((t-(s-0.55))/0.6))}return x+eio((t-(T[5]+S5-1.3))/1.0)*700}
 function renderA(t){
   ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=C.paper;ctx.fillRect(0,0,W,H);grid();
   const cx=camX(t);ctx.save();ctx.translate(-cx,0);
@@ -91,10 +92,10 @@ function renderA(t){
     {const a=eo((u-.9)/.5);ctx.save();ctx.globalAlpha=a*.10;ctx.fillStyle=C.te;ctx.beginPath();ctx.arc(G.L,G.cy,G.R-4,0,7);ctx.fill();ctx.restore();
       txt('専門家',G.L,G.cy-6,56,{al:'center',a});txt('経験者',G.L,G.cy+66,56,{al:'center',a})}
     // あいだ：線の断片（とびとびに、だんだん薄く）
-    for(let i=0;i<7;i++){const x0=G.L+210+i*58,st=2.1+i*.12,k=eo((u-st)/.25);if(k<=0)continue;const len=(i%2?18:30)*k;
+    for(let i=0;i<7;i++){const x0=G.L+210+i*58,st=2.5+i*.12,k=eo((u-st)/.25);if(k<=0)continue;const len=(i%2?18:30)*k;
       ctx.save();ctx.globalAlpha=(1-i*.09);ctx.strokeStyle=C.te;ctx.lineWidth=7;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x0,BASE+(i%3-1)*6);ctx.lineTo(x0+len,BASE+(i%3-1)*6);ctx.stroke();ctx.restore()}
     // 右の円の中：初めての／施主
-    {const a=eo((u-3.4)/.5);ctx.save();ctx.globalAlpha=a*.10;ctx.fillStyle=C.or;ctx.beginPath();ctx.arc(G.Rx,G.cy,G.R-4,0,7);ctx.fill();ctx.restore();
+    {const a=eo((u-3.7)/.5);ctx.save();ctx.globalAlpha=a*.10;ctx.fillStyle=C.or;ctx.beginPath();ctx.arc(G.Rx,G.cy,G.R-4,0,7);ctx.fill();ctx.restore();
       txt('初めての',G.Rx,G.cy-6,56,{al:'center',a});txt('施主',G.Rx,G.cy+66,56,{al:'center',a})}
   }
   // ---- 場面4：SNSの「誰かの」正解
@@ -110,7 +111,7 @@ function renderA(t){
     txt('理想の住まいが、',1330,330,52,{a:eo((u-12.1)/.5)});txt('他人の切り貼りで',1330,420,52,{a:eo((u-12.3)/.5)});txt('埋め尽くされないように。',1330,510,46,{a:eo((u-12.5)/.5)});txt('なにか、できないか。',1330,640,52,{c:C.or,a:eo((u-13.3)/.5)});
     ctx.restore()}
   // ---- 場面6：線が上へ（Heroの光の束へ）
-  {const o=5*W+1240;ctx.save();ctx.translate(o,0);const k=eo((t-(T[5]+2.55))/.45);if(k>0){const g=ctx.createRadialGradient(960,0,0,960,0,520);g.addColorStop(0,`rgba(255,240,210,${.9*k})`);g.addColorStop(1,'rgba(255,240,210,0)');ctx.fillStyle=g;ctx.fillRect(400,0,1120,600)}
+  {const o=5*W+1240;ctx.save();ctx.translate(o,0);const k=eo((t-(T[5]+S5-.65))/.45);if(k>0){const g=ctx.createRadialGradient(960,0,0,960,0,520);g.addColorStop(0,`rgba(255,240,210,${.9*k})`);g.addColorStop(1,'rgba(255,240,210,0)');ctx.fillStyle=g;ctx.fillRect(400,0,1120,600)}
     ctx.restore()}
   if(tip)pen(tip,C.te);
   ctx.restore();
