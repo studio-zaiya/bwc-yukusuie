@@ -32,7 +32,7 @@ EMERGENCY_STOP = "0"
 # 公開の期間（審査期間の終わり）。この時刻を過ぎたら、Claudeを呼ばずに代わりの文で返す（画面は遊べる）
 OPEN_UNTIL = "2026-11-11T23:59:59+09:00"
 # 費用の上限（ドル）。超えたらClaudeを呼ばず、代わりの文で返す
-DAILY_BUDGET_USD = "110"
+DAILY_BUDGET_USD = "150"
 TOTAL_BUDGET_USD = "400"
 # live＝Claudeを呼ぶ／mock＝呼ばずに代わりの処理（開発中のテストはこちら）
 AI_MODE = "live"
