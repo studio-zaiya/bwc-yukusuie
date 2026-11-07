@@ -185,3 +185,18 @@ git ls-files docs video | grep '\.md$' | grep -v REP_TRAINING_LOG | tee /dev/std
 python3 -c "import json,glob,os; fs=[f for f in glob.glob('data/training/runs/round*/*.json') if os.path.basename(f)!='summary.json']; print(len(fs), sum(len(t.get('plain') or t.get('text') or '') for f in fs for t in json.load(open(f))['log']))"
 ```
 
+
+### 6-6. 研修を人間が行ったと仮定した量（11/7 の依頼で追記）
+
+生の記録（`data/training/runs/`、会話496本）から数えた。字数は Python の `len()`。
+
+| 項目 | 数 | 置いた仮定 |
+|---|---|---|
+| せりふの字数 | 約54.7万字（担当者 約26.3万・お客さま役 約28.4万） | 発言の文（印なし）。1本あたり平均 約1,100字・約6往復 |
+| 発言の回数 | 5,932回 | — |
+| 会話そのものの時間 | 約30時間（1本あたり約3.7分） | 話す速さ 1分300字（速めなら1分350字で約26時間） |
+| 担当者役とお客さま役の延べ時間 | 約61時間 | 2人が同じ時間ずつ参加（1分350字なら約52時間） |
+| 審査役の延べ時間 | 約40時間 | 採点のそろった474本。読む速さ 1分600字で約15時間＋6項目の採点と講評に1本3分で約25時間 |
+| 合計の延べ時間 | 約100時間 | 上の2つの合計 |
+
+数えていないもの：検査で作り直しになった担当者の発言（945回）の文。記録には理由だけが残り、文は残っていない。
