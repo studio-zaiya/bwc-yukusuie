@@ -1,9 +1,9 @@
 {
- "note": "ナレーション収録用（人間のラフカット pf_rough_cut を反映）。at は通しでの開始秒。full=true は全面、ほかは枠（0.82倍・上46px・左右173px）。rec の in は録画の秒、speed は速さ、play はその秒まで再生して最後のコマで止める、zoom は寄り。overlay は全編の重ね（章・字幕・一本の線）",
+ "note": "ファイナル（人間のナレーションに字幕を合わせた）。at は通しでの開始秒。full=true は全面、ほかは枠（0.82倍・上46px・左右173px）。rec の in は録画の秒、speed は速さ、play はその秒まで再生して最後のコマで止める、zoom は寄り。overlay は全編の重ね（章・字幕・一本の線）",
  "fps": 24,
  "xfade": 0.3,
  "end": 179.5,
- "subs": "subs_v13.srt",
+ "subs": "subs_v14_voice.srt",
  "frame": {
   "x": 173,
   "y": 46,
