@@ -55,7 +55,7 @@ function paramsOf(plan, co) {
   const toilet2 = has(rooms, /トイレ/, 2);
   const a1 = rooms.filter(r => r.floor === 1).reduce((a, r) => a + (+r.size || 0), 0), a2 = f2.reduce((a, r) => a + (+r.size || 0), 0);
   // 決まりで組めない部屋（1階の、型にない個室など）
-  const odd = rooms.filter(r => r.floor === 1 && !/LDK|リビング|ダイニング|キッチン|和室|畳|客間|主寝室|寝室|トイレ|洗面|浴室|風呂|脱衣|ランドリー|室内干し|洗濯|パントリー|玄関|シューズ|収納|クローゼット|WIC|ホール|階段|廊下/.test(r.name)).map(r => r.name);
+  const odd = rooms.filter(r => r.floor === 1 && !/LDK|リビング|ダイニング|キッチン|和室|畳|客間|主寝室|寝室|トイレ|洗面|浴室|風呂|脱衣|ランドリー|室内干し|洗濯|パントリー|玄関|シューズ|収納|クローゼット|WIC|ホール|階段|廊下|吹き抜け|吹抜/.test(r.name)).map(r => r.name);
   return {
     type: tatami ? 'tanoji' : st.type, flip: st.flip, tano: st.tano, entrance: st.entrance, grow: st.grow,
     master1f, master: master1f ? 0 : (+masterRoom?.size || 6), masterSize: +masterRoom?.size || 6,
@@ -77,8 +77,8 @@ function floor1Std(p) { // L型・田の字型（LDK は南西、東の列に玄
   let wx = 0;
   for (const w of water) { const ww = wid[w] || 1.5; if (wx + ww > 6) { notes.push(w); continue; } rs.push(R(w, wx, 0, ww, N, 'water')); wx += ww; }
   if (wx < 6) rs.push(R('収納', wx, 0, 6 - wx, N, 'other'));
-  // 東の列の北の端は、玄関ホールから見て行き止まりの廊下になるので、収納にまとめる（行き止まりの廊下は作らない【人間、11/7】）
-  rs.push(R('収納', 6, 0, 2, N, 'other'));
+  // 東の列の北の端は階段（ホール階段）。2階の同じ位置にも階段を描く（行き止まりの廊下にしない【人間、11/7】）
+  rs.push(R('階段', 6, 0, 2, N, 'other'));
   if (p.entrance === 'SE') {
     if (p.toiletOut) rs.push(R('トイレ', 6, N, 2, 1, 'water'), R('ホール', 6, N + 1, 2, 1.5, 'other'), R('玄関', 6, 5, 2, 3, 'other')); // 玄関 → ホール → トイレ（トイレを通らないとホールに行けない形にしない）
     else rs.push(R('ホール', 6, N, 2, 2.5, 'other'), R('玄関', 6, 5, 2, 3, 'other'));
@@ -108,7 +108,7 @@ function floor1Std(p) { // L型・田の字型（LDK は南西、東の列に玄
 }
 function floor1Straight(p) { // 直線型：南側の全部が LDK、玄関は東の真ん中、北に水回り
   const rs = [];
-  rs.push(R('浴室', 0, 0, 2, 2.5, 'water'), R('洗面', 2, 0, 2, 2.5, 'water'), R(p.toiletOut ? '収納' : 'トイレ', 4, 0, 1, 2.5, p.toiletOut ? 'other' : 'water'), R(p.laundry1 ? 'ランドリー' : '収納', 5, 0, 1, 2.5, p.laundry1 ? 'water' : 'other'), R('シューズクローク', 6, 0, 2, 2.5, 'other')); // 玄関の真北：行き止まりの廊下にせず、玄関から入る収納に
+  rs.push(R('浴室', 0, 0, 2, 2.5, 'water'), R('洗面', 2, 0, 2, 2.5, 'water'), R(p.toiletOut ? '収納' : 'トイレ', 4, 0, 1, 2.5, p.toiletOut ? 'other' : 'water'), R(p.laundry1 ? 'ランドリー' : '収納', 5, 0, 1, 2.5, p.laundry1 ? 'water' : 'other'), R('階段', 6, 0, 2, 2.5, 'other')); // 玄関の真北は階段（ホール階段）。行き止まりの廊下にしない
   if (p.toiletOut) rs.push(R(p.pantry ? 'パントリー' : 'ファミリー収納', 0, 2.5, 3, 1.5, 'other'), R('トイレ', 3, 2.5, 1, 1.5, 'water'), R('ホール', 4, 2.5, 2, 1.5, 'other'), R('玄関', 6, 2.5, 2, 1.5, 'other'));
   else rs.push(R(p.pantry ? 'パントリー・収納' : 'ファミリー収納', 0, 2.5, 4, 1.5, 'other'), R('ホール', 4, 2.5, 2, 1.5, 'other'), R('玄関', 6, 2.5, 2, 1.5, 'other'));
   const ldk = [R('リビング', 0, 4, 4, 4, 'main'), R('ダイニング', 4, 4, 2, 4, 'main'), R('キッチン', 6, 4, 2, 4, 'main')];
@@ -118,7 +118,7 @@ function floor1Straight(p) { // 直線型：南側の全部が LDK、玄関は�
 }
 function floor1Master(p) { // 1階に主寝室：LDK を縦長（北から K・D・L）、隣の南に主寝室、残りに水回りを小さめに
   const rs = [];
-  rs.push(R('浴室', 0, 0, 2, 2, 'water'), R('洗面', 2, 0, 2, 2, 'water'), R('トイレ', 4, 0, 1, 2, 'water'), R('収納', 5, 0, 3, 2, 'other'), R('シューズクローク', 8, 0, 2, 3, 'other')); // 玄関の真北：行き止まりの廊下にしない
+  rs.push(R('浴室', 0, 0, 2, 2, 'water'), R('洗面', 2, 0, 2, 2, 'water'), R('トイレ', 4, 0, 1, 2, 'water'), R('収納', 5, 0, 3, 2, 'other'), R('階段', 8, 0, 2, 3, 'other')); // 玄関の真北は階段（ホール階段）
   const ldk = [R('キッチン', 0, 2, 4.5, 1.5, 'main'), R('ダイニング', 0, 3.5, 4.5, 1.5, 'main'), R('リビング', 0, 5, 4.5, 3, 'main')];
   rs.push(...ldk, R('ホール', 4.5, 2, 3.5, 2, 'other'), R('主寝室', 4.5, 4, 3.5, 4, 'priv', { jo: p.masterSize }), R('玄関', 8, 3, 2, 2, 'other'), R('WIC', 8, 5, 2, 3, 'other'));
   return { W: 10, D: 8, rooms: rs, notes: [], ldk: { x: 0, y: 2, w: 4.5, h: 6 }, msg: '水回りは、要望より少し小さめにまとめています' };
@@ -155,7 +155,7 @@ function floor2(p) {
   const rest = [];
   for (const e of extras) { const ww = Math.min(2, 6 - nx); if (ww < 1) { rest.push(e); continue; } rs.push(R(e.name, nx, 0, ww, N, zoneOf(e.name), { jo: e.size })); nx += ww; }
   if (nx < 6) rs.push(R('収納', nx, 0, 6 - nx, N, 'other'));
-  rs.push(R('ホール', 6, 0, 2, N, 'other'));
+  rs.push(R('階段', 6, 0, 2, N, 'other')); // 1階と同じ位置の階段（ホール階段）
   // 中の帯：主寝室の上にクローゼット。北の帯に入らなかった要望の部屋は、ここに置き、残りをホールに（ホールは2マス以上残す）
   const mid = y0 - N, m = rs.find(r => r.n === '主寝室');
   let mx = x0;
@@ -192,7 +192,10 @@ export function layoutOf(plan, { co = 'B', wants = [], form } = {}) {
   const f2 = floor2(q);
   merge(f1.rooms); merge(f2.rooms);
   const inPlan = wantsOf([plan]);
+  // 階段はすべてホール階段で描く【人間とClaude、11/7】。リビング階段・吹き抜けの部屋が案にあれば、図の下に断る
+  const stairWish = (plan?.rooms || []).some(r => /リビング階段|吹き抜け|吹抜/.test(r.name || ''));
   const missing = [...new Set([...wants.filter(k => !inPlan.includes(k)), ...f1.notes, ...f2.dropped, ...(fallback ? [] : p.odd)])];
+  if (stairWish) missing.push('リビング階段・吹き抜け（図はホール階段で描いています）');
   return { f1, f2, p: q, fallback, missing, msg: f1.msg || '' };
 }
 
@@ -223,6 +226,10 @@ function floorSVG(f, title, ox, oy, scale) {
   for (const r of f.rooms) {
     if (r.poly) o.push(`<polygon points="${r.poly.map(([a, b]) => `${(a * S * k).toFixed(1)},${(b * S * k).toFixed(1)}`).join(' ')}" fill="${COL[r.z]}" stroke="${INK}" stroke-width="1.1"/>`);
     else o.push(`<rect x="${(r.x * S * k).toFixed(1)}" y="${(r.y * S * k).toFixed(1)}" width="${(r.w * S * k).toFixed(1)}" height="${(r.h * S * k).toFixed(1)}" fill="${COL[r.z]}" stroke="${INK}" stroke-width="1.1"/>`);
+  }
+  for (const r of f.rooms) if (r.n === '階段') { // 踏み板の線（ホール階段）
+    const x = r.x * S * k, y = r.y * S * k, w = r.w * S * k, h = r.h * S * k;
+    for (let i = 1; i < 8; i++) o.push(`<line x1="${x.toFixed(1)}" y1="${(y + h * i / 8).toFixed(1)}" x2="${(x + w).toFixed(1)}" y2="${(y + h * i / 8).toFixed(1)}" stroke="${INK}" stroke-width=".7" opacity=".55"/>`);
   }
   for (const r of f.rooms) {
     const cw = r.w * S * k, chh = r.h * S * k;

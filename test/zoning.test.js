@@ -17,12 +17,13 @@ const PLANS = {
 
 test('間取りの絵：どの会社・どの案でも、決まり（LDK は南・玄関は東・水回りは北・2階に主寝室）を守る', () => {
   for (const [k, plan] of Object.entries(PLANS)) for (const co of 'ABCD') {
-    const L = layoutOf(plan, { co });
-    assert.deepEqual(checkLayout(L), [], `${k} / ${co}`);
+    assert.deepEqual(checkLayout(layoutOf(plan, { co })), [], `${k} / ${co}`);
     const svg = drawZoning(plan, { co }), svg2 = drawZoning(plan, { co, stack: true });
     assert.match(svg, /^<svg[\s\S]*<\/svg>$/); assert.match(svg2, /^<svg[\s\S]*<\/svg>$/);
     assert.ok(!/NaN|undefined/.test(svg + svg2), `${k} / ${co}：NaN か undefined が入った`);
-    assert.ok(!/階段/.test(svg), '階段は描かない（ホールとして曖昧に）');
+    const L = layoutOf(plan, { co });
+    assert.ok(L.f1.rooms.some(r => r.n === '階段') && L.f2.rooms.some(r => r.n === '階段'), '1階と2階の両方に階段（ホール階段）がある');
+    assert.ok(!L.f2.rooms.some(r => r.n === 'ホール' && r.y === 0 && r.x === 6), '2階の東の端を行き止まりのホールにしない');
   }
 });
 
@@ -53,3 +54,11 @@ test('間取りの絵：もう一方の案にある部屋は「図に入らな�
   assert.equal(layoutOf(PLANS.書斎と収納, { co: 'C', wants }).missing.length, 0);
   assert.equal(JSON.stringify(PLANS.標準), before, '案のデータを書き換えた');
 });
+
+test('間取りの絵：リビング階段・吹き抜けの部屋がある案は、ホール階段で描いて注記する', () => {
+  const plan = { rooms: [...BASE, room('吹き抜け', 4.5, 2)] };
+  const L = layoutOf(plan, { co: 'C' });
+  assert.ok(!L.fallback);
+  assert.ok(L.missing.some(t => /リビング階段・吹き抜け/.test(t)));
+});
+
