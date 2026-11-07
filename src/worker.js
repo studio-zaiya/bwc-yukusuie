@@ -41,6 +41,8 @@ async function peek(env, key) {
 async function guard(env, req, kind) {
   if (env.EMERGENCY_STOP === '1') return '現在、一時的に停止しています。しばらくしてから、もう一度お試しください。';
   const ip = ipOf(req), d = today();
+  // 公開の期間を過ぎたら、Claudeを呼ばない（プレイは始められる。応答は代わりの文）
+  if (kind !== 'play' && env.OPEN_UNTIL && Date.now() > Date.parse(env.OPEN_UNTIL)) return '公開の期間は終了しました。代わりの文でお返しします。';
   if (kind === 'play') {
     const n = await bump(env, `p:${ip}:${d}`);
     if (n > +(env.PLAYS_PER_IP_PER_DAY || 6)) return '本日のプレイ回数の上限に達しました。明日、またお試しください。';
