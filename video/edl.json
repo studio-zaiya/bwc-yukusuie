@@ -1,9 +1,9 @@
 {
- "note": "プレファイナル8（人間のレビュー prefinal7_review を反映）。at は通しでの開始秒。full=true は全面、ほかは枠（0.82倍・上46px・左右173px）。rec の in は録画の秒、speed は速さ、play はその秒まで再生して最後のコマで止める、zoom は寄り。overlay は全編の重ね（章・字幕・一本の線）",
+ "note": "プレファイナル9（人間のレビュー Review-_prefinal_zaiya と 11/7 の指示を反映）。at は通しでの開始秒。full=true は全面、ほかは枠（0.82倍・上46px・左右173px）。rec の in は録画の秒、speed は速さ、play はその秒まで再生して最後のコマで止める、zoom は寄り。overlay は全編の重ね（章・字幕・一本の線）",
  "fps": 24,
  "xfade": 0.3,
  "end": 179.5,
- "subs": "subs_v11.srt",
+ "subs": "subs_v12.srt",
  "frame": {
   "x": 173,
   "y": 46,
@@ -26,11 +26,11 @@
    ],
    [
     42.3,
-    86.9,
+    84.55,
     1
    ],
    [
-    86.9,
+    84.55,
     123.9,
     2
    ],
@@ -105,9 +105,9 @@
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：情報収集（チラシに順位 → 選んだ会社へさっと寄る）",
-   "speed": 1.8,
+   "speed": 1.964,
    "zoom": {
-    "at": 0.5,
+    "at": 0.458,
     "ramp": 0.25,
     "scale": 1.6,
     "cx": 0.0,
@@ -117,13 +117,13 @@
   },
   {
    "id": "r02-summary",
-   "at": 47.9,
+   "at": 47.6,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：担当者との会話（早回しで2往復）",
-   "speed": 4.5,
+   "speed": 4.875,
    "zoom": {
-    "at": 0.3,
+    "at": 0.277,
     "scale": 1.5,
     "cx": 1.0,
     "cy": 0.75
@@ -132,13 +132,13 @@
   },
   {
    "id": "r01-survey",
-   "at": 53.1,
+   "at": 52.4,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：来場者アンケート",
-   "speed": 6,
+   "speed": 6.5,
    "zoom": {
-    "at": 0.3,
+    "at": 0.277,
     "scale": 1.3,
     "cx": 0.08,
     "cy": 0.05
@@ -147,37 +147,39 @@
   },
   {
    "id": "r02-partner",
-   "at": 55.7,
+   "at": 54.8,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：帰り道、パートナー（AI）と話す",
    "zoom": {
-    "at": 0.3,
+    "at": 0.275,
     "scale": 1.6,
     "cx": 1.0,
     "cy": 0.95
    },
-   "in": 214.5
+   "in": 214.5,
+   "speed": 1.091
   },
   {
    "id": "r03-proposal",
-   "at": 59.3,
+   "at": 58.1,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：提案の日（次に選ぶCデザインの案へ寄る）",
-   "play": 2.0,
+   "play": 1.844,
    "zoom": {
-    "at": 0.4,
+    "at": 0.369,
     "ramp": 0.5,
     "scale": 1.2,
     "cx": 0.0,
     "cy": 0.5
    },
-   "in": 315.6
+   "in": 315.6,
+   "speed": 1.085
   },
   {
    "id": "r04-fork1",
-   "at": 62.5,
+   "at": 61.05,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：第一の分岐点 → 選ばなかった道が世界線の列へ",
@@ -187,7 +189,7 @@
   },
   {
    "id": "r05-fork3",
-   "at": 68.1,
+   "at": 66.65,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：第三の分岐点（自由入力の欄を光らせる）",
@@ -198,33 +200,35 @@
      0.97,
      0.715
     ],
-    "at": 0.3
+    "at": 0.276
    },
-   "in": 388.0
+   "in": 388.0,
+   "speed": 1.086
   },
   {
    "id": "r05-trade",
-   "at": 71.9,
+   "at": 70.15,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：自由入力 → 家の絵と◆・条件・いま起きたこと",
-   "play": 1.6,
+   "play": 1.467,
    "zoom": {
-    "at": 0.3,
+    "at": 0.275,
     "ramp": 0.4,
     "scale": 1.4,
     "cx": 0.0,
     "cy": 0.4
    },
-   "in": 409.7
+   "in": 409.7,
+   "speed": 1.091
   },
   {
    "id": "r06-fork4",
-   "at": 74.3,
+   "at": 72.35,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：第四の分岐点 → 15の世界線の列を光らせる",
-   "speed": 2.0,
+   "speed": 2.174,
    "hl": {
     "box": [
      0.008,
@@ -232,13 +236,13 @@
      0.925,
      0.925
     ],
-    "at": 4.0
+    "at": 3.68
    },
    "in": 438.0
   },
   {
    "id": "r07-electric",
-   "at": 79.3,
+   "at": 76.95,
    "kind": "rec",
    "file": "rec_qmx2uy73/demo_slow.mp4",
    "label": "実機：電気の打ち合わせ → 伝え漏れ → チャットで交渉（チャットへ寄る）",
@@ -254,13 +258,13 @@
   },
   {
    "id": "r08-build",
-   "at": 86.9,
+   "at": 84.55,
    "kind": "rec",
    "file": "rec_qmx2uy73/y1/build_to_year1_x03.mp4",
    "label": "実機：着工 → 家ができていく（さっと寄って固定）",
-   "speed": 6.5,
+   "speed": 7.091,
    "zoom": {
-    "at": 0.5,
+    "at": 0.458,
     "ramp": 0.25,
     "scale": 1.8,
     "cx": 0.04,
@@ -270,16 +274,16 @@
   },
   {
    "id": "r08-handover",
-   "at": 93.5,
+   "at": 90.6,
    "kind": "rec",
    "file": "rec_qmx2uy73/y1/build_to_year1_x03.mp4",
    "label": "実機：引渡し（切り絵のアニメ）",
-   "speed": 1.3,
+   "speed": 1.413,
    "in": 47.4
   },
   {
    "id": "r09-year",
-   "at": 101.0,
+   "at": 97.5,
    "kind": "rec",
    "file": "rec_qmx2uy73/y1/build_to_year1_x03.mp4",
    "label": "実機：1年後のわが家（全体を映す）",
@@ -288,16 +292,26 @@
   },
   {
    "id": "r09-16",
-   "at": 104.0,
+   "at": 100.3,
    "kind": "rec",
    "file": "rec_qmx2uy73/y1/build_to_year1_x03.mp4",
    "label": "実機：16区画 → 区画を押して比べる（全体を映す）",
-   "speed": 2.0,
+   "speed": 2.182,
    "in": 76.3
   },
   {
+   "id": "r09-tree",
+   "kind": "rec",
+   "file": "rec_qmx2uy73/y1/build_to_year1_x1.mp4",
+   "label": "実機：世界樹（枝をたどって、ほかの世界を見る。等速版を1.25倍）",
+   "speed": 1.25,
+   "play": 4.3,
+   "in": 31.6,
+   "at": 104.7
+  },
+  {
    "id": "report",
-   "at": 108.8,
+   "at": 109.0,
    "kind": "part",
    "file": "report-pages.mp4",
    "label": "レポート",
@@ -305,7 +319,7 @@
   },
   {
    "id": "s67",
-   "at": 114.4,
+   "at": 114.2,
    "kind": "part",
    "file": "v6-s67.mp4",
    "label": "16回建てて見えるのは、正解ではなく、ふたりが大切にしたいこと"

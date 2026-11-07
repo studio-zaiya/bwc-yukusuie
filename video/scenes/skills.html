@@ -12,8 +12,17 @@ h1{position:absolute;left:160px;top:120px;font-family:"Hiragino Maru Gothic ProN
 .c .n{font-family:ui-monospace,monospace;font-size:20px;color:#6b7680;margin-top:6px}
 .c ul{margin-top:26px;list-style:none;display:grid;gap:14px;font-size:25px;line-height:1.4}
 .c li::before{content:"■ ";color:#E8701F;font-size:18px;vertical-align:3px}
-#f{position:absolute;left:160px;top:700px;font-size:30px;opacity:0}
-#f b{font-weight:700}
+/* 下半分：点検の記録が流れる【人間の指示 11/6 レビュー8】。中身は実際に走らせた点検（out/checks/*.js）の行。両端は上の4枚の札にそろえる */
+#lg{position:absolute;left:160px;top:664px;width:1600px;height:380px;background:#fff;border:2px solid #1E2B36;border-radius:20px;overflow:hidden;opacity:0}
+#lh{position:absolute;left:0;right:0;top:0;height:50px;display:grid;grid-template-columns:150px 230px 1fr 90px 520px;align-items:center;padding:0 24px;font-size:19px;color:#6B6358;border-bottom:2px solid #1E2B36;background:#fff;z-index:2}
+#lb{position:absolute;left:0;right:0;top:52px}
+.r{display:grid;grid-template-columns:150px 230px 1fr 90px 520px;align-items:center;height:44px;padding:0 24px;border-bottom:1px solid #EDE6D8;font-size:21px;white-space:nowrap;overflow:hidden}
+.r .t{font-family:ui-monospace,Menlo,monospace;font-size:18px;color:#8a8478}
+.r .sk{font-weight:700}
+.r .it{overflow:hidden;text-overflow:ellipsis;padding-right:16px}
+.r .v{font-weight:700;font-size:26px;text-align:center}
+.r .d{color:#6B6358;font-size:18px;overflow:hidden;text-overflow:ellipsis}
+.r.new{background:#FFF3E3}
 </style></head><body>
 <h1>点検も、Claudeに。</h1>
 <div class="sub">Claude自身に必要なスキルを指示して作成させました。（.claude/skills/ の4つ）</div>
@@ -23,11 +32,21 @@ h1{position:absolute;left:160px;top:120px;font-family:"Hiragino Maru Gothic ProN
  <div class="c"><div class="k">初めての人</div><div class="n">yukusuie-friendly</div><ul><li>画面を1枚ずつたどる</li><li>重なり・字の大きさを測る</li><li>レポートの読みやすさ</li></ul></div>
  <div class="c"><div class="k">一貫性</div><div class="n">yukusuie-consistency</div><ul><li>動画の言葉 ↔ 実機</li><li>レポート ↔ プレイ</li><li>約束の表で照合</li></ul></div>
 </div>
-<div id="f">スクリーンショットに ○／× を付け、<b>×が残るうちは「できた」と言わない</b>。</div>
+<div id="lg"><div id="lh"><span>時刻</span><span>点検するClaude</span><span>項目（×が残るうちは「できた」と言わない）</span><span style="text-align:center">結果</span><span>詳細</span></div><div id="lb"></div></div>
+<script src="../../out/checks/audit.js"></script><script src="../../out/checks/consistency.js"></script>
 <script>
 const DUR=6;window.DUR=DUR;const cl=v=>Math.max(0,Math.min(1,v)),eo=v=>1-Math.pow(1-cl(v),3);
-const cs=[...document.querySelectorAll('.c')],f=document.getElementById('f');
+const cs=[...document.querySelectorAll('.c')],lg=document.getElementById('lg'),lb=document.getElementById('lb');
+const esc=x=>String(x).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const A=(window.CHECK_AUDIT||{rows:[]}).rows.map(r=>['守り（audit）',r['項目'],r['結果'],r['詳細']]);
+const C=(window.CHECK_CONSISTENCY||{rows:[]}).rows.map(r=>['一貫性（consistency）',r['約束（動画の言葉）'],r['状態'],r['証拠']+'　'+(r['メモ']||'')]);
+const ROWS=[];for(let i=0;i<Math.max(A.length,C.length);i++){if(A[i])ROWS.push(A[i]);if(C[i])ROWS.push(C[i])}
+lb.innerHTML=ROWS.map((r,i)=>`<div class="r"><span class="t">${(()=>{const s=12+i*7;return '22:27:'+String(s%60).padStart(2,'0')})()}</span><span class="sk">${esc(r[0])}</span><span class="it">${esc(r[1])}</span><span class="v">${esc(r[2])}</span><span class="d">${esc(r[3]).slice(0,60)}</span></div>`).join('');
+const RS=[...lb.children],RATE=8,T0=1.0,VIS=7;
 window.render=t=>{cs.forEach((c,i)=>{const a=eo((t-0.3-i*0.25)/0.5);c.style.opacity=a.toFixed(3);c.style.transform=`translateY(${((1-a)*24).toFixed(1)}px)`});
- const a=eo((t-1.8)/0.6);f.style.opacity=a.toFixed(3);};
+ lg.style.opacity=eo((t-0.8)/0.4).toFixed(3);
+ const n=Math.max(0,(t-T0)*RATE);               // いま出ている行の数（小数は、最後の行の出かけ）
+ RS.forEach((r,i)=>{const k=cl(n-i);r.style.opacity=k.toFixed(3);const v=r.querySelector('.v');v.style.opacity=cl((n-i-1.2)*2).toFixed(3);r.classList.toggle('new',n-i>0&&n-i<2)});
+ const top=Math.max(0,n-VIS)*44;lb.style.transform=`translateY(${(-top).toFixed(1)}px)`;};
 render(+(new URLSearchParams(location.search).get('t')||DUR));window.READY=true;
 </script></body></html>
