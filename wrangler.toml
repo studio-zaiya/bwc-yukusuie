@@ -26,6 +26,8 @@ MODEL_PLANNER = "claude-opus-5-5"
 PLAYS_PER_IP_PER_DAY = "6"
 CALLS_PER_IP_PER_DAY = "120"
 CALLS_GLOBAL_PER_DAY = "15000"
+# 記録の保存（再生コード用）の、1つのIPで1日の上限
+SAVES_PER_IP_PER_DAY = "300"
 EMERGENCY_STOP = "0"
 # 公開の期間（審査期間の終わり）。この時刻を過ぎたら、Claudeを呼ばずに代わりの文で返す（画面は遊べる）
 OPEN_UNTIL = "2026-11-11T23:59:59+09:00"

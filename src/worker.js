@@ -498,7 +498,13 @@ export default {
       if (req.method !== 'POST') return json({ error: 'method' }, 405);
       const body = await req.json().catch(() => ({}));
       if (path === '/api/play/start') { const msg = await guard(env, req, 'play'); if (msg) return json({ ok: false, message: msg }, 429); const playId = rid(); await meterAdd(env, [`play:${playId}`], 0); return json({ ok: true, playId }); }
-      if (path === '/api/log') return saveLog(env, body);
+      if (path === '/api/log') {
+        // 記録の保存にも、1つのIPで1日の上限（1プレイ約20回 × 1日6プレイに余裕を見て300回）。超えたら保存しない（プレイは続く）
+        // KV は同じ欄を1秒に何度も書くと失敗するので、数えられなかったときは保存を通す（保存を落とさない）
+        const n = await bump(env, `s:${ipOf(req)}:${today()}`).catch(() => 0);
+        if (n > +(env.SAVES_PER_IP_PER_DAY || 300)) return json({ ok: false, message: '本日の保存の上限に達しました。' }, 429);
+        return saveLog(env, body);
+      }
       // 担当者の研修（docs/REP_TRAINING.md）：合言葉（Workerの秘密）がある呼び出しだけ。研修中のハーネスを差し替えて試せる。費用は全体の上限に数える
       if (path.startsWith('/api/train/')) {
         if (!env.TRAIN_TOKEN || req.headers.get('x-train-token') !== env.TRAIN_TOKEN) return json({ error: 'forbidden' }, 403);
