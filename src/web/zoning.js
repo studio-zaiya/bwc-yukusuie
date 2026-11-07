@@ -77,9 +77,10 @@ function floor1Std(p) { // L型・田の字型（LDK は南西、東の列に玄
   let wx = 0;
   for (const w of water) { const ww = wid[w] || 1.5; if (wx + ww > 6) { notes.push(w); continue; } rs.push(R(w, wx, 0, ww, N, 'water')); wx += ww; }
   if (wx < 6) rs.push(R('収納', wx, 0, 6 - wx, N, 'other'));
-  rs.push(R('ホール', 6, 0, 2, N, 'other'));
+  // 東の列の北の端は、玄関ホールから見て行き止まりの廊下になるので、収納にまとめる（行き止まりの廊下は作らない【人間、11/7】）
+  rs.push(R('収納', 6, 0, 2, N, 'other'));
   if (p.entrance === 'SE') {
-    if (p.toiletOut) rs.push(R('ホール', 6, N, 2, 1.5, 'other'), R('トイレ', 6, N + 1.5, 2, 1, 'water'), R('玄関', 6, 5, 2, 3, 'other'));
+    if (p.toiletOut) rs.push(R('トイレ', 6, N, 2, 1, 'water'), R('ホール', 6, N + 1, 2, 1.5, 'other'), R('玄関', 6, 5, 2, 3, 'other')); // 玄関 → ホール → トイレ（トイレを通らないとホールに行けない形にしない）
     else rs.push(R('ホール', 6, N, 2, 2.5, 'other'), R('玄関', 6, 5, 2, 3, 'other'));
   } else {
     if (p.toiletOut) rs.push(R('ホール', 6, N, 2, 1.5, 'other'), R('玄関', 6, 4, 2, 2, 'other'), R('トイレ', 6, 6, 2, 1, 'water'), R(p.shoes ? 'シューズ収納' : '収納', 6, 7, 2, 1, 'other'));
@@ -88,17 +89,26 @@ function floor1Std(p) { // L型・田の字型（LDK は南西、東の列に玄
   const by = N, bh = D - N;
   const ldk = [];
   // 田の字型は2通り：kd＝北にキッチン・ダイニング、南にリビング・畳／tk＝北に畳・キッチン、南にリビング・ダイニング（畳はリビングの隣）
-  if (p.type === 'tanoji' && p.tano === 'tk') ldk.push(R('畳', 0, by, 3, 2.5, 'tatami', { jo: p.tatamiSize }), R('キッチン', 3, by, 3, 2.5, 'main'), R('リビング', 0, by + 2.5, 3, bh - 2.5, 'main'), R('ダイニング', 3, by + 2.5, 3, bh - 2.5, 'main'));
+  if (p.type === 'tanoji' && p.tano === 'tk') ldk.push(R('畳', 0, by, 3, 2.5, 'tatami', { jo: p.tatamiSize }), R('キッチン', 3, by, 3, 2.5, 'main'), R('リビング', 0, by + 2.5, 3.5, bh - 2.5, 'main'), R('ダイニング', 3.5, by + 2.5, 2.5, bh - 2.5, 'main')); // ダイニングはキッチンより広くしない
+  // パントリーは、キッチンの大きさを保ったまま、キッチンの横に置く（キッチンがダイニングより小さくなる絵にはしない【人間、11/7】）。
+  // 足りない分はダイニングを少し狭くして出す。それでも入らなければ、パントリーは図から外し「図に入らなかった要望」に出す
+  else if (p.type === 'tanoji' && p.pantry && !p.flip) ldk.push(R('パントリー', 0, by, 1, 2.5, 'other'), R('キッチン', 1, by, 2.5, 2.5, 'main'), R('ダイニング', 3.5, by, 2.5, 2.5, 'main'), R('リビング', 0, by + 2.5, 3, bh - 2.5, 'main'), R('畳', 3, by + 2.5, 3, bh - 2.5, 'tatami', { jo: p.tatamiSize }));
   else if (p.type === 'tanoji') ldk.push(R('キッチン', 0, by, 3, 2.5, 'main'), R('ダイニング', 3, by, 3, 2.5, 'main'), R('リビング', 0, by + 2.5, 3, bh - 2.5, 'main'), R('畳', 3, by + 2.5, 3, bh - 2.5, 'tatami', { jo: p.tatamiSize }));
+  else if (p.pantry && !p.flip) ldk.push(R('パントリー', 0, by, 1, 2.5, 'other'), R('キッチン', 1, by, 2.5, 2.5, 'main'), R('ダイニング', 3.5, by, 2.5, 2.5, 'main'), R('リビング', 0, by + 2.5, 6, bh - 2.5, 'main'));
   else ldk.push(R('キッチン', 0, by, 2.5, 2.5, 'main'), R('ダイニング', 2.5, by, 2.5, 2.5, 'main'), R('リビング', 0, by + 2.5, 6, bh - 2.5, 'main', { poly: [[0, by + 2.5], [5, by + 2.5], [5, by], [6, by], [6, D], [0, D]] }));
-  if (p.pantry) { const k = ldk.find(r => r.n === 'キッチン'); const pw = k.w >= 2.5 ? 1 : 1.5; ldk.push(R('パントリー', k.x, k.y, pw, k.h, 'other')); k.x += pw; k.w -= pw; }
   if (p.flip) mirror(ldk, 0, 6);
   rs.push(...ldk);
+  if (p.pantry && !ldk.some(r => r.n === 'パントリー')) {
+    // 左右を逆にする会社（キッチンが玄関ホール側）と、田の字の tk（キッチンの横が畳）：パントリーを LDK の列に入れると玄関ホールとの間に挟まるので、
+    // キッチンの真北の水回りの帯に収納があれば、そこをパントリーにする。なければ図から外す
+    const k = ldk.find(r => r.n === 'キッチン'), st = rs.find(r => r.n === '収納' && r.y === 0 && r.x < k.x + k.w && r.x + r.w > k.x);
+    if (st) st.n = 'パントリー'; else notes.push('パントリー');
+  }
   return { W: 8, D, rooms: rs, notes, ldk: { x: 0, y: by, w: 6, h: bh } };
 }
 function floor1Straight(p) { // 直線型：南側の全部が LDK、玄関は東の真ん中、北に水回り
   const rs = [];
-  rs.push(R('浴室', 0, 0, 2, 2.5, 'water'), R('洗面', 2, 0, 2, 2.5, 'water'), R(p.toiletOut ? '収納' : 'トイレ', 4, 0, 1, 2.5, p.toiletOut ? 'other' : 'water'), R(p.laundry1 ? 'ランドリー' : '収納', 5, 0, 1, 2.5, p.laundry1 ? 'water' : 'other'), R('ホール', 6, 0, 2, 2.5, 'other'));
+  rs.push(R('浴室', 0, 0, 2, 2.5, 'water'), R('洗面', 2, 0, 2, 2.5, 'water'), R(p.toiletOut ? '収納' : 'トイレ', 4, 0, 1, 2.5, p.toiletOut ? 'other' : 'water'), R(p.laundry1 ? 'ランドリー' : '収納', 5, 0, 1, 2.5, p.laundry1 ? 'water' : 'other'), R('シューズクローク', 6, 0, 2, 2.5, 'other')); // 玄関の真北：行き止まりの廊下にせず、玄関から入る収納に
   if (p.toiletOut) rs.push(R(p.pantry ? 'パントリー' : 'ファミリー収納', 0, 2.5, 3, 1.5, 'other'), R('トイレ', 3, 2.5, 1, 1.5, 'water'), R('ホール', 4, 2.5, 2, 1.5, 'other'), R('玄関', 6, 2.5, 2, 1.5, 'other'));
   else rs.push(R(p.pantry ? 'パントリー・収納' : 'ファミリー収納', 0, 2.5, 4, 1.5, 'other'), R('ホール', 4, 2.5, 2, 1.5, 'other'), R('玄関', 6, 2.5, 2, 1.5, 'other'));
   const ldk = [R('リビング', 0, 4, 4, 4, 'main'), R('ダイニング', 4, 4, 2, 4, 'main'), R('キッチン', 6, 4, 2, 4, 'main')];
@@ -108,7 +118,7 @@ function floor1Straight(p) { // 直線型：南側の全部が LDK、玄関は�
 }
 function floor1Master(p) { // 1階に主寝室：LDK を縦長（北から K・D・L）、隣の南に主寝室、残りに水回りを小さめに
   const rs = [];
-  rs.push(R('浴室', 0, 0, 2, 2, 'water'), R('洗面', 2, 0, 2, 2, 'water'), R('トイレ', 4, 0, 1, 2, 'water'), R('収納', 5, 0, 3, 2, 'other'), R('ホール', 8, 0, 2, 3, 'other'));
+  rs.push(R('浴室', 0, 0, 2, 2, 'water'), R('洗面', 2, 0, 2, 2, 'water'), R('トイレ', 4, 0, 1, 2, 'water'), R('収納', 5, 0, 3, 2, 'other'), R('シューズクローク', 8, 0, 2, 3, 'other')); // 玄関の真北：行き止まりの廊下にしない
   const ldk = [R('キッチン', 0, 2, 4.5, 1.5, 'main'), R('ダイニング', 0, 3.5, 4.5, 1.5, 'main'), R('リビング', 0, 5, 4.5, 3, 'main')];
   rs.push(...ldk, R('ホール', 4.5, 2, 3.5, 2, 'other'), R('主寝室', 4.5, 4, 3.5, 4, 'priv', { jo: p.masterSize }), R('玄関', 8, 3, 2, 2, 'other'), R('WIC', 8, 5, 2, 3, 'other'));
   return { W: 10, D: 8, rooms: rs, notes: [], ldk: { x: 0, y: 2, w: 4.5, h: 6 }, msg: '水回りは、要望より少し小さめにまとめています' };
@@ -197,6 +207,11 @@ export function checkLayout(L) {
   const wet = f1.rooms.filter(r => /浴室|洗面/.test(r.n));
   if (wet.some(r => r.y > 0.01)) errs.push('浴室・洗面が北の帯にない');
   if (!f2.rooms.length || (L.p.master && !f2.rooms.some(r => r.n === '主寝室'))) errs.push('2階に主寝室がない');
+  const touch = (a, b) => (Math.abs(a.x + a.w - b.x) < 1e-9 || Math.abs(b.x + b.w - a.x) < 1e-9) && a.y < b.y + b.h - 1e-9 && b.y < a.y + a.h - 1e-9 || (Math.abs(a.y + a.h - b.y) < 1e-9 || Math.abs(b.y + b.h - a.y) < 1e-9) && a.x < b.x + b.w - 1e-9 && b.x < a.x + a.w - 1e-9;
+  const box = r => r.poly ? (() => { const xs = r.poly.map(q => q[0]), ys = r.poly.map(q => q[1]); return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) }; })() : r;
+  for (const h of by('ホール')) { const nb = f1.rooms.filter(r => r !== h && touch(h, box(r))); if (!(nb.some(r => r.n === '玄関') && nb.some(r => r.z === 'main' || r.z === 'tatami' || r.n === 'ホール'))) { if (!nb.some(r => r.n === 'ホール')) errs.push('1階に行き止まりのホールがある'); } }
+  const kk = by('キッチン')[0], dd = by('ダイニング')[0];
+  if (kk && dd && kk.w * kk.h < dd.w * dd.h - 1e-9) errs.push('キッチンがダイニングより小さい');
   return errs;
 }
 
