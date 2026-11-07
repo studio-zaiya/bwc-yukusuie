@@ -5,6 +5,7 @@ import * as P from './parts.js';
 import { buildMemory, SRC_LABEL } from './memory.js';
 import { protectedReasons } from './reasons.js';
 import { fitProposalW } from './planfit.js';
+import { ZONING_STYLE, drawZoning, wantsOf } from './zoning.js';
 
 // 金額の表示は万円単位の整数（計算の内部は小数のまま）
 const man = n => Math.round(Number(n)).toLocaleString('ja-JP');
@@ -19,6 +20,7 @@ const GATHER_SHOWN = { step: null };
 const STICK_SEEN = new Set();
 const stickNew = k => STICK_SEEN.has(k) ? '' : (STICK_SEEN.add(k), ' new');
 const pad = n => String(n).padStart(2, '0');
+const zWants = s => wantsOf(Object.values(s.proposals || {}).map(p => p?.main));
 function dno(s, w) { if (!s.player || s.player.bits.length < 4 || w.bits.length < 4) return null; const pn = Y.worldNo(s.player.bits), n = Y.worldNo(w.bits); return n === pn ? YOU : n === YOU ? pn : n; }
 const lab = (o, w) => typeof o.label === 'function' ? o.label(w) : o.label;
 const chOf = s => s.player ? s.player.company : s.cur;
@@ -454,7 +456,7 @@ export const SCENES = {
       const wl = m.wishes?.length ? `<ul class="wbox">${wishLine(m.wishes.map(x => ({ ...x, kind: /総額/.test(x.label) ? 'totalMax' : /月々/.test(x.label) ? 'monthlyMax' : 'area' })))}</ul>` : '';
       return `<section class="pp-col"><div class="pp-hd">${P.coTag(co, 34)}<b>${C.name}</b><span>${STAFFN(co)}${p.fallback ? '<span class="mk">代わりの処理</span>' : ''}</span></div>
         <p class="pp-intro">${esc(p.intro || '')}</p>
-        <div class="pp-zone">${zoningSVG(plan)}</div>
+        <div class="pp-zone">${zoningSVG(plan, { co, wants: zWants(s), form: P.formOf(w) })}</div>
         <div class="pp-low"><div class="pp-house">${house}</div><div class="pp-facts"><div><span>延床と形</span><b>${m.tsubo}坪・${esc(P.formLabel(w))}・${Y.ROOF_JA[plan.shape?.roof] || ''}</b></div>
           <div><span>見積の表紙（${esc(q.label)}）</span><b>${man(q.cover)}万円</b></div>
           <div><span>総額（土地と建物）</span><b>${man(m.total)}万円</b></div><div><span>月々の返済</span><b>約${m.monthly.toFixed(1)}万円</b></div></div></div>${wl}</section>`;
@@ -521,7 +523,7 @@ export const SCENES = {
     const opt = (o, i) => { const d = Math.round(o.m.total - P0.mainM.total), mo = o.m.monthly - P0.mainM.monthly; return `<button class="cd pl ${P0.view === i ? 'on' : ''}" data-act="planView" data-i="${i}"><h4>${esc(o.plan.title)}</h4><ul><li>総額 ${d > 0 ? '+' : ''}${man(d)}万円／月々 ${mo >= 0 ? '+' : '−'}${Math.abs(mo).toFixed(1)}万円</li><li>${esc(o.effect)}</li></ul></button>`; };
     const facts = `<dl class="facts pf"><dt>延床</dt><dd>${m.tsubo}坪（1階 ${(m.f1 / Y.TSUBO).toFixed(1)}坪／2階 ${(m.f2 / Y.TSUBO).toFixed(1)}坪）</dd><dt>建蔽率</dt><dd>${m.coverage}㎡／上限 ${m.coverageLimit}㎡${m.coverageOk ? '' : '（超える）'}</dd><dt>総額</dt><dd>${man(m.total)}万円</dd><dt>月々の返済</dt><dd>約${m.monthly.toFixed(1)}万円${m.loanOk ? '' : '（審査の上限を超える）'}</dd></dl>`;
     const wl = m.wishes.length ? `<ul class="wbox">${wishLine(m.wishes.map(w => ({ ...w, kind: /総額/.test(w.label) ? 'totalMax' : /月々/.test(w.label) ? 'monthlyMax' : 'area' })))}</ul>` : '';
-    return `${chrome(s)}<div class="hero tall"><div class="lab"><span class="no">07</span>間取りの骨組み　<span style="font-size:18px;color:var(--ink2)">${esc(cur.plan.title)}${P0.fallback ? '<span class="mk">代わりの処理</span>' : ''}</span></div><div class="zone">${zoningSVG(cur.plan)}</div><div class="pfacts">${facts}${wl}</div></div>
+    return `${chrome(s)}<div class="hero tall"><div class="lab"><span class="no">07</span>間取りの骨組み　<span style="font-size:18px;color:var(--ink2)">${esc(cur.plan.title)}${P0.fallback ? '<span class="mk">代わりの処理</span>' : ''}</span></div><div class="zone">${zoningSVG(cur.plan, { co, wants: zWants(s), form: m.f2 > 0 && m.f2 < m.f1 * 0.75 ? 'partial' : 'full' })}</div><div class="pfacts">${facts}${wl}</div></div>
       <div class="right tall"><div class="chat">${staffHead(co, busy.on ? 'think' : 'idle', '設計申込・詳細打ち合わせ')}<div class="log" style="justify-content:flex-start">${s.chat.filter(m2 => m2.ch === 'plan').map(msgHTML).join('')}${busy.on ? '<div class="msg typing">図面に落としています……</div>' : ''}</div>
       <div class="fk"><div class="q">調整の案（押すと、図と金額が動きます）</div><div class="cards">${P0.options.map(opt).join('')}</div>${P0.view != null ? `<button class="opt" style="margin-top:8px" data-act="planView" data-i="-1">元の案に戻す</button>` : ''}</div>
       <div class="opts"><span class="note" style="align-self:center">調整はあと${Math.max(0, 3 - (s.planRound || 0))}回</span></div>
@@ -980,7 +982,13 @@ function keptHTML(s) {
 }
 
 // ゾーニング図：部屋の塊を、階ごとに帯に詰めて描く（大きさは畳の段階に比例。描画はコード）
-export function zoningSVG(plan, { stack = false } = {}) {
+// 間取りの絵の入口はこの1つだけ（LAYOUT_RULES_v1）。ZONING_STYLE が 'v1' なら新しい絵、'old' なら以前の絵。画面ごとに混ざらない
+export function zoningSVG(plan, { stack = false, co, wants, form } = {}) {
+  if (ZONING_STYLE === 'v1') return drawZoning(plan, { stack, co, wants, form });
+  return zoningOld(plan, { stack });
+}
+// 以前の絵（元に戻すスイッチ用に、そのまま残す）
+function zoningOld(plan, { stack = false } = {}) {
   const W = 470, H = 330, gap = 40;
   if (!plan) return `<svg viewBox="0 0 ${W * 2 + gap} ${H + 40}" class="zsvg">${[0, 1].map(f => `<rect x="${f * (W + gap)}" y="30" width="${W}" height="${H}" rx="8" fill="#F4F1EA" stroke="rgba(30,43,54,.15)"/>${[0, 1, 2].map(r => `<rect x="${f * (W + gap) + 14}" y="${50 + r * 100}" width="${W - 28}" height="80" rx="6" fill="#ECE7DD" class="pulse"/>`).join('')}`).join('')}</svg>`;
   // 玄関と階段は、面積の割り増しに入っている分を図にだけ描く（面積は二重に数えない）

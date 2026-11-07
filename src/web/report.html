@@ -72,6 +72,7 @@ ul.chk li{padding-left:5.5mm;position:relative}ul.chk li::before{content:"";posi
 import * as Y from '/engine/engine.js';
 import * as P from '/parts.js';
 import { zoningSVG } from '/scenes.js';
+import { wantsOf } from '/zoning.js';
 import { differsOf } from '/memory.js';
 import { protectedReasons } from '/reasons.js';
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -109,7 +110,7 @@ const p1 = `<div class="page cover"><img class="cv-logo" src="/brand/lockup-vert
   <div class="foot" style="width:100%;text-align:left"><span>${NOTICE2}</span><span>1 / 4</span></div></div>`;
 
 // ---- 2ページ目 わが家の答え ----
-const zone = w.plan ? zoningSVG(w.plan, { stack: true }) : '';
+const zone = w.plan ? zoningSVG(w.plan, { stack: true, co: w.company, form: P.formOf(w), wants: wantsOf([w.plan, ...(D.others || []).map(o => o.plan)]) }) : '';
 const facts = [['延床', `${w.spec.tsubo}坪`], ['形と屋根', `${P.formLabel(w)}・${Y.ROOF_JA[w.spec.roof] || ''}`], ['外壁', `${wall.label.replace('（標準）', '')}（${wallCol[0]}）`], ['床', floor.label.replace('（標準）', '')], ['外構', w.spec.exterior === 'full' ? '入居の時に、外まわりまで整えた' : '最小限（あとから少しずつ）']];
 // 守ろうとしたもの：根拠（自由回答・アンケート・選んだ札）のあるものだけ。作り話の理由は書かない
 const sib = i => all.find(x => x.o.bits.length === me.bits.length && x.o.bits.every((b, k) => k === i ? b !== me.bits[k] : b === me.bits[k]))?.o;

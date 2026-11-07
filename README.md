@@ -38,6 +38,10 @@ Built with Claude: Japan 2026 の提出作品です。
 - Anthropic API（APIキーはWorkers側に置き、ブラウザには出しません）
 - 画面は素のJavaScript。家と分譲地は画像生成を使わず、座標からコードで描いています（SVG／Canvas、動画素材の一部は three.js）
 
+## 間取りについて
+- 間取りの絵（ゾーニング図）は、設計担当（Claude）が出した部屋の一覧を、決まりにしたがってコードで並べたものです（`src/web/zoning.js`、`docs/LAYOUT_RULES_v1.md`）。金額や延床の計算には使っていません
+- 間取りの決まりは、作り手が期間中に言葉にしたもので、実務の図面やノウハウは持ち込んでいません
+
 ## 開発について
 - 開発期間（2026-11-02〜）に、Claude（claude.ai）とClaude Codeだけで作りました。実装と作業はすべてClaudeが行い、外部のコードや素材は取り込んでいません
 - 企画・予行演習・見せ方の試作（`prototypes/`、`design/`）は claude.ai で、実装は Claude Code で行いました。作業の記録は `docs/devlog.md` と `docs/devlog/` にあります
