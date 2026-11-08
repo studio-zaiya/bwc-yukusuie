@@ -7,7 +7,7 @@ Claudeと描く、家づくりの16の未来。現役の建築士が、Claudeと
 - 遊べるURL：https://yukusuie.zaiya.workers.dev （ログイン不要。公開は 2026-11-11 23:59 まで）
 - デモ動画（3分）：https://www.youtube.com/watch?v=3GdKBZA1ehI
 
-Built with Claude: Japan 2026 の提出作品です（テーマ：本来、誰にでも届くべきものを）。
+Built with Claude: Japan 2026 の提出作品です（テーマ：あなたにしかない深さを）。
 
 ## 概要
 はじめて家を建てる人の「建てたあとにしかわからない経験に、建てる前は触れられない」という課題を、建てる前に16回建ててみる体験に変える、ブラウザのゲームです。
