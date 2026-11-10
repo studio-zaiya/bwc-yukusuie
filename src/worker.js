@@ -469,10 +469,23 @@ async function loadLog(env, id) {
   return data ? new Response(data, { headers: { 'content-type': 'application/json; charset=utf-8' } }) : json({ error: 'not found' }, 404);
 }
 
+const CLOSED_HTML = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ゆくすいえ　YUKUSUIE: 16 unbuilt futures</title>
+<style>html,body{margin:0;height:100%;background:#FFFAF0;color:#1E2B36;font-family:"Hiragino Sans","BIZ UDPGothic","Zen Maru Gothic",sans-serif}
+main{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px;padding:40px 24px;box-sizing:border-box;text-align:center}
+img{width:min(560px,86vw);height:auto}p{max-width:640px;margin:0;font-size:17px;line-height:2}</style></head>
+<body><main><img src="/brand/lockup-horizontal.svg" alt="ゆくすいえ　YUKUSUIE 16 unbuilt futures">
+<p>ゆくすいえ　YUKUSUIE: 16 unbuilt futures は、Built with Claude: Japan 2026 の審査期間の公開を終了しました。遊んでくださった方、ありがとうございました。</p></main></body></html>`;
+
 export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
     const path = url.pathname;
+    // 公開の終了（2026-11 審査期間のあと）：画面はすべて終了の表示だけ、/api/ はすべて Claude を呼ばずに 410
+    if (env.CLOSED === '1') {
+      if (path.startsWith('/api/')) return json({ ok: false, closed: true, message: '公開を終了しました。' }, 410);
+      if (path === '/brand/lockup-horizontal.svg') return env.ASSETS.fetch(req);
+      return new Response(CLOSED_HTML, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
+    }
     if (!path.startsWith('/api/')) return env.ASSETS.fetch(req);
     try {
       if (path === '/api/health') return json({ ok: true, engine: Y.VERSION, models: { top: modelFor(env, 'trade'), mid: modelFor(env, 'hearing'), light: modelFor(env, 'myai') }, prompts: Object.fromEntries(Object.entries(PROMPTS).map(([k, v]) => [k, v.meta.version])), hasKey: !!env.ANTHROPIC_API_KEY, mode: env.AI_MODE || 'live', usdToday: (await peek(env, `usd:${today()}`)) / 1e6, usdTotal: (await peek(env, 'usd:total')) / 1e6, budget: { day: +(env.DAILY_BUDGET_USD || 10), total: +(env.TOTAL_BUDGET_USD || 100) }, store: !!env.STORE, stop: env.EMERGENCY_STOP === '1', phone: env.PHONE_LINK === '1' });
