@@ -118,7 +118,7 @@ Built with Claude: Japan 2026 の提出作品です（テーマ：あなたに�
 Studio ZaiYa
 
 ## 権利について
-© 2026 KT (Studio ZaiYa). All rights reserved.
+© 2026 Studio ZaiYa. All rights reserved.
 
 連絡先：https://note.com/studio_zaiya
 

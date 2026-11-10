@@ -16,7 +16,7 @@ dt{text-align:right;color:#A9A193}dd{text-align:left}
 <div id="w">
   <div id="mk" style="display:flex;justify-content:center"></div>
   <dl>
-    <dt>企画・設計・演出</dt><dd data-local="producer">KT（Studio ZaiYa）</dd>
+    <dt>企画・設計・演出</dt><dd data-local="producer">Studio ZaiYa</dd>
     <dt>開発</dt><dd>Claude Code ／ Claude</dd>
     <dt>作品の中のAI</dt><dd>Claude API</dd>
     <dt data-local="sponsorLabel" hidden>後援</dt><dd data-local="sponsor" hidden></dd>
@@ -32,7 +32,7 @@ const DUR=+(q.get('dur')||5); window.DUR=DUR;
 document.getElementById('mk').innerHTML=YLOGO.lockupHTML({fs:64,ink:'#F4EFE6'});
 const W=document.getElementById('w');
 // 動画に入れる正式のクレジット（作り手の名前・後援）は、リポジトリに入れない手元のファイル credits.local.json から差し込む（人間の決定 11/5）。
-// 例：{"producer":"…","sponsor":"…"}。ファイルがなければ、リポジトリの表記（KT（Studio ZaiYa）、後援なし）のまま
+// 例：{"producer":"…","sponsor":"…"}。ファイルがなければ、リポジトリの表記（Studio ZaiYa、後援なし）のまま
 window.READY=false;
 (window.CREDITS_LOCAL?Promise.resolve(window.CREDITS_LOCAL):fetch('credits.local.json').then(r=>r.ok?r.json():null).catch(()=>null)).then(j=>{
   if(j){if(j.producer)document.querySelector('[data-local=producer]').textContent=j.producer;

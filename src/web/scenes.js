@@ -732,7 +732,7 @@ export const SCENES = {
       <div class="h2" style="margin-top:30px">遊んでくださって、ありがとうございました。</div>
       <p class="lead">本物の家づくりでも、あなたの「ちょうどいい」が見つかりますように。</p>
       <div style="display:flex;gap:16px;justify-content:center;margin-top:20px"></div>
-      <p class="note" style="margin-top:40px">Built with Claude: Japan 2026　／　© 2026 KT (Studio ZaiYa)</p></div><div class="disc">${NOTICE}</div>`;
+      <p class="note" style="margin-top:40px">Built with Claude: Japan 2026　／　© 2026 Studio ZaiYa</p></div><div class="disc">${NOTICE}</div>`;
   },
 };
 
